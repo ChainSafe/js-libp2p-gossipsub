@@ -1,0 +1,22 @@
+{
+  "name": "gossipsub",
+  "version": "1.0.0",
+  "description": "An experimental Javascript implementation of gossip sub",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChainSafeSystems/gossipsub-js.git"
+  },
+  "keywords": [
+    "gossipsub"
+  ],
+  "author": "Mikerah",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ChainSafeSystems/gossipsub-js/issues"
+  },
+  "homepage": "https://github.com/ChainSafeSystems/gossipsub-js#readme"
+}
