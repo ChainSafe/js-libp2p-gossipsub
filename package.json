@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/ChainSafeSystems/gossipsub-js/issues"
   },
-  "homepage": "https://github.com/ChainSafeSystems/gossipsub-js#readme"
+  "homepage": "https://github.com/ChainSafeSystems/gossipsub-js#readme",
+  "dependencies": {
+    "libp2p": "^0.23.1"
+  }
 }
