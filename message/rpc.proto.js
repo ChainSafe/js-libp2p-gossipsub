@@ -19,9 +19,26 @@ message RPC {
   optional ControlMessage control = 3;
 
   message ControlMessage {
-      repeated ControlIHave ihave = 1;
-      repeated ControlIWant iwant = 2;
-      repeated ControlGraft graft = 3;
-      repeated ControlPrune prune = 4;
+    repeated ControlIHave ihave = 1;
+    repeated ControlIWant iwant = 2;
+    repeated ControlGraft graft = 3;
+    repeated ControlPrune prune = 4;
+  }
+
+  message ControlIHave {
+    optional string topicID = 1;
+    repeated string messageIDs = 2;
+  }
+
+  message ControlIWant {
+    repeated string messageIDs = 1;  
+  }
+
+  message ControlGraft {
+    optional string topicID = 1;
+  }
+
+  message ControlPrune {
+    optional string topicID = 1;
   }
 }`
