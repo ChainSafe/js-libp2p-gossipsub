@@ -54,8 +54,9 @@ class MessageCache {
      *
      */
     Get (msgID) {
-        var m = this.msgs[msgID]
-	return m
+	var bool = this.msgs.has(msgID)
+	var m = this.msgs.get(msgID)
+	return [m, bool]
     }
 
     /**
