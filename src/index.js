@@ -35,11 +35,11 @@ const GossipSubFanoutTTL = 60 // in seconds
 
 class GossipSub extends EventEmitter {
 
-    constructor (debugName, libp2p) {
+    constructor (libp2p) {
         super()
 	
-	this.log = debug(debugName)
-	this.log.err = debug(`${debugName}:error`)
+	this.log = debug('libp2p:gossipsub')
+	this.log.err = debug(`libp2p:gossipsub:error`)
 	this.multicodec = '/gossipsub/1.0.0'
 	this.libp2p = libp2p
 	this.started = false
@@ -137,11 +137,11 @@ class GossipSub extends EventEmitter {
             this.peers.delete(id)
 
             // Remove this peer from the mesh
-            for(let topic, peers of this.mesh.entries()){
+            for(let [topic, peers] of this.mesh){
 	        peers.delete(peer)
 	    }
 	    // Remove this peer from the fanout
-            for (let topic, peers of this.fanout.entries()){
+            for (let [topic, peers] of this.fanout){
 	        peers.delete(peer)
 	    }
 
@@ -187,7 +187,7 @@ class GossipSub extends EventEmitter {
 	        this.log('Gossipsub was stopped, not processing dial to %s', idB58Str)
 		return callback()
 	    }
-	} 
+	}) 
         
        
     }
@@ -256,13 +256,13 @@ class GossipSub extends EventEmitter {
 
     _rpcWithControl(msgs, ihave, iwant, graft, prune) {
         return {
-	    msgs: msgs
-	    control: {
+	    msgs: msgs,
+	    control: {	
 	        ihave: ihave,
-		iwant: iwant,
-		graft: graft,
-		prune: prune
-	    }
+                iwant: iwant,
+	        graft: graft,
+                prune: prune
+            }
 	}
     }
 
@@ -318,10 +318,58 @@ class GossipSub extends EventEmitter {
 
        // @type Set<string>
        tosend = new Set()
-       for (let i, topic of msg.topicIDs.entries()) {
+       for (let [i, topic] of msg.topicIDs.entries()) {
        
        }
 
+   }
+
+   sendGraft(peer, topic) {
+   
+   }
+
+   sendPrune(peer, topic) {
+   
+   }
+
+   sendGraftPrune(tograft, toprune) {
+   
+   }
+ 
+   sendRPC (peer, rpc) {
+   
+   }
+
+   heartbeatTimer() {
+   
+   }
+
+   heartbeat() {
+   
+   }
+
+   emitGossip(topic, peers) {
+   
+   }
+
+   pushGossip(peer, ihave) {
+   
+   }
+
+   piggybackGossip(peer, rpc, ihave) {
+   
+   }
+
+   pushControl(peer, control) {
+   
+   }
+
+   piggybackControl(peer, rpc, control) {
+   
+   }
+
+   flush() {
+   
    }
 
    /**
@@ -385,5 +433,5 @@ class GossipSub extends EventEmitter {
    }
 
 }
-111
+
 module.exports = GossipSub

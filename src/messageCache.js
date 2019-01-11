@@ -66,7 +66,7 @@ class MessageCache {
      */
     GetGossipIDs (topic) {
     	var msgIDs = [];
-	this.history[:this.gossip].forEach(function(entries) {
+	this.history.slice(0, this.gossip).forEach(function(entries) {
 	    entries.forEach(function(entry){
 	        entry.topics.forEach(function(t){
 		    if(t === topic) {
