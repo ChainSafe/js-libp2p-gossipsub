@@ -12,6 +12,7 @@ const debug = require('debug')
 
 const pb = require('./message')
 const MessageCache = require('./messageCache').MessageCache
+const TimeCache = require('time-cache')
 const CacheEntry = require('./messageCache').CacheEntry
 const utils = require('./utils')
 const Peer = require('./peer') // Will switch to js-peer-info once stable
@@ -91,6 +92,12 @@ class GossipSub extends EventEmitter {
 	 *
 	 */
 	this.messageCache = new MessageCache()
+
+        /**
+	 * Time based cache for previously seen messages
+	 *
+	 */
+	this.timeCache = new TimeCache()
 
 	// Dials that are currently in progress
 	this._dials = new Map()
@@ -250,8 +257,8 @@ class GossipSub extends EventEmitter {
 	let prune = this.handleGraft(idB58Str, controlMsg)
 	this.handlePrune(idB58Str, controlMsg)
 
-	out = this._rpcWithControl(ihave, null, iwant, null, prune)
-        	
+	let out = this._rpcWithControl(ihave, null, iwant, null, prune)
+        _sendRpc(rpc.from, out) 	
     }
 
     _rpcWithControl(msgs, ihave, iwant, graft, prune) {
@@ -266,23 +273,78 @@ class GossipSub extends EventEmitter {
 	}
     }
 
-    handleIHave(id, controlMsg) {
-    
+    handleIHave(idB58Str, controlRpc) {
+        let iwant = new Set()
+
+        let ihaveMsgs = controlRpc.ihave
+	ihaveMsgs.forEach(function(msg) {
+	    let topic = msg.topicID
+
+	    if (!this.mesh.has(topic)) {
+	        continue
+	    }
+
+	    let msgIDs = ihaveMsgs.messageIDs
+            msgIDs.forEach(function(msgID){
+	        if (this.timeCache.has(msgID)) {
+		     continue
+		}
+                iwant.add(msgID)
+	    })
+	})
+
+        if (iwant.length === 0) {
+	    return null
+	}
+
+	this.log("IHAVE: Asking for %d messages from %s", iwant.length, idB58Str)
+	let iwantlst = new Array(iwant.length)
+	iwant.forEach(function(msgID) {
+	    iwantlst.push(msgID)
+	})
+
+	const buildIWantMsg = (msg) => {
+	    return {
+		    messageIDs: iwantlst
+	    }
+	}
+	iwantlst.map(buildIWantMsg)
+	return iwantlst
     }
 
-    handleIWant(id, controlMsg) {
-    
+    handleIWant(idB58Str, controlRpc) {
+	// @type {Map<string, pb.Message>}
+        let ihave = new Map()
+
+	let iwantMsgs = controlRpc.iwant
+	iwantMsgs.forEach(function(iwantMsg) {
+	    let iwantMsgIDs = iwantMsg.MessageIDs
+            iwantMsgIDs.forEach(function(msgID){
+	         if (this.messageCache.get(msgID)[1]) {
+		     ihave[msgID] = iwantMsg
+		 }
+	    })
+	})
+
+	if (ihave.length === 0) {
+	    return null
+	}
+
+	this.log("IWANT: Sending %d messages to %s", ihave.length, idB58Str)
+
+	let msgs = new Array(ihave.length)
+	for (let [tmp, msg] of ihave) {
+	    msgs.push(msg)
+	}
+
+	return msgs
     }
 
-    handleGraft(id, controlMsg) {
-    
+    handleGraft(idB58Str, controlMsg) {
+        
     }
 
-    handlePrune(id, controlMsg) {
-    
-    }
-
-    _processRpcControlMsgs() {
+    handlePrune(idB58Str, controlMsg) {
     
     }
     
@@ -336,7 +398,7 @@ class GossipSub extends EventEmitter {
    
    }
  
-   sendRPC (peer, rpc) {
+   _sendRPC (peer, rpc) {
    
    }
 
