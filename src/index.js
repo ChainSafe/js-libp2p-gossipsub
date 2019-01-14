@@ -303,13 +303,13 @@ class GossipSub extends EventEmitter {
 	    iwantlst.push(msgID)
 	})
 
-	const buildIWantMsg = (msg) => {
+	const buildIWantMsg = () => {
 	    return {
 		    messageIDs: iwantlst
 	    }
 	}
-	iwantlst.map(buildIWantMsg)
-	return iwantlst
+	
+	return buildIWantMsg()
     }
 
     handleIWant(idB58Str, controlRpc) {
@@ -320,8 +320,9 @@ class GossipSub extends EventEmitter {
 	iwantMsgs.forEach(function(iwantMsg) {
 	    let iwantMsgIDs = iwantMsg.MessageIDs
             iwantMsgIDs.forEach(function(msgID){
-	         if (this.messageCache.get(msgID)[1]) {
-		     ihave[msgID] = iwantMsg
+	         let msg, ok = this.messageCache.Get(msgID)
+		 if (ok) {
+		     ihave.set(msgID, msg)
 		 }
 	    })
 	})
@@ -340,11 +341,41 @@ class GossipSub extends EventEmitter {
 	return msgs
     }
 
-    handleGraft(idB58Str, controlMsg) {
-        
+    handleGraft(idB58Str, controlRpc) {
+        let prune = []
+
+	let grafts = controlRpc.graft
+        grafts.forEach(function(graft) {
+	    let topic = graft.topicID
+            let ok = this.mesh.has(topic)
+            if (!ok) {
+	        prune.push(topic)
+	    } else {
+	        this.log("GRAFT: Add mesh link from %s in %s", idB58Str, topic)
+		let peers = this.mesh.get(topic)
+		peers.add(idB58Str)
+		// TODO: Need to tag peers with topic
+
+	    }
+	})
+	
+	if(prune.length === 0) {
+	    return null
+	}
+
+	ctrlPrune = new Array(prune.length)
+
+	const buildCtrlPruneMsg = (topic) => {
+	    return {
+		    topicID: topic
+	    }
+	}
+
+	ctrlPrune = prune.map(buildCtrlPruneMsg)
+	return ctrlPrune
     }
 
-    handlePrune(idB58Str, controlMsg) {
+    handlePrune(idB58Str, controlRpc) {
     
     }
     
