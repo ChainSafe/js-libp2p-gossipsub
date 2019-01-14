@@ -273,7 +273,7 @@ class GossipSub extends EventEmitter {
 	}
     }
 
-    handleIHave(idB58Str, controlRpc) {
+    handleIHave(peer, controlRpc) {
         let iwant = new Set()
 
         let ihaveMsgs = controlRpc.ihave
@@ -297,7 +297,7 @@ class GossipSub extends EventEmitter {
 	    return null
 	}
 
-	this.log("IHAVE: Asking for %d messages from %s", iwant.length, idB58Str)
+	this.log("IHAVE: Asking for %d messages from %s", iwant.length, peer.info.id.toB58String)
 	let iwantlst = new Array(iwant.length)
 	iwant.forEach(function(msgID) {
 	    iwantlst.push(msgID)
@@ -312,7 +312,7 @@ class GossipSub extends EventEmitter {
 	return buildIWantMsg()
     }
 
-    handleIWant(idB58Str, controlRpc) {
+    handleIWant(peer, controlRpc) {
 	// @type {Map<string, pb.Message>}
         let ihave = new Map()
 
@@ -331,7 +331,7 @@ class GossipSub extends EventEmitter {
 	    return null
 	}
 
-	this.log("IWANT: Sending %d messages to %s", ihave.length, idB58Str)
+	this.log("IWANT: Sending %d messages to %s", ihave.length, peer.info.id.toB58String)
 
 	let msgs = new Array(ihave.length)
 	for (let [tmp, msg] of ihave) {
@@ -341,7 +341,7 @@ class GossipSub extends EventEmitter {
 	return msgs
     }
 
-    handleGraft(idB58Str, controlRpc) {
+    handleGraft(peer, controlRpc) {
         let prune = []
 
 	let grafts = controlRpc.graft
@@ -351,10 +351,10 @@ class GossipSub extends EventEmitter {
             if (!ok) {
 	        prune.push(topic)
 	    } else {
-	        this.log("GRAFT: Add mesh link from %s in %s", idB58Str, topic)
+	        this.log("GRAFT: Add mesh link from %s in %s", peer.info.id.toB58String, topic)
 		let peers = this.mesh.get(topic)
-		peers.add(idB58Str)
-		// TODO: Need to tag peers with topic
+		peers.add(peer)
+		// TODO: Need to tag peer with topic
 
 	    }
 	})
@@ -375,8 +375,19 @@ class GossipSub extends EventEmitter {
 	return ctrlPrune
     }
 
-    handlePrune(idB58Str, controlRpc) {
-    
+    handlePrune(peer, controlRpc) {
+        let pruneMsgs = controlRpc.prune
+	
+	pruneMsgs.forEach(function(prune){
+	    let topic = prune.topicID
+            let ok = this.mesh.has(topic)
+            let peers = this.mesh.get(topic)
+            if (ok) {
+	        this.log("PRUNE: Remove mesh link to %s in %s", peer.info.id.toB58String, topic)
+		peers.delete(peer)
+		// TODO: Untag peer from topic
+	    }
+	})
     }
     
     /**
