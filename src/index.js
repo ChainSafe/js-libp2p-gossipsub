@@ -2,6 +2,7 @@
 
 const libp2p = require('libp2p')
 const EventEmitter = require('events')
+const FloodSub = require('libp2p-floodsub')
 const values = require('lodash/values')
 const pull = require('pull-stream')
 const empty = require('pull-stream/sources/empty')
@@ -16,6 +17,9 @@ const TimeCache = require('time-cache')
 const CacheEntry = require('./messageCache').CacheEntry
 const utils = require('./utils')
 const Peer = require('./peer') // Will switch to js-peer-info once stable
+
+const FloodSubID = "/floodsub/1.0.0"
+const GossipSubID = "/meshsub/1.0.0"
 
 // Overlay parameters
 const GossipSubD = 6
@@ -34,21 +38,23 @@ const GossipSubHeartbeatInterval = 1 // In seconds
 const GossipSubFanoutTTL = 60 // in seconds
 
 
-class GossipSub extends EventEmitter {
+class GossipSub extends FloodSub {
 
     constructor (libp2p) {
-        super()
+        super('libp2p:gossipsub', '/meshsub/1.0.0', libp2p)
 	
+	/*
 	this.log = debug('libp2p:gossipsub')
 	this.log.err = debug(`libp2p:gossipsub:error`)
-	this.multicodec = '/gossipsub/1.0.0'
+	this.multicodec = '/meshsub/1.0.0'
 	this.libp2p = libp2p
 	this.started = false
+	*/
 
 	/**
-	 * Map of peers.
+	 * Map of peers to the protocol they are using. 
 	 * Some peers will be gossipsub peers while others will be floodsub peers
-	 * @type {Map<string, Peer>}
+	 * @type {Map<string, String>}
 	 */
 	this.peers = new Map()
 
@@ -99,11 +105,20 @@ class GossipSub extends EventEmitter {
 	 */
 	this.timeCache = new TimeCache()
 
+	/**
+	 * Tracks which topics each of our peers are subscribed to
+	 * @type {Map<String, Set<Peer>>}
+	 *
+	 */
+	this.topics = new Map()
+
 	// Dials that are currently in progress
-	this._dials = new Map()
+	this._dials = new Set()
 
 	this._onConnection = this._onConnection.bind(this)
 	this._dialPeer = this._dialPeer.bind(this)
+	
+	this.heartbeatTimer()
     }
 
 
@@ -124,6 +139,7 @@ class GossipSub extends EventEmitter {
         let existing = this.peers.get(id)
         if (!existing) {
             this.log('new peer', id)
+            // Need to add the protocol that the peer is using. 
             this.peers.set(id, peer)
             existing = peer
 
@@ -159,70 +175,6 @@ class GossipSub extends EventEmitter {
 	}
     }
 
-    _dialPeer(peerInfo, callback) {
-        callback = callback || function noop() {}
-	const idB58Str = peerInfo.id.toB58String()
-
-	// If already have a PubSub conn, ignore
-	const peer = this.peers.get(idB58Str)
-	if (peer && peer.isConnected) {
-	    return setImmediate(() => callback())
-	}
-
-	// If already dialing this peer, ignore
-	if (this._dials.has(idB58Str)) {
-	    this.log('already dialing %s, ignoring dial attempt', idB58Str)
-            return setImmediate(() => callback)
-	}
-	this._dials.add(idB58Str)
-
-	this.log('dialing %s', idB58Str)
-	this.libp2p.dialProtocol(peerInfo, this.multicodec, (err, conn) => {
-	    this.log('dial to %s complete', idB58Str)
-
-            // If the dial is not in the set, it means that pubsub has been stopped
-            const gossipsubStopped = !this._dials.has(idB58Str)
-            this._dials.delete(idB58Str)
-
-            if (err) {
-	        this.log.err(err)
-		return callback()
-	    }
-
-	    // Gossipsub has been stopped, so we should just bail out
-            if (gossipsubStopped) {
-	        this.log('Gossipsub was stopped, not processing dial to %s', idB58Str)
-		return callback()
-	    }
-	}) 
-        
-       
-    }
-
-    _onDial (peerInfo, conn, callback) {
-        const idB58Str = peerInfo.id.toB58String()
-	this.log('connected', idB58Str)
-
-	const peer = this._addPeer(new Peer(peerInfo))
-	peer.attachConnection(conn)
-
-        setImmediate(() => callback())
-    }
-
-    _onConnection(protocol, conn) {
-        conn.getPeerInfo((err, peerInfo) => {
-	    if (err) {
-	        this.log.err('Failed to identify incoming conn', err)
-		return pull(empty(), conn)
-	    }
-	})
-
-	const idB58Str = peerInfo.id.toB58String()
-	const peer = this._addPeer(new Peer(peerInfo))
-
-	this._processConnection(idB58Str, conn, peer)
-    }
-
     _processConnection (idB58Str, conn, peer) {
         pull(
 	  conn,
@@ -233,15 +185,6 @@ class GossipSub extends EventEmitter {
             (err) => this._onConnectionEnd(idB58Str, peer, err)
 	  )
 	)
-    }
-
-    _onConnectionEnd(idB58Str, peer, err) {
-        // socket hang up, means the one side canceled
-	if (err && err.message !== 'socket hang up') {
-	    this.log.err(err)
-	}
-	this.log('connection ended', idB58Str, err ? err.message : '')
-	this._removePerr(peer)
     }
     
     _onRpc(idB58Str, rpc) {
@@ -396,9 +339,29 @@ class GossipSub extends EventEmitter {
      *
      */
    join(topic) {
-       gmap = this.mesh.get(topic)
-       
+       let ok = this.mesh.has(topic)
+       let gmap = this.mesh.get(topic)
+       if (ok){
+           return
+       }
+
        this.log("Join " + topic)
+
+       ok = this.fanout.has(topic)
+       gmap = this.fanout.get(topic)
+       if (ok) {
+           this.mesh.set(topic, gmap)
+	   this.fanout.delete(topic)
+	   this.lastpub.delete(topic)
+       } else {
+           // TODO: Get peers and set topic for subset of peers
+       }
+
+       for (let peer of gmap) {
+           this.log("JOIN: Add mesh link to %s in %s", peer.info.id.toB58String, topic)
+	   this.sendGraft(peer, topic)
+	   // TODO: Tag peer with topic
+       }
    
    }
 
@@ -408,7 +371,22 @@ class GossipSub extends EventEmitter {
     *
     */
    leave(topic) {
-   
+       let ok = this.mesh.has(topic)
+       let gmap = this.mesh.get(topic)
+       if (!ok) {
+           return
+       }
+
+       this.log("LEAVE %s", topic)
+
+       this.mesh.delete(topic)
+
+       for (let peer of gmap) {
+           this.log("LEAVE: Remove mesh link to %s in %s", peer.info.id.toB58String, topic)
+	   this.sendPrune(peer, topic)
+	   // TODO: Untage peer
+       }
+
    }
 
    /**
@@ -421,23 +399,35 @@ class GossipSub extends EventEmitter {
        this.messageCache.Put(msg)
 
        // @type Set<string>
-       tosend = new Set()
+       let tosend = new Set()
        for (let [i, topic] of msg.topicIDs.entries()) {
-       
+
+           // TODO: Determine if peer is a floodsub peer or gossipsub peer
        }
 
    }
 
    sendGraft(peer, topic) {
-   
+       let graft = [{
+           topicID: topic
+       }]
+
+       let out = _rpcWithControl(null, null, null, graft, null)
+       this._sendRPC(peer, out)
+
    }
 
    sendPrune(peer, topic) {
-   
+       let prune = [{
+           topicID: topic
+       }]
+
+       let out = _rpcWithControl(null, null, null, null, prune)
+       this._sendRPC(peer, out)
    }
 
    sendGraftPrune(tograft, toprune) {
-   
+       
    }
  
    _sendRPC (peer, rpc) {
@@ -476,64 +466,22 @@ class GossipSub extends EventEmitter {
    
    }
 
-   /**
-    * Mounts the gossipsub protocol onto the libp2p node
-    * @param {Function} callback
-    * @returns {undefined}
-    *
-    */
-   start(callback) {
-       if(this.started) {
-           return setImmediate(() => callback(new Error('already started')))
-       }
-       this.log('starting')
-
-       this.libp2p.handle(this.multicodec, this._onConnection)
-
-       // Speed up any new peer that comes in my way
-       this.libp2p.on('peer:connect', this._dialPeer)
-
-       // Dial already connected peers
-       const peerInfos = Object.values(this.libp2p.peerBook.getAll())
-
-       asyncEach(peerInfos, (peer, cb) => this._dialPeer(peer, cb), (err) =>{
-           setImmediate(() =>{
-	     this.log('started')
-             this.started = true
-             callback(err)
-	   })
-       })
+   _getPeers(topic, count, filter) {
+       
    }
 
    /**
-    * Unmounts the gossipsub protocol and shuts down every connection
-    *
-    * @param {Function} callback
-    * @returns {undefined}
+    * Given a peer, return the protocol is it using
+    * @param {Peer}
+    * @returns {string}
     *
     */
-   stop (callback) {
-       if (!this.started) {
-           return setImmediate(() => callback(new Error('not started yet')))
-       }
+   _getProtocol(peer) {
+   
+   }
 
-       this.libp2p.unhandle(this.multicodec)
-       this.libp2p.removeListener('peer:connect', this._dialPeer)
-
-       // Prevent any dials that are in flight from being processed
-       this._dials = new Set()
-
-       this.log('stopping')
-       asyncEach(this.peers.values(), (peer, cb) => peer.close(cb), (err) => {
-           if (err) {
-	       return callback(err)
-	   }
-
-	   this.log('stopped')
-	   this.peers = new Map()
-	   this.started = false
-	   callback()
-       })
+   _sendRPC(peer, rpc) {
+   
    }
 
 }
