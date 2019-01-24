@@ -134,6 +134,52 @@ class GossipSub extends BaseProtocol {
             this.control.delete(peer)
 	}
     }
+
+    /**
+     * When a peer has dialed into another peer, it sends its subscriptions to it.
+     *
+     * @param {PeerInfo} peerInfo
+     * @param {Connection} conn
+     * @param {Function} callback
+     *
+     * @returns undefined
+     *
+     */
+    _onDial(peerInfo, conn, callback) {
+        super._onDial(peerInfo, conn, (err) => {
+	    if (err) return callback(err)
+            const idB58Str = peerInfo.id.toB58Str()
+            const peer = this.peers.get(idB58Str)
+	    if (peer && peer.isWritable) {
+	        // Immediately send my own subscription to the newly established conn
+		peer.sendSubscriptions(this.subscriptions)
+	    }
+	    setImmediate(() => callback())
+	})
+     
+    }
+
+    /**
+     * Processes a peer's connection to another peer.
+     *
+     * @param {String} idB58Str
+     * @param {Connection} conn
+     * @param {Peer} peer
+     *
+     * @returns undefined
+     *
+     */
+    _processConnection(idB58Str, conn, peer) {
+        pull(
+	  conn,
+	  lp.decode(),
+	  pull.map((data) => RPC.decode(data))
+	  pull.drain(
+	    (rpc) => this._onRpc(idB58Str, rpc),
+            (err) => this._onConnectionEnd(idB58Str, peer, err)
+	  )
+	)
+    }
     
     /**
      * Handles an rpc request from a peer
@@ -358,11 +404,11 @@ class GossipSub extends BaseProtocol {
     }
     
     /**
-     * Joins a topic
+     * Subscribes to a topic
      * @param {String}
      *
      */
-   join(topic) {
+   subscribe(topic) {
        let ok = this.mesh.has(topic)
        let gmap = this.mesh.get(topic)
        if (ok){
@@ -394,7 +440,7 @@ class GossipSub extends BaseProtocol {
     * @param {String}
     *
     */
-   leave(topic) {
+   unsubscribe(topic) {
        let ok = this.mesh.has(topic)
        let gmap = this.mesh.get(topic)
        if (!ok) {
@@ -436,7 +482,7 @@ class GossipSub extends BaseProtocol {
            topicID: topic
        }]
 
-       let out = _rpcWithControl(null, null, null, graft, null)
+       let out = this._rpcWithControl(null, null, null, graft, null)
        this._sendRPC(peer, out)
 
    }
