@@ -450,7 +450,7 @@ class GossipSub extends Pubsub {
 
        for (let peer of gmap) {
            this.log("LEAVE: Remove mesh link to %s in %s", peer.info.id.toB58String, topic)
-	   this.sendPrune(peer, topic)
+	   this._sendPrune(peer, topic)
 	   this.peer.topics.delete(topic)
 	   
        }
@@ -468,11 +468,52 @@ class GossipSub extends Pubsub {
 
        // @type Set<string>
        let tosend = new Set()
-       for (let [i, topic] of msg.topicIDs.entries()) {
-           // Retrieve peers in a topic
+       msg.topicIDs.forEach((topic) => {
+           if (!this.topics.has(topic)) {
+	       continue
+	   }
 
-           // TODO: Determine if peer is a floodsub peer or gossipsub peer
-       }
+	   let peersInTopic = this.topics.get(topic)
+	   
+	   // floodsub peers
+	   peersInTopic.forEach((peer) => {
+	       if (peer.info.protocols.has(FloodSubID)) {
+	           tosend.add(peer)
+	       }
+	   })
+
+	   // Gossipsub peers handling
+	   if (!this.mesh.has(topic)) {
+	       // We are not in the mesh for topic, use fanout peers
+	       if (!this.fanout.has(topic)) {
+	           // If we are not in the fanout, then pick any peers
+		   let peers = this._getPeers(topic, GossipSubD)
+
+		   if(peers.size > 0) {
+		       this.fanout.set(topic, peers)
+		   }
+	       }
+	       // Store the latest publishing time
+	       const nowInNano => () {
+	           return Date.now()/1000000
+	       }
+	       this.lastpub.set(topic, nowInNano())
+	   }
+
+	   let meshPeers = this.mesh.get(topic)
+	   meshPeers.forEach((peer) => {
+	       tosend.add(peer)
+	   })
+       })
+       // Publish messages to peers
+       tosend.forEach((peer) => {
+           let peerId = peer.info.id.getB58Str()
+	   if (peerId === from || peerId = msg.from) {
+	       continue
+	   }
+	   peer.sendMessages(msg)
+       })
+
 
    }
 
@@ -490,6 +531,7 @@ class GossipSub extends Pubsub {
        let out = this._rpcWithControl(null, null, null, graft, null)
        if(peer && peer.isWritable()) {
            peer.write(out)
+	   peer.sendSubscriptions([topic])
        }
    }
 
@@ -501,6 +543,7 @@ class GossipSub extends Pubsub {
        let out = _rpcWithControl(null, null, null, null, prune)
        if(peer && peer.isWritable()) {
           peer.write(out)
+	  peer.sendUnsubscriptions([topic])
        }
 
    }
@@ -568,16 +611,6 @@ class GossipSub extends Pubsub {
 
        peers = new Set(peers)
        return peers
-   }
-
-   /**
-    * Given a peer, return the protocol is it using
-    * @param {Peer}
-    * @returns {string}
-    *
-    */
-   _getProtocol(peer) {
-   
    }
 
 }
