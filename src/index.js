@@ -1,19 +1,17 @@
 'use strict'
 
 const libp2p = require('libp2p')
-const FloodSub = require('libp2p-floodsub')
-const BaseProtocol = require('./base.js')
+const Pubsub = require('libp2p-pubsub')
+
 const pull = require('pull-stream')
 const lp = require('pull-length-prefixed')
 const asyncEach = require('async/each')
 const setImmediate = require('async/setImmediate')
 
-const pb = require('./message')
 const MessageCache = require('./messageCache').MessageCache
 const TimeCache = require('time-cache')
 const CacheEntry = require('./messageCache').CacheEntry
 const utils = require('./utils')
-const Peer = require('./peer') // Will switch to js-peer-info once stable
 
 const RPC = require('./message').rpc.RPC
 
@@ -37,7 +35,7 @@ const GossipSubHeartbeatInterval = 1 // In seconds
 const GossipSubFanoutTTL = 60 // in seconds
 
 
-class GossipSub extends BaseProtocol {
+class GossipSub extends Pubsub {
 
     /**
      * @param {Object} libp2p
@@ -45,7 +43,7 @@ class GossipSub extends BaseProtocol {
      *
      */
     constructor (libp2p) {
-        super('libp2p:gossipsub', '/meshsub/1.0.0', libp2p)
+        super('libp2p:gossipsub', GossipSubID, libp2p)
 
 	/**
 	 * Map of topic meshes
@@ -108,7 +106,7 @@ class GossipSub extends BaseProtocol {
      * Removes a peer from the router
      * 
      * @param {Peer} peer
-     * @returns undefined
+     * @returns {undefined}
      */
     _removePeer (peer) {
         const id = peer.info.id.toB58String()
@@ -155,8 +153,7 @@ class GossipSub extends BaseProtocol {
 		peer.sendSubscriptions(this.subscriptions)
 	    }
 	    setImmediate(() => callback())
-	})
-     
+	})     
     }
 
     /**
@@ -173,7 +170,7 @@ class GossipSub extends BaseProtocol {
         pull(
 	  conn,
 	  lp.decode(),
-	  pull.map((data) => RPC.decode(data))
+	  pull.map((data) => RPC.decode(data)),
 	  pull.drain(
 	    (rpc) => this._onRpc(idB58Str, rpc),
             (err) => this._onConnectionEnd(idB58Str, peer, err)
@@ -186,7 +183,7 @@ class GossipSub extends BaseProtocol {
      *
      * @param {String} idB58Str
      * @param {Object} rpc
-     * @returns undefined
+     * @returns {undefined}
      */
     _onRpc(idB58Str, rpc) {
         if(!rpc){
@@ -200,10 +197,10 @@ class GossipSub extends BaseProtocol {
 	    return
 	}
 
-	let iWant = this.handleIHave(idB58Str, controlMsg)
-	let iHave = this.handleIWant(idB58Str, controlMsg)
-	let prune = this.handleGraft(idB58Str, controlMsg)
-	this.handlePrune(idB58Str, controlMsg)
+	let iWant = this._handleIHave(idB58Str, controlMsg)
+	let iHave = this._handleIWant(idB58Str, controlMsg)
+	let prune = this._handleGraft(idB58Str, controlMsg)
+	this._handlePrune(idB58Str, controlMsg)
 
 	if(!(iWant || iWant.length) && !(iHave || iHave.length) && !(prune || prune.length)) {
 	    return
@@ -246,7 +243,7 @@ class GossipSub extends BaseProtocol {
      * 
      * @returns {RPC.ControlIWant}
      */
-    handleIHave(peer, controlRpc) {
+    _handleIHave(peer, controlRpc) {
         let iwant = new Set()
 
         let ihaveMsgs = controlRpc.ihave
@@ -293,7 +290,7 @@ class GossipSub extends BaseProtocol {
      *
      * @returns {Array<RPC.Message>}
      */
-    handleIWant(peer, controlRpc) {
+    _handleIWant(peer, controlRpc) {
 	// @type {Map<string, RPC.Message>}
         let ihave = new Map()
 
@@ -339,7 +336,7 @@ class GossipSub extends BaseProtocol {
      * @return {Array<RPC.ControlPrune>}
      *
      */
-    handleGraft(peer, controlRpc) {
+    _handleGraft(peer, controlRpc) {
         let prune = []
 
 	let grafts = controlRpc.graft
@@ -385,7 +382,7 @@ class GossipSub extends BaseProtocol {
      * @returns undefined
      *
      */
-    handlePrune(peer, controlRpc) {
+    _handlePrune(peer, controlRpc) {
         let pruneMsgs = controlRpc.prune
         if(!(pruneMsgs || pruneMsgs.length)) {
 	    return
@@ -409,30 +406,30 @@ class GossipSub extends BaseProtocol {
      *
      */
    subscribe(topic) {
-       let ok = this.mesh.has(topic)
-       let gmap = this.mesh.get(topic)
-       if (ok){
+       assert(this.started, 'GossipSub has not started')
+       if (this.mesh.has(topic)) {
            return
        }
 
        this.log("Join " + topic)
 
-       ok = this.fanout.has(topic)
-       gmap = this.fanout.get(topic)
-       if (ok) {
-           this.mesh.set(topic, gmap)
+       let gossipSubPeers = this.fanout.get(topic)
+       if(this.fanout.has(topic)) {
+           this.mesh.set(topic, gossipSubPeers)
 	   this.fanout.delete(topic)
 	   this.lastpub.delete(topic)
        } else {
-           // TODO: Get peers and set topic for subset of peers
+           gossipSubPeers = this._getPeers(topic, GossipSubD)
+	   this.mesh.set(topic, gossipSubPeers)
        }
 
-       for (let peer of gmap) {
+       gossipSubPeers.forEach((peer) => {
            this.log("JOIN: Add mesh link to %s in %s", peer.info.id.toB58String, topic)
-	   this.sendGraft(peer, topic)
-	   // TODO: Tag peer with topic
-       }
-   
+	   this._sendGraft(peer, topic)
+	   peer.topics.add(topic)
+       })
+
+       
    }
 
    /**
@@ -454,7 +451,8 @@ class GossipSub extends BaseProtocol {
        for (let peer of gmap) {
            this.log("LEAVE: Remove mesh link to %s in %s", peer.info.id.toB58String, topic)
 	   this.sendPrune(peer, topic)
-	   // TODO: Untage peer
+	   this.peer.topics.delete(topic)
+	   
        }
 
    }
@@ -471,37 +469,44 @@ class GossipSub extends BaseProtocol {
        // @type Set<string>
        let tosend = new Set()
        for (let [i, topic] of msg.topicIDs.entries()) {
+           // Retrieve peers in a topic
 
            // TODO: Determine if peer is a floodsub peer or gossipsub peer
        }
 
    }
 
-   sendGraft(peer, topic) {
+   /**
+    * Sends a GRAFT message to a peer
+    *
+    * @param {Peer} peer 
+    * @param {String} topic
+    */
+   _sendGraft(peer, topic) {
        let graft = [{
            topicID: topic
        }]
 
        let out = this._rpcWithControl(null, null, null, graft, null)
-       this._sendRPC(peer, out)
-
+       if(peer && peer.isWritable()) {
+           peer.write(out)
+       }
    }
 
-   sendPrune(peer, topic) {
-       let prune = [{
+   _sendPrune(peer, topic) {
+       let prune = [RPC.ControlPrune.encode({
            topicID: topic
-       }]
+       })]
 
        let out = _rpcWithControl(null, null, null, null, prune)
-       this._sendRPC(peer, out)
+       if(peer && peer.isWritable()) {
+          peer.write(out)
+       }
+
    }
 
    sendGraftPrune(tograft, toprune) {
        
-   }
- 
-   _sendRPC (peer, rpc) {
-   
    }
 
    heartbeatTimer() {
@@ -520,24 +525,49 @@ class GossipSub extends BaseProtocol {
    
    }
 
-   piggybackGossip(peer, rpc, ihave) {
-   
-   }
-
    pushControl(peer, control) {
    
    }
 
-   piggybackControl(peer, rpc, control) {
-   
-   }
+   /**
+    * Given a topic, returns up to count peers subscribed to that topic
+    *
+    * @param {String} topic
+    * @param {Number} count
+    *
+    * @returns {Set<Peer>}
+    *
+    */
+   _getPeers(topic, count) {
+       if (!(this.topics.has(topic))) {
+           return
+       }
 
-   flush() {
-   
-   }
+       // Adds all peers using GossipSub protocol
+       let peersInTopic = this.topics.get(topic)
+       let peers = new Array(peersInTopic.length)
+       peersInTopic.forEach((peer) => {
+           if(peer.info.protocols.has(GossipSubID)) {
+	       peers.add(peer)
+	   }
+       })
 
-   _getPeers(topic, count, filter) {
+       // Pseudo-randomly shuffles peers
+       for (let i = 0; i < peers.size; i++) {
+          const randInt = () => {
+	      return Math.floor(Math.random() * Math.floor(max))
+	  }
+
+	  let j = randInt();
+	  peer[i], peer[j] = peer[j], peer[i]
+       }
        
+       if (count > 0 && peers.length > count) {
+           peers = peers.slice(0, count)
+       }
+
+       peers = new Set(peers)
+       return peers
    }
 
    /**
@@ -547,10 +577,6 @@ class GossipSub extends BaseProtocol {
     *
     */
    _getProtocol(peer) {
-   
-   }
-
-   _sendRPC(peer, rpc) {
    
    }
 
