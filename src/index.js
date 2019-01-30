@@ -99,7 +99,7 @@ class GossipSub extends Pubsub {
 	 */
 	this.topics = new Map()
 	
-	this.heartbeatTimer()
+	this._heartbeatTimer()
     }
 
     /**
@@ -494,10 +494,7 @@ class GossipSub extends Pubsub {
 		   }
 	       }
 	       // Store the latest publishing time
-	       const nowInNano => () {
-	           return Date.now()/1000000
-	       }
-	       this.lastpub.set(topic, nowInNano())
+	       this.lastpub.set(topic, _nowInNano())
 	   }
 
 	   let meshPeers = this.mesh.get(topic)
@@ -508,7 +505,7 @@ class GossipSub extends Pubsub {
        // Publish messages to peers
        tosend.forEach((peer) => {
            let peerId = peer.info.id.getB58Str()
-	   if (peerId === from || peerId = msg.from) {
+	       if (peerId === from || peerId === msg.from) {
 	       continue
 	   }
 	   peer.sendMessages(msg)
@@ -548,29 +545,103 @@ class GossipSub extends Pubsub {
 
    }
 
-   sendGraftPrune(tograft, toprune) {
+   _heartbeatTimer() {
+   
+   }
+
+   /**
+    * Maintains the mesh and fanout maps in gossipsub. 
+    *
+    */
+   _heartbeat() {
+
+       /**
+	* @type {Map<Peer, Array<String>>}
+	*/
+       let tograft = new Map()
+       let toprune = new Map()
+
+       // maintain the mesh for topics we have joined
+       for (let [topic, peers] of this.mesh) {
+           
+           // do we have enough peers?
+	   if (peers.size < GossipSubDlo) {
+	       let ineed = GossipSubD - peers.size
+	       let peersSet = this._getPeers(topic, ineed)
+	        peersSet.forEach((peer) => {
+	            if (!peers.has(peer)) {
+		        continue
+		    }
+
+	            this.log("HEARTBEAT: Add mesh link to %s in %s", peer.info.id.toB58Str, topic)
+	            peers.add(peer)
+	            peer.topics.add(topic)
+	            tograft.set(peer, tograft.get(peer).push(topic))
+	       })
+	   }
+
+	   // do we have to many peers?
+	   if (peers.size > GossipSubDhi) {
+	       let idontneed = peers.size - GossipSubD
+	       let peersArray = new Array(peers)
+	       peersArray = this_shufflePeers(peersArray)
+
+	       let tmp = peersArray.slice(0, idontneed)
+	       tmp.forEach((peer) => {
+	           this.log("HEARTBEAT: Remove mesh link to %s in %s", peer.info.id.toB58Str, topic)
+		   peers.delete(peer)
+		   peer.topics.remove(topic)
+		   toprune.set(peer, toprune.get(peer).push(topic))
+	       })
+	   }
+
+	   this._emitGossip(topic, peers)
+       }
+
+       // expire fanout for topics we haven't published to in a while
+       let now = this._nowInNano()
+       this.lastpub.forEach((topic, lastpb) => {
+           if ((lastpb + GossipSubFanoutTTL) < now) {
+	       this.fanout.delete(topic)
+	       this.lastpub.delete(topic)
+	   }
+       })
+
+       // maintain our fanout for topics we are publishing but we have not joined
+       this.fanout.forEach((topic, peers) => {
+           // checks whether our peers are still in the topic
+	   peers.forEach((peer) => {
+	       if(this.topics.has(peer)) {
+	           peers.delete(peer)
+	       }
+	   })
+
+	   // do we need more peers?
+	   if (peers.size < GossipSubD) {
+	       let ineed = GossipSubD - peers.size
+               peersSet = this._getPeers(topic, ineed)
+	       peersSet.forEach((peer) => {
+	            if(!peers.has(peer)) {
+		        continue
+		    }
+
+		    peers.add(peer)
+	       })
+	     
+	   }
+
+	   this._emitGossip(topic, peers)
+       })
+
+       // advance the message history window
+       this.messageCache.Shift()
        
    }
 
-   heartbeatTimer() {
+   _emitGossip(topic, peers) {
    
    }
 
-   heartbeat() {
-   
-   }
-
-   emitGossip(topic, peers) {
-   
-   }
-
-   pushGossip(peer, ihave) {
-   
-   }
-
-   pushControl(peer, control) {
-   
-   }
 
    /**
     * Given a topic, returns up to count peers subscribed to that topic
@@ -596,14 +667,7 @@ class GossipSub extends Pubsub {
        })
 
        // Pseudo-randomly shuffles peers
-       for (let i = 0; i < peers.size; i++) {
-          const randInt = () => {
-	      return Math.floor(Math.random() * Math.floor(max))
-	  }
-
-	  let j = randInt();
-	  peer[i], peer[j] = peer[j], peer[i]
-       }
+       peers = this._shufflePeers(peers)
        
        if (count > 0 && peers.length > count) {
            peers = peers.slice(0, count)
@@ -611,6 +675,24 @@ class GossipSub extends Pubsub {
 
        peers = new Set(peers)
        return peers
+   }
+
+   _shufflePeers(peers) {
+       for (let i = 0; i < peers.size; i++) {
+           const randInt = () => {
+	       return Math.floor(Math.random() * Math.floor(max))
+	   }
+
+	   let j = randInt()
+	   peers[i], peers[j] = peers[j], peers[i]
+
+	   return peers
+       }
+       
+   }
+
+   _nowInNano() {
+       return Math.floor(Date.now/1000000)
    }
 
 }

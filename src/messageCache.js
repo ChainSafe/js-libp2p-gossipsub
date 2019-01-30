@@ -1,4 +1,4 @@
-const pb = require('./message')
+const RPC = require('./message').rpc.RPC
 const utils = require('./utils')
 /**
  * This file implements the Message Cache API provided in https://github.com/libp2p/go-libp2p-pubsub/blob/master/mcache.go#L15 used in gossip sub to store messages that were sent for the last few heartbeat ticks.
@@ -22,15 +22,17 @@ class CacheEntry {
 class MessageCache {
 
     /**
-     * @param {Map<String, pb.rpc.RPC.Message>}
-     * @param {CacheEntry[][]}
-     * @param {Number}
+     * @param {Number} gossip
+     * @param {Number} history
      *
      * @constructor
      */
-    constructor (msgs, history, gossip) {
-        this.msgs = msgs
-	this.history = history
+    constructor (gossip, history) {
+	/**
+	 * @type {Map<string, RPC.Message>}
+	 */
+        this.msgs = new Map()
+	this.history = new Array(history).fill(new CacheEntry()).map(() => new Array(history).fill(new CacheEntry()))
 	this.gossip = gossip
     }
 
