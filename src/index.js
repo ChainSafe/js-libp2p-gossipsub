@@ -69,7 +69,7 @@ class GossipSub extends Pubsub {
 	/**
 	 * Map of pending messages to gossip
 	 *
-	 * @type {Map<Peer, string[]> }
+	 * @type {Map<Peer, Array<String>> }
 	 */
 	this.gossip = new Map()
 	
@@ -84,7 +84,7 @@ class GossipSub extends Pubsub {
 	 * A message cache that contains the messages for last few hearbeat ticks
 	 *
 	 */
-	this.messageCache = new MessageCache()
+	this.messageCache = new MessageCache(GossipSubHistoryGossip, GossipSubHistoryLength)
 
         /**
 	 * Time based cache for previously seen messages
@@ -532,6 +532,13 @@ class GossipSub extends Pubsub {
        }
    }
 
+   /**
+    * Sends a PRUNE message to a peer
+    *
+    * @param {Peer} peer
+    * @param {String} topic
+    *
+    */
    _sendPrune(peer, topic) {
        let prune = [RPC.ControlPrune.encode({
            topicID: topic
@@ -639,7 +646,34 @@ class GossipSub extends Pubsub {
    }
 
    _emitGossip(topic, peers) {
-   
+       let messageIDs = this.messageCache.GetGossipIDs(topic)
+       if(messageIDs.length === 0) {
+           return
+       }
+
+       gossipSubPeers = this._getPeers(topic, GossipSubD)
+       gossipSubPeers.forEach((peer) => {
+           // skip mesh peers
+	   if(!peers.has(peer)) {
+	       this._pushGossip(p, RPC.ControlIHave.encode({
+	            topicID: topic,
+		    messageIDs: messageIDs
+	       }))
+	   }
+       })
+   }
+
+   /**
+    * Adds new IHAVE messages to pending gossip
+    *
+    * @param {Peer} peer
+    * @param {Array<RPC.ControlIHave>} controlIHaveMsgs
+    *
+    */
+   _pushGossip(peer, controlIHaveMsgs) {
+       let gossip = this.gossip.get(peer)
+       gossip = gossip.concat(controlIHaveMsgs)
+       this.gossip.set(peer, gossip)
    }
 
 
