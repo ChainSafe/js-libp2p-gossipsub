@@ -553,7 +553,29 @@ class GossipSub extends Pubsub {
    }
 
    _heartbeatTimer() {
-   
+       const heartbeatPromise = new Promise((resolve, reject) => {
+           setTimeout(() => {
+	       this._heartbeat()
+	   }, GossipSubHeartbeatInitialDelay)
+	   
+       }).catch(
+            () => {
+		return
+	    })
+
+       const setIntervalId = 0
+       for (;;){
+           repeatHeartbeatPromise = new Promise((resolve, reject) => {
+	       setIntervalId = setInterval(() => {
+	           this._heartbeat
+	       }, GossipSubHeartbeatInterval)
+	   }).catch(
+	       () => {
+	           clearInterval(setIntervalId)
+		   return
+	       }
+	   )
+       }
    }
 
    /**
