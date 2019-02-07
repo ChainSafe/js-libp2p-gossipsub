@@ -43,7 +43,7 @@ class MessageCache {
      * @param {pb.rpc.RPC.Message}
      *
      */
-    Put (msg) {
+    put (msg) {
 	var msgID = utils.msgId(msg.from, msg.seqno)
 	this.msgs[msgID] = msg
 	this.history[0] = history[0].concat(new CacheEntry(msgID, msg.topicIDs))
@@ -55,7 +55,7 @@ class MessageCache {
      * @param {String}
      *
      */
-    Get (msgID) {
+    get (msgID) {
 	var bool = this.msgs.has(msgID)
 	var m = this.msgs.get(msgID)
 	return [m, bool]
@@ -67,7 +67,7 @@ class MessageCache {
      * @param {String}
      *
      */
-    GetGossipIDs (topic) {
+    getGossipIDs (topic) {
     	var msgIDs = [];
 	this.history.slice(0, this.gossip).forEach(function(entries) {
 	    entries.forEach(function(entry){
@@ -83,19 +83,11 @@ class MessageCache {
     }
 
     /**
-     * Retrieves the messages IDs for a messages in the curent history window
-     *
-     */
-    Window () {
-
-    }
-
-    /**
      * Shifts the current window, discarding messages older than the history
      * length of the cache.
      *
      */
-    Shift () {
+    shift () {
         var last = this.history[this.history.length - 1]
 	last.forEach(function(entry){
 	    this.msgs.delete(entry.msgID)
