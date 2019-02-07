@@ -22,8 +22,10 @@
   "dependencies": {
     "google-protobuf": "^3.6.1",
     "libp2p": "^0.23.1",
-    "libp2p-floodsub": "^0.15.0",
-    "protons": "^1.0.1"
+    "libp2p-floodsub": "^0.15.7",
+    "libp2p-pubsub": "0.0.1",
+    "protons": "^1.0.1",
+    "time-cache": "^0.3.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",
