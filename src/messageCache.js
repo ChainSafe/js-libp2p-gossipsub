@@ -40,7 +40,7 @@ class MessageCache {
      * Adds a message to the current window and the cache
      * @note: I don't think this reproduce the same functionality as the Go
      * implementation at the moment.
-     * @param {pb.rpc.RPC.Message}
+     * @param {pb.rpc.RPC.Message Object}
      *
      */
     put (msg) {
@@ -69,9 +69,9 @@ class MessageCache {
      */
     getGossipIDs (topic) {
     	var msgIDs = [];
-	this.history.slice(0, this.gossip).forEach(function(entries) {
-	    entries.forEach(function(entry){
-	        entry.topics.forEach(function(t){
+	this.history.slice(0, this.gossip).forEach((entries) => {
+	    entries.forEach((entry) => {
+	        entry.topics.forEach((t) => {
 		    if(t === topic) {
 		        msgIDs = msgIDs.concat(entry.msgID)
 		    }
@@ -89,7 +89,7 @@ class MessageCache {
      */
     shift () {
         var last = this.history[this.history.length - 1]
-	last.forEach(function(entry){
+	last.forEach((entry) => {
 	    this.msgs.delete(entry.msgID)
 	})
 
