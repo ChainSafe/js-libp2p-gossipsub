@@ -32,7 +32,18 @@ class MessageCache {
 	 * @type {Map<string, RPC.Message>}
 	 */
         this.msgs = new Map()
-	this.history = new Array(history).fill(new CacheEntry()).map(() => new Array(history).fill(new CacheEntry()))
+
+	/**
+	 * @type {Array<Array{CacheEntry}>}
+	 */
+	this.history = []
+	for (let i=0; i < history; i++){
+	     this.history.push([])
+	}
+	
+	/**
+	 * @type {Number}
+	 */
 	this.gossip = gossip
     }
 
@@ -45,8 +56,8 @@ class MessageCache {
      */
     put (msg) {
 	var msgID = utils.msgId(msg.from, msg.seqno)
-	this.msgs[msgID] = msg
-	this.history[0] = history[0].concat(new CacheEntry(msgID, msg.topicIDs))
+	this.msgs.set(msgID, msg)
+	this.history[0].push(new CacheEntry(msgID, msg.topicIDs))
     }
 
     /**
@@ -71,11 +82,12 @@ class MessageCache {
     	var msgIDs = [];
 	this.history.slice(0, this.gossip).forEach((entries) => {
 	    entries.forEach((entry) => {
-	        entry.topics.forEach((t) => {
+	        for(let t of entry.topics) {
 		    if(t === topic) {
-		        msgIDs = msgIDs.concat(entry.msgID)
+		        msgIDs.push(entry.msgID)
+			break;
 		    }
-		})
+		}
 	    })
 	})
 
@@ -93,7 +105,9 @@ class MessageCache {
 	    this.msgs.delete(entry.msgID)
 	})
 
-	this.history.shift()
+	this.history.pop()
+
+	this.history.splice(0, 0, [])
     }
 }
 
