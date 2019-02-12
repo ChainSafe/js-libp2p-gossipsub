@@ -107,16 +107,14 @@ describe('Testing Message Cache Operations', () => {
 
 	expect(messageCache.msgs.size).to.equal(50)
 
-	for (let i=0; i < 10; i++) {
+	for(let i=0; i < 10; i++) {
 	    let messageID = getMsgID(testMessages[i])
-            console.log(messageID)
-	    console.log(messageCache.msgs.keys())
             let res = messageCache.get(messageID) 
             let has = res[1]
-            expect(has).to.be.true
+            expect(has).to.be.false
 	}
 
-	for (let i=10; i < 60; i++) {
+	for(let i=10; i < 60; i++) {
 	    let messageID = getMsgID(testMessages[i])
             let res = messageCache.get(messageID)
             let msg = res[0]
@@ -128,17 +126,17 @@ describe('Testing Message Cache Operations', () => {
 	gossipIDs = messageCache.getGossipIDs("test")
 	expect(gossipIDs.length).to.equal(30)
 
-	for (let i=0; i < 10; i++) {
+	for(let i=0; i < 10; i++) {
 	    let messageID = getMsgID(testMessages[50+i])
             expect(messageID).to.equal(gossipIDs[i])
 	}
 
-	for (let i=10; i < 20; i++) {
+	for(let i=10; i < 20; i++) {
 	    let messageID = getMsgID(testMessages[30+i])
             expect(messageID).to.equal(gossipIDs[i])
 	}
 
-	for (let i=20; i < 30; i++) {
+	for(let i=20; i < 30; i++) {
 	    let messageID = getMsgID(testMessages[10+i])
             expect(messageID).to.equal(gossipIDs[i])
 	}

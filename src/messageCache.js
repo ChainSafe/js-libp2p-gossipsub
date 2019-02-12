@@ -49,8 +49,7 @@ class MessageCache {
 
     /**
      * Adds a message to the current window and the cache
-     * @note: I don't think this reproduce the same functionality as the Go
-     * implementation at the moment.
+     *
      * @param {pb.rpc.RPC.Message Object}
      *
      */
@@ -106,8 +105,7 @@ class MessageCache {
 	})
 
 	this.history.pop()
-
-	this.history.splice(0, 0, [])
+        this.history.unshift([])
     }
 }
 
