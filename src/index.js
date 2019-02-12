@@ -61,7 +61,7 @@ class GossipSub extends Pubsub {
 
 	/**
 	 * Map of last publish time for fanout topics
-	 * Note: Could use https://github.com/chjj/n64 to get an int64 obj in JS
+	 *
 	 *@type {Map<string,int64>}
 	 */
 	this.lastpub = new Map()
@@ -85,12 +85,6 @@ class GossipSub extends Pubsub {
 	 *
 	 */
 	this.messageCache = new MessageCache(GossipSubHistoryGossip, GossipSubHistoryLength)
-
-        /**
-	 * Time based cache for previously seen messages
-	 *
-	 */
-	this.timeCache = new TimeCache()
 
 	/**
 	 * Tracks which topics each of our peers are subscribed to
@@ -220,28 +214,28 @@ class GossipSub extends Pubsub {
      * @param {Array<RPC.ControlGraft>} graft
      * @param {Array<RPC.Prune>} prune
      *
-     * @returns {Buffer}
+     * @returns {RPC Object}
      *
      */
     _rpcWithControl(msgs, ihave, iwant, graft, prune) {
-        return RPC.encode({
+        return {
 	    msgs: msgs,
-	    control: RPC.ControlMessage.encode({	
+	    control: {	
 	        ihave: ihave,
                 iwant: iwant,
 	        graft: graft,
                 prune: prune
-            })
-	})
+            }
+	}
     }
 
     /**
      * Handles IHAVE messages
      *
      * @param {Peer} peer
-     * @param {RPC.control} controlRpc
+     * @param {RPC.controlMessage Object} controlRpc
      * 
-     * @returns {RPC.ControlIWant}
+     * @returns {RPC.ControlIWant Object}
      */
     _handleIHave(peer, controlRpc) {
         let iwant = new Set()
@@ -277,9 +271,9 @@ class GossipSub extends Pubsub {
 	    iwantlst.push(msgID)
 	})
 	
-	return RPC.ControlIWant.encode({
+	return {
 		messageIDs: iwantlst
-	})
+	}
     }
 
     /**
@@ -306,7 +300,7 @@ class GossipSub extends Pubsub {
 	    }
 
             iwantMsgIDs.forEach(function(msgID){
-	         let msg, ok = this.messageCache.Get(msgID)
+	         let msg, ok = this.messageCache.get(msgID)
 		 if (ok) {
 		     ihave.set(msgID, msg)
 		 }
@@ -364,9 +358,9 @@ class GossipSub extends Pubsub {
 	ctrlPrune = new Array(prune.length)
 
 	const buildCtrlPruneMsg = (topic) => {
-	    return RPC.ControlPrune.encode({
+	    return {
 		    topicID: topic
-	    })
+	    }
 	}
 
 	ctrlPrune = prune.map(buildCtrlPruneMsg)
@@ -527,7 +521,7 @@ class GossipSub extends Pubsub {
 
        let out = this._rpcWithControl(null, null, null, graft, null)
        if(peer && peer.isWritable()) {
-           peer.write(out)
+           peer.write(RPC.encode(out))
 	   peer.sendSubscriptions([topic])
        }
    }
@@ -540,13 +534,13 @@ class GossipSub extends Pubsub {
     *
     */
    _sendPrune(peer, topic) {
-       let prune = [RPC.ControlPrune.encode({
+       let prune = [{
            topicID: topic
-       })]
+       }]
 
        let out = _rpcWithControl(null, null, null, null, prune)
        if(peer && peer.isWritable()) {
-          peer.write(out)
+          peer.write(RPC.encode(out))
 	  peer.sendUnsubscriptions([topic])
        }
 
@@ -663,12 +657,12 @@ class GossipSub extends Pubsub {
        })
 
        // advance the message history window
-       this.messageCache.Shift()
+       this.messageCache.shift()
        
    }
 
    _emitGossip(topic, peers) {
-       let messageIDs = this.messageCache.GetGossipIDs(topic)
+       let messageIDs = this.messageCache.getGossipIDs(topic)
        if(messageIDs.length === 0) {
            return
        }
@@ -677,10 +671,10 @@ class GossipSub extends Pubsub {
        gossipSubPeers.forEach((peer) => {
            // skip mesh peers
 	   if(!peers.has(peer)) {
-	       this._pushGossip(p, RPC.ControlIHave.encode({
+	       this._pushGossip(p, {
 	            topicID: topic,
 		    messageIDs: messageIDs
-	       }))
+	       })
 	   }
        })
    }
