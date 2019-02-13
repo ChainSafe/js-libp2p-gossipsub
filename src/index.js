@@ -35,7 +35,7 @@ class GossipSub extends Pubsub {
 	this.mesh = new Map()
 
 	/**
-	 * Map of topics to lists of peers. These mesh peers are peers to which we are publishing to without topic membership
+	 * Map of topics to lists of peers. These mesh peers are the ones to which we are publishing without a topic membership
 	 *
 	 *@type {Map<string, Set<Peer>>}
 	 */
