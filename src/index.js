@@ -14,25 +14,7 @@ const CacheEntry = require('./messageCache').CacheEntry
 const utils = require('./utils')
 
 const RPC = require('./message').rpc.RPC
-
-const FloodSubID = "/floodsub/1.0.0"
-const GossipSubID = "/meshsub/1.0.0"
-
-// Overlay parameters
-const GossipSubD = 6
-const GossipSubDlo = 4
-const GossipSubDhi = 12
-
-// Gossip parameters
-const GossipSubHistoryLength = 5
-const GossipSubHistoryGossip = 3
-
-// Heartbeat interval
-const GossipSubHeartbeatInitialDelay = 100 // In milliseconds
-const GossipSubHeartbeatInterval = 1 // In seconds
-
-// Fanout ttl
-const GossipSubFanoutTTL = 60 // in seconds
+const constants = require('./constants')
 
 
 class GossipSub extends Pubsub {
@@ -43,7 +25,7 @@ class GossipSub extends Pubsub {
      *
      */
     constructor (libp2p) {
-        super('libp2p:gossipsub', GossipSubID, libp2p)
+        super('libp2p:gossipsub', constants.GossipSubID, libp2p)
 
 	/**
 	 * Map of topic meshes
@@ -84,7 +66,7 @@ class GossipSub extends Pubsub {
 	 * A message cache that contains the messages for last few hearbeat ticks
 	 *
 	 */
-	this.messageCache = new MessageCache(GossipSubHistoryGossip, GossipSubHistoryLength)
+	this.messageCache = new MessageCache(constants.GossipSubHistoryGossip, constants.GossipSubHistoryLength)
 
 	/**
 	 * Tracks which topics each of our peers are subscribed to
@@ -300,8 +282,8 @@ class GossipSub extends Pubsub {
 	    }
 
             iwantMsgIDs.forEach(function(msgID){
-	         let msg, ok = this.messageCache.get(msgID)
-		 if (ok) {
+	         let msg = this.messageCache.get(msgID)
+		 if (msg) {
 		     ihave.set(msgID, msg)
 		 }
 	    })
@@ -413,7 +395,7 @@ class GossipSub extends Pubsub {
 	   this.fanout.delete(topic)
 	   this.lastpub.delete(topic)
        } else {
-           gossipSubPeers = this._getPeers(topic, GossipSubD)
+           gossipSubPeers = this._getPeers(topic, constants.GossipSubD)
 	   this.mesh.set(topic, gossipSubPeers)
        }
 
@@ -458,7 +440,7 @@ class GossipSub extends Pubsub {
     *
     */
    publish(from, msg) {
-       this.messageCache.Put(msg)
+       this.messageCache.put(msg)
 
        // @type Set<string>
        let tosend = new Set()
@@ -471,7 +453,7 @@ class GossipSub extends Pubsub {
 	   
 	   // floodsub peers
 	   peersInTopic.forEach((peer) => {
-	       if (peer.info.protocols.has(FloodSubID)) {
+	       if (peer.info.protocols.has(constants.FloodSubID)) {
 	           tosend.add(peer)
 	       }
 	   })
@@ -481,7 +463,7 @@ class GossipSub extends Pubsub {
 	       // We are not in the mesh for topic, use fanout peers
 	       if (!this.fanout.has(topic)) {
 	           // If we are not in the fanout, then pick any peers
-		   let peers = this._getPeers(topic, GossipSubD)
+		   let peers = this._getPeers(topic, constants.GossipSubD)
 
 		   if(peers.size > 0) {
 		       this.fanout.set(topic, peers)
@@ -550,7 +532,7 @@ class GossipSub extends Pubsub {
        const heartbeatPromise = new Promise((resolve, reject) => {
            setTimeout(() => {
 	       this._heartbeat()
-	   }, GossipSubHeartbeatInitialDelay)
+	   }, constants.GossipSubHeartbeatInitialDelay)
 	   
        }).catch(
             () => {
@@ -562,7 +544,7 @@ class GossipSub extends Pubsub {
            repeatHeartbeatPromise = new Promise((resolve, reject) => {
 	       setIntervalId = setInterval(() => {
 	           this._heartbeat
-	       }, GossipSubHeartbeatInterval)
+	       }, constants.GossipSubHeartbeatInterval)
 	   }).catch(
 	       () => {
 	           clearInterval(setIntervalId)
@@ -588,8 +570,8 @@ class GossipSub extends Pubsub {
        for (let [topic, peers] of this.mesh) {
            
            // do we have enough peers?
-	   if (peers.size < GossipSubDlo) {
-	       let ineed = GossipSubD - peers.size
+	   if (peers.size < constants.GossipSubDlo) {
+	       let ineed = constants.GossipSubD - peers.size
 	       let peersSet = this._getPeers(topic, ineed)
 	        peersSet.forEach((peer) => {
 	            if (!peers.has(peer)) {
@@ -604,8 +586,8 @@ class GossipSub extends Pubsub {
 	   }
 
 	   // do we have to many peers?
-	   if (peers.size > GossipSubDhi) {
-	       let idontneed = peers.size - GossipSubD
+	   if (peers.size > constants.GossipSubDhi) {
+	       let idontneed = peers.size - constants.GossipSubD
 	       let peersArray = new Array(peers)
 	       peersArray = this_shufflePeers(peersArray)
 
@@ -624,7 +606,7 @@ class GossipSub extends Pubsub {
        // expire fanout for topics we haven't published to in a while
        let now = this._nowInNano()
        this.lastpub.forEach((topic, lastpb) => {
-           if ((lastpb + GossipSubFanoutTTL) < now) {
+           if ((lastpb + constants.GossipSubFanoutTTL) < now) {
 	       this.fanout.delete(topic)
 	       this.lastpub.delete(topic)
 	   }
@@ -640,8 +622,8 @@ class GossipSub extends Pubsub {
 	   })
 
 	   // do we need more peers?
-	   if (peers.size < GossipSubD) {
-	       let ineed = GossipSubD - peers.size
+	   if (peers.size < constants.GossipSubD) {
+	       let ineed = constants.GossipSubD - peers.size
                peersSet = this._getPeers(topic, ineed)
 	       peersSet.forEach((peer) => {
 	            if(!peers.has(peer)) {
@@ -667,7 +649,7 @@ class GossipSub extends Pubsub {
            return
        }
 
-       gossipSubPeers = this._getPeers(topic, GossipSubD)
+       gossipSubPeers = this._getPeers(topic, constants.GossipSubD)
        gossipSubPeers.forEach((peer) => {
            // skip mesh peers
 	   if(!peers.has(peer)) {
@@ -711,7 +693,7 @@ class GossipSub extends Pubsub {
        let peersInTopic = this.topics.get(topic)
        let peers = new Array(peersInTopic.length)
        peersInTopic.forEach((peer) => {
-           if(peer.info.protocols.has(GossipSubID)) {
+           if(peer.info.protocols.has(constants.GossipSubID)) {
 	       peers.add(peer)
 	   }
        })
