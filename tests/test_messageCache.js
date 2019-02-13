@@ -13,7 +13,7 @@ const getMsgID = (msg) => {
 
 describe('Testing Message Cache Operations', () => {
     let messageCache = new MessageCache(3, 5)
-    let testMessages = new Array(60)
+    let testMessages = []
 
     it('Create message cache', () => {
 	const makeTestMessage = (n) => {
@@ -26,7 +26,7 @@ describe('Testing Message Cache Operations', () => {
 	}
 	
 	for(let i=0; i < 60; i++) {
-	    testMessages.splice(i, 1, makeTestMessage(i))
+	    testMessages.push(makeTestMessage(i))
 	}
       
 	expect(messageCache).to.exist
@@ -39,16 +39,13 @@ describe('Testing Message Cache Operations', () => {
        for(let i=0; i < 10; i++) {
            messageCache.put(testMessages[i])
 	   let msgId = getMsgID(testMessages[i])
-	   let res = messageCache.get(msgId)
-	   let message = res[0]
-	   let has = res[1]
-           expect(has).to.be.true
+	   let message = messageCache.get(msgId)
 	   expect(message).to.equal(testMessages[i])
        }        
     })
 
     it('Get GossipIDs', () => {
-        let gossipIDs = messageCache.getGossipIDs("test")
+        let gossipIDs = messageCache.getGossipIDs('test')
 	expect(gossipIDs.length).to.equal(10)
 
 	for(let i=0; i< 10; i++) {
@@ -65,14 +62,11 @@ describe('Testing Message Cache Operations', () => {
 
 	for(let i=0; i < 20; i++) {
 	    let messageID = getMsgID(testMessages[i])
-            let res = messageCache.get(messageID)
-            let msg = res[0]
-            let has = res[1]
-            expect(has).to.be.true
-	    expect(msg).to.equal(testMessages[i])
+            let message = messageCache.get(messageID)
+	    expect(message).to.equal(testMessages[i])
 	}
 
-	let gossipIDs = messageCache.getGossipIDs("test")
+	let gossipIDs = messageCache.getGossipIDs('test')
 	expect(gossipIDs.length).to.equal(20)
 
 	for(let i=0; i < 10; i++) {
@@ -109,21 +103,17 @@ describe('Testing Message Cache Operations', () => {
 
 	for(let i=0; i < 10; i++) {
 	    let messageID = getMsgID(testMessages[i])
-            let res = messageCache.get(messageID) 
-            let has = res[1]
-            expect(has).to.be.false
+            let message = messageCache.get(messageID) 
+            expect(message).to.be.an('undefined')
 	}
 
 	for(let i=10; i < 60; i++) {
 	    let messageID = getMsgID(testMessages[i])
-            let res = messageCache.get(messageID)
-            let msg = res[0]
-            let has = res[1]
-	    expect(has).to.be.true
-	    expect(msg).to.equal(testMessages[i])
+            let message = messageCache.get(messageID)
+	    expect(message).to.equal(testMessages[i])
 	}
 
-	gossipIDs = messageCache.getGossipIDs("test")
+	gossipIDs = messageCache.getGossipIDs('test')
 	expect(gossipIDs.length).to.equal(30)
 
 	for(let i=0; i < 10; i++) {
