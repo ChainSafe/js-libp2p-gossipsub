@@ -3,6 +3,7 @@ module.exports = `
 message RPC {
   repeated SubOpts subscriptions = 1;
   repeated Message msgs = 2;
+  optional ControlMessage control = 3;
 
   message SubOpts {
     optional bool subscribe = 1; // subscribe or unsubcribe
@@ -14,9 +15,9 @@ message RPC {
     optional bytes data = 2;
     optional bytes seqno = 3;
     repeated string topicIDs = 4; 
+    optional bytes signature = 5;
+    optional bytes key = 6;
   }
-
-  optional ControlMessage control = 3;
 
   message ControlMessage {
     repeated ControlIHave ihave = 1;
