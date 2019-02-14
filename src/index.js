@@ -234,12 +234,12 @@ class GossipSub extends Pubsub {
 	    })
 	})
 
-        if (iwant.length === 0) {
+        if (!iwant.length) {
 	    return
 	}
 
 	this.log("IHAVE: Asking for %d messages from %s", iwant.length, peer.info.id.toB58String)
-	let iwantlst = new Array(iwant.length)
+	let iwantlst = []
 	iwant.forEach(function(msgID) {
 	    iwantlst.push(msgID)
 	})
@@ -280,13 +280,12 @@ class GossipSub extends Pubsub {
 	    })
 	})
 
-	if (ihave.length === 0) {
+	if (!ihave.length) {
 	    return null
 	}
 
 	this.log("IWANT: Sending %d messages to %s", ihave.length, peer.info.id.toB58String)
-
-	let msgs = new Array(ihave.length)
+	let msgs = []
 	for (let [tmp, msg] of ihave) {
 	    msgs.push(msg)
 	}
@@ -312,23 +311,20 @@ class GossipSub extends Pubsub {
 	}
         grafts.forEach(function(graft) {
 	    let topic = graft.topicID
-            let ok = this.mesh.has(topic)
-            if (!ok) {
+            let peers = this.mesh.get(topic)
+            if (!peers) {
 	        prune.push(topic)
 	    } else {
 	        this.log("GRAFT: Add mesh link from %s in %s", peer.info.id.toB58String, topic)
-		let peers = this.mesh.get(topic)
 		peers.add(peer)
 		peer.topics.add(topic)
 
 	    }
 	})
 	
-	if(prune.length === 0) {
+	if(!prune.length) {
 	    return
 	}
-
-	ctrlPrune = new Array(prune.length)
 
 	const buildCtrlPruneMsg = (topic) => {
 	    return {
@@ -336,7 +332,7 @@ class GossipSub extends Pubsub {
 	    }
 	}
 
-	ctrlPrune = prune.map(buildCtrlPruneMsg)
+	let ctrlPrune = prune.map(buildCtrlPruneMsg)
 	return ctrlPrune
     }
 
@@ -357,9 +353,8 @@ class GossipSub extends Pubsub {
 
 	pruneMsgs.forEach(function(prune){
 	    let topic = prune.topicID
-            let ok = this.mesh.has(topic)
             let peers = this.mesh.get(topic)
-            if (ok) {
+            if (!peers) {
 	        this.log("PRUNE: Remove mesh link to %s in %s", peer.info.id.toB58String, topic)
 		peers.delete(peer)
 		peers.topic.delete(topic)
@@ -417,7 +412,7 @@ class GossipSub extends Pubsub {
        this.log("Join " + topic)
 
        let gossipSubPeers = this.fanout.get(topic)
-       if(this.fanout.has(topic)) {
+       if(!gossipSubPeers.size) {
            this.mesh.set(topic, gossipSubPeers)
 	   this.fanout.delete(topic)
 	   this.lastpub.delete(topic)
@@ -441,9 +436,8 @@ class GossipSub extends Pubsub {
     *
     */
    unsubscribe(topic) {
-       let ok = this.mesh.has(topic)
        let gmap = this.mesh.get(topic)
-       if (!ok) {
+       if (!gmap.size) {
            return
        }
 
@@ -472,11 +466,10 @@ class GossipSub extends Pubsub {
        // @type Set<string>
        let tosend = new Set()
        msg.topicIDs.forEach((topic) => {
-           if (!this.topics.has(topic)) {
+	   let peersInTopic = this.topics.get(topic)
+	   if(!peersInTopic.size){
 	       continue
 	   }
-
-	   let peersInTopic = this.topics.get(topic)
 	   
 	   // floodsub peers
 	   peersInTopic.forEach((peer) => {
@@ -486,7 +479,8 @@ class GossipSub extends Pubsub {
 	   })
 
 	   // Gossipsub peers handling
-	   if (!this.mesh.has(topic)) {
+	   let meshPeers = this.mesh.get(topic)
+	   if (!meshPeers) {
 	       // We are not in the mesh for topic, use fanout peers
 	       if (!this.fanout.has(topic)) {
 	           // If we are not in the fanout, then pick any peers
@@ -500,7 +494,6 @@ class GossipSub extends Pubsub {
 	       this.lastpub.set(topic, _nowInNano())
 	   }
 
-	   let meshPeers = this.mesh.get(topic)
 	   meshPeers.forEach((peer) => {
 	       tosend.add(peer)
 	   })
@@ -672,7 +665,7 @@ class GossipSub extends Pubsub {
 
    _emitGossip(topic, peers) {
        let messageIDs = this.messageCache.getGossipIDs(topic)
-       if(messageIDs.length === 0) {
+       if(!messageIDs.length) {
            return
        }
 
@@ -718,10 +711,10 @@ class GossipSub extends Pubsub {
 
        // Adds all peers using GossipSub protocol
        let peersInTopic = this.topics.get(topic)
-       let peers = new Array(peersInTopic.length)
+       let peers = []
        peersInTopic.forEach((peer) => {
            if(peer.info.protocols.has(constants.GossipSubID)) {
-	       peers.add(peer)
+	       peers.push(peer)
 	   }
        })
 
@@ -747,7 +740,6 @@ class GossipSub extends Pubsub {
 
 	   return peers
        }
-       
    }
 
    _nowInNano() {
