@@ -6,7 +6,7 @@ const Pubsub = require('libp2p-pubsub')
 const pull = require('pull-stream')
 const lp = require('pull-length-prefixed')
 const asyncEach = require('async/each')
-const setImmediate = require('async/setImmediate')
+const nextTick = require('async/nextTick')
 
 const MessageCache = require('./messageCache').MessageCache
 const CacheEntry = require('./messageCache').CacheEntry
@@ -119,7 +119,7 @@ class GossipSub extends Pubsub {
 	        // Immediately send my own subscription to the newly established conn
 		peer.sendSubscriptions(this.subscriptions)
 	    }
-	    setImmediate(() => callback())
+	    nextTick(() => callback())
 	})     
     }
 
