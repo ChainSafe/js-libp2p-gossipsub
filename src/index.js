@@ -9,7 +9,6 @@ const asyncEach = require('async/each')
 const setImmediate = require('async/setImmediate')
 
 const MessageCache = require('./messageCache').MessageCache
-const TimeCache = require('time-cache')
 const CacheEntry = require('./messageCache').CacheEntry
 const utils = require('./utils')
 
@@ -44,21 +43,21 @@ class GossipSub extends Pubsub {
 	/**
 	 * Map of last publish time for fanout topics
 	 *
-	 *@type {Map<string,int64>}
+	 *@type {Map<string, Number>}
 	 */
 	this.lastpub = new Map()
 	
 	/**
 	 * Map of pending messages to gossip
 	 *
-	 * @type {Map<Peer, Array<String>> }
+	 * @type {Map<Peer, Array<RPC.ControlIHave object>> }
 	 */
 	this.gossip = new Map()
 	
 	/**
 	 * Map of control messages
 	 *
-	 * @type {Map<Peer, string>}
+	 * @type {Map<Peer, RPC.ControlMessage object>}
 	 */
 	this.control = new Map()
 
@@ -67,20 +66,12 @@ class GossipSub extends Pubsub {
 	 *
 	 */
 	this.messageCache = new MessageCache(constants.GossipSubHistoryGossip, constants.GossipSubHistoryLength)
-
-	/**
-	 * Tracks which topics each of our peers are subscribed to
-	 * @type {Map<String, Set<Peer>>}
-	 *
-	 */
-	this.topics = new Map()
-	
-	this._heartbeatTimer()
     }
 
     /**
      * Removes a peer from the router
      * 
+     * @override
      * @param {Peer} peer
      * @returns {undefined}
      */
@@ -236,7 +227,7 @@ class GossipSub extends Pubsub {
 
 	    let msgIDs = ihaveMsgs.messageIDs
             msgIDs.forEach(function(msgID){
-	        if (this.timeCache.has(msgID)) {
+	        if (this.seenCache.has(msgID)) {
 		     continue
 		}
                 iwant.add(msgID)
@@ -373,6 +364,42 @@ class GossipSub extends Pubsub {
 		peers.delete(peer)
 		peers.topic.delete(topic)
 	    }
+	})
+    }
+
+    /**
+     * Mounts the gossipsub protocol onto the libp2p node and sends our 
+     * our subscriptions to every peer connected
+     *
+     * @override
+     * @param {Function} callback
+     * @returns {undefined}
+     *
+     */
+    start(callback) {
+        super.start((err) => {
+	    if (err) return callback(err)
+            this._heartbeatTimer()
+            callback()
+	})
+    }
+
+    /**
+     * Unmounts the floodsub protocol and shuts down every connection
+     *
+     * @override
+     * @param {Function} callback
+     * @returns {undefined}
+     */
+    stop(callback) {
+        super.stop((err) => {
+	    if (err) return callback(err)
+	    this.mesh = new Map()
+	    this.fanout = new Map()
+            this.lastpub = new Map()
+	    this.gossip = new Map()
+	    this.control = new Map()
+            callback()
 	})
     }
     
@@ -589,7 +616,7 @@ class GossipSub extends Pubsub {
 	   if (peers.size > constants.GossipSubDhi) {
 	       let idontneed = peers.size - constants.GossipSubD
 	       let peersArray = new Array(peers)
-	       peersArray = this_shufflePeers(peersArray)
+	       peersArray = this._shufflePeers(peersArray)
 
 	       let tmp = peersArray.slice(0, idontneed)
 	       tmp.forEach((peer) => {
