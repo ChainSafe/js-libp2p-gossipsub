@@ -372,11 +372,51 @@ class GossipSub extends Pubsub {
      *
      */
     start(callback) {
+       if (this._heartbeatTimer) {
+           const errMsg = 'Heartbeat timer is already running'
+
+	   this.log(errMsg)
+	   throw errcode(new Error(errMsg), 'ERR_HEARTBEAT_ALREADY_RUNNING')
+       }
+
+       const heartbeatTimer = {
+           _onCancel: null,
+	   _timeoutId: null,
+	   runPeriodically: (fnct, period) => {
+	       heartbeatTimer._timeoutId = setTimeout(() => {
+	           heartbeatTimer._timeoutId = null
+
+		   fnct((nextPeriod) => {
+		       // Was the heartbeat timer cancelled while the function was being called?
+		       if (heartbeatTimer._onCancel) {
+		           return heartbeatTimer._onCancel()
+		       }
+
+		       // Schedule next
+		       heartbeatTimer.runPeriodically(fnct, nextPeriod || period)
+		   })
+	       }, period)
+	   },
+	   cancel: (cb) => {
+	       // Not currently running a republish can call callback immediately
+	       if (heartbeatTimer._timeoutId) {
+	           clearTimeout(heartbeatTimer._timeoutId)
+		   return cb()
+	       }
+               // Wait for republish to finish then call callback
+	       heartbeatTimer._onCancel = cb
+
+	   }
+       }
+
         super.start((err) => {
 	    if (err) return callback(err)
-            this._heartbeatTimer()
+            let timeoutId = setTimerout(this._heartbeat, constants.GossipSubHeartbeatInitialDelay)
+            heartbeatTimer.runPeriodically(this._heartbeat, constants.GossipSubHeartbeatInterval)
             callback()
 	})
+
+	this._heartbeatTimer = heartbeatTimer
     }
 
     /**
@@ -387,6 +427,13 @@ class GossipSub extends Pubsub {
      * @returns {undefined}
      */
     stop(callback) {
+	const heartbeatTimer = this._heartbeatTimer
+	if (!heartbeatTimer){
+            const errMsg = 'Heartbeat timer is not running'
+	    this.log(errMsg)
+
+	    throw errcode(new Error(errMsg), 'ERR_HEARTBEATIMER_NO_RUNNING')
+	}
         super.stop((err) => {
 	    if (err) return callback(err)
 	    this.mesh = new Map()
@@ -394,8 +441,10 @@ class GossipSub extends Pubsub {
             this.lastpub = new Map()
 	    this.gossip = new Map()
 	    this.control = new Map()
-            callback()
+            heartbeatTimer.cancel(callback)
 	})
+
+	this._heartbeatTimer = null
     }
     
     /**
@@ -546,32 +595,6 @@ class GossipSub extends Pubsub {
 	  peer.sendUnsubscriptions([topic])
        }
 
-   }
-
-   _heartbeatTimer() {
-       const heartbeatPromise = new Promise((resolve, reject) => {
-           setTimeout(() => {
-	       this._heartbeat()
-	   }, constants.GossipSubHeartbeatInitialDelay)
-	   
-       }).catch(
-            () => {
-		return
-	    })
-
-       const setIntervalId = 0
-       for (;;){
-           repeatHeartbeatPromise = new Promise((resolve, reject) => {
-	       setIntervalId = setInterval(() => {
-	           this._heartbeat
-	       }, constants.GossipSubHeartbeatInterval)
-	   }).catch(
-	       () => {
-	           clearInterval(setIntervalId)
-		   return
-	       }
-	   )
-       }
    }
 
    /**
