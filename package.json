@@ -4,7 +4,7 @@
   "description": "An experimental Javascript implementation of gossip sub",
   "main": "index.js",
   "scripts": {
-    "test": "mocha tests"
+    "test": "aegir test"
   },
   "repository": {
     "type": "git",
@@ -26,7 +26,13 @@
     "protons": "^1.0.1"
   },
   "devDependencies": {
+    "aegir": "^18.1.0",
     "chai": "^4.2.0",
+    "chai-spies": "^1.0.0",
+    "dirty-chai": "^2.0.1",
+    "libp2p-secio": "^0.11.1",
+    "libp2p-spdy": "^0.13.1",
+    "libp2p-tcp": "^0.13.0",
     "mocha": "^5.2.0"
   }
 }
