@@ -6,7 +6,7 @@ const hour = exports.hour = 60 * minute
 
 // Protocol identifiers
 exports.FloodSubID = '/floodsub/1.0.0'
-exports.GossipSubId = '/meshsub/1.0.0'
+exports.GossipSubID = '/meshsub/1.0.0'
 
 // Overlay parameters
 exports.GossipSubD = 6

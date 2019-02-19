@@ -1,6 +1,5 @@
 'use strict'
 
-const libp2p = require('libp2p')
 const Pubsub = require('libp2p-pubsub')
 
 const pull = require('pull-stream')
@@ -85,11 +84,11 @@ class GossipSub extends Pubsub {
             this.peers.delete(id)
 	
             // Remove this peer from the mesh
-            for(let [topic, peers] of this.mesh){
+            for(let [topic, peers] of this.mesh.entries()){
 	        peers.delete(peer)
 	    }
 	    // Remove this peer from the fanout
-            for (let [topic, peers] of this.fanout){
+            for (let [topic, peers] of this.fanout.entries()){
 	        peers.delete(peer)
 	    }
 
@@ -222,13 +221,13 @@ class GossipSub extends Pubsub {
 	    let topic = msg.topicID
 
 	    if (!this.mesh.has(topic)) {
-	        continue
+	        return
 	    }
 
 	    let msgIDs = ihaveMsgs.messageIDs
             msgIDs.forEach(function(msgID){
 	        if (this.seenCache.has(msgID)) {
-		     continue
+		     return
 		}
                 iwant.add(msgID)
 	    })
@@ -281,12 +280,12 @@ class GossipSub extends Pubsub {
 	})
 
 	if (!ihave.length) {
-	    return null
+	    return
 	}
 
 	this.log("IWANT: Sending %d messages to %s", ihave.length, peer.info.id.toB58String)
 	let msgs = []
-	for (let [tmp, msg] of ihave) {
+	for (let msg of ihave.values()) {
 	    msgs.push(msg)
 	}
 
@@ -411,7 +410,7 @@ class GossipSub extends Pubsub {
 
         super.start((err) => {
 	    if (err) return callback(err)
-            let timeoutId = setTimerout(this._heartbeat, constants.GossipSubHeartbeatInitialDelay)
+            let timeoutId = setTimeout(this._heartbeat, constants.GossipSubHeartbeatInitialDelay)
             heartbeatTimer.runPeriodically(this._heartbeat, constants.GossipSubHeartbeatInterval)
             callback()
 	})
@@ -517,7 +516,7 @@ class GossipSub extends Pubsub {
        msg.topicIDs.forEach((topic) => {
 	   let peersInTopic = this.topics.get(topic)
 	   if(!peersInTopic.size){
-	       continue
+	       return
 	   }
 	   
 	   // floodsub peers
@@ -551,12 +550,10 @@ class GossipSub extends Pubsub {
        tosend.forEach((peer) => {
            let peerId = peer.info.id.getB58Str()
 	       if (peerId === from || peerId === msg.from) {
-	       continue
+	       return
 	   }
 	   peer.sendMessages(msg)
        })
-
-
    }
 
    /**
@@ -610,7 +607,7 @@ class GossipSub extends Pubsub {
        let toprune = new Map()
 
        // maintain the mesh for topics we have joined
-       for (let [topic, peers] of this.mesh) {
+       for (let [topic, peers] of this.mesh.entries()) {
            
            // do we have enough peers?
 	   if (peers.size < constants.GossipSubDlo) {
@@ -618,7 +615,7 @@ class GossipSub extends Pubsub {
 	       let peersSet = this._getPeers(topic, ineed)
 	        peersSet.forEach((peer) => {
 	            if (!peers.has(peer)) {
-		        continue
+		        return
 		    }
 
 	            this.log("HEARTBEAT: Add mesh link to %s in %s", peer.info.id.toB58Str, topic)
@@ -670,7 +667,7 @@ class GossipSub extends Pubsub {
                peersSet = this._getPeers(topic, ineed)
 	       peersSet.forEach((peer) => {
 	            if(!peers.has(peer)) {
-		        continue
+		        return
 		    }
 
 		    peers.add(peer)
@@ -763,10 +760,6 @@ class GossipSub extends Pubsub {
 
 	   return peers
        }
-   }
-
-   _nowInNano() {
-       return Math.floor(Date.now/1000000)
    }
 
 }
