@@ -20,7 +20,6 @@ class GossipSub extends Pubsub {
     /**
      * @param {Object} libp2p
      * @constructor
-     *
      */
     constructor (libp2p) {
         super('libp2p:gossipsub', constants.GossipSubID, libp2p)
@@ -109,14 +108,14 @@ class GossipSub extends Pubsub {
      * @returns undefined
      *
      */
-    _onDial(peerInfo, conn, callback) {
+    _onDial (peerInfo, conn, callback) {
         super._onDial(peerInfo, conn, (err) => {
 	    if (err) return callback(err)
-            const idB58Str = peerInfo.id.toB58Str()
+            const idB58Str = peerInfo.id.toB58String()
             const peer = this.peers.get(idB58Str)
 	    if (peer && peer.isWritable) {
 	        // Immediately send my own subscription to the newly established conn
-		peer.sendSubscriptions(this.subscriptions)
+		peer.sendSubscriptions(peer.topics)
 	    }
 	    nextTick(() => callback())
 	})     
@@ -132,7 +131,7 @@ class GossipSub extends Pubsub {
      * @returns undefined
      *
      */
-    _processConnection(idB58Str, conn, peer) {
+    _processConnection (idB58Str, conn, peer) {
         pull(
 	  conn,
 	  lp.decode(),
@@ -151,7 +150,7 @@ class GossipSub extends Pubsub {
      * @param {Object} rpc
      * @returns {undefined}
      */
-    _onRpc(idB58Str, rpc) {
+    _onRpc (idB58Str, rpc) {
         if(!rpc){
 	    return
 	}
@@ -189,7 +188,7 @@ class GossipSub extends Pubsub {
      * @returns {RPC Object}
      *
      */
-    _rpcWithControl(msgs, ihave, iwant, graft, prune) {
+    _rpcWithControl (msgs, ihave, iwant, graft, prune) {
         return {
 	    msgs: msgs,
 	    control: {	
@@ -209,7 +208,7 @@ class GossipSub extends Pubsub {
      * 
      * @returns {RPC.ControlIWant Object}
      */
-    _handleIHave(peer, controlRpc) {
+    _handleIHave (peer, controlRpc) {
         let iwant = new Set()
 
         let ihaveMsgs = controlRpc.ihave
@@ -217,7 +216,7 @@ class GossipSub extends Pubsub {
 	    return
 	}
 
-	ihaveMsgs.forEach(function(msg) {
+	ihaveMsgs.forEach((msg) => {
 	    let topic = msg.topicID
 
 	    if (!this.mesh.has(topic)) {
@@ -225,7 +224,7 @@ class GossipSub extends Pubsub {
 	    }
 
 	    let msgIDs = ihaveMsgs.messageIDs
-            msgIDs.forEach(function(msgID){
+            msgIDs.forEach((msgID) => {
 	        if (this.seenCache.has(msgID)) {
 		     return
 		}
@@ -239,7 +238,7 @@ class GossipSub extends Pubsub {
 
 	this.log("IHAVE: Asking for %d messages from %s", iwant.length, peer.info.id.toB58String)
 	let iwantlst = []
-	iwant.forEach(function(msgID) {
+	iwant.forEach((msgID) => {
 	    iwantlst.push(msgID)
 	})
 	
@@ -256,7 +255,7 @@ class GossipSub extends Pubsub {
      *
      * @returns {Array<RPC.Message>}
      */
-    _handleIWant(peer, controlRpc) {
+    _handleIWant (peer, controlRpc) {
 	// @type {Map<string, RPC.Message>}
         let ihave = new Map()
 
@@ -265,13 +264,13 @@ class GossipSub extends Pubsub {
 	   return
 	}
 
-	iwantMsgs.forEach(function(iwantMsg) {
+	iwantMsgs.forEach((iwantMsg) => {
 	    let iwantMsgIDs = iwantMsg.MessageIDs
 	    if(!(iwantMsgIDs || iwantMsgIDs.length)) {
 	        return 
 	    }
 
-            iwantMsgIDs.forEach(function(msgID){
+            iwantMsgIDs.forEach((msgID) => {
 	         let msg = this.messageCache.get(msgID)
 		 if (msg) {
 		     ihave.set(msgID, msg)
@@ -301,14 +300,14 @@ class GossipSub extends Pubsub {
      * @return {Array<RPC.ControlPrune>}
      *
      */
-    _handleGraft(peer, controlRpc) {
+    _handleGraft (peer, controlRpc) {
         let prune = []
 
 	let grafts = controlRpc.graft
 	if (!(grafts || grafts.length)) {
 	    return
 	}
-        grafts.forEach(function(graft) {
+        grafts.forEach((graft) => {
 	    let topic = graft.topicID
             let peers = this.mesh.get(topic)
             if (!peers) {
@@ -344,13 +343,13 @@ class GossipSub extends Pubsub {
      * @returns undefined
      *
      */
-    _handlePrune(peer, controlRpc) {
+    _handlePrune (peer, controlRpc) {
         let pruneMsgs = controlRpc.prune
         if(!(pruneMsgs || pruneMsgs.length)) {
 	    return
 	}
 
-	pruneMsgs.forEach(function(prune){
+	pruneMsgs.forEach((prune) => {
 	    let topic = prune.topicID
             let peers = this.mesh.get(topic)
             if (!peers) {
@@ -370,7 +369,14 @@ class GossipSub extends Pubsub {
      * @returns {undefined}
      *
      */
-    start(callback) {
+    start (callback) {
+       super.start((err) => {
+           if (err) {
+	       return callback(err)
+	   }
+	   callback()
+       })
+
        if (this._heartbeatTimer) {
            const errMsg = 'Heartbeat timer is already running'
 
@@ -408,12 +414,9 @@ class GossipSub extends Pubsub {
 	   }
        }
 
-        super.start((err) => {
-	    if (err) return callback(err)
-            let timeoutId = setTimeout(this._heartbeat, constants.GossipSubHeartbeatInitialDelay)
-            heartbeatTimer.runPeriodically(this._heartbeat, constants.GossipSubHeartbeatInterval)
-            callback()
-	})
+	const heartbeat = this._heartbeat.bind(this)
+        let timeoutId = setTimeout(heartbeat, constants.GossipSubHeartbeatInitialDelay)
+        heartbeatTimer.runPeriodically(heartbeat, constants.GossipSubHeartbeatInterval)
 
 	this._heartbeatTimer = heartbeatTimer
     }
@@ -425,7 +428,7 @@ class GossipSub extends Pubsub {
      * @param {Function} callback
      * @returns {undefined}
      */
-    stop(callback) {
+    stop (callback) {
 	const heartbeatTimer = this._heartbeatTimer
 	if (!heartbeatTimer){
             const errMsg = 'Heartbeat timer is not running'
@@ -451,7 +454,7 @@ class GossipSub extends Pubsub {
      * @param {String}
      *
      */
-   subscribe(topic) {
+   subscribe (topic) {
        assert(this.started, 'GossipSub has not started')
        if (this.mesh.has(topic)) {
            return
@@ -460,7 +463,7 @@ class GossipSub extends Pubsub {
        this.log("Join " + topic)
 
        let gossipSubPeers = this.fanout.get(topic)
-       if(!gossipSubPeers.size) {
+       if(!gossipSubPeers) {
            this.mesh.set(topic, gossipSubPeers)
 	   this.fanout.delete(topic)
 	   this.lastpub.delete(topic)
@@ -483,7 +486,7 @@ class GossipSub extends Pubsub {
     * @param {String}
     *
     */
-   unsubscribe(topic) {
+   unsubscribe (topic) {
        let gmap = this.mesh.get(topic)
        if (!gmap.size) {
            return
@@ -508,7 +511,7 @@ class GossipSub extends Pubsub {
     * @param {any}
     *
     */
-   publish(from, msg) {
+   publish (from, msg) {
        this.messageCache.put(msg)
 
        // @type Set<string>
@@ -562,7 +565,7 @@ class GossipSub extends Pubsub {
     * @param {Peer} peer 
     * @param {String} topic
     */
-   _sendGraft(peer, topic) {
+   _sendGraft (peer, topic) {
        let graft = [{
            topicID: topic
        }]
@@ -581,7 +584,7 @@ class GossipSub extends Pubsub {
     * @param {String} topic
     *
     */
-   _sendPrune(peer, topic) {
+   _sendPrune (peer, topic) {
        let prune = [{
            topicID: topic
        }]
@@ -598,7 +601,7 @@ class GossipSub extends Pubsub {
     * Maintains the mesh and fanout maps in gossipsub. 
     *
     */
-   _heartbeat() {
+   _heartbeat () {
 
        /**
 	* @type {Map<Peer, Array<String>>}
@@ -607,7 +610,7 @@ class GossipSub extends Pubsub {
        let toprune = new Map()
 
        // maintain the mesh for topics we have joined
-       for (let [topic, peers] of this.mesh.entries()) {
+       this.mesh.forEach((peers, topic) => {
            
            // do we have enough peers?
 	   if (peers.size < constants.GossipSubDlo) {
@@ -641,7 +644,7 @@ class GossipSub extends Pubsub {
 	   }
 
 	   this._emitGossip(topic, peers)
-       }
+       })
 
        // expire fanout for topics we haven't published to in a while
        let now = this._nowInNano()
@@ -679,11 +682,11 @@ class GossipSub extends Pubsub {
        })
 
        // advance the message history window
-       this.messageCache.shift()
-       
+	   this.messageCache.shift()
+
    }
 
-   _emitGossip(topic, peers) {
+   _emitGossip (topic, peers) {
        let messageIDs = this.messageCache.getGossipIDs(topic)
        if(!messageIDs.length) {
            return
@@ -708,7 +711,7 @@ class GossipSub extends Pubsub {
     * @param {Array<RPC.ControlIHave>} controlIHaveMsgs
     *
     */
-   _pushGossip(peer, controlIHaveMsgs) {
+   _pushGossip (peer, controlIHaveMsgs) {
        let gossip = this.gossip.get(peer)
        gossip = gossip.concat(controlIHaveMsgs)
        this.gossip.set(peer, gossip)
@@ -724,7 +727,7 @@ class GossipSub extends Pubsub {
     * @returns {Set<Peer>}
     *
     */
-   _getPeers(topic, count) {
+   _getPeers (topic, count) {
        if (!(this.topics.has(topic))) {
            return
        }
@@ -749,7 +752,7 @@ class GossipSub extends Pubsub {
        return peers
    }
 
-   _shufflePeers(peers) {
+   _shufflePeers (peers) {
        for (let i = 0; i < peers.size; i++) {
            const randInt = () => {
 	       return Math.floor(Math.random() * Math.floor(max))
@@ -761,7 +764,10 @@ class GossipSub extends Pubsub {
 	   return peers
        }
    }
-
+   
+   _nowInNano () {
+       return Math.floor(Date.now/1000000)
+   }
 }
 
 module.exports = GossipSub
