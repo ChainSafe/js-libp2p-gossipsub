@@ -10,6 +10,7 @@ const nextTick = require('async/nextTick')
 const MessageCache = require('./messageCache').MessageCache
 const CacheEntry = require('./messageCache').CacheEntry
 const utils = require('./utils')
+const assert = require('assert')
 
 const RPC = require('./message').rpc.RPC
 const constants = require('./constants')
@@ -488,7 +489,7 @@ class GossipSub extends Pubsub {
     */
    unsubscribe (topic) {
        let gmap = this.mesh.get(topic)
-       if (!gmap.size) {
+       if (!gmap) {
            return
        }
 
@@ -551,7 +552,7 @@ class GossipSub extends Pubsub {
        })
        // Publish messages to peers
        tosend.forEach((peer) => {
-           let peerId = peer.info.id.getB58Str()
+           let peerId = peer.info.id.getB58String()
 	       if (peerId === from || peerId === msg.from) {
 	       return
 	   }
@@ -621,7 +622,7 @@ class GossipSub extends Pubsub {
 		        return
 		    }
 
-	            this.log("HEARTBEAT: Add mesh link to %s in %s", peer.info.id.toB58Str, topic)
+	            this.log("HEARTBEAT: Add mesh link to %s in %s", peer.info.id.toB58String(), topic)
 	            peers.add(peer)
 	            peer.topics.add(topic)
 	            tograft.set(peer, tograft.get(peer).push(topic))
@@ -636,7 +637,7 @@ class GossipSub extends Pubsub {
 
 	       let tmp = peersArray.slice(0, idontneed)
 	       tmp.forEach((peer) => {
-	           this.log("HEARTBEAT: Remove mesh link to %s in %s", peer.info.id.toB58Str, topic)
+	           this.log("HEARTBEAT: Remove mesh link to %s in %s", peer.info.id.toB58String(), topic)
 		   peers.delete(peer)
 		   peer.topics.remove(topic)
 		   toprune.set(peer, toprune.get(peer).push(topic))
