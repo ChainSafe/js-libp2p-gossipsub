@@ -1,6 +1,7 @@
 'use strict'
 
 const Pubsub = require('libp2p-pubsub')
+const FloodSub = require('libp2p-floodsub')
 
 const pull = require('pull-stream')
 const lp = require('pull-length-prefixed')
@@ -65,6 +66,7 @@ class GossipSub extends Pubsub {
 	 *
 	 */
 	this.messageCache = new MessageCache(constants.GossipSubHistoryGossip, constants.GossipSubHistoryLength)
+	
     }
 
     /**
@@ -155,10 +157,43 @@ class GossipSub extends Pubsub {
         if(!rpc){
 	    return
 	}
-
+        //console.log(rpc)
 	this.log('rpc from', idB58Str)
 	const controlMsg = rpc.control
+	const subs = rpc.subscriptions
+	const msgs = rpc.msgs
 	
+        if (subs && subs.length) {
+	    const peer = this.peers.get(idB58Str)
+            if (peer) {
+	       peer.updateSubscriptions(subs)
+	       this.emit('meshsub:subscription-change', peer.info, peer.topics, subs)
+	    }
+            
+            subs.forEach((subOptMsg) => {
+	        let t = subOptMsg.topicID
+		let topicSet = this.topics.get(t)
+                if (subOptMsg.subscribe) {
+                    if (!topicSet) {
+			/**
+			 * @type Set<Peer>
+			 */
+			topicSet = new Set()
+			this.topics.set(t, topicSet.add(peer))
+		    }
+		} else {
+		    if (!topicSet) {
+		        return
+		    }
+	            this.topics.set(t, topicSet.delete(peer))
+		}
+	    })
+	}
+
+	if (msgs && msgs.length) {
+            this._processRpcMessages(utils.normalizeInRpcMessage(msgs))	
+	}
+
 	if (!controlMsg) {
 	    return
 	}
@@ -176,6 +211,36 @@ class GossipSub extends Pubsub {
 	let outRpc = this._rpcWithControl(ihave, null, iwant, null, prune)
         _sendRpc(rpc.from, outRpc) 	
     }
+
+    _processRpcMessages(msgs) {
+        msgs.forEach((msg) => {
+	  const seqno = utils.msgId(msg.from, msg.seqno)
+          // Have we seen this message before> if so, ignore
+	  if(this.seenCache.has(seqno)){
+	    return
+	  }
+
+          this.seenCache.put(seqno)
+          
+	  // Emit to floodsub peers
+          // Need to figure this out
+
+	  // Emit to peers in the mesh
+          let topics = msg.topicIDs
+          topics.forEach((topic) => {
+	    let meshPeers = this.mesh.get(topic)
+            meshPeers.forEach((peer) => {
+	      if(!peer.isWritable || !utils.anyMatch(peer.topics, topics)) {
+	        return
+	      }
+
+	      peer.sendMessages(utils.normalizeOutRpcMessages([msg]))
+	      
+	      this.log('publish msgs on topics', topic, peer.info.id.toB58String())
+	    })
+	  })
+	})
+     }
 
     /**
      * Returns a buffer of a RPC message that contains a control message
@@ -463,13 +528,22 @@ class GossipSub extends Pubsub {
 
        this.log("Join " + topic)
 
+       let topics = utils.ensureArray(topic)
+       this.peers.forEach((peer) => sendSubscriptionsOnceReady(peer))
+       function sendSubscriptionsOnceReady (peer) {
+           if (peer && peer.isWritable) {
+	      return peer.sendSubscriptions(topics)
+	   }
+       }
+
+       
        let gossipSubPeers = this.fanout.get(topic)
-       if(!gossipSubPeers) {
+       if(gossipSubPeers) {
            this.mesh.set(topic, gossipSubPeers)
 	   this.fanout.delete(topic)
 	   this.lastpub.delete(topic)
        } else {
-           gossipSubPeers = this._getPeers(topic, constants.GossipSubD)
+	   gossipSubPeers = this._getPeers(topic, constants.GossipSubD)
 	   this.mesh.set(topic, gossipSubPeers)
        }
 
@@ -478,7 +552,7 @@ class GossipSub extends Pubsub {
 	   this._sendGraft(peer, topic)
 	   peer.topics.add(topic)
        })
-
+       
        
    }
 
@@ -729,9 +803,10 @@ class GossipSub extends Pubsub {
     *
     */
    _getPeers (topic, count) {
-       if (!(this.topics.has(topic))) {
+       if (!this.topics.has(topic)) {
            return
        }
+       
 
        // Adds all peers using GossipSub protocol
        let peersInTopic = this.topics.get(topic)

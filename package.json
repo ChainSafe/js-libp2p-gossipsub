@@ -20,9 +20,9 @@
   },
   "homepage": "https://github.com/ChainSafeSystems/gossipsub-js#readme",
   "dependencies": {
-    "libp2p": "^0.23.1",
-    "libp2p-floodsub": "^0.15.7",
-    "libp2p-pubsub": "0.0.1",
+    "libp2p": "~0.23.1",
+    "libp2p-floodsub": "~0.15.7",
+    "libp2p-pubsub": "~0.0.2",
     "protons": "^1.0.1"
   },
   "devDependencies": {
@@ -30,9 +30,9 @@
     "chai": "^4.2.0",
     "chai-spies": "^1.0.0",
     "dirty-chai": "^2.0.1",
-    "libp2p-secio": "^0.11.1",
-    "libp2p-spdy": "^0.13.1",
-    "libp2p-tcp": "^0.13.0",
+    "libp2p-secio": "~0.11.1",
+    "libp2p-spdy": "~0.13.1",
+    "libp2p-tcp": "~0.13.0",
     "mocha": "^5.2.0"
   }
 }
