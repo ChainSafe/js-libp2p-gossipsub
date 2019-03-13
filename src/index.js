@@ -86,11 +86,11 @@ class GossipSub extends Pubsub {
             this.peers.delete(id)
 	
             // Remove this peer from the mesh
-            for(let [topic, peers] of this.mesh.entries()){
+            for(let [_, peers] of this.mesh.entries()){
 	        peers.delete(peer)
 	    }
 	    // Remove this peer from the fanout
-            for (let [topic, peers] of this.fanout.entries()){
+            for (let [_, peers] of this.fanout.entries()){
 	        peers.delete(peer)
 	    }
 
@@ -743,7 +743,7 @@ class GossipSub extends Pubsub {
 	   // do we need more peers?
 	   if (peers.size < constants.GossipSubD) {
 	       let ineed = constants.GossipSubD - peers.size
-               peersSet = this._getPeers(topic, ineed)
+               let peersSet = this._getPeers(topic, ineed)
 	       peersSet.forEach((peer) => {
 	            if(!peers.has(peer)) {
 		        return
@@ -775,7 +775,7 @@ class GossipSub extends Pubsub {
            return
        }
 
-       gossipSubPeers = this._getPeers(topic, constants.GossipSubD)
+       let gossipSubPeers = this._getPeers(topic, constants.GossipSubD)
        gossipSubPeers.forEach((peer) => {
            // skip mesh peers
 	   if(!peers.has(peer)) {
