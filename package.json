@@ -2,9 +2,18 @@
   "name": "gossipsub",
   "version": "1.0.0",
   "description": "An experimental Javascript implementation of gossip sub",
-  "main": "index.js",
+  "main": "src/index.js",
+  "files": [
+    "src",
+    "dist"
+  ],
   "scripts": {
-    "test": "mocha"
+    "lint": "aegir lint",
+    "release": "aegir release",
+    "build": "aegir build",
+    "test": "aegir test",
+    "test:node": "aegir test --target node",
+    "test:browser": "aegir test --target browser"
   },
   "repository": {
     "type": "git",
@@ -19,8 +28,11 @@
     "url": "https://github.com/ChainSafeSystems/gossipsub-js/issues"
   },
   "homepage": "https://github.com/ChainSafeSystems/gossipsub-js#readme",
+  "pre-push": [
+    "lint"
+  ],
   "dependencies": {
-    "libp2p": "^0.23.1",
-    "libp2p-floodsub": "^0.15.0"
+    "libp2p": "~0.23.1",
+    "libp2p-floodsub": "~0.15.0"
   }
 }
