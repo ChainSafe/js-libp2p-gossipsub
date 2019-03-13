@@ -74,7 +74,7 @@ class GossipSub extends Pubsub {
      * 
      * @override
      * @param {Peer} peer
-     * @returns {undefined}
+     * @returns {void}
      */
     _removePeer (peer) {
         const id = peer.info.id.toB58String()
@@ -108,7 +108,7 @@ class GossipSub extends Pubsub {
      * @param {Connection} conn
      * @param {Function} callback
      *
-     * @returns undefined
+     * @returns {void}
      *
      */
     _onDial (peerInfo, conn, callback) {
@@ -131,7 +131,7 @@ class GossipSub extends Pubsub {
      * @param {Connection} conn
      * @param {Peer} peer
      *
-     * @returns undefined
+     * @returns {void}
      *
      */
     _processConnection (idB58Str, conn, peer) {
@@ -151,7 +151,7 @@ class GossipSub extends Pubsub {
      *
      * @param {String} idB58Str
      * @param {Object} rpc
-     * @returns {undefined}
+     * @returns {void}
      */
     _onRpc (idB58Str, rpc) {
         if(!rpc){
@@ -406,7 +406,7 @@ class GossipSub extends Pubsub {
      * @param {Peer} peer
      * @param {RPC.Control} controlRpc
      *
-     * @returns undefined
+     * @returns {void}
      *
      */
     _handlePrune (peer, controlRpc) {
@@ -432,7 +432,7 @@ class GossipSub extends Pubsub {
      *
      * @override
      * @param {Function} callback
-     * @returns {undefined}
+     * @returns {void}
      *
      */
     start (callback) {
@@ -492,7 +492,7 @@ class GossipSub extends Pubsub {
      *
      * @override
      * @param {Function} callback
-     * @returns {undefined}
+     * @returns {void}
      */
     stop (callback) {
 	const heartbeatTimer = this._heartbeatTimer
@@ -518,7 +518,7 @@ class GossipSub extends Pubsub {
     /**
      * Subscribes to a topic
      * @param {String}
-     *
+     * @returns {void}
      */
    subscribe (topic) {
        assert(this.started, 'GossipSub has not started')
@@ -559,7 +559,7 @@ class GossipSub extends Pubsub {
    /**
     * Leaves a topic
     * @param {String}
-    *
+    * @returns {void}
     */
    unsubscribe (topic) {
        let gmap = this.mesh.get(topic)
@@ -584,7 +584,7 @@ class GossipSub extends Pubsub {
     *
     * @param {Peer}
     * @param {any}
-    *
+    * @returns {void}
     */
    publish (from, msg) {
        this.messageCache.put(msg)
@@ -639,6 +639,7 @@ class GossipSub extends Pubsub {
     *
     * @param {Peer} peer 
     * @param {String} topic
+    * @returns {void}
     */
    _sendGraft (peer, topic) {
        let graft = [{
@@ -657,7 +658,7 @@ class GossipSub extends Pubsub {
     *
     * @param {Peer} peer
     * @param {String} topic
-    *
+    * @returns {void}
     */
    _sendPrune (peer, topic) {
        let prune = [{
@@ -674,7 +675,7 @@ class GossipSub extends Pubsub {
 
    /**
     * Maintains the mesh and fanout maps in gossipsub. 
-    *
+    * @returns {void}
     */
    _heartbeat () {
 
@@ -761,6 +762,13 @@ class GossipSub extends Pubsub {
 
    }
 
+   /**
+    * Emits gossip to peers in a particular topic
+    * 
+    * @param topic {String}
+    * @param peers {Set<Peer>}
+    * @returns {void}
+    */
    _emitGossip (topic, peers) {
        let messageIDs = this.messageCache.getGossipIDs(topic)
        if(!messageIDs.length) {
@@ -784,7 +792,7 @@ class GossipSub extends Pubsub {
     *
     * @param {Peer} peer
     * @param {Array<RPC.ControlIHave>} controlIHaveMsgs
-    *
+    * @returns {void}
     */
    _pushGossip (peer, controlIHaveMsgs) {
        let gossip = this.gossip.get(peer)
@@ -798,7 +806,6 @@ class GossipSub extends Pubsub {
     *
     * @param {String} topic
     * @param {Number} count
-    *
     * @returns {Set<Peer>}
     *
     */
