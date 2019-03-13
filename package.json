@@ -32,7 +32,7 @@
     "lint"
   ],
   "dependencies": {
-    "libp2p": "^0.23.1",
-    "libp2p-floodsub": "^0.15.0"
+    "libp2p": "~0.23.1",
+    "libp2p-floodsub": "~0.15.0"
   }
 }
