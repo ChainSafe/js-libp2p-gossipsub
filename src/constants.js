@@ -2,7 +2,6 @@
 
 const second = exports.second = 1000
 const minute = exports.minute = 60 * second
-const hour = exports.hour = 60 * minute
 
 // Protocol identifiers
 exports.FloodSubID = '/floodsub/1.0.0'
