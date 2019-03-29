@@ -55,7 +55,7 @@ describe('basics between 2 nodes', () => {
         expect(gsA.lastpub.size).to.eql(0)
         expect(gsA.gossip.size).to.eql(0)
         expect(gsA.control.size).to.eql(0)
-        expect(gsA.subscriptions).to.eql(0)
+        expect(gsA.subscriptions.size).to.eql(0)
         expect(gsB.peers.size).to.be.eql(0)
         expect(gsB.mesh.size).to.eql(0)
         expect(gsB.fanout.size).to.eql(0)
@@ -285,7 +285,7 @@ describe('basics between 2 nodes', () => {
         (cb) => gsB.stop(cb)
       ], done)
     })
-  })
+  });
 
   describe('nodes handle connection errors', () => {
     let nodeA
@@ -422,7 +422,7 @@ describe('basics between 2 nodes', () => {
         nodeB = nodes[1]
 
         // Put node B in node A's peer book
-        nodeA.peerBook.put(nodeB.peerInfo)
+        nodeA.peerBook.put(nodeB.peerInfo);
 
         gsA = new GossipSub(nodeA)
         gsB = new GossipSub(nodeB)

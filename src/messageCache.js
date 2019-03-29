@@ -1,16 +1,18 @@
-const RPC = require('./message').rpc.RPC
+/* eslint-disable valid-jsdoc */
+'use strict'
 const utils = require('./utils')
 
 class CacheEntry {
 
     /**
-     * @param {String}
-     * @param {Array{String}}
+     * @param {String} msgID
+     * @param {Array<String>} topics
+     *
      * @constructor
      */
     constructor (msgID, topics) {
         this.msgID = msgID
-	this.topics = topics
+        this.topics = topics
     }
 
 }
@@ -24,80 +26,84 @@ class MessageCache {
      * @constructor
      */
     constructor (gossip, history) {
-	/**
-	 * @type {Map<string, RPC.Message>}
-	 */
+        /**
+         * @type {Map<string, RPC.Message>}
+         */
         this.msgs = new Map()
 
-	/**
-	 * @type {Array<Array<CacheEntry>>}
-	 */
-	this.history = []
-	for(let i=0; i < history; i++) {
-	     this.history[i] = []
-	}
-	
-	/**
-	 * @type {Number}
-	 */
-	this.gossip = gossip
+        /**
+         * @type {Array<Array<CacheEntry>>}
+         */
+        this.history = []
+        for(let i=0; i < history; i++) {
+            this.history[i] = []
+        }
+
+        /**
+         * @type {Number}
+         */
+        this.gossip = gossip
     }
 
     /**
      * Adds a message to the current window and the cache
      *
-     * @param {pb.rpc.RPC.Message Object}
+     * @param {RPC.Message Object} msg
      *
+     * @returns {void}
      */
     put (msg) {
-	let msgID = utils.msgId(msg.from, msg.seqno)
-	this.msgs.set(msgID, msg)
-	this.history[0].push(new CacheEntry(msgID, msg.topicIDs))
+        let msgID = utils.msgId(msg.from, msg.seqno)
+        this.msgs.set(msgID, msg)
+        this.history[0].push(new CacheEntry(msgID, msg.topicIDs))
     }
 
     /**
      * Retrieves a message from the cache by its ID, if it is still present
      *
-     * @param {String}
-     * @return {pb.RPC.Message Object}
+     * @param {String} msgID
+     *
+     * @returns {RPC.Message Object}
      */
     get (msgID) {
-	return this.msgs.get(msgID)
+        return this.msgs.get(msgID)
     }
 
     /**
      * Retrieves a list of message IDs for a given topic
-     * 
-     * @param {String}
-     * @return {Array<String>}
+     *
+     * @param {String} topic
+     *
+     * @returns {Array<String>}
      */
     getGossipIDs (topic) {
-    	let msgIDs = []
+        let msgIDs = []
         for(let i=0; i < this.gossip; i++) {
-	    this.history[i].forEach((entry) => {
-	        for(let t of entry.topics) {
-		    if(t === topic) {
-		        msgIDs.push(entry.msgID)
-			break
-		    }
-		}
-	    })
-	}
-	
-	return msgIDs
+            this.history[i].forEach((entry) => {
+                for(let t of entry.topics) {
+                    if(t === topic) {
+                        msgIDs.push(entry.msgID)
+                        break
+                    }
+                }
+            })
+        }
+
+        return msgIDs
     }
-   
+
     /**
      * Shifts the current window, discarding messages older than this.history.length of the cache
      *
+     * @returns {void}
      */
     shift () {
         let last = this.history[this.history.length - 1]
-	last.forEach((entry) => {
-	    this.msgs.delete(entry.msgID)
-	})
+        last.forEach((entry) => {
+            this.msgs.delete(entry.msgID)
+        })
 
-	this.history.pop()
+        this.history.pop()
         this.history.unshift([])
     }
 }
