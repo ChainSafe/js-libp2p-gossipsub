@@ -166,35 +166,52 @@ class GossipSub extends Pubsub {
     const subs = rpc.subscriptions
     const msgs = rpc.msgs
 
+    if (msgs && msgs.length) {
+      this._processRpcMessages(utils.normalizeInRpcMessage(msgs))
+    }
+
     if (subs && subs.length) {
       const peer = this.peers.get(idB58Str)
       if (peer) {
         peer.updateSubscriptions(subs)
+
+        subs.forEach((subOptMsg) => {
+          let t = subOptMsg.topicCID
+          let topicSet = this.topics.get(t)
+          if (subOptMsg.subscribe) {
+            if (!topicSet) {
+              /**
+               * @type Set<Peer>
+               */
+              topicSet = new Set()
+              this.topics.set(t, topicSet.add(peer))
+            }
+          } else {
+            if (!topicSet) {
+              return
+            }
+            this.topics.set(t, topicSet.delete(peer))
+          }
+
+          let gossipSubPeers = this.fanout.get(t)
+          if (gossipSubPeers) {
+            this.mesh.set(t, gossipSubPeers)
+            this.fanout.delete(t)
+            this.lastpub.delete(t)
+          } else {
+            gossipSubPeers = this._getPeers(t, constants.GossipSubD)
+            this.mesh.set(t, gossipSubPeers)
+          }
+          gossipSubPeers.forEach((peer) => {
+            if (peer && peer.isWritable) {
+              this.log('JOIN: Add mesh link to %s in %s', peer.info.id.toB58String(), t)
+              this._sendGraft(peer, t)
+            }
+          })
+        })
+
         this.emit('meshsub:subscription-change', peer.info, peer.topics, subs)
       }
-
-      subs.forEach((subOptMsg) => {
-        let t = subOptMsg.topicID
-        let topicSet = this.topics.get(t)
-        if (subOptMsg.subscribe) {
-          if (!topicSet) {
-            /**
-             * @type Set<Peer>
-             */
-            topicSet = new Set()
-            this.topics.set(t, topicSet.add(peer))
-          }
-        } else {
-          if (!topicSet) {
-            return
-          }
-          this.topics.set(t, topicSet.delete(peer))
-        }
-      })
-    }
-
-    if (msgs && msgs.length) {
-      this._processRpcMessages(utils.normalizeInRpcMessage(msgs))
     }
 
     if (!controlMsg) {
@@ -206,11 +223,11 @@ class GossipSub extends Pubsub {
     let prune = this._handleGraft(idB58Str, controlMsg)
     this._handlePrune(idB58Str, controlMsg)
 
-    if (!(iWant || iWant.length) && !(iHave || iHave.length) && !(prune || prune.length)) {
+    if (!iWant || !iHave || !prune) {
       return
     }
 
-    let outRpc = this._rpcWithControl(null, ihave, iWant, null, prune)
+    let outRpc = this._rpcWithControl(null, iHave, iWant, null, prune)
     this._sendRpc(rpc.from, outRpc)
   }
 
@@ -443,7 +460,6 @@ class GossipSub extends Pubsub {
       }
       callback()
     })
-    
     if (this._heartbeatTimer) {
       const errMsg = 'Heartbeat timer is already running'
 
@@ -495,7 +511,6 @@ class GossipSub extends Pubsub {
    * @returns {void}
    */
   stop (callback) {
-    
     const heartbeatTimer = this._heartbeatTimer
     if (!heartbeatTimer) {
       const errMsg = 'Heartbeat timer is not running'
@@ -503,7 +518,6 @@ class GossipSub extends Pubsub {
 
       throw errcode(new Error(errMsg), 'ERR_HEARTBEATIMER_NO_RUNNING')
     }
-    
     super.stop((err) => {
       if (err) return callback(err)
       this.mesh = new Map()
@@ -511,6 +525,7 @@ class GossipSub extends Pubsub {
       this.lastpub = new Map()
       this.gossip = new Map()
       this.control = new Map()
+      this.subscriptions = new Set()
       heartbeatTimer.cancel(callback)
     })
 
@@ -524,31 +539,29 @@ class GossipSub extends Pubsub {
    */
   subscribe (topic) {
     assert(this.started, 'GossipSub has not started')
+
     if (this.mesh.has(topic)) {
       return
     }
 
     this.log('Join %s', topic)
 
+    this.subscriptions.add(topic)
+
     let topics = utils.ensureArray(topic)
 
-    let gossipSubPeers = this.fanout.get(topic)
-    if (gossipSubPeers) {
-      this.mesh.set(topic, gossipSubPeers)
-      this.fanout.delete(topic)
-      this.lastpub.delete(topic)
-    } else {
-      gossipSubPeers = this._getPeers(topic, constants.GossipSubD)
-      this.mesh.set(topic, gossipSubPeers)
-    }
-    gossipSubPeers.forEach((peer) => {
+    this.peers.forEach((peer) => sendSubscriptionsOnceReady(peer))
+    function sendSubscriptionsOnceReady (peer) {
       if (peer && peer.isWritable) {
-        this.log('JOIN: Add mesh link to %s in %s', peer.info.id.toB58String(), topic)
-        this._sendGraft(peer, topic)
-        this.subscriptions.add(topic)
-        peer.sendSubscriptions(topics)
+        return peer.sendSubscriptions(topics)
       }
-    })
+      const onConnection = () => {
+        peer.removeListener('connection', onConnection)
+        sendSubscriptionsOnceReady(peer)
+      }
+      peer.on('connection', onConnection)
+      peer.once('close', () => peer.removeListener('connection', onConnection))
+    }
   }
 
   /**
@@ -558,20 +571,31 @@ class GossipSub extends Pubsub {
    * @returns {void}
    */
   unsubscribe (topic) {
-    let gmap = this.mesh.get(topic)
-    if (!gmap) {
+    let meshPeers = this.mesh.get(topic)
+    if (!meshPeers) {
       return
     }
 
     this.log('LEAVE %s', topic)
 
     this.mesh.delete(topic)
+    this.subscriptions.delete(topic)
 
-    for (let peer of gmap) {
+    meshPeers.forEach((peer) => {
       this.log('LEAVE: Remove mesh link to %s in %s', peer.info.id.toB58String(), topic)
       this._sendPrune(peer, topic)
       this.peer.topics.delete(topic)
-    }
+
+      function checkIfReady (p) {
+        if (p && p.isWritable) {
+          p.sendUnsubscriptions([topic])
+        } else {
+          nextTick(checkIfReady.bind(p))
+        }
+      }
+
+      checkIfReady(peer)
+    })
   }
 
   /**
@@ -828,7 +852,7 @@ class GossipSub extends Pubsub {
    * Pseudo-randomly shuffles peers
    *
    * @param {Array<Peers>} peers
-   * @returns {void}
+   * @returns {Array<Peers>}
    */
   _shufflePeers (peers) {
     if (peers.length <= 1) {
@@ -849,6 +873,11 @@ class GossipSub extends Pubsub {
     }
   }
 
+  /**
+   * Returns the current time in nano seconds
+   *
+   * @returns {number}
+   */
   _nowInNano () {
     return Math.floor(Date.now / 1000000)
   }
