@@ -13,7 +13,7 @@ const MessageCache = require('./messageCache').MessageCache
 const utils = require('./utils')
 const assert = require('assert')
 
-const RPC = require('./message').rpc.RPC
+const RPC = require('./message').rpc
 const constants = require('./constants')
 const errcode = require('err-code')
 
@@ -89,12 +89,14 @@ class GossipSub extends Pubsub {
       this.peers.delete(id)
 
       // Remove this peer from the mesh
-      for (let [_, peers] of this.mesh.entries()) {
+      for (let [topic, peers] of this.mesh.entries()) {
         peers.delete(peer)
+        this.mesh.set(topic, peers)
       }
       // Remove this peer from the fanout
-      for (let [_, peers] of this.fanout.entries()) {
+      for (let [topic, peers] of this.fanout.entries()) {
         peers.delete(peer)
+        this.fanout.set(topic, peers)
       }
 
       // Remove from gossip mapping
@@ -134,7 +136,7 @@ class GossipSub extends Pubsub {
    * @param {Connection} conn
    * @param {Peer} peer
    *
-   * @returns {void}
+   * @returns {undefined}
    *
    */
   _processConnection (idB58Str, conn, peer) {
@@ -161,67 +163,71 @@ class GossipSub extends Pubsub {
       return
     }
 
+    let peer = this.peers.get(idB58Str)
+    if (!peer) {
+      return
+    }
+
     this.log('rpc from', idB58Str)
     const controlMsg = rpc.control
     const subs = rpc.subscriptions
     const msgs = rpc.msgs
 
-    if (msgs && msgs.length) {
-      this._processRpcMessages(utils.normalizeInRpcMessage(msgs))
+    if (subs && subs.length) {
+      subs.forEach((subOptMsg) => {
+        let t = subOptMsg.topicCID
+
+        let topicSet = this.topics.get(t)
+        if (subOptMsg.subscribe) {
+          if (!topicSet) {
+            /**
+             * @type Set<Peer>
+             */
+            topicSet = new Set()
+            topicSet.add(peer)
+            this.topics.set(t, topicSet)
+          }
+        } else {
+          if (!topicSet) {
+            return
+          }
+          topicSet.delete(peer)
+          this.topics.set(t, topicSet)
+        }
+
+        let gossipSubPeers = this.fanout.get(t)
+        if (gossipSubPeers) {
+          this.mesh.set(t, gossipSubPeers)
+          this.fanout.delete(t)
+          this.lastpub.delete(t)
+        } else {
+          gossipSubPeers = this._getPeers(t, constants.GossipSubD)
+          this.mesh.set(t, gossipSubPeers)
+        }
+        gossipSubPeers.forEach((peer) => {
+          if (peer && peer.isWritable) {
+            this.log('JOIN: Add mesh link to %s in %s', peer.info.id.toB58String(), t)
+            peer.updateSubscriptions(subs)
+            this._sendGraft(peer, t)
+          }
+        })
+      })
+
+      this.emit('meshsub:subscription-change', peer.info, peer.topics, subs)
     }
 
-    if (subs && subs.length) {
-      const peer = this.peers.get(idB58Str)
-      if (peer) {
-        peer.updateSubscriptions(subs)
-
-        subs.forEach((subOptMsg) => {
-          let t = subOptMsg.topicCID
-          let topicSet = this.topics.get(t)
-          if (subOptMsg.subscribe) {
-            if (!topicSet) {
-              /**
-               * @type Set<Peer>
-               */
-              topicSet = new Set()
-              this.topics.set(t, topicSet.add(peer))
-            }
-          } else {
-            if (!topicSet) {
-              return
-            }
-            this.topics.set(t, topicSet.delete(peer))
-          }
-
-          let gossipSubPeers = this.fanout.get(t)
-          if (gossipSubPeers) {
-            this.mesh.set(t, gossipSubPeers)
-            this.fanout.delete(t)
-            this.lastpub.delete(t)
-          } else {
-            gossipSubPeers = this._getPeers(t, constants.GossipSubD)
-            this.mesh.set(t, gossipSubPeers)
-          }
-          gossipSubPeers.forEach((peer) => {
-            if (peer && peer.isWritable) {
-              this.log('JOIN: Add mesh link to %s in %s', peer.info.id.toB58String(), t)
-              this._sendGraft(peer, t)
-            }
-          })
-        })
-
-        this.emit('meshsub:subscription-change', peer.info, peer.topics, subs)
-      }
+    if (msgs && msgs.length) {
+      this._processRpcMessages(utils.normalizeInRpcMessages(msgs))
     }
 
     if (!controlMsg) {
       return
     }
 
-    let iWant = this._handleIHave(idB58Str, controlMsg)
-    let iHave = this._handleIWant(idB58Str, controlMsg)
-    let prune = this._handleGraft(idB58Str, controlMsg)
-    this._handlePrune(idB58Str, controlMsg)
+    let iWant = this._handleIHave(peer, controlMsg)
+    let iHave = this._handleIWant(peer, controlMsg)
+    let prune = this._handleGraft(peer, controlMsg)
+    this._handlePrune(peer, controlMsg)
 
     if (!iWant || !iHave || !prune) {
       return
@@ -401,6 +407,7 @@ class GossipSub extends Pubsub {
         this.log('GRAFT: Add mesh link from %s in %s', peer.info.id.toB58String(), topic)
         peers.add(peer)
         peer.topics.add(topic)
+        this.mesh.set(topic, peers)
       }
     })
 
@@ -601,18 +608,28 @@ class GossipSub extends Pubsub {
   /**
    * Publishes messages to all subscribed peers
    *
-   * @param {Peer} from
+   * @param {Array<string>|string} topics
    * @param {any} msg
    * @returns {void}
    */
-  publish (from, msg) {
-    this.messageCache.put(msg)
+  publish (topics, msg) {
+    topics = utils.ensureArray(topics)
+
+    let msgObj = {
+      from: this.libp2p.peerInfo.id.toB58String(),
+      data: msg,
+      seqno: utils.randomSeqno(),
+      topicIDs: topics
+    }
+
+    this.messageCache.put(msgObj)
+    this.seenCache.put(utils.msgId(msgObj.from, msgObj.seqno))
 
     // @type Set<string>
     let tosend = new Set()
-    msg.topicIDs.forEach((topic) => {
+    msgObj.topicIDs.forEach((topic) => {
       let peersInTopic = this.topics.get(topic)
-      if (!peersInTopic.size) {
+      if (!peersInTopic) {
         return
       }
 
@@ -646,11 +663,11 @@ class GossipSub extends Pubsub {
     })
     // Publish messages to peers
     tosend.forEach((peer) => {
-      let peerId = peer.info.id.getB58String()
-      if (peerId === from || peerId === msg.from) {
+      let peerId = peer.info.id.toB58String()
+      if (peerId === msgObj.from) {
         return
       }
-      peer.sendMessages(msg)
+      peer.sendMessages(msgObj)
     })
   }
 

@@ -34,15 +34,17 @@
   "dependencies": {
     "@types/chai": "^4.1.7",
     "@types/mocha": "^5.2.6",
+    "async": "latest",
     "err-code": "^1.1.2",
     "libp2p": "~0.25.0-rc.5",
     "libp2p-floodsub": "~0.15.8",
     "libp2p-pubsub": "~0.0.2",
     "libp2p-switch": "~0.42.2",
+    "peer-id": "~0.12.2",
+    "peer-info": "~0.15.1",
     "protons": "^1.0.1",
-    "async": "latest",
-    "pull-stream": "latest",
-    "pull-length-prefixed": "latest"
+    "pull-length-prefixed": "latest",
+    "pull-stream": "latest"
   },
   "devDependencies": {
     "aegir": "^18.1.0",
