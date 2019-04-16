@@ -477,29 +477,12 @@ class GossipSub extends Pubsub {
     const heartbeatTimer = {
       _onCancel: null,
       _timeoutId: null,
-      runPeriodically: (fnct, period) => {
-        heartbeatTimer._timeoutId = setTimeout(() => {
-          heartbeatTimer._timeoutId = null
-
-          fnct((nextPeriod) => {
-            // Was the heartbeat timer cancelled while the function was being called?
-            if (heartbeatTimer._onCancel) {
-              return heartbeatTimer._onCancel()
-            }
-
-            // Schedule next
-            heartbeatTimer.runPeriodically(fnct, nextPeriod || period)
-          })
-        }, period)
+      runPeriodically: (fn, period) => {
+        heartbeatTimer._timeoutId = setInterval(fn, period)
       },
       cancel: (cb) => {
-        // Not currently running a republish can call callback immediately
-        if (heartbeatTimer._timeoutId) {
-          clearTimeout(heartbeatTimer._timeoutId)
-          return cb()
-        }
-        // Wait for republish to finish then call callback
-        heartbeatTimer._onCancel = cb
+        clearTimeout(heartbeatTimer._timeoutId)
+        cb()
       }
     }
 
