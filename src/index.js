@@ -136,7 +136,7 @@ class GossipSub extends Pubsub {
    * @param {Connection} conn
    * @param {Peer} peer
    *
-   * @returns {undefined}
+   * @returns {void}
    *
    */
   _processConnection (idB58Str, conn, peer) {
