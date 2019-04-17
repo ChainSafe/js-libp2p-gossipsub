@@ -108,7 +108,7 @@ class GossipSub extends Pubsub {
 
   /**
    * When a peer has dialed into another peer, it sends its subscriptions to it.
-   *
+   * @override
    * @param {PeerInfo} peerInfo
    * @param {Connection} conn
    * @param {Function} callback
@@ -136,7 +136,7 @@ class GossipSub extends Pubsub {
    * @param {Connection} conn
    * @param {Peer} peer
    *
-   * @returns {undefined}
+   * @returns {void}
    *
    */
   _processConnection (idB58Str, conn, peer) {
