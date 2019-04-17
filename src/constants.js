@@ -18,7 +18,7 @@ exports.GossipSubHistoryGossip = 3
 
 // Heartbeat interval
 exports.GossipSubHeartbeatInitialDelay = 100 / second
-exports.GossipSubHeartbeatInterval = 1 * second
+exports.GossipSubHeartbeatInterval = second
 
 // Fanout ttl
 exports.GossipSubFanoutTTL = minute

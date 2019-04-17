@@ -285,7 +285,7 @@ describe('basics between 2 nodes', () => {
         (cb) => gsB.stop(cb)
       ], done)
     })
-  });
+  })
 
   describe('nodes handle connection errors', () => {
     let nodeA
@@ -422,7 +422,7 @@ describe('basics between 2 nodes', () => {
         nodeB = nodes[1]
 
         // Put node B in node A's peer book
-        nodeA.peerBook.put(nodeB.peerInfo);
+        nodeA.peerBook.put(nodeB.peerInfo)
 
         gsA = new GossipSub(nodeA)
         gsB = new GossipSub(nodeB)

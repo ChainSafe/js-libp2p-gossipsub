@@ -22,7 +22,7 @@ describe('Testing Message Cache Operations', () => {
   let messageCache = new MessageCache(3, 5)
   let testMessages = []
 
-  before( () => {
+  before(() => {
     const makeTestMessage = (n) => {
       return {
         from: 'test',
