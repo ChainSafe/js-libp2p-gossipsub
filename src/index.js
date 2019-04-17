@@ -8,9 +8,9 @@ const Pubsub = require('libp2p-pubsub')
 const pull = require('pull-stream')
 const lp = require('pull-length-prefixed')
 const nextTick = require('async/nextTick')
+const utils = require('libp2p-pubsub/src/utils')
 
 const MessageCache = require('./messageCache').MessageCache
-const utils = require('./utils')
 const assert = require('assert')
 
 const { rpc } = require('./message')
@@ -175,7 +175,7 @@ class GossipSub extends Pubsub {
 
     if (subs && subs.length) {
       subs.forEach((subOptMsg) => {
-        let t = subOptMsg.topicCID
+        let t = subOptMsg.topicID
 
         let topicSet = this.topics.get(t)
         if (subOptMsg.subscribe) {
