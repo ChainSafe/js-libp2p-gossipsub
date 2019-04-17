@@ -34,7 +34,7 @@
   "dependencies": {
     "@types/chai": "^4.1.7",
     "@types/mocha": "^5.2.6",
-    "async": "latest",
+    "async": "^2.6.2",
     "err-code": "^1.1.2",
     "libp2p": "~0.25.0-rc.5",
     "libp2p-floodsub": "~0.15.8",
@@ -43,8 +43,8 @@
     "peer-id": "~0.12.2",
     "peer-info": "~0.15.1",
     "protons": "^1.0.1",
-    "pull-length-prefixed": "latest",
-    "pull-stream": "latest"
+    "pull-length-prefixed": "^1.3.2",
+    "pull-stream": "^3.6.9"
   },
   "devDependencies": {
     "aegir": "^18.1.0",
