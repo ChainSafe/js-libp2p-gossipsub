@@ -13,7 +13,7 @@ const MessageCache = require('./messageCache').MessageCache
 const utils = require('./utils')
 const assert = require('assert')
 
-const RPC = require('./message').rpc
+const { rpc } = require('./message')
 const constants = require('./constants')
 const errcode = require('err-code')
 
