@@ -49,14 +49,14 @@ class GossipSub extends Pubsub {
     /**
      * Map of pending messages to gossip
      *
-     * @type {Map<Peer, Array<RPC.ControlIHave object>> }
+     * @type {Map<Peer, Array<rpc.RPC.ControlIHave object>> }
      */
     this.gossip = new Map()
 
     /**
      * Map of control messages
      *
-     * @type {Map<Peer, RPC.ControlMessage object>}
+     * @type {Map<Peer, rpc.RPC.ControlMessage object>}
      */
     this.control = new Map()
 
@@ -143,7 +143,7 @@ class GossipSub extends Pubsub {
     pull(
       conn,
       lp.decode(),
-      pull.map((data) => RPC.decode(data)),
+      pull.map((data) => rpc.RPC.decode(data)),
       pull.drain(
         (rpc) => this._onRpc(idB58Str, rpc),
         (err) => this._onConnectionEnd(idB58Str, peer, err)
@@ -270,13 +270,13 @@ class GossipSub extends Pubsub {
   /**
    * Returns a buffer of a RPC message that contains a control message
    *
-   * @param {Array<RPC.Message>} msgs
-   * @param {Array<RPC.ControlIHave>} ihave
-   * @param {Array<RPC.ControlIWant>} iwant
-   * @param {Array<RPC.ControlGraft>} graft
-   * @param {Array<RPC.Prune>} prune
+   * @param {Array<rpc.RPC.Message>} msgs
+   * @param {Array<rpc.RPC.ControlIHave>} ihave
+   * @param {Array<rpc.RPC.ControlIWant>} iwant
+   * @param {Array<rpc.RPC.ControlGraft>} graft
+   * @param {Array<rpc.RPC.Prune>} prune
    *
-   * @returns {RPC Object}
+   * @returns {rpc.RPC}
    *
    */
   _rpcWithControl (msgs, ihave, iwant, graft, prune) {
@@ -295,9 +295,9 @@ class GossipSub extends Pubsub {
    * Handles IHAVE messages
    *
    * @param {Peer} peer
-   * @param {RPC.controlMessage Object} controlRpc
+   * @param {rpc.RPC.controlMessage Object} controlRpc
    *
-   * @returns {RPC.ControlIWant Object}
+   * @returns {rpc.RPC.ControlIWant Object}
    */
   _handleIHave (peer, controlRpc) {
     let iwant = new Set()
@@ -342,12 +342,12 @@ class GossipSub extends Pubsub {
    * Handles IWANT messages
    *
    * @param {Peer} peer
-   * @param {RPC.control} controlRpc
+   * @param {rpc.RPC.control} controlRpc
    *
-   * @returns {Array<RPC.Message>}
+   * @returns {Array<rpc.RPC.Message>}
    */
   _handleIWant (peer, controlRpc) {
-    // @type {Map<string, RPC.Message>}
+    // @type {Map<string, rpc.RPC.Message>}
     let ihave = new Map()
 
     let iwantMsgs = controlRpc.iwant
@@ -386,9 +386,9 @@ class GossipSub extends Pubsub {
    * Handles Graft messages
    *
    * @param {Peer} peer
-   * @param {RPC.control} controlRpc
+   * @param {rpc.RPC.control} controlRpc
    *
-   * @return {Array<RPC.ControlPrune>}
+   * @return {Array<rpc.RPC.ControlPrune>}
    *
    */
   _handleGraft (peer, controlRpc) {
@@ -429,7 +429,7 @@ class GossipSub extends Pubsub {
    * Handles Prune messages
    *
    * @param {Peer} peer
-   * @param {RPC.Control} controlRpc
+   * @param {rpc.RPC.Control} controlRpc
    *
    * @returns {void}
    *
@@ -668,7 +668,7 @@ class GossipSub extends Pubsub {
 
     let out = this._rpcWithControl(null, null, null, graft, null)
     if (peer && peer.isWritable) {
-      peer.write(RPC.encode(out))
+      peer.write(rpc.RPC.encode(out))
       peer.sendSubscriptions([topic])
     }
   }
@@ -687,7 +687,7 @@ class GossipSub extends Pubsub {
 
     let out = this._rpcWithControl(null, null, null, null, prune)
     if (peer && peer.isWritable) {
-      peer.write(RPC.encode(out))
+      peer.write(rpc.RPC.encode(out))
       peer.sendUnsubscriptions([topic])
     }
   }
@@ -807,7 +807,7 @@ class GossipSub extends Pubsub {
    * Adds new IHAVE messages to pending gossip
    *
    * @param {Peer} peer
-   * @param {Array<RPC.ControlIHave>} controlIHaveMsgs
+   * @param {Array<rpc.RPC.ControlIHave>} controlIHaveMsgs
    * @returns {void}
    */
   _pushGossip (peer, controlIHaveMsgs) {
