@@ -167,50 +167,29 @@ class GossipSub extends Pubsub {
     const subs = rpc.subscriptions
     const msgs = rpc.msgs
 
-    if (subs && subs.length) {
+    if (subs.length) {
+      // update peer subscriptions
+      peer.updateSubscriptions(subs)
       subs.forEach((subOptMsg) => {
-        let t = subOptMsg.topicID
+        const t = subOptMsg.topicID
 
-        let topicSet = this.topics.get(t)
+        if (!this.topics.has(t)) {
+          this.topics.set(t, new Set())
+        }
+
+        const topicSet = this.topics.get(t)
         if (subOptMsg.subscribe) {
-          if (!topicSet) {
-            /**
-             * @type Set<Peer>
-             */
-            topicSet = new Set()
-            topicSet.add(peer)
-            this.topics.set(t, topicSet)
-          }
+          // subscribe peer to new topic
+          topicSet.add(peer)
         } else {
-          if (!topicSet) {
-            return
-          }
+          // unsubscribe from existing topic
           topicSet.delete(peer)
-          this.topics.set(t, topicSet)
         }
-
-        let gossipSubPeers = this.fanout.get(t)
-        if (gossipSubPeers) {
-          this.mesh.set(t, gossipSubPeers)
-          this.fanout.delete(t)
-          this.lastpub.delete(t)
-        } else {
-          gossipSubPeers = this._getPeers(t, constants.GossipSubD)
-          this.mesh.set(t, gossipSubPeers)
-        }
-        gossipSubPeers.forEach((peer) => {
-          if (peer && peer.isWritable) {
-            this.log('JOIN: Add mesh link to %s in %s', peer.info.id.toB58String(), t)
-            peer.updateSubscriptions(subs)
-            this._sendGraft(peer, t)
-          }
-        })
       })
-
       this.emit('meshsub:subscription-change', peer.info, peer.topics, subs)
     }
 
-    if (msgs && msgs.length) {
+    if (msgs.length) {
       this._processRpcMessages(utils.normalizeInRpcMessages(msgs))
     }
 
