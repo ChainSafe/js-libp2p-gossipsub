@@ -431,17 +431,16 @@ class GossipSub extends Pubsub {
    */
   _handlePrune (peer, controlRpc) {
     let pruneMsgs = controlRpc.prune
-    if (!(pruneMsgs || pruneMsgs.length)) {
+    if (!pruneMsgs.length) {
       return
     }
 
-    pruneMsgs.forEach((prune) => {
-      let topic = prune.topicID
-      let peers = this.mesh.get(topic)
-      if (!peers) {
-        this.log('PRUNE: Remove mesh link to %s in %s', peer.info.id.toB58String(), topic)
+    pruneMsgs.forEach(({ topicID }) => {
+      if (this.mesh.has(topicID)) {
+        this.log('PRUNE: Remove mesh link to %s in %s', peer.info.id.toB58String(), topicID)
+        const peers = this.mesh.get(topicID)
         peers.delete(peer)
-        peers.topic.delete(topic)
+        peer.topics.delete(topicID)
       }
     })
   }
