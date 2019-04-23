@@ -692,10 +692,7 @@ class GossipSub extends Pubsub {
     }]
 
     let out = this._rpcWithControl(null, null, null, graft, null)
-    if (peer && peer.isWritable) {
-      peer.write(rpc.RPC.encode(out))
-      peer.sendSubscriptions([topic])
-    }
+    this._sendRpc(peer, out)
   }
 
   /**
