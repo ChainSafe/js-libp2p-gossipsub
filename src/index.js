@@ -683,7 +683,44 @@ class GossipSub extends Pubsub {
     if (peer && peer.isWritable) {
       peer.write(rpc.RPC.encode(out))
       peer.sendUnsubscriptions([topic])
+  }
+
+  _sendRpc (peer, outRpc) {
+    if (!peer || !peer.isWritable) {
+      return
     }
+
+    // piggyback control message retries
+    const ctrl = this.control.get(peer)
+    if (ctrl) {
+      this.piggybackControl(peer, outRpc, ctrl)
+      this.control.delete(peer)
+    }
+
+    // piggyback gossip
+    const ihave = this.gossip.get(peer)
+    if (ihave) {
+      this.piggybackGossip(peer, outRpc, ihave)
+      this.gossip.delete(peer)
+    }
+
+    peer.write(rpc.RPC.encode(outRpc))
+  }
+
+  _piggybackControl (peer, outRpc, ctrl) {
+    const tograft = (ctrl.graft || []).filter(({ topicID }) => this.mesh.has(topicID) && this.mesh.get(topicID).has(peer))
+    const toprune = (ctrl.prune || []).filter(({ topicID }) => this.mesh.has(topicID) && this.mesh.get(topicID).has(peer))
+
+    if (!tograft.length && !toprune) {
+      return
+    }
+
+    outRpc.control.graft = outRpc.control.graft.concat(tograft)
+    outRpc.control.prune = outRpc.control.graft.concat(toprune)
+  }
+
+  _piggybackGossip (peer, outRpc, ihave) {
+    outRpc.control.ihave = ihave
   }
 
   /**
