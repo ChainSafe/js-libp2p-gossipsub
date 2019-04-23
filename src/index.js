@@ -275,12 +275,13 @@ class GossipSub extends Pubsub {
    */
   _rpcWithControl (msgs, ihave, iwant, graft, prune) {
     return {
-      msgs: msgs,
+      subscriptions: [],
+      msgs: msgs || [],
       control: {
-        ihave: ihave,
-        iwant: iwant,
-        graft: graft,
-        prune: prune
+        ihave: ihave || [],
+        iwant: iwant || [],
+        graft: graft || [],
+        prune: prune || []
       }
     }
   }
