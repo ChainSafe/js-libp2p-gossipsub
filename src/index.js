@@ -767,14 +767,18 @@ class GossipSub extends Pubsub {
         let ineed = constants.GossipSubD - peers.size
         let peersSet = this._getPeers(topic, ineed)
         peersSet.forEach((peer) => {
-          if (!peers.has(peer)) {
+          // add topic peers not already in mesh
+          if (peers.has(peer)) {
             return
           }
 
           this.log('HEARTBEAT: Add mesh link to %s in %s', peer.info.id.toB58String(), topic)
           peers.add(peer)
           peer.topics.add(topic)
-          tograft.set(peer, tograft.get(peer).push(topic))
+          if (!tograft.has(peer)) {
+            tograft.set(peer, [])
+          }
+          tograft.get(peer).push(topic)
         })
       }
 
@@ -789,7 +793,10 @@ class GossipSub extends Pubsub {
           this.log('HEARTBEAT: Remove mesh link to %s in %s', peer.info.id.toB58String(), topic)
           peers.delete(peer)
           peer.topics.remove(topic)
-          toprune.set(peer, toprune.get(peer).push(topic))
+          if (!toprune.has(peer)) {
+            toprune.set(peer, [])
+          }
+          toprune.get(peer).push(topic)
         })
       }
 
@@ -829,9 +836,38 @@ class GossipSub extends Pubsub {
 
       this._emitGossip(topic, peers)
     })
+    // send coalesced GRAFT/PRUNE messages (will piggyback gossip)
+    this._sendGraftPrune(tograft, toprune)
 
     // advance the message history window
     this.messageCache.shift()
+
+    this.emit('gossipsub:heartbeat')
+  }
+
+  /**
+   * Send graft and prune messages
+   *
+   * @param {Map<Peer, Array<String>>} tograft
+   * @param {Map<Peer, Array<String>>} toprune
+   */
+  _sendGraftPrune (tograft, toprune) {
+    for (const [p, topics] of tograft) {
+      const graft = topics.map((topicID) => ({ topicID }))
+      let prune = null
+      if (toprune.has(p)) {
+        prune = toprune.get(p).map((topicID) => ({ topicID }))
+        toprune.delete(p)
+      }
+
+      const outRpc = this._rpcWithControl(null, null, null, graft, prune)
+      this._sendRpc(p, outRpc)
+    }
+    for (const [p, topics] of toprune) {
+      const prune = topics.map((topicID) => ({ topicID }))
+      const outRpc = this._rpcWithControl(null, null, null, null, prune)
+      this._sendRpc(p, outRpc)
+    }
   }
 
   /**
