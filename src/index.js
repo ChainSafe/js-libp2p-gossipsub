@@ -396,7 +396,7 @@ class GossipSub extends Pubsub {
     let prune = []
 
     let grafts = controlRpc.graft
-    if (!(grafts || grafts.length)) {
+    if (!grafts.length) {
       return
     }
     grafts.forEach((graft) => {
