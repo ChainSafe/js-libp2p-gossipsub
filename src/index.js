@@ -735,7 +735,7 @@ class GossipSub extends Pubsub {
     })
 
     // expire fanout for topics we haven't published to in a while
-    let now = this._nowInNano()
+    let now = this._now()
     this.lastpub.forEach((topic, lastpb) => {
       if ((lastpb + constants.GossipSubFanoutTTL) < now) {
         this.fanout.delete(topic)
@@ -868,12 +868,12 @@ class GossipSub extends Pubsub {
   }
 
   /**
-   * Returns the current time in nano seconds
+   * Returns the current time in milliseconds
    *
    * @returns {number}
    */
-  _nowInNano () {
-    return Math.floor(Date.now / 1000000)
+  _now () {
+    return Date.now()
   }
 }
 
