@@ -517,68 +517,79 @@ class GossipSub extends Pubsub {
   }
 
   /**
-   * Subscribes to a topic
-   * @param {String} topic
+   * Subscribes to topics
+   * @param {Array<string>|string} topics
    * @returns {void}
    */
-  subscribe (topic) {
+  subscribe (topics) {
     assert(this.started, 'GossipSub has not started')
 
-    if (this.mesh.has(topic)) {
+    topics = utils.ensureArray(topics)
+
+    const newTopics = topics.filter((topic) => !this.subscriptions.has(topic))
+    if (newTopics.length === 0) {
       return
     }
 
-    this.log('Join %s', topic)
+    this.log('JOIN %s', newTopics)
 
-    this.subscriptions.add(topic)
+    // Broadcast SUBSCRIBE to all peers
+    this.peers.forEach((peer) => {
+      peer.sendSubscriptions(newTopics)
+    })
 
-    let topics = utils.ensureArray(topic)
+    newTopics.forEach((topic) => {
+      // set subscription
+      this.subscriptions.add(topic)
 
-    this.peers.forEach((peer) => sendSubscriptionsOnceReady(peer))
-    function sendSubscriptionsOnceReady (peer) {
-      if (peer && peer.isWritable) {
-        return peer.sendSubscriptions(topics)
+      // Send GRAFT to mesh peers
+      if (this.fanout.has(topic)) {
+        this.mesh.set(topic, this.fanout.get(topic))
+        this.fanout.delete(topic)
+        this.lastpub.delete(topic)
+      } else {
+        const peers = this._getPeers(topic, constants.GossipSubD)
+        this.mesh.set(topic, peers)
       }
-      const onConnection = () => {
-        peer.removeListener('connection', onConnection)
-        sendSubscriptionsOnceReady(peer)
-      }
-      peer.on('connection', onConnection)
-      peer.once('close', () => peer.removeListener('connection', onConnection))
-    }
+      this.mesh.get(topic).forEach((peer) => {
+        this.log('JOIN: Add mesh link to %s in %s', peer.info.id.toB58String(), topic)
+        this._sendGraft(peer, topic)
+      })
+    })
   }
 
   /**
    * Leaves a topic
    *
-   * @param {String} topic
+   * @param {Array<string>|string} topics
    * @returns {void}
    */
-  unsubscribe (topic) {
-    let meshPeers = this.mesh.get(topic)
-    if (!meshPeers) {
+  unsubscribe (topics) {
+    topics = utils.ensureArray(topics)
+
+    const unTopics = topics.filter((topic) => this.subscriptions.has(topic))
+    if (unTopics.length === 0) {
       return
     }
+    this.log('LEAVE %s', topics)
 
-    this.log('LEAVE %s', topic)
+    // Broadcast UNSUBSCRIBE to all peers
+    this.peers.forEach((peer) => {
+      peer.sendUnsubscriptions(topics)
+    })
 
-    this.mesh.delete(topic)
-    this.subscriptions.delete(topic)
+    unTopics.forEach((topic) => {
+      // delete subscription
+      this.subscriptions.delete(topic)
 
-    meshPeers.forEach((peer) => {
-      this.log('LEAVE: Remove mesh link to %s in %s', peer.info.id.toB58String(), topic)
-      this._sendPrune(peer, topic)
-      this.peer.topics.delete(topic)
-
-      function checkIfReady (p) {
-        if (p && p.isWritable) {
-          p.sendUnsubscriptions([topic])
-        } else {
-          nextTick(checkIfReady.bind(p))
-        }
+      // Send PRUNE to mesh peers
+      if (this.mesh.has(topic)) {
+        this.mesh.get(topic).forEach((peer) => {
+          this.log('LEAVE: Remove mesh link to %s in %s', peer.info.id.toB58String(), topic)
+          this._sendPrune(peer, topic)
+        })
+        this.mesh.delete(topic)
       }
-
-      checkIfReady(peer)
     })
   }
 
