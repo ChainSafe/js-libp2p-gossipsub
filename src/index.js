@@ -304,7 +304,7 @@ class GossipSub extends Pubsub {
     let iwant = new Set()
 
     let ihaveMsgs = controlRpc.ihave
-    if (!ihaveMsgs) {
+    if (!ihaveMsgs.length) {
       return
     }
 
@@ -324,7 +324,7 @@ class GossipSub extends Pubsub {
       })
     })
 
-    if (!iwant.length) {
+    if (!iwant.size) {
       return
     }
 
