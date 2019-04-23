@@ -352,7 +352,7 @@ class GossipSub extends Pubsub {
     let ihave = new Map()
 
     let iwantMsgs = controlRpc.iwant
-    if (!iwantMsgs) {
+    if (!iwantMsgs.length) {
       return
     }
 
