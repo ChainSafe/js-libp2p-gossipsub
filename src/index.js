@@ -77,26 +77,19 @@ class GossipSub extends Pubsub {
    *
    * @override
    * @param {Peer} peer
-   * @returns {void}
+   * @returns {PeerInfo}
    */
   _removePeer (peer) {
-    const id = peer.info.id.toB58String()
-
-    this.log('remove', id, peer._references)
+    super._removePeer(peer)
     // Only delete when no one else if referencing this peer.
-    if (--peer._references === 0) {
-      this.log('delete peer', id)
-      this.peers.delete(id)
-
+    if (peer._references === 0) {
       // Remove this peer from the mesh
       for (let [topic, peers] of this.mesh.entries()) {
         peers.delete(peer)
-        this.mesh.set(topic, peers)
       }
       // Remove this peer from the fanout
       for (let [topic, peers] of this.fanout.entries()) {
         peers.delete(peer)
-        this.fanout.set(topic, peers)
       }
 
       // Remove from gossip mapping
@@ -104,6 +97,7 @@ class GossipSub extends Pubsub {
       // Remove from control mapping
       this.control.delete(peer)
     }
+    return peer
   }
 
   /**
