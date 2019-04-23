@@ -231,6 +231,10 @@ class GossipSub extends Pubsub {
     this._sendRpc(rpc.from, outRpc)
   }
 
+  /**
+   * Process incoming messages,
+   * emitting locally and forwarding on to relevant floodsub and gossipsub peers
+   */
   _processRpcMessages (msgs) {
     msgs.forEach((msg) => {
       const seqno = utils.msgId(msg.from, msg.seqno)
@@ -241,23 +245,46 @@ class GossipSub extends Pubsub {
 
       this.seenCache.put(seqno)
 
+      const topics = msg.topicIDs
+
+      // Emit to self
+      this._emitMessages(topics, [msg])
+
       // Emit to floodsub peers
-      // Need to figure this out
+      this.peers.forEach((peer) => {
+        if (peer.info.protocols.has(constants.FloodSubID) &&
+          peer.info.id.toB58String() !== msg.from &&
+          utils.anyMatch(peer.topics, topics) &&
+          peer.isWritable
+        ) {
+          peer.sendMessages(utils.normalizeOutRpcMessages([msg]))
+          this.log('publish msg on topics - floodsub', topics, peer.info.id.toB58String())
+        }
+      })
 
       // Emit to peers in the mesh
-      let topics = msg.topicIDs
       topics.forEach((topic) => {
-        let meshPeers = this.mesh.get(topic)
-        meshPeers.forEach((peer) => {
-          if (!peer.isWritable || !utils.anyMatch(peer.topics, topics)) {
+        if (!this.mesh.has(topic)) {
+          return
+        }
+        this.mesh.get(topic).forEach((peer) => {
+          if (!peer.isWritable || peer.info.id.toB58String() === msg.from) {
             return
           }
-
           peer.sendMessages(utils.normalizeOutRpcMessages([msg]))
-
-          this.log('publish msgs on topics', topic, peer.info.id.toB58String())
+          this.log('publish msg on topic - meshsub', topic, peer.info.id.toB58String())
         })
       })
+    })
+  }
+
+  _emitMessages (topics, messages) {
+    topics.forEach((topic) => {
+      if (this.subscriptions.has(topic)) {
+        messages.forEach((message) => {
+          this.emit(topic, message)
+        })
+      }
     })
   }
 
