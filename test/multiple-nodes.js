@@ -6,8 +6,9 @@ const chai = require('chai')
 chai.use(require('dirty-chai'))
 const expect = chai.expect
 const parallel = require('async/parallel')
+const promisify = require('promisify-es6')
 
-const FloodSub = require('../src')
+const GossipSub = require('../src')
 const utils = require('./utils')
 const first = utils.first
 const createNode = utils.createNode
@@ -40,16 +41,18 @@ describe('multiple nodes (more than 2)', () => {
         })
       })
 
-      after((done) => {
-        // note: setTimeout to avoid the tests finishing
-        // before swarm does its dials
-        setTimeout(() => {
-          parallel([
-            (cb) => a.libp2p.stop(cb),
-            (cb) => b.libp2p.stop(cb),
-            (cb) => c.libp2p.stop(cb)
-          ], done)
-        }, 1000)
+      after(async function () {
+        this.timeout(4000)
+        await Promise.all([
+          promisify(a.gs.stop.bind(a.gs))(),
+          promisify(b.gs.stop.bind(b.gs))(),
+          promisify(c.gs.stop.bind(c.gs))()
+        ])
+        await Promise.all([
+          promisify(a.libp2p.stop.bind(a.libp2p))(),
+          promisify(b.libp2p.stop.bind(b.libp2p))(),
+          promisify(c.libp2p.stop.bind(c.libp2p))()
+        ])
       })
 
       it('establish the connections', (done) => {
@@ -64,50 +67,50 @@ describe('multiple nodes (more than 2)', () => {
       })
 
       it('subscribe to the topic on node a', (done) => {
-        a.ps.subscribe('Z')
-        expectSet(a.ps.subscriptions, ['Z'])
+        a.gs.subscribe('Z')
+        expectSet(a.gs.subscriptions, ['Z'])
 
-        b.ps.once('floodsub:subscription-change', () => {
-          expect(b.ps.peers.size).to.equal(2)
+        b.gs.once('meshsub:subscription-change', () => {
+          expect(b.gs.peers.size).to.equal(2)
           const aPeerId = a.libp2p.peerInfo.id.toB58String()
-          const topics = b.ps.peers.get(aPeerId).topics
+          const topics = b.gs.peers.get(aPeerId).topics
           expectSet(topics, ['Z'])
 
-          expect(c.ps.peers.size).to.equal(1)
-          expectSet(first(c.ps.peers).topics, [])
+          expect(c.gs.peers.size).to.equal(1)
+          expectSet(first(c.gs.peers).topics, [])
 
           done()
         })
       })
 
       it('subscribe to the topic on node b', (done) => {
-        b.ps.subscribe('Z')
-        expectSet(b.ps.subscriptions, ['Z'])
+        b.gs.subscribe('Z')
+        expectSet(b.gs.subscriptions, ['Z'])
 
         parallel([
-          cb => a.ps.once('floodsub:subscription-change', () => cb()),
-          cb => c.ps.once('floodsub:subscription-change', () => cb())
+          cb => a.gs.once('meshsub:subscription-change', () => cb()),
+          cb => c.gs.once('meshsub:subscription-change', () => cb())
         ], () => {
-          expect(a.ps.peers.size).to.equal(1)
-          expectSet(first(a.ps.peers).topics, ['Z'])
+          expect(a.gs.peers.size).to.equal(1)
+          expectSet(first(a.gs.peers).topics, ['Z'])
 
-          expect(c.ps.peers.size).to.equal(1)
-          expectSet(first(c.ps.peers).topics, ['Z'])
+          expect(c.gs.peers.size).to.equal(1)
+          expectSet(first(c.gs.peers).topics, ['Z'])
 
           done()
         })
       })
 
       it('subscribe to the topic on node c', (done) => {
-        c.ps.subscribe('Z')
-        expectSet(c.ps.subscriptions, ['Z'])
+        c.gs.subscribe('Z')
+        expectSet(c.gs.subscriptions, ['Z'])
 
-        b.ps.once('floodsub:subscription-change', () => {
-          expect(a.ps.peers.size).to.equal(1)
-          expectSet(first(a.ps.peers).topics, ['Z'])
+        b.gs.once('meshsub:subscription-change', () => {
+          expect(a.gs.peers.size).to.equal(1)
+          expectSet(first(a.gs.peers).topics, ['Z'])
 
-          expect(b.ps.peers.size).to.equal(2)
-          b.ps.peers.forEach((peer) => {
+          expect(b.gs.peers.size).to.equal(2)
+          b.gs.peers.forEach((peer) => {
             expectSet(peer.topics, ['Z'])
           })
 
@@ -115,52 +118,58 @@ describe('multiple nodes (more than 2)', () => {
         })
       })
 
-      it('publish on node a', (done) => {
-        let counter = 0
-
-        a.ps.on('Z', incMsg)
-        b.ps.on('Z', incMsg)
-        c.ps.on('Z', incMsg)
-
-        a.ps.publish('Z', Buffer.from('hey'))
-
-        function incMsg (msg) {
-          expect(msg.data.toString()).to.equal('hey')
-          check()
-        }
-
-        function check () {
-          if (++counter === 3) {
-            a.ps.removeListener('Z', incMsg)
-            b.ps.removeListener('Z', incMsg)
-            c.ps.removeListener('Z', incMsg)
-            done()
-          }
-        }
+      it('wait for a heartbeat', async () => {
+        await Promise.all([
+          promisify(a.gs.once.bind(a.gs))('gossipsub:heartbeat'),
+          promisify(b.gs.once.bind(b.gs))('gossipsub:heartbeat'),
+          promisify(c.gs.once.bind(c.gs))('gossipsub:heartbeat')
+        ])
       })
 
-      it('publish array on node a', (done) => {
-        let counter = 0
+      it('publish on node a', async () => {
+        let msgB = new Promise((resolve) => b.gs.once('Z', resolve))
+        let msgC = new Promise((resolve) => c.gs.once('Z', resolve))
 
-        a.ps.on('Z', incMsg)
-        b.ps.on('Z', incMsg)
-        c.ps.on('Z', incMsg)
+        a.gs.publish('Z', Buffer.from('hey'))
+        msgB = await msgB
+        msgC = await msgC
 
-        a.ps.publish('Z', [Buffer.from('hey'), Buffer.from('hey')])
+        expect(msgB.data.toString()).to.equal('hey')
+        expect(msgC.data.toString()).to.equal('hey')
+      })
 
-        function incMsg (msg) {
-          expect(msg.data.toString()).to.equal('hey')
-          check()
-        }
+      it('publish array on node a', async () => {
+        let msgB = new Promise((resolve) => {
+          let output = []
+          b.gs.on('Z', (msg) => {
+            output.push(msg)
+            if (output.length === 2) {
+              b.gs.removeAllListeners('Z')
+              resolve(output)
+            }
+          })
+        })
+        let msgC = new Promise((resolve) => {
+          let output = []
+          c.gs.on('Z', (msg) => {
+            output.push(msg)
+            if (output.length === 2) {
+              c.gs.removeAllListeners('Z')
+              resolve(output)
+            }
+          })
+        })
 
-        function check () {
-          if (++counter === 6) {
-            a.ps.removeListener('Z', incMsg)
-            b.ps.removeListener('Z', incMsg)
-            c.ps.removeListener('Z', incMsg)
-            done()
-          }
-        }
+        a.gs.publish('Z', [Buffer.from('hey'), Buffer.from('hey')])
+        msgB = await msgB
+        msgC = await msgC
+
+        expect(msgB.length).to.equal(2)
+        expect(msgB[0].data.toString()).to.equal('hey')
+        expect(msgB[1].data.toString()).to.equal('hey')
+        expect(msgC.length).to.equal(2)
+        expect(msgC[0].data.toString()).to.equal('hey')
+        expect(msgC[1].data.toString()).to.equal('hey')
       })
 
       // since the topology is the same, just the publish
@@ -172,28 +181,16 @@ describe('multiple nodes (more than 2)', () => {
         //   ◉─┘ └─◉
         //   a     c
 
-        it('publish on node b', (done) => {
-          let counter = 0
+        it('publish on node b', async () => {
+          let msgA = new Promise((resolve) => a.gs.once('Z', resolve))
+          let msgC = new Promise((resolve) => c.gs.once('Z', resolve))
 
-          a.ps.on('Z', incMsg)
-          b.ps.on('Z', incMsg)
-          c.ps.on('Z', incMsg)
+          b.gs.publish('Z', Buffer.from('hey'))
+          msgA = await msgA
+          msgC = await msgC
 
-          b.ps.publish('Z', Buffer.from('hey'))
-
-          function incMsg (msg) {
-            expect(msg.data.toString()).to.equal('hey')
-            check()
-          }
-
-          function check () {
-            if (++counter === 3) {
-              a.ps.removeListener('Z', incMsg)
-              b.ps.removeListener('Z', incMsg)
-              c.ps.removeListener('Z', incMsg)
-              done()
-            }
-          }
+          expect(msgA.data.toString()).to.equal('hey')
+          expect(msgC.data.toString()).to.equal('hey')
         })
       })
     })
@@ -234,56 +231,66 @@ describe('multiple nodes (more than 2)', () => {
         })
       })
 
-      after((done) => {
-        // note: setTimeout to avoid the tests finishing
-        // before swarm does its dials
-        setTimeout(() => {
-          parallel([
-            (cb) => a.libp2p.stop(cb),
-            (cb) => b.libp2p.stop(cb),
-            (cb) => c.libp2p.stop(cb),
-            (cb) => d.libp2p.stop(cb),
-            (cb) => e.libp2p.stop(cb)
-          ], done)
-        }, 1000)
+      after(async function () {
+        this.timeout(4000)
+        await Promise.all([
+          promisify(a.gs.stop.bind(a.gs))(),
+          promisify(b.gs.stop.bind(b.gs))(),
+          promisify(c.gs.stop.bind(c.gs))(),
+          promisify(d.gs.stop.bind(d.gs))(),
+          promisify(e.gs.stop.bind(e.gs))()
+        ])
+        await Promise.all([
+          promisify(a.libp2p.stop.bind(a.libp2p))(),
+          promisify(b.libp2p.stop.bind(b.libp2p))(),
+          promisify(c.libp2p.stop.bind(c.libp2p))(),
+          promisify(d.libp2p.stop.bind(d.libp2p))(),
+          promisify(e.libp2p.stop.bind(e.libp2p))()
+        ])
       })
 
-      it('establish the connections', (done) => {
-        parallel([
-          (cb) => a.libp2p.dial(b.libp2p.peerInfo, cb),
-          (cb) => b.libp2p.dial(c.libp2p.peerInfo, cb),
-          (cb) => c.libp2p.dial(d.libp2p.peerInfo, cb),
-          (cb) => d.libp2p.dial(e.libp2p.peerInfo, cb)
-        ], (err) => {
-          expect(err).to.not.exist()
-          // wait for the pubsub pipes to be established
-          setTimeout(done, 2000)
-        })
+      it('establish the connections', async () => {
+        await Promise.all([
+          promisify(a.libp2p.dial.bind(a.libp2p))(b.libp2p.peerInfo),
+          promisify(b.libp2p.dial.bind(b.libp2p))(c.libp2p.peerInfo),
+          promisify(c.libp2p.dial.bind(c.libp2p))(d.libp2p.peerInfo),
+          promisify(d.libp2p.dial.bind(d.libp2p))(e.libp2p.peerInfo)
+        ])
+        await new Promise((resolve) => setTimeout(resolve, 500))
       })
 
       it('subscribes', () => {
-        a.ps.subscribe('Z')
-        expectSet(a.ps.subscriptions, ['Z'])
-        b.ps.subscribe('Z')
-        expectSet(b.ps.subscriptions, ['Z'])
-        c.ps.subscribe('Z')
-        expectSet(c.ps.subscriptions, ['Z'])
-        d.ps.subscribe('Z')
-        expectSet(d.ps.subscriptions, ['Z'])
-        e.ps.subscribe('Z')
-        expectSet(e.ps.subscriptions, ['Z'])
+        a.gs.subscribe('Z')
+        expectSet(a.gs.subscriptions, ['Z'])
+        b.gs.subscribe('Z')
+        expectSet(b.gs.subscriptions, ['Z'])
+        c.gs.subscribe('Z')
+        expectSet(c.gs.subscriptions, ['Z'])
+        d.gs.subscribe('Z')
+        expectSet(d.gs.subscriptions, ['Z'])
+        e.gs.subscribe('Z')
+        expectSet(e.gs.subscriptions, ['Z'])
+      })
+
+      it('wait for a heartbeat', async () => {
+        await Promise.all([
+          promisify(a.gs.once.bind(a.gs))('gossipsub:heartbeat'),
+          promisify(b.gs.once.bind(b.gs))('gossipsub:heartbeat'),
+          promisify(c.gs.once.bind(c.gs))('gossipsub:heartbeat'),
+          promisify(d.gs.once.bind(d.gs))('gossipsub:heartbeat'),
+          promisify(e.gs.once.bind(e.gs))('gossipsub:heartbeat')
+        ])
       })
 
       it('publishes from c', (done) => {
         let counter = 0
 
-        a.ps.on('Z', incMsg)
-        b.ps.on('Z', incMsg)
-        c.ps.on('Z', incMsg)
-        d.ps.on('Z', incMsg)
-        e.ps.on('Z', incMsg)
+        a.gs.on('Z', incMsg)
+        b.gs.on('Z', incMsg)
+        d.gs.on('Z', incMsg)
+        e.gs.on('Z', incMsg)
 
-        c.ps.publish('Z', Buffer.from('hey from c'))
+        c.gs.publish('Z', Buffer.from('hey from c'))
 
         function incMsg (msg) {
           expect(msg.data.toString()).to.equal('hey from c')
@@ -291,12 +298,11 @@ describe('multiple nodes (more than 2)', () => {
         }
 
         function check () {
-          if (++counter === 5) {
-            a.ps.removeListener('Z', incMsg)
-            b.ps.removeListener('Z', incMsg)
-            c.ps.removeListener('Z', incMsg)
-            d.ps.removeListener('Z', incMsg)
-            e.ps.removeListener('Z', incMsg)
+          if (++counter === 4) {
+            a.gs.removeListener('Z', incMsg)
+            b.gs.removeListener('Z', incMsg)
+            d.gs.removeListener('Z', incMsg)
+            e.gs.removeListener('Z', incMsg)
             done()
           }
         }
@@ -345,14 +351,14 @@ function spawnPubSubNode (callback) {
     if (err) {
       return callback(err)
     }
-    const ps = new FloodSub(node)
-    ps.start((err) => {
+    const gs = new GossipSub(node)
+    gs.start((err) => {
       if (err) {
         return callback(err)
       }
       callback(null, {
         libp2p: node,
-        ps: ps
+        gs: gs
       })
     })
   })
