@@ -597,65 +597,79 @@ class GossipSub extends Pubsub {
    * Publishes messages to all subscribed peers
    *
    * @param {Array<string>|string} topics
-   * @param {any} msg
+   * @param {Array<any>|any} messages
    * @returns {void}
    */
-  publish (topics, msg) {
-    topics = utils.ensureArray(topics)
+  publish (topics, messages) {
+    this.log('publish', topics, messages)
 
-    let msgObj = {
-      from: this.libp2p.peerInfo.id.toB58String(),
-      data: msg,
-      seqno: utils.randomSeqno(),
-      topicIDs: topics
+    topics = utils.ensureArray(topics)
+    messages = utils.ensureArray(messages)
+
+    const from = this.libp2p.peerInfo.id.toB58String()
+
+    const buildMessage = (msg) => {
+      const seqno = utils.randomSeqno()
+      const msgObj = {
+        from: from,
+        data: msg,
+        seqno: seqno,
+        topicIDs: topics
+      }
+      this.messageCache.put(msgObj)
+      this.seenCache.put(msgObj.seqno)
+      return msgObj
     }
 
-    this.messageCache.put(msgObj)
-    this.seenCache.put(utils.msgId(msgObj.from, msgObj.seqno))
+    const msgObjs = utils.normalizeOutRpcMessages(messages.map(buildMessage))
 
-    // @type Set<string>
-    let tosend = new Set()
-    msgObj.topicIDs.forEach((topic) => {
-      let peersInTopic = this.topics.get(topic)
-      if (!peersInTopic) {
-        return
-      }
-
-      // floodsub peers
-      // TODO: Handle Floodsub peers
-      /* peersInTopic.forEach((peer) => {
-          if (peer.info.protocols.has(constants.FloodSubID)) {
-              tosend.add(peer)
-          }
-      }) */
-
-      // Gossipsub peers handling
-      let meshPeers = this.mesh.get(topic)
-      if (!meshPeers) {
-        // We are not in the mesh for topic, use fanout peers
-        if (!this.fanout.has(topic)) {
-          // If we are not in the fanout, then pick any peers
-          let peers = this._getPeers(topic, constants.GossipSubD)
-
-          if (peers.size > 0) {
-            this.fanout.set(topic, peers)
-          }
+    msgObjs.forEach((msgObj) => {
+      // @type Set<string>
+      let tosend = new Set()
+      msgObj.topicIDs.forEach((topic) => {
+        let peersInTopic = this.topics.get(topic)
+        if (!peersInTopic) {
+          return
         }
-        // Store the latest publishing time
-        this.lastpub.set(topic, this._nowInNano())
-      }
 
-      meshPeers.forEach((peer) => {
-        tosend.add(peer)
+        // floodsub peers
+        peersInTopic.forEach((peer) => {
+          if (peer.info.protocols.has(constants.FloodSubID)) {
+            tosend.add(peer)
+          }
+        })
+
+        // Gossipsub peers handling
+        let meshPeers = this.mesh.get(topic)
+        if (!meshPeers) {
+          // We are not in the mesh for topic, use fanout peers
+          meshPeers = this.fanout.get(topic)
+          if (!meshPeers) {
+            // If we are not in the fanout, then pick any peers in topic
+            let peers = this._getPeers(topic, constants.GossipSubD)
+
+            if (peers.size > 0) {
+              meshPeers = peers
+              this.fanout.set(topic, peers)
+            } else {
+              meshPeers = []
+            }
+          }
+          // Store the latest publishing time
+          this.lastpub.set(topic, this._now())
+        }
+
+        meshPeers.forEach((peer) => {
+          tosend.add(peer)
+        })
       })
-    })
-    // Publish messages to peers
-    tosend.forEach((peer) => {
-      let peerId = peer.info.id.toB58String()
-      if (peerId === msgObj.from) {
-        return
-      }
-      peer.sendMessages(msgObj)
+      // Publish messages to peers
+      tosend.forEach((peer) => {
+        if (peer.info.id.toB58String() === msgObj.from) {
+          return
+        }
+        this._sendRpc(peer, { msgs: [msgObj] })
+      })
     })
   }
 
