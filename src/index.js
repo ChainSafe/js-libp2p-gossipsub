@@ -494,7 +494,7 @@ class GossipSub extends Pubsub {
   }
 
   /**
-   * Unmounts the floodsub protocol and shuts down every connection
+   * Unmounts the gossipsub protocol and shuts down every connection
    *
    * @override
    * @param {Function} callback
