@@ -428,32 +428,34 @@ class GossipSub extends Pubsub {
       if (err) {
         return callback(err)
       }
+      if (this._heartbeatTimer) {
+        const errMsg = 'Heartbeat timer is already running'
+
+        this.log(errMsg)
+        throw errcode(new Error(errMsg), 'ERR_HEARTBEAT_ALREADY_RUNNING')
+      }
+
+      const heartbeatTimer = {
+        _onCancel: null,
+        _timeoutId: null,
+        runPeriodically: (fn, period) => {
+          heartbeatTimer._timeoutId = setInterval(fn, period)
+        },
+        cancel: (cb) => {
+          clearTimeout(heartbeatTimer._timeoutId)
+          cb()
+        }
+      }
+
+      const heartbeat = this._heartbeat.bind(this)
+      setTimeout(() => {
+        heartbeat()
+        heartbeatTimer.runPeriodically(heartbeat, constants.GossipSubHeartbeatInterval)
+      }, constants.GossipSubHeartbeatInitialDelay)
+
+      this._heartbeatTimer = heartbeatTimer
       callback()
     })
-    if (this._heartbeatTimer) {
-      const errMsg = 'Heartbeat timer is already running'
-
-      this.log(errMsg)
-      throw errcode(new Error(errMsg), 'ERR_HEARTBEAT_ALREADY_RUNNING')
-    }
-
-    const heartbeatTimer = {
-      _onCancel: null,
-      _timeoutId: null,
-      runPeriodically: (fn, period) => {
-        heartbeatTimer._timeoutId = setInterval(fn, period)
-      },
-      cancel: (cb) => {
-        clearTimeout(heartbeatTimer._timeoutId)
-        cb()
-      }
-    }
-
-    const heartbeat = this._heartbeat.bind(this)
-    setTimeout(heartbeat, constants.GossipSubHeartbeatInitialDelay)
-    heartbeatTimer.runPeriodically(heartbeat, constants.GossipSubHeartbeatInterval)
-
-    this._heartbeatTimer = heartbeatTimer
   }
 
   /**
