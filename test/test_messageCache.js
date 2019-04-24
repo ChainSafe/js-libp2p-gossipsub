@@ -10,7 +10,7 @@ const chaiSpies = require('chai-spies')
 chai.use(chaiSpies)
 const expect = chai.expect
 
-const MessageCache = require('../src/messageCache').MessageCache
+const { MessageCache } = require('../src/messageCache')
 const { utils } = require('libp2p-pubsub')
 const Buffer = require('buffer').Buffer
 

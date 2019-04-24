@@ -10,7 +10,7 @@ const lp = require('pull-length-prefixed')
 const nextTick = require('async/nextTick')
 const { utils } = require('libp2p-pubsub')
 
-const MessageCache = require('./messageCache').MessageCache
+const { MessageCache } = require('./messageCache')
 const assert = require('assert')
 
 const { rpc } = require('./message')
