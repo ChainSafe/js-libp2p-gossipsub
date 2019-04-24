@@ -540,7 +540,7 @@ class GossipSub extends Pubsub {
     topics = utils.ensureArray(topics)
 
     const unTopics = topics.filter((topic) => this.subscriptions.has(topic))
-    if (unTopics.length === 0) {
+    if (!unTopics.length) {
       return
     }
     this.log('LEAVE %s', topics)
@@ -555,8 +555,9 @@ class GossipSub extends Pubsub {
       this.subscriptions.delete(topic)
 
       // Send PRUNE to mesh peers
-      if (this.mesh.has(topic)) {
-        this.mesh.get(topic).forEach((peer) => {
+      const meshPeers = this.mesh.get(topic)
+      if (meshPeers) {
+        meshPeers.forEach((peer) => {
           this.log('LEAVE: Remove mesh link to %s in %s', peer.info.id.toB58String(), topic)
           this._sendPrune(peer, topic)
         })
