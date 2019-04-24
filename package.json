@@ -32,8 +32,6 @@
     "lint"
   ],
   "dependencies": {
-    "@types/chai": "^4.1.7",
-    "@types/mocha": "^5.2.6",
     "async": "^2.6.2",
     "err-code": "^1.1.2",
     "libp2p": "~0.25.0-rc.5",
@@ -47,6 +45,8 @@
     "pull-stream": "^3.6.9"
   },
   "devDependencies": {
+    "@types/chai": "^4.1.7",
+    "@types/mocha": "^5.2.6",
     "aegir": "^18.1.0",
     "chai": "^4.2.0",
     "chai-spies": "^1.0.0",
