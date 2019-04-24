@@ -702,10 +702,14 @@ class GossipSub extends Pubsub {
   }
 
   _piggybackControl (peer, outRpc, ctrl) {
-    const tograft = (ctrl.graft || []).filter(({ topicID }) => this.mesh.has(topicID) && this.mesh.get(topicID).has(peer))
-    const toprune = (ctrl.prune || []).filter(({ topicID }) => this.mesh.has(topicID) && this.mesh.get(topicID).has(peer))
+    const hasPeerInTopic = (topicID) => {
+      const meshPeers = this.mesh.get(topicID)
+      return meshPeers && meshPeers.has(peer)
+    }
+    const tograft = (ctrl.graft || []).filter(({ topicID }) => hasPeerInTopic(topicID))
+    const toprune = (ctrl.prune || []).filter(({ topicID }) => hasPeerInTopic(topicID))
 
-    if (!tograft.length && !toprune) {
+    if (!tograft.length && !toprune.length) {
       return
     }
 
