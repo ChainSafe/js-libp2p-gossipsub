@@ -11,7 +11,7 @@ chai.use(chaiSpies)
 const expect = chai.expect
 
 const MessageCache = require('../src/messageCache').MessageCache
-const utils = require('libp2p-pubsub/src/utils')
+const { utils } = require('libp2p-pubsub')
 const Buffer = require('buffer').Buffer
 
 const getMsgID = (msg) => {

@@ -8,7 +8,7 @@ const Pubsub = require('libp2p-pubsub')
 const pull = require('pull-stream')
 const lp = require('pull-length-prefixed')
 const nextTick = require('async/nextTick')
-const utils = require('libp2p-pubsub/src/utils')
+const { utils } = require('libp2p-pubsub')
 
 const MessageCache = require('./messageCache').MessageCache
 const assert = require('assert')

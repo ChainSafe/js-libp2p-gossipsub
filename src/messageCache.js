@@ -1,6 +1,6 @@
 /* eslint-disable valid-jsdoc */
 'use strict'
-const utils = require('libp2p-pubsub/src/utils')
+const { utils } = require('libp2p-pubsub')
 
 class CacheEntry {
   /**
