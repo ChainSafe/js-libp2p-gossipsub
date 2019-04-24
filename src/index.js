@@ -890,12 +890,12 @@ class GossipSub extends Pubsub {
    *
    */
   _getPeers (topic, count) {
-    if (!this.topics.has(topic)) {
+    const peersInTopic = this.topics.get(topic)
+    if (!peersInTopic) {
       return new Set()
     }
 
     // Adds all peers using GossipSub protocol
-    const peersInTopic = this.topics.get(topic)
     let peers = []
     peersInTopic.forEach((peer) => {
       if (peer.info.protocols.has(constants.GossipSubID)) {
