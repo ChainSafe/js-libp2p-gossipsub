@@ -828,8 +828,10 @@ class GossipSub extends Pubsub {
     for (const [p, topics] of tograft) {
       const graft = topics.map((topicID) => ({ topicID }))
       let prune = null
-      if (toprune.has(p)) {
-        prune = toprune.get(p).map((topicID) => ({ topicID }))
+      // If a peer also has prunes, process them now
+      const pruneMsg = toprune.get(p)
+      if (pruneMsg) {
+        prune = pruneMsg.map((topicID) => ({ topicID }))
         toprune.delete(p)
       }
 
