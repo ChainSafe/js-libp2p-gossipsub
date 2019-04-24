@@ -163,7 +163,7 @@ describe('basics between 2 nodes', () => {
         }
       }
 
-      let msgs = []
+      const msgs = []
       times(10, () => msgs.push(Buffer.from('banana')))
       gsB.publish('Z', msgs)
     })

@@ -140,7 +140,7 @@ describe('multiple nodes (more than 2)', () => {
 
       it('publish array on node a', async () => {
         let msgB = new Promise((resolve) => {
-          let output = []
+          const output = []
           b.gs.on('Z', (msg) => {
             output.push(msg)
             if (output.length === 2) {
@@ -150,7 +150,7 @@ describe('multiple nodes (more than 2)', () => {
           })
         })
         let msgC = new Promise((resolve) => {
-          let output = []
+          const output = []
           c.gs.on('Z', (msg) => {
             output.push(msg)
             if (output.length === 2) {

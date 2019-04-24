@@ -50,7 +50,7 @@ class MessageCache {
    * @returns {void}
    */
   put (msg) {
-    let msgID = utils.msgId(msg.from, msg.seqno)
+    const msgID = utils.msgId(msg.from, msg.seqno)
     this.msgs.set(msgID, msg)
     this.history[0].push(new CacheEntry(msgID, msg.topicIDs))
   }
@@ -74,10 +74,10 @@ class MessageCache {
    * @returns {Array<String>}
    */
   getGossipIDs (topic) {
-    let msgIDs = []
+    const msgIDs = []
     for (let i = 0; i < this.gossip; i++) {
       this.history[i].forEach((entry) => {
-        for (let t of entry.topics) {
+        for (const t of entry.topics) {
           if (t === topic) {
             msgIDs.push(entry.msgID)
             break
@@ -95,7 +95,7 @@ class MessageCache {
    * @returns {void}
    */
   shift () {
-    let last = this.history[this.history.length - 1]
+    const last = this.history[this.history.length - 1]
     last.forEach((entry) => {
       this.msgs.delete(entry.msgID)
     })
