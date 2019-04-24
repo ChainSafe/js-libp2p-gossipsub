@@ -197,10 +197,10 @@ class GossipSub extends Pubsub {
       return
     }
 
-    const iWant = this._handleIHave(peer, controlMsg)
-    const iHave = this._handleIWant(peer, controlMsg)
-    const prune = this._handleGraft(peer, controlMsg)
-    this._handlePrune(peer, controlMsg)
+    const iWant = this._handleIHave(peer, controlMsg.ihave)
+    const iHave = this._handleIWant(peer, controlMsg.iwant)
+    const prune = this._handleGraft(peer, controlMsg.graft)
+    this._handlePrune(peer, controlMsg.prune)
 
     if (!iWant || !iHave || !prune) {
       return
@@ -296,27 +296,19 @@ class GossipSub extends Pubsub {
    * Handles IHAVE messages
    *
    * @param {Peer} peer
-   * @param {rpc.RPC.controlMessage Object} controlRpc
+   * @param {rpc.RPC.ControlIHave Object} ihave
    *
    * @returns {rpc.RPC.ControlIWant Object}
    */
-  _handleIHave (peer, controlRpc) {
+  _handleIHave (peer, ihave) {
     const iwant = new Set()
 
-    const ihaveMsgs = controlRpc.ihave
-    if (!ihaveMsgs.length) {
-      return
-    }
-
-    ihaveMsgs.forEach((msg) => {
-      const topic = msg.topicID
-
-      if (!this.mesh.has(topic)) {
+    ihave.forEach(({ topicID, messageIDs }) => {
+      if (!this.mesh.has(topicID)) {
         return
       }
 
-      const msgIDs = ihaveMsgs.messageIDs
-      msgIDs.forEach((msgID) => {
+      messageIDs.forEach((msgID) => {
         if (this.seenCache.has(msgID)) {
           return
         }
@@ -328,14 +320,10 @@ class GossipSub extends Pubsub {
       return
     }
 
-    this.log('IHAVE: Asking for %d messages from %s', iwant.length, peer.info.id.toB58String())
-    const iwantlst = []
-    iwant.forEach((msgID) => {
-      iwantlst.push(msgID)
-    })
+    this.log('IHAVE: Asking for %d messages from %s', iwant.size, peer.info.id.toB58String())
 
     return {
-      messageIDs: iwantlst
+      messageIDs: Array.from(iwant)
     }
   }
 
@@ -343,26 +331,16 @@ class GossipSub extends Pubsub {
    * Handles IWANT messages
    *
    * @param {Peer} peer
-   * @param {rpc.RPC.control} controlRpc
+   * @param {rpc.RPC.ControlIWant} iwant
    *
    * @returns {Array<rpc.RPC.Message>}
    */
-  _handleIWant (peer, controlRpc) {
+  _handleIWant (peer, iwant) {
     // @type {Map<string, rpc.RPC.Message>}
     const ihave = new Map()
 
-    const iwantMsgs = controlRpc.iwant
-    if (!iwantMsgs.length) {
-      return
-    }
-
-    iwantMsgs.forEach((iwantMsg) => {
-      const iwantMsgIDs = iwantMsg.MessageIDs
-      if (!(iwantMsgIDs || iwantMsgIDs.length)) {
-        return
-      }
-
-      iwantMsgIDs.forEach((msgID) => {
+    iwant.forEach(({ messageIDs }) => {
+      messageIDs.forEach((msgID) => {
         const msg = this.messageCache.get(msgID)
         if (msg) {
           ihave.set(msgID, msg)
@@ -370,45 +348,36 @@ class GossipSub extends Pubsub {
       })
     })
 
-    if (!ihave.length) {
+    if (!ihave.size) {
       return
     }
 
-    this.log('IWANT: Sending %d messages to %s', ihave.length, peer.info.id.toB58String())
-    const msgs = []
-    for (const msg of ihave.values()) {
-      msgs.push(msg)
-    }
+    this.log('IWANT: Sending %d messages to %s', ihave.size, peer.info.id.toB58String())
 
-    return msgs
+    return Array.from(ihave.values())
   }
 
   /**
    * Handles Graft messages
    *
    * @param {Peer} peer
-   * @param {rpc.RPC.control} controlRpc
+   * @param {rpc.RPC.ControlGraft} graft
    *
    * @return {Array<rpc.RPC.ControlPrune>}
    *
    */
-  _handleGraft (peer, controlRpc) {
+  _handleGraft (peer, graft) {
     const prune = []
 
-    const grafts = controlRpc.graft
-    if (!grafts.length) {
-      return
-    }
-    grafts.forEach((graft) => {
-      const topic = graft.topicID
-      const peers = this.mesh.get(topic)
+    graft.forEach(({ topicID }) => {
+      const peers = this.mesh.get(topicID)
       if (!peers) {
-        prune.push(topic)
+        prune.push(topicID)
       } else {
-        this.log('GRAFT: Add mesh link from %s in %s', peer.info.id.toB58String(), topic)
+        this.log('GRAFT: Add mesh link from %s in %s', peer.info.id.toB58String(), topicID)
         peers.add(peer)
-        peer.topics.add(topic)
-        this.mesh.set(topic, peers)
+        peer.topics.add(topicID)
+        this.mesh.set(topicID, peers)
       }
     })
 
@@ -429,21 +398,16 @@ class GossipSub extends Pubsub {
    * Handles Prune messages
    *
    * @param {Peer} peer
-   * @param {rpc.RPC.Control} controlRpc
+   * @param {rpc.RPC.ControlPrune} prune
    *
    * @returns {void}
    *
    */
-  _handlePrune (peer, controlRpc) {
-    const pruneMsgs = controlRpc.prune
-    if (!pruneMsgs.length) {
-      return
-    }
-
-    pruneMsgs.forEach(({ topicID }) => {
-      if (this.mesh.has(topicID)) {
+  _handlePrune (peer, prune) {
+    prune.forEach(({ topicID }) => {
+      const peers = this.mesh.get(topicID)
+      if (peers) {
         this.log('PRUNE: Remove mesh link to %s in %s', peer.info.id.toB58String(), topicID)
-        const peers = this.mesh.get(topicID)
         peers.delete(peer)
         peer.topics.delete(topicID)
       }
