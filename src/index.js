@@ -466,8 +466,7 @@ class GossipSub extends Pubsub {
    * @returns {void}
    */
   stop (callback) {
-    const heartbeatTimer = this._heartbeatTimer
-    if (!heartbeatTimer) {
+    if (!this._heartbeatTimer) {
       const errMsg = 'Heartbeat timer is not running'
       this.log(errMsg)
 
@@ -481,10 +480,11 @@ class GossipSub extends Pubsub {
       this.gossip = new Map()
       this.control = new Map()
       this.subscriptions = new Set()
-      heartbeatTimer.cancel(callback)
+      this._heartbeatTimer.cancel(() => {
+        this._heartbeatTimer = null
+        callback()
+      })
     })
-
-    this._heartbeatTimer = null
   }
 
   /**
