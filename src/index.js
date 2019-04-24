@@ -574,6 +574,7 @@ class GossipSub extends Pubsub {
    * @returns {void}
    */
   publish (topics, messages) {
+    assert(this.started, 'GossipSub has not started')
     this.log('publish', topics, messages)
 
     topics = utils.ensureArray(topics)
