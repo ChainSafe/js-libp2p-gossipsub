@@ -296,9 +296,9 @@ class GossipSub extends Pubsub {
    * Handles IHAVE messages
    *
    * @param {Peer} peer
-   * @param {rpc.RPC.ControlIHave Object} ihave
+   * @param {Array<rpc.RPC.ControlIHave>} ihave
    *
-   * @returns {rpc.RPC.ControlIWant Object}
+   * @returns {rpc.RPC.ControlIWant}
    */
   _handleIHave (peer, ihave) {
     const iwant = new Set()
@@ -331,9 +331,9 @@ class GossipSub extends Pubsub {
    * Handles IWANT messages
    *
    * @param {Peer} peer
-   * @param {rpc.RPC.ControlIWant} iwant
+   * @param {Array<rpc.RPC.ControlIWant>} iwant
    *
-   * @returns {Array<rpc.RPC.Message>}
+   * @returns {rpc.RPC.ControlIHave}
    */
   _handleIWant (peer, iwant) {
     // @type {Map<string, rpc.RPC.Message>}
@@ -354,14 +354,16 @@ class GossipSub extends Pubsub {
 
     this.log('IWANT: Sending %d messages to %s', ihave.size, peer.info.id.toB58String())
 
-    return Array.from(ihave.values())
+    return {
+      messageIDs: Array.from(ihave.values())
+    }
   }
 
   /**
    * Handles Graft messages
    *
    * @param {Peer} peer
-   * @param {rpc.RPC.ControlGraft} graft
+   * @param {Array<rpc.RPC.ControlGraft>} graft
    *
    * @return {Array<rpc.RPC.ControlPrune>}
    *
@@ -398,7 +400,7 @@ class GossipSub extends Pubsub {
    * Handles Prune messages
    *
    * @param {Peer} peer
-   * @param {rpc.RPC.ControlPrune} prune
+   * @param {Array<rpc.RPC.ControlPrune>} prune
    *
    * @returns {void}
    *
