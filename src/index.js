@@ -514,8 +514,9 @@ class GossipSub extends Pubsub {
       this.subscriptions.add(topic)
 
       // Send GRAFT to mesh peers
-      if (this.fanout.has(topic)) {
-        this.mesh.set(topic, this.fanout.get(topic))
+      const fanoutPeers = this.fanout.get(topic)
+      if (fanoutPeers) {
+        this.mesh.set(topic, fanoutPeers)
         this.fanout.delete(topic)
         this.lastpub.delete(topic)
       } else {
