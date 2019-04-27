@@ -6,353 +6,445 @@ const chai = require('chai')
 chai.use(require('dirty-chai'))
 chai.use(require('chai-spies'))
 const expect = chai.expect
-const parallel = require('async/parallel')
-const series = require('async/series')
 const times = require('lodash/times')
-const promisify = require('promisify-es6')
 
-const GossipSub = require('../src')
-const utils = require('./utils')
-const first = utils.first
-const createNode = utils.createNode
-const expectSet = utils.expectSet
+const {
+  createNode,
+  expectSet,
+  first,
+  dialNode,
+  startNode,
+  stopNode
+} = require('./utils')
 
-describe('basics between 2 nodes', () => {
-  describe('fresh nodes', () => {
+const shouldNotHappen = (msg) => expect.fail()
+
+describe('1 node', () => {
+  describe('basics', () => {
+    let nodeA
+
+    beforeEach(async () => {
+      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
+      await startNode(nodeA)
+    })
+
+    afterEach(async function () {
+      if (nodeA.gs.started) {
+        await stopNode(nodeA.gs)
+      }
+      await stopNode(nodeA)
+    })
+
+    it('should mount the pubsub protocol', () => {
+      expect(nodeA.gs.peers.size).to.be.eql(0)
+      expect(nodeA.gs.mesh.size).to.eql(0)
+      expect(nodeA.gs.fanout.size).to.eql(0)
+      expect(nodeA.gs.lastpub.size).to.eql(0)
+      expect(nodeA.gs.gossip.size).to.eql(0)
+      expect(nodeA.gs.control.size).to.eql(0)
+      expect(nodeA.gs.subscriptions.size).to.eql(0)
+      expect(nodeA._switch.protocols[nodeA.gs.multicodec]).to.not.be.null()
+    })
+
+    it('should start a gossipsub successfully', async () => {
+      await startNode(nodeA.gs)
+      expect(nodeA.gs.started).to.equal(true)
+    })
+  })
+})
+
+describe('2 nodes', () => {
+  describe('basics', () => {
     let nodeA
     let nodeB
-    let gsA
-    let gsB
 
-    before(async () => {
-      nodeA = await promisify(createNode)('/ip4/127.0.0.1/tcp/0')
-      nodeB = await promisify(createNode)('/ip4/127.0.0.1/tcp/0')
+    beforeEach(async () => {
+      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      await startNode(nodeA)
+      await startNode(nodeB)
+
+      await Promise.all([
+        startNode(nodeA.gs),
+        startNode(nodeB.gs)
+      ])
     })
 
-    after(async function () {
+    afterEach(async function () {
       this.timeout(4000)
       await Promise.all([
-        promisify(nodeA.stop.bind(nodeA))(),
-        promisify(nodeB.stop.bind(nodeB))()
+        stopNode(nodeA.gs),
+        stopNode(nodeB.gs)
       ])
-    })
-
-    it('Mount the pubsub protocol', () => {
-      gsA = new GossipSub(nodeA)
-      gsB = new GossipSub(nodeB)
-
-      expect(gsA.peers.size).to.be.eql(0)
-      expect(gsA.mesh.size).to.eql(0)
-      expect(gsA.fanout.size).to.eql(0)
-      expect(gsA.lastpub.size).to.eql(0)
-      expect(gsA.gossip.size).to.eql(0)
-      expect(gsA.control.size).to.eql(0)
-      expect(gsA.subscriptions.size).to.eql(0)
-      expect(gsB.peers.size).to.be.eql(0)
-      expect(gsB.mesh.size).to.eql(0)
-      expect(gsB.fanout.size).to.eql(0)
-      expect(gsB.lastpub.size).to.eql(0)
-      expect(gsB.gossip.size).to.eql(0)
-      expect(gsB.control.size).to.eql(0)
-      expect(gsB.subscriptions.size).to.eql(0)
-    })
-
-    it('start both GossipSubs', async () => {
       await Promise.all([
-        promisify(gsA.start.bind(gsA))(),
-        promisify(gsB.start.bind(gsB))()
+        stopNode(nodeA),
+        stopNode(nodeB)
       ])
-      expect(gsA.started).to.equal(true)
-      expect(gsB.started).to.equal(true)
     })
 
     it('Dial from nodeA to nodeB', async () => {
-      await promisify(nodeA.dial.bind(nodeA))(nodeB.peerInfo)
+      await dialNode(nodeA, nodeB.peerInfo)
       await new Promise((resolve) => setTimeout(resolve, 1000))
-      expect(gsA.peers.size).to.equal(1)
-      expect(gsB.peers.size).to.equal(1)
+      expect(nodeA.gs.peers.size).to.equal(1)
+      expect(nodeB.gs.peers.size).to.equal(1)
+    })
+  })
+
+  describe('subscription functionality', () => {
+    let nodeA
+    let nodeB
+
+    beforeEach(async function () {
+      this.timeout(4000)
+      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      await startNode(nodeA)
+      await startNode(nodeB)
+
+      await Promise.all([
+        startNode(nodeA.gs),
+        startNode(nodeB.gs)
+      ])
+      await dialNode(nodeA, nodeB.peerInfo)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
     })
 
-    it('Subscribe to a topic:Z in nodeA', async () => {
-      gsB.subscribe('Z')
-      gsA.subscribe('Z')
+    afterEach(async function () {
+      this.timeout(4000)
+      await Promise.all([
+        stopNode(nodeA.gs),
+        stopNode(nodeB.gs)
+      ])
+      await Promise.all([
+        stopNode(nodeA),
+        stopNode(nodeB)
+      ])
+    })
+
+    it('Subscribe to a topic', async () => {
+      const topic = 'Z'
+      nodeA.gs.subscribe(topic)
+      nodeB.gs.subscribe(topic)
+
+      // await subscription change
+      const [changedPeerInfo, changedTopics, changedSubs] = await new Promise((resolve) => {
+        nodeA.gs.once('meshsub:subscription-change', (...args) => resolve(args))
+      })
+
+      expectSet(nodeA.gs.subscriptions, [topic])
+      expectSet(nodeB.gs.subscriptions, [topic])
+      expect(nodeA.gs.peers.size).to.equal(1)
+      expect(nodeB.gs.peers.size).to.equal(1)
+      expectSet(first(nodeA.gs.peers).topics, [topic])
+      expectSet(first(nodeB.gs.peers).topics, [topic])
+
+      expect(changedPeerInfo.id.toB58String()).to.equal(first(nodeA.gs.peers).info.id.toB58String())
+      expectSet(changedTopics, [topic])
+      expect(changedSubs).to.be.eql([{ topicID: topic, subscribe: true }])
+
+      // await heartbeats
+      await Promise.all([
+        new Promise((resolve) => nodeA.gs.once('gossipsub:heartbeat', resolve)),
+        new Promise((resolve) => nodeB.gs.once('gossipsub:heartbeat', resolve))
+      ])
+
+      expect(first(nodeA.gs.mesh.get(topic)).info.id.toB58String()).to.equal(first(nodeA.gs.peers).info.id.toB58String())
+      expect(first(nodeB.gs.mesh.get(topic)).info.id.toB58String()).to.equal(first(nodeB.gs.peers).info.id.toB58String())
+    })
+  })
+
+  describe('publish functionality', () => {
+    let nodeA
+    let nodeB
+    const topic = 'Z'
+
+    beforeEach(async function () {
+      this.timeout(4000)
+      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      await startNode(nodeA)
+      await startNode(nodeB)
+
+      await Promise.all([
+        startNode(nodeA.gs),
+        startNode(nodeB.gs)
+      ])
+      await dialNode(nodeA, nodeB.peerInfo)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      nodeA.gs.subscribe(topic)
+      nodeB.gs.subscribe(topic)
 
       // await subscription change and heartbeat
-      const [changedPeerInfo, changedTopics, changedSubs] = await new Promise((resolve) => {
-        gsB.once('meshsub:subscription-change', (...args) => resolve(args))
-      })
-      await new Promise((resolve) => gsB.once('gossipsub:heartbeat', resolve))
-
-      expectSet(gsA.subscriptions, ['Z'])
-      expect(gsB.peers.size).to.equal(1)
-      expectSet(first(gsB.peers).topics, ['Z'])
-      expect(changedPeerInfo.id.toB58String()).to.equal(first(gsB.peers).info.id.toB58String())
-      expectSet(changedTopics, ['Z'])
-      expect(changedSubs).to.be.eql([{ topicID: 'Z', subscribe: true }])
+      await new Promise((resolve) => nodeA.gs.once('meshsub:subscription-change', resolve))
+      await Promise.all([
+        new Promise((resolve) => nodeA.gs.once('gossipsub:heartbeat', resolve)),
+        new Promise((resolve) => nodeB.gs.once('gossipsub:heartbeat', resolve))
+      ])
     })
 
-    it('Publish to a topic:Z in nodeA', async () => {
-      const promise = new Promise((resolve) => gsB.once('Z', resolve))
+    afterEach(async function () {
+      this.timeout(4000)
+      await Promise.all([
+        stopNode(nodeA.gs),
+        stopNode(nodeB.gs)
+      ])
+      await Promise.all([
+        stopNode(nodeA),
+        stopNode(nodeB)
+      ])
+    })
 
-      gsA.publish('Z', Buffer.from('hey'))
+    it('Publish to a topic - nodeA', async () => {
+      const promise = new Promise((resolve) => nodeB.gs.once(topic, resolve))
+      nodeA.gs.once(topic, (m) => shouldNotHappen)
 
-      gsA.once('Z', (m) => shouldNotHappen)
+      nodeA.gs.publish(topic, Buffer.from('hey'))
 
       const msg = await promise
 
       expect(msg.data.toString()).to.equal('hey')
-      expect(msg.from).to.be.eql(gsA.libp2p.peerInfo.id.toB58String())
+      expect(msg.from).to.be.eql(nodeA.gs.libp2p.peerInfo.id.toB58String())
 
-      gsA.removeListener('Z', shouldNotHappen)
+      nodeA.gs.removeListener(topic, shouldNotHappen)
     })
 
-    it('Publish to a topic:Z in nodeB', (done) => {
-      gsA.once('Z', (msg) => {
-        expect(msg.data.toString()).to.equal('banana')
-        expect(msg.from).to.be.eql(gsB.libp2p.peerInfo.id.toB58String())
+    it('Publish to a topic - nodeB', async () => {
+      const promise = new Promise((resolve) => nodeA.gs.once(topic, resolve))
+      nodeB.gs.once(topic, shouldNotHappen)
 
-        gsB.removeListener('Z', shouldNotHappen)
-        done()
-      })
+      nodeB.gs.publish(topic, Buffer.from('banana'))
 
-      gsB.once('Z', shouldNotHappen)
+      const msg = await promise
 
-      gsB.publish('Z', Buffer.from('banana'))
+      expect(msg.data.toString()).to.equal('banana')
+      expect(msg.from).to.be.eql(nodeB.gs.libp2p.peerInfo.id.toB58String())
+
+      nodeB.gs.removeListener(topic, shouldNotHappen)
     })
 
-    it('Publish 10 msg to a topic:Z in nodeB', (done) => {
+    it('Publish 10 msg to a topic', (done) => {
       let counter = 0
 
-      gsB.once('Z', shouldNotHappen)
+      nodeB.gs.once(topic, shouldNotHappen)
 
-      gsA.on('Z', receivedMsg)
+      nodeA.gs.on(topic, receivedMsg)
 
       function receivedMsg (msg) {
         expect(msg.data.toString()).to.equal('banana')
-        expect(msg.from).to.be.eql(gsB.libp2p.peerInfo.id.toB58String())
+        expect(msg.from).to.be.eql(nodeB.gs.libp2p.peerInfo.id.toB58String())
         expect(Buffer.isBuffer(msg.seqno)).to.be.true()
-        expect(msg.topicIDs).to.be.eql(['Z'])
+        expect(msg.topicIDs).to.be.eql([topic])
 
         if (++counter === 10) {
-          gsA.removeListener('Z', receivedMsg)
-          gsB.removeListener('Z', shouldNotHappen)
+          nodeA.gs.removeListener(topic, receivedMsg)
+          nodeB.gs.removeListener(topic, shouldNotHappen)
           done()
         }
       }
 
-      times(10, () => gsB.publish('Z', Buffer.from('banana')))
+      times(10, () => nodeB.gs.publish(topic, Buffer.from('banana')))
     })
 
-    it('Publish 10 msg to a topic:Z in nodeB as array', (done) => {
+    it('Publish 10 msg to a topic as array', (done) => {
       let counter = 0
 
-      gsB.once('Z', shouldNotHappen)
+      nodeB.gs.once(topic, shouldNotHappen)
 
-      gsA.on('Z', receivedMsg)
+      nodeA.gs.on(topic, receivedMsg)
 
       function receivedMsg (msg) {
         expect(msg.data.toString()).to.equal('banana')
-        expect(msg.from).to.be.eql(gsB.libp2p.peerInfo.id.toB58String())
+        expect(msg.from).to.be.eql(nodeB.gs.libp2p.peerInfo.id.toB58String())
         expect(Buffer.isBuffer(msg.seqno)).to.be.true()
-        expect(msg.topicIDs).to.be.eql(['Z'])
+        expect(msg.topicIDs).to.be.eql([topic])
 
         if (++counter === 10) {
-          gsA.removeListener('Z', receivedMsg)
-          gsB.removeListener('Z', shouldNotHappen)
+          nodeA.gs.removeListener(topic, receivedMsg)
+          nodeB.gs.removeListener(topic, shouldNotHappen)
           done()
         }
       }
 
       const msgs = []
       times(10, () => msgs.push(Buffer.from('banana')))
-      gsB.publish('Z', msgs)
+      nodeB.gs.publish(topic, msgs)
+    })
+  })
+
+  describe('publish after unsubscribe', () => {
+    let nodeA
+    let nodeB
+    const topic = 'Z'
+
+    beforeEach(async function () {
+      this.timeout(4000)
+      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      await startNode(nodeA)
+      await startNode(nodeB)
+
+      await Promise.all([
+        startNode(nodeA.gs),
+        startNode(nodeB.gs)
+      ])
+      await dialNode(nodeA, nodeB.peerInfo)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      nodeA.gs.subscribe(topic)
+      nodeB.gs.subscribe(topic)
+
+      // await subscription change and heartbeat
+      await new Promise((resolve) => nodeA.gs.once('meshsub:subscription-change', resolve))
+      await Promise.all([
+        new Promise((resolve) => nodeA.gs.once('gossipsub:heartbeat', resolve)),
+        new Promise((resolve) => nodeB.gs.once('gossipsub:heartbeat', resolve))
+      ])
     })
 
-    it('Unsubscribe from topic:Z in nodeA', async () => {
-      gsA.unsubscribe('Z')
-      expect(gsA.subscriptions.size).to.equal(0)
+    afterEach(async function () {
+      this.timeout(4000)
+      await Promise.all([
+        stopNode(nodeA.gs),
+        stopNode(nodeB.gs)
+      ])
+      await Promise.all([
+        stopNode(nodeA),
+        stopNode(nodeB)
+      ])
+    })
+
+    it('Unsubscribe from a topic', async () => {
+      nodeA.gs.unsubscribe(topic)
+      expect(nodeA.gs.subscriptions.size).to.equal(0)
 
       const [changedPeerInfo, changedTopics, changedSubs] = await new Promise((resolve) => {
-        gsB.once('meshsub:subscription-change', (...args) => resolve(args))
+        nodeB.gs.once('meshsub:subscription-change', (...args) => resolve(args))
       })
-      await new Promise((resolve) => gsB.once('gossipsub:heartbeat', resolve))
+      await new Promise((resolve) => nodeB.gs.once('gossipsub:heartbeat', resolve))
 
-      expect(gsB.peers.size).to.equal(1)
-      expectSet(first(gsB.peers).topics, [])
-      expect(changedPeerInfo.id.toB58String()).to.equal(first(gsB.peers).info.id.toB58String())
+      expect(nodeB.gs.peers.size).to.equal(1)
+      expectSet(first(nodeB.gs.peers).topics, [])
+      expect(changedPeerInfo.id.toB58String()).to.equal(first(nodeB.gs.peers).info.id.toB58String())
       expectSet(changedTopics, [])
-      expect(changedSubs).to.be.eql([{ topicID: 'Z', subscribe: false }])
+      expect(changedSubs).to.be.eql([{ topicID: topic, subscribe: false }])
     })
 
-    it('Publish to a topic:Z in nodeA nodeB', (done) => {
-      gsA.once('Z', shouldNotHappen)
+    it('Publish to a topic after unsubscribe', async () => {
+      nodeA.gs.unsubscribe(topic)
+      await new Promise((resolve) => nodeB.gs.once('meshsub:subscription-change', resolve))
+      await new Promise((resolve) => nodeB.gs.once('gossipsub:heartbeat', resolve))
 
-      setTimeout(() => {
-        gsA.removeListener('Z', shouldNotHappen)
-        done()
-      }, 100)
+      const promise = new Promise((resolve, reject) => {
+        nodeA.gs.once(topic, reject)
+        setTimeout(() => {
+          nodeA.gs.removeListener(topic, reject)
+          resolve()
+        }, 100)
+      })
 
-      gsB.publish('Z', Buffer.from('banana'))
-      gsA.publish('Z', Buffer.from('banana'))
-    })
+      nodeB.gs.publish('Z', Buffer.from('banana'))
+      nodeA.gs.publish('Z', Buffer.from('banana'))
 
-    it('stop both GossipSubs', async () => {
-      await Promise.all([
-        promisify(gsA.stop.bind(gsA))(),
-        promisify(gsB.stop.bind(gsB))()
-      ])
-      expect(gsA.started).to.equal(false)
-      expect(gsB.started).to.equal(false)
+      try {
+        await promise
+      } catch (e) {
+        expect.fail('message should not be received')
+      }
     })
   })
 
   describe('nodes send state on connection', () => {
     let nodeA
     let nodeB
-    let gsA
-    let gsB
 
     before(async () => {
-      nodeA = await promisify(createNode)('/ip4/127.0.0.1/tcp/0')
-      nodeB = await promisify(createNode)('/ip4/127.0.0.1/tcp/0')
+      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      await startNode(nodeA)
+      await startNode(nodeB)
 
-      gsA = new GossipSub(nodeA)
-      gsB = new GossipSub(nodeB)
-
-      await promisify(gsA.start.bind(gsA))()
-      await promisify(gsB.start.bind(gsB))()
-
-      gsA.subscribe('Za')
-      gsB.subscribe('Zb')
-
-      expect(gsA.peers.size).to.equal(0)
-      expectSet(gsA.subscriptions, ['Za'])
-      expect(gsB.peers.size).to.equal(0)
-      expectSet(gsB.subscriptions, ['Zb'])
+      await Promise.all([
+        startNode(nodeA.gs),
+        startNode(nodeB.gs)
+      ])
     })
 
     after(async function () {
       this.timeout(4000)
       await Promise.all([
-        promisify(nodeA.stop.bind(nodeA))(),
-        promisify(nodeB.stop.bind(nodeB))()
+        stopNode(nodeA.gs),
+        stopNode(nodeB.gs)
       ])
-    })
-
-    it('existing subscriptions are sent upon peer connection', (done) => {
-      parallel([
-        cb => gsA.once('meshsub:subscription-change', () => cb()),
-        cb => gsB.once('meshsub:subscription-change', () => cb())
-      ], () => {
-        expect(gsA.peers.size).to.equal(1)
-        expect(gsB.peers.size).to.equal(1)
-
-        expectSet(gsA.subscriptions, ['Za'])
-        expect(gsB.peers.size).to.equal(1)
-        expectSet(first(gsB.peers).topics, ['Za'])
-
-        expectSet(gsB.subscriptions, ['Zb'])
-        expect(gsA.peers.size).to.equal(1)
-        expectSet(first(gsA.peers).topics, ['Zb'])
-
-        done()
-      })
-
-      nodeA.dial(nodeB.peerInfo, (err) => {
-        expect(err).to.not.exist()
-      })
-    })
-
-    it('stop both GossipSubs', async () => {
       await Promise.all([
-        promisify(gsA.stop.bind(gsA))(),
-        promisify(gsB.stop.bind(gsB))()
+        stopNode(nodeA),
+        stopNode(nodeB)
       ])
-      expect(gsA.started).to.equal(false)
-      expect(gsB.started).to.equal(false)
+    })
+
+    it('existing subscriptions are sent upon peer connection', async function () {
+      this.timeout(5000)
+      nodeA.gs.subscribe('Za')
+      nodeB.gs.subscribe('Zb')
+
+      expect(nodeA.gs.peers.size).to.equal(0)
+      expectSet(nodeA.gs.subscriptions, ['Za'])
+      expect(nodeB.gs.peers.size).to.equal(0)
+      expectSet(nodeB.gs.subscriptions, ['Zb'])
+
+      await dialNode(nodeA, nodeB.peerInfo)
+
+      await Promise.all([
+        new Promise((resolve) => nodeA.gs.once('meshsub:subscription-change', resolve)),
+        new Promise((resolve) => nodeB.gs.once('meshsub:subscription-change', resolve))
+      ])
+      expect(nodeA.gs.peers.size).to.equal(1)
+      expect(nodeB.gs.peers.size).to.equal(1)
+
+      expectSet(nodeA.gs.subscriptions, ['Za'])
+      expect(nodeB.gs.peers.size).to.equal(1)
+      expectSet(first(nodeB.gs.peers).topics, ['Za'])
+
+      expectSet(nodeB.gs.subscriptions, ['Zb'])
+      expect(nodeA.gs.peers.size).to.equal(1)
+      expectSet(first(nodeA.gs.peers).topics, ['Zb'])
     })
   })
 
-  describe('nodes handle connection errors', () => {
+  describe('nodes handle stopping', () => {
     let nodeA
     let nodeB
-    let gsA
-    let gsB
 
     before(async () => {
-      nodeA = await promisify(createNode)('/ip4/127.0.0.1/tcp/0')
-      nodeB = await promisify(createNode)('/ip4/127.0.0.1/tcp/0')
+      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      await startNode(nodeA)
+      await startNode(nodeB)
 
-      gsA = new GossipSub(nodeA)
-      gsB = new GossipSub(nodeB)
-
-      await promisify(gsA.start.bind(gsA))()
-      await promisify(gsB.start.bind(gsB))()
-
-      gsA.subscribe('Za')
-      gsB.subscribe('Zb')
-
-      expect(gsA.peers.size).to.equal(0)
-      expectSet(gsA.subscriptions, ['Za'])
-      expect(gsB.peers.size).to.equal(0)
-      expectSet(gsB.subscriptions, ['Zb'])
-    })
-
-    after(async function () {
-      this.timeout(4000)
       await Promise.all([
-        promisify(gsA.stop.bind(gsA))(),
-        promisify(gsB.stop.bind(gsB))()
+        startNode(nodeA.gs),
+        startNode(nodeB.gs)
       ])
-    })
 
-    it('nodes don\'t have peers in it after stopped', async () => {
-      await Promise.all([
-        promisify(nodeA.stop.bind(nodeA))(),
-        promisify(nodeB.stop.bind(nodeB))()
-      ])
-      expect(gsA.peers.size).to.equal(0)
-      expect(gsB.peers.size).to.equal(0)
-    })
-  })
-
-  describe('dial the pubsub protocol on mount', () => {
-    let nodeA
-    let nodeB
-    let gsA
-    let gsB
-
-    before(async () => {
-      nodeA = await promisify(createNode)('/ip4/127.0.0.1/tcp/0')
-      nodeB = await promisify(createNode)('/ip4/127.0.0.1/tcp/0')
-    })
-
-    after(async function () {
-      this.timeout(4000)
-      await Promise.all([
-        promisify(nodeA.stop.bind(nodeA))(),
-        promisify(nodeB.stop.bind(nodeB))()
-      ])
-    })
-
-    it('dial on gossipsub on mount', async () => {
-      gsA = new GossipSub(nodeA)
-      gsB = new GossipSub(nodeB)
-
-      await promisify(gsA.start.bind(gsA))()
-      await promisify(gsB.start.bind(gsB))()
-      await promisify(nodeA.dial.bind(nodeA))(nodeB.peerInfo)
+      await dialNode(nodeA, nodeB.peerInfo)
       await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      expect(gsA.peers.size).to.equal(1)
-      expect(gsB.peers.size).to.equal(1)
     })
 
-    it('stop both GossipSubs', async () => {
+    after(async function () {
+      this.timeout(4000)
       await Promise.all([
-        promisify(gsA.stop.bind(gsA))(),
-        promisify(gsB.stop.bind(gsB))()
+        stopNode(nodeA),
+        stopNode(nodeB)
       ])
+    })
+
+    it('nodes don\'t have peers after stopped', async () => {
+      await Promise.all([
+        stopNode(nodeA.gs),
+        stopNode(nodeB.gs)
+      ])
+      expect(nodeA.gs.peers.size).to.equal(0)
+      expect(nodeB.gs.peers.size).to.equal(0)
     })
   })
 
@@ -360,42 +452,39 @@ describe('basics between 2 nodes', () => {
     let sandbox
     let nodeA
     let nodeB
-    let gsA
-    let gsB
 
     before(async () => {
       sandbox = chai.spy.sandbox()
-      nodeA = await promisify(createNode)('/ip4/127.0.0.1/tcp/0')
-      nodeB = await promisify(createNode)('/ip4/127.0.0.1/tcp/0')
+      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      await startNode(nodeA)
+      await startNode(nodeB)
 
       // Put node B in node A's peer book
       nodeA.peerBook.put(nodeB.peerInfo)
 
-      gsA = new GossipSub(nodeA)
-      gsB = new GossipSub(nodeB)
-
-      await promisify(gsB.start.bind(gsB))()
+      await startNode(nodeB.gs)
     })
 
     after(async function () {
       this.timeout(4000)
       sandbox.restore()
       await Promise.all([
-        promisify(gsA.stop.bind(gsA))(),
-        promisify(gsB.stop.bind(gsB))()
+        stopNode(nodeA.gs),
+        stopNode(nodeB.gs)
       ])
       await Promise.all([
-        promisify(nodeA.stop.bind(nodeA))(),
-        promisify(nodeB.stop.bind(nodeB))()
+        stopNode(nodeA),
+        stopNode(nodeB)
       ])
     })
 
     it('does not dial twice to same peer', async () => {
-      sandbox.on(gsA, ['_onDial'])
+      sandbox.on(nodeA.gs, ['_onDial'])
 
       // When node A starts, it will dial all peers in its peer book, which
       // is just peer B
-      await promisify(gsA.start.bind(gsA))()
+      await startNode(nodeA.gs)
 
       // Simulate a connection coming in from peer B at the same time. This
       // causes gossipsub to dial peer B
@@ -403,7 +492,7 @@ describe('basics between 2 nodes', () => {
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       // Check that only one dial was made
-      expect(gsA._onDial).to.have.been.called.once()
+      expect(nodeA.gs._onDial).to.have.been.called.once()
     })
   })
 
@@ -411,48 +500,38 @@ describe('basics between 2 nodes', () => {
     let sandbox
     let nodeA
     let nodeB
-    let gsA
-    let gsB
 
-    before((done) => {
+    before(async () => {
       sandbox = chai.spy.sandbox()
 
-      series([
-        (cb) => createNode('/ip4/127.0.0.1/tcp/0', cb),
-        (cb) => createNode('/ip4/127.0.0.1/tcp/0', cb)
-      ], (err, nodes) => {
-        if (err) return done(err)
+      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      await startNode(nodeA)
+      await startNode(nodeB)
 
-        nodeA = nodes[0]
-        nodeB = nodes[1]
+      // Put node B in node A's peer book
+      nodeA.peerBook.put(nodeB.peerInfo)
 
-        // Put node B in node A's peer book
-        nodeA.peerBook.put(nodeB.peerInfo)
-
-        gsA = new GossipSub(nodeA)
-        gsB = new GossipSub(nodeB)
-
-        gsB.start(done)
-      })
+      await startNode(nodeB.gs)
     })
 
     after(async function () {
       this.timeout(4000)
       sandbox.restore()
       await Promise.all([
-        promisify(gsA.stop.bind(gsA))(),
-        promisify(gsB.stop.bind(gsB))()
+        stopNode(nodeA.gs),
+        stopNode(nodeB.gs)
       ])
       await Promise.all([
-        promisify(nodeA.stop.bind(nodeA))(),
-        promisify(nodeB.stop.bind(nodeB))()
+        stopNode(nodeA),
+        stopNode(nodeB)
       ])
     })
 
     it('can dial again after error', (done) => {
       let firstTime = true
-      const dialProtocol = gsA.libp2p.dialProtocol.bind(gsA.libp2p)
-      sandbox.on(gsA.libp2p, 'dialProtocol', (peerInfo, multicodec, cb) => {
+      const dialProtocol = nodeA.gs.libp2p.dialProtocol.bind(nodeA.gs.libp2p)
+      sandbox.on(nodeA.gs.libp2p, 'dialProtocol', (peerInfo, multicodec, cb) => {
         // Return an error for the first dial
         if (firstTime) {
           firstTime = false
@@ -465,7 +544,7 @@ describe('basics between 2 nodes', () => {
 
       // When node A starts, it will dial all peers in its peer book, which
       // is just peer B
-      gsA.start(startComplete)
+      nodeA.gs.start(startComplete)
 
       function startComplete () {
         // Simulate a connection coming in from peer B. This causes gossipsub
@@ -474,7 +553,7 @@ describe('basics between 2 nodes', () => {
 
         // Check that both dials were made
         setTimeout(() => {
-          expect(gsA.libp2p.dialProtocol).to.have.been.called.twice()
+          expect(nodeA.gs.libp2p.dialProtocol).to.have.been.called.twice()
           done()
         }, 1000)
       }
@@ -485,60 +564,49 @@ describe('basics between 2 nodes', () => {
     let sandbox
     let nodeA
     let nodeB
-    let gsA
-    let gsB
 
-    before((done) => {
+    before(async () => {
       sandbox = chai.spy.sandbox()
 
-      series([
-        (cb) => createNode('/ip4/127.0.0.1/tcp/0', cb),
-        (cb) => createNode('/ip4/127.0.0.1/tcp/0', cb)
-      ], (err, nodes) => {
-        if (err) return done(err)
+      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      await startNode(nodeA)
+      await startNode(nodeB)
 
-        nodeA = nodes[0]
-        nodeB = nodes[1]
+      // Put node B in node A's peer book
+      nodeA.peerBook.put(nodeB.peerInfo)
 
-        gsA = new GossipSub(nodeA)
-        gsB = new GossipSub(nodeB)
-
-        parallel([
-          (cb) => gsA.start(cb),
-          (cb) => gsB.start(cb)
-        ], done)
-      })
+      await Promise.all([
+        startNode(nodeA.gs),
+        startNode(nodeB.gs)
+      ])
     })
 
     after(async function () {
       this.timeout(4000)
       sandbox.restore()
-      await promisify(gsB.stop.bind(gsB))()
+      await stopNode(nodeB.gs)
       await Promise.all([
-        promisify(nodeA.stop.bind(nodeA))(),
-        promisify(nodeB.stop.bind(nodeB))()
+        stopNode(nodeA),
+        stopNode(nodeB)
       ])
     })
 
     it('does not process dial after stop', (done) => {
-      sandbox.on(gsA, ['_onDial'])
+      sandbox.on(nodeA.gs, ['_onDial'])
 
       // Simulate a connection coming in from peer B at the same time. This
       // causes gossipsub to dial peer B
       nodeA.emit('peer:connect', nodeB.peerInfo)
 
       // Stop gossipsub before the dial can complete
-      gsA.stop(() => {
+      nodeA.gs.stop(() => {
         // Check that the dial was not processed
         setTimeout(() => {
-          expect(gsA._onDial).to.not.have.been.called()
+          expect(nodeA.gs._onDial).to.not.have.been.called()
           done()
         }, 1000)
       })
     })
   })
 })
-
-function shouldNotHappen (msg) {
-  expect.fail()
-}

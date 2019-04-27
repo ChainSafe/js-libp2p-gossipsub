@@ -5,14 +5,15 @@
 const chai = require('chai')
 chai.use(require('dirty-chai'))
 const expect = chai.expect
-const parallel = require('async/parallel')
 const promisify = require('promisify-es6')
 
-const GossipSub = require('../src')
-const utils = require('./utils')
-const first = utils.first
-const createNode = utils.createNode
-const expectSet = utils.expectSet
+const {
+  createNode,
+  expectSet,
+  dialNode,
+  startNode,
+  stopNode
+} = require('./utils')
 
 describe('multiple nodes (more than 2)', () => {
   describe('every peer subscribes to the topic', () => {
@@ -20,105 +21,207 @@ describe('multiple nodes (more than 2)', () => {
       // line
       // ◉────◉────◉
       // a    b    c
+      describe('subscribe', () => {
+        let a
+        let b
+        let c
+        const topic = 'Z'
+
+        beforeEach(async () => {
+          a = await createNode('/ip4/127.0.0.1/tcp/0')
+          b = await createNode('/ip4/127.0.0.1/tcp/0')
+          c = await createNode('/ip4/127.0.0.1/tcp/0')
+          await Promise.all([
+            startNode(a),
+            startNode(b),
+            startNode(c)
+          ])
+          await Promise.all([
+            startNode(a.gs),
+            startNode(b.gs),
+            startNode(c.gs)
+          ])
+          await dialNode(a, b.peerInfo)
+          await dialNode(b, c.peerInfo)
+        })
+
+        afterEach(async function () {
+          this.timeout(4000)
+          await Promise.all([
+            stopNode(a.gs),
+            stopNode(b.gs),
+            stopNode(c.gs)
+          ])
+          await Promise.all([
+            stopNode(a),
+            stopNode(b),
+            stopNode(c)
+          ])
+        })
+
+        it('subscribe to the topic on all nodes', async () => {
+          a.gs.subscribe(topic)
+          b.gs.subscribe(topic)
+          c.gs.subscribe(topic)
+
+          expectSet(a.gs.subscriptions, [topic])
+          expectSet(b.gs.subscriptions, [topic])
+          expectSet(c.gs.subscriptions, [topic])
+
+          await Promise.all([
+            promisify(a.gs.once.bind(a.gs))('gossipsub:heartbeat'),
+            promisify(b.gs.once.bind(b.gs))('gossipsub:heartbeat'),
+            promisify(c.gs.once.bind(c.gs))('gossipsub:heartbeat')
+          ])
+
+          expect(a.gs.peers.size).to.equal(1)
+          expect(b.gs.peers.size).to.equal(2)
+          expect(c.gs.peers.size).to.equal(1)
+
+          const aPeerId = a.peerInfo.id.toB58String()
+          const bPeerId = b.peerInfo.id.toB58String()
+          const cPeerId = c.peerInfo.id.toB58String()
+
+          expectSet(a.gs.peers.get(bPeerId).topics, [topic])
+          expectSet(b.gs.peers.get(aPeerId).topics, [topic])
+          expectSet(b.gs.peers.get(cPeerId).topics, [topic])
+          expectSet(c.gs.peers.get(bPeerId).topics, [topic])
+
+          expect(a.gs.mesh.get(topic).size).to.equal(1)
+          expect(b.gs.mesh.get(topic).size).to.equal(2)
+          expect(c.gs.mesh.get(topic).size).to.equal(1)
+        })
+      })
+
+      describe('publish', () => {
+        let a
+        let b
+        let c
+        const topic = 'Z'
+
+        beforeEach(async () => {
+          a = await createNode('/ip4/127.0.0.1/tcp/0')
+          b = await createNode('/ip4/127.0.0.1/tcp/0')
+          c = await createNode('/ip4/127.0.0.1/tcp/0')
+          await Promise.all([
+            startNode(a),
+            startNode(b),
+            startNode(c)
+          ])
+          await Promise.all([
+            startNode(a.gs),
+            startNode(b.gs),
+            startNode(c.gs)
+          ])
+          await dialNode(a, b.peerInfo)
+          await dialNode(b, c.peerInfo)
+
+          a.gs.subscribe(topic)
+          b.gs.subscribe(topic)
+          c.gs.subscribe(topic)
+
+          await Promise.all([
+            promisify(a.gs.once.bind(a.gs))('gossipsub:heartbeat'),
+            promisify(b.gs.once.bind(b.gs))('gossipsub:heartbeat'),
+            promisify(c.gs.once.bind(c.gs))('gossipsub:heartbeat')
+          ])
+        })
+
+        afterEach(async function () {
+          this.timeout(4000)
+          await Promise.all([
+            stopNode(a.gs),
+            stopNode(b.gs),
+            stopNode(c.gs)
+          ])
+          await Promise.all([
+            stopNode(a),
+            stopNode(b),
+            stopNode(c)
+          ])
+        })
+
+        it('publish on node a', async () => {
+          let msgB = new Promise((resolve) => b.gs.once('Z', resolve))
+          let msgC = new Promise((resolve) => c.gs.once('Z', resolve))
+
+          a.gs.publish('Z', Buffer.from('hey'))
+          msgB = await msgB
+          msgC = await msgC
+
+          expect(msgB.data.toString()).to.equal('hey')
+          expect(msgC.data.toString()).to.equal('hey')
+        })
+
+        it('publish array on node a', async () => {
+          let msgB = new Promise((resolve) => {
+            const output = []
+            b.gs.on('Z', (msg) => {
+              output.push(msg)
+              if (output.length === 2) {
+                b.gs.removeAllListeners('Z')
+                resolve(output)
+              }
+            })
+          })
+          let msgC = new Promise((resolve) => {
+            const output = []
+            c.gs.on('Z', (msg) => {
+              output.push(msg)
+              if (output.length === 2) {
+                c.gs.removeAllListeners('Z')
+                resolve(output)
+              }
+            })
+          })
+
+          a.gs.publish('Z', [Buffer.from('hey'), Buffer.from('hey')])
+          msgB = await msgB
+          msgC = await msgC
+
+          expect(msgB.length).to.equal(2)
+          expect(msgB[0].data.toString()).to.equal('hey')
+          expect(msgB[1].data.toString()).to.equal('hey')
+          expect(msgC.length).to.equal(2)
+          expect(msgC[0].data.toString()).to.equal('hey')
+          expect(msgC[1].data.toString()).to.equal('hey')
+        })
+      })
+    })
+
+    describe('1 level tree', () => {
+      // 1 level tree
+      //     ┌◉┐
+      //     │b│
+      //   ◉─┘ └─◉
+      //   a     c
+
       let a
       let b
       let c
+      const topic = 'Z'
 
-      before((done) => {
-        parallel([
-          (cb) => spawnPubSubNode(cb),
-          (cb) => spawnPubSubNode(cb),
-          (cb) => spawnPubSubNode(cb)
-        ], (err, nodes) => {
-          if (err) {
-            return done(err)
-          }
-          a = nodes[0]
-          b = nodes[1]
-          c = nodes[2]
-
-          done()
-        })
-      })
-
-      after(async function () {
-        this.timeout(4000)
+      beforeEach(async () => {
+        a = await createNode('/ip4/127.0.0.1/tcp/0')
+        b = await createNode('/ip4/127.0.0.1/tcp/0')
+        c = await createNode('/ip4/127.0.0.1/tcp/0')
         await Promise.all([
-          promisify(a.gs.stop.bind(a.gs))(),
-          promisify(b.gs.stop.bind(b.gs))(),
-          promisify(c.gs.stop.bind(c.gs))()
+          startNode(a),
+          startNode(b),
+          startNode(c)
         ])
         await Promise.all([
-          promisify(a.libp2p.stop.bind(a.libp2p))(),
-          promisify(b.libp2p.stop.bind(b.libp2p))(),
-          promisify(c.libp2p.stop.bind(c.libp2p))()
+          startNode(a.gs),
+          startNode(b.gs),
+          startNode(c.gs)
         ])
-      })
+        await dialNode(a, b.peerInfo)
+        await dialNode(b, c.peerInfo)
 
-      it('establish the connections', (done) => {
-        parallel([
-          (cb) => a.libp2p.dial(b.libp2p.peerInfo, cb),
-          (cb) => b.libp2p.dial(c.libp2p.peerInfo, cb)
-        ], (err) => {
-          expect(err).to.not.exist()
-          // wait for the pubsub pipes to be established
-          setTimeout(done, 1000)
-        })
-      })
+        a.gs.subscribe(topic)
+        b.gs.subscribe(topic)
+        c.gs.subscribe(topic)
 
-      it('subscribe to the topic on node a', (done) => {
-        a.gs.subscribe('Z')
-        expectSet(a.gs.subscriptions, ['Z'])
-
-        b.gs.once('meshsub:subscription-change', () => {
-          expect(b.gs.peers.size).to.equal(2)
-          const aPeerId = a.libp2p.peerInfo.id.toB58String()
-          const topics = b.gs.peers.get(aPeerId).topics
-          expectSet(topics, ['Z'])
-
-          expect(c.gs.peers.size).to.equal(1)
-          expectSet(first(c.gs.peers).topics, [])
-
-          done()
-        })
-      })
-
-      it('subscribe to the topic on node b', (done) => {
-        b.gs.subscribe('Z')
-        expectSet(b.gs.subscriptions, ['Z'])
-
-        parallel([
-          cb => a.gs.once('meshsub:subscription-change', () => cb()),
-          cb => c.gs.once('meshsub:subscription-change', () => cb())
-        ], () => {
-          expect(a.gs.peers.size).to.equal(1)
-          expectSet(first(a.gs.peers).topics, ['Z'])
-
-          expect(c.gs.peers.size).to.equal(1)
-          expectSet(first(c.gs.peers).topics, ['Z'])
-
-          done()
-        })
-      })
-
-      it('subscribe to the topic on node c', (done) => {
-        c.gs.subscribe('Z')
-        expectSet(c.gs.subscriptions, ['Z'])
-
-        b.gs.once('meshsub:subscription-change', () => {
-          expect(a.gs.peers.size).to.equal(1)
-          expectSet(first(a.gs.peers).topics, ['Z'])
-
-          expect(b.gs.peers.size).to.equal(2)
-          b.gs.peers.forEach((peer) => {
-            expectSet(peer.topics, ['Z'])
-          })
-
-          done()
-        })
-      })
-
-      it('wait for a heartbeat', async () => {
         await Promise.all([
           promisify(a.gs.once.bind(a.gs))('gossipsub:heartbeat'),
           promisify(b.gs.once.bind(b.gs))('gossipsub:heartbeat'),
@@ -126,72 +229,30 @@ describe('multiple nodes (more than 2)', () => {
         ])
       })
 
-      it('publish on node a', async () => {
-        let msgB = new Promise((resolve) => b.gs.once('Z', resolve))
+      afterEach(async function () {
+        this.timeout(4000)
+        await Promise.all([
+          stopNode(a.gs),
+          stopNode(b.gs),
+          stopNode(c.gs)
+        ])
+        await Promise.all([
+          stopNode(a),
+          stopNode(b),
+          stopNode(c)
+        ])
+      })
+
+      it('publish on node b', async () => {
+        let msgA = new Promise((resolve) => a.gs.once('Z', resolve))
         let msgC = new Promise((resolve) => c.gs.once('Z', resolve))
 
-        a.gs.publish('Z', Buffer.from('hey'))
-        msgB = await msgB
+        b.gs.publish('Z', Buffer.from('hey'))
+        msgA = await msgA
         msgC = await msgC
 
-        expect(msgB.data.toString()).to.equal('hey')
+        expect(msgA.data.toString()).to.equal('hey')
         expect(msgC.data.toString()).to.equal('hey')
-      })
-
-      it('publish array on node a', async () => {
-        let msgB = new Promise((resolve) => {
-          const output = []
-          b.gs.on('Z', (msg) => {
-            output.push(msg)
-            if (output.length === 2) {
-              b.gs.removeAllListeners('Z')
-              resolve(output)
-            }
-          })
-        })
-        let msgC = new Promise((resolve) => {
-          const output = []
-          c.gs.on('Z', (msg) => {
-            output.push(msg)
-            if (output.length === 2) {
-              c.gs.removeAllListeners('Z')
-              resolve(output)
-            }
-          })
-        })
-
-        a.gs.publish('Z', [Buffer.from('hey'), Buffer.from('hey')])
-        msgB = await msgB
-        msgC = await msgC
-
-        expect(msgB.length).to.equal(2)
-        expect(msgB[0].data.toString()).to.equal('hey')
-        expect(msgB[1].data.toString()).to.equal('hey')
-        expect(msgC.length).to.equal(2)
-        expect(msgC[0].data.toString()).to.equal('hey')
-        expect(msgC[1].data.toString()).to.equal('hey')
-      })
-
-      // since the topology is the same, just the publish
-      // gets sent by other peer, we reused the same peers
-      describe('1 level tree', () => {
-        // 1 level tree
-        //     ┌◉┐
-        //     │b│
-        //   ◉─┘ └─◉
-        //   a     c
-
-        it('publish on node b', async () => {
-          let msgA = new Promise((resolve) => a.gs.once('Z', resolve))
-          let msgC = new Promise((resolve) => c.gs.once('Z', resolve))
-
-          b.gs.publish('Z', Buffer.from('hey'))
-          msgA = await msgA
-          msgC = await msgC
-
-          expect(msgA.data.toString()).to.equal('hey')
-          expect(msgC.data.toString()).to.equal('hey')
-        })
       })
     })
 
@@ -203,163 +264,90 @@ describe('multiple nodes (more than 2)', () => {
       //   │b     d│
       // ◉─┘       └─◉
       // a           e
-
       let a
       let b
       let c
       let d
       let e
+      const topic = 'Z'
 
-      before((done) => {
-        parallel([
-          (cb) => spawnPubSubNode(cb),
-          (cb) => spawnPubSubNode(cb),
-          (cb) => spawnPubSubNode(cb),
-          (cb) => spawnPubSubNode(cb),
-          (cb) => spawnPubSubNode(cb)
-        ], (err, nodes) => {
-          if (err) {
-            return done(err)
-          }
-          a = nodes[0]
-          b = nodes[1]
-          c = nodes[2]
-          d = nodes[3]
-          e = nodes[4]
-
-          done()
-        })
-      })
-
-      after(async function () {
-        this.timeout(4000)
+      beforeEach(async () => {
+        a = await createNode('/ip4/127.0.0.1/tcp/0')
+        b = await createNode('/ip4/127.0.0.1/tcp/0')
+        c = await createNode('/ip4/127.0.0.1/tcp/0')
+        d = await createNode('/ip4/127.0.0.1/tcp/0')
+        e = await createNode('/ip4/127.0.0.1/tcp/0')
         await Promise.all([
-          promisify(a.gs.stop.bind(a.gs))(),
-          promisify(b.gs.stop.bind(b.gs))(),
-          promisify(c.gs.stop.bind(c.gs))(),
-          promisify(d.gs.stop.bind(d.gs))(),
-          promisify(e.gs.stop.bind(e.gs))()
+          startNode(a),
+          startNode(b),
+          startNode(c),
+          startNode(d),
+          startNode(e)
         ])
         await Promise.all([
-          promisify(a.libp2p.stop.bind(a.libp2p))(),
-          promisify(b.libp2p.stop.bind(b.libp2p))(),
-          promisify(c.libp2p.stop.bind(c.libp2p))(),
-          promisify(d.libp2p.stop.bind(d.libp2p))(),
-          promisify(e.libp2p.stop.bind(e.libp2p))()
+          startNode(a.gs),
+          startNode(b.gs),
+          startNode(c.gs),
+          startNode(d.gs),
+          startNode(e.gs)
         ])
-      })
+        await dialNode(a, b.peerInfo)
+        await dialNode(b, c.peerInfo)
+        await dialNode(c, d.peerInfo)
+        await dialNode(d, e.peerInfo)
 
-      it('establish the connections', async () => {
-        await Promise.all([
-          promisify(a.libp2p.dial.bind(a.libp2p))(b.libp2p.peerInfo),
-          promisify(b.libp2p.dial.bind(b.libp2p))(c.libp2p.peerInfo),
-          promisify(c.libp2p.dial.bind(c.libp2p))(d.libp2p.peerInfo),
-          promisify(d.libp2p.dial.bind(d.libp2p))(e.libp2p.peerInfo)
-        ])
-        await new Promise((resolve) => setTimeout(resolve, 500))
-      })
+        a.gs.subscribe(topic)
+        b.gs.subscribe(topic)
+        c.gs.subscribe(topic)
+        d.gs.subscribe(topic)
+        e.gs.subscribe(topic)
 
-      it('subscribes', () => {
-        a.gs.subscribe('Z')
-        expectSet(a.gs.subscriptions, ['Z'])
-        b.gs.subscribe('Z')
-        expectSet(b.gs.subscriptions, ['Z'])
-        c.gs.subscribe('Z')
-        expectSet(c.gs.subscriptions, ['Z'])
-        d.gs.subscribe('Z')
-        expectSet(d.gs.subscriptions, ['Z'])
-        e.gs.subscribe('Z')
-        expectSet(e.gs.subscriptions, ['Z'])
-      })
-
-      it('wait for a heartbeat', async () => {
         await Promise.all([
           promisify(a.gs.once.bind(a.gs))('gossipsub:heartbeat'),
           promisify(b.gs.once.bind(b.gs))('gossipsub:heartbeat'),
           promisify(c.gs.once.bind(c.gs))('gossipsub:heartbeat'),
-          promisify(d.gs.once.bind(d.gs))('gossipsub:heartbeat'),
-          promisify(e.gs.once.bind(e.gs))('gossipsub:heartbeat')
+          promisify(d.gs.once.bind(c.gs))('gossipsub:heartbeat'),
+          promisify(e.gs.once.bind(c.gs))('gossipsub:heartbeat')
         ])
       })
 
-      it('publishes from c', (done) => {
-        let counter = 0
-
-        a.gs.on('Z', incMsg)
-        b.gs.on('Z', incMsg)
-        d.gs.on('Z', incMsg)
-        e.gs.on('Z', incMsg)
-
-        c.gs.publish('Z', Buffer.from('hey from c'))
-
-        function incMsg (msg) {
-          expect(msg.data.toString()).to.equal('hey from c')
-          check()
-        }
-
-        function check () {
-          if (++counter === 4) {
-            a.gs.removeListener('Z', incMsg)
-            b.gs.removeListener('Z', incMsg)
-            d.gs.removeListener('Z', incMsg)
-            e.gs.removeListener('Z', incMsg)
-            done()
-          }
-        }
+      afterEach(async function () {
+        this.timeout(4000)
+        await Promise.all([
+          stopNode(a.gs),
+          stopNode(b.gs),
+          stopNode(c.gs),
+          stopNode(d.gs),
+          stopNode(e.gs)
+        ])
+        await Promise.all([
+          stopNode(a),
+          stopNode(b),
+          stopNode(c),
+          stopNode(d),
+          stopNode(e)
+        ])
       })
-    })
-  })
 
-  describe('only some nodes subscribe the networks', () => {
-    describe('line', () => {
-      // line
-      // ◉────◎────◉
-      // a    b    c
+      it('publishes from c', async () => {
+        let msgA = new Promise((resolve) => a.gs.once('Z', resolve))
+        let msgB = new Promise((resolve) => b.gs.once('Z', resolve))
+        let msgD = new Promise((resolve) => d.gs.once('Z', resolve))
+        let msgE = new Promise((resolve) => e.gs.once('Z', resolve))
 
-      before((done) => {})
-      after((done) => {})
-    })
+        const msg = 'hey from c'
+        c.gs.publish('Z', Buffer.from(msg))
 
-    describe('1 level tree', () => {
-      // 1 level tree
-      //     ┌◉┐
-      //     │b│
-      //   ◎─┘ └─◉
-      //   a     c
+        msgA = await msgA
+        msgB = await msgB
+        msgD = await msgD
+        msgE = await msgE
 
-      before((done) => {})
-      after((done) => {})
-    })
-
-    describe('2 level tree', () => {
-      // 2 levels tree
-      //      ┌◉┐
-      //      │c│
-      //   ┌◎─┘ └─◉┐
-      //   │b     d│
-      // ◉─┘       └─◎
-      // a           e
-
-      before((done) => {})
-      after((done) => {})
+        expect(msgA.data.toString()).to.equal(msg)
+        expect(msgB.data.toString()).to.equal(msg)
+        expect(msgD.data.toString()).to.equal(msg)
+        expect(msgE.data.toString()).to.equal(msg)
+      })
     })
   })
 })
-
-function spawnPubSubNode (callback) {
-  createNode('/ip4/127.0.0.1/tcp/0', (err, node) => {
-    if (err) {
-      return callback(err)
-    }
-    const gs = new GossipSub(node)
-    gs.start((err) => {
-      if (err) {
-        return callback(err)
-      }
-      callback(null, {
-        libp2p: node,
-        gs: gs
-      })
-    })
-  })
-}
