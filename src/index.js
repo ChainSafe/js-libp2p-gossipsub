@@ -729,6 +729,10 @@ class GossipSub extends Pubsub {
    * @returns {void}
    */
   _heartbeat () {
+    // flush pending control message from retries and gossip
+    // that hasn't been piggybacked since the last heartbeat
+    this._flush()
+
     /**
      * @type {Map<Peer, Array<String>>}
      */
@@ -870,6 +874,21 @@ class GossipSub extends Pubsub {
         })
       }
     })
+  }
+
+  _flush () {
+    // send gossip first, which will also piggyback control
+    for (const [peer, ihave] of this.gossip.entries()) {
+      this.gossip.delete(peer)
+      const out = this._rpcWithControl(null, ihave, null, null, null)
+      this._sendRpc(peer, out)
+    }
+    // send the remaining control messages
+    for (const [peer, control] of this.control.entries()) {
+      this.control.delete(peer)
+      const out = this._rpcWithControl(null, null, null, control.graft, control.prune)
+      this._sendRpc(peer, out)
+    }
   }
 
   /**
