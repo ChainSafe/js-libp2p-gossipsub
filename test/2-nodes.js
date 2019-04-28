@@ -128,7 +128,7 @@ describe('2 nodes', () => {
 
       // await subscription change
       const [changedPeerInfo, changedTopics, changedSubs] = await new Promise((resolve) => {
-        nodeA.gs.once('meshsub:subscription-change', (...args) => resolve(args))
+        nodeA.gs.once('pubsub:subscription-change', (...args) => resolve(args))
       })
 
       expectSet(nodeA.gs.subscriptions, [topic])
@@ -176,7 +176,7 @@ describe('2 nodes', () => {
       nodeB.gs.subscribe(topic)
 
       // await subscription change and heartbeat
-      await new Promise((resolve) => nodeA.gs.once('meshsub:subscription-change', resolve))
+      await new Promise((resolve) => nodeA.gs.once('pubsub:subscription-change', resolve))
       await Promise.all([
         new Promise((resolve) => nodeA.gs.once('gossipsub:heartbeat', resolve)),
         new Promise((resolve) => nodeB.gs.once('gossipsub:heartbeat', resolve))
@@ -295,7 +295,7 @@ describe('2 nodes', () => {
       nodeB.gs.subscribe(topic)
 
       // await subscription change and heartbeat
-      await new Promise((resolve) => nodeA.gs.once('meshsub:subscription-change', resolve))
+      await new Promise((resolve) => nodeA.gs.once('pubsub:subscription-change', resolve))
       await Promise.all([
         new Promise((resolve) => nodeA.gs.once('gossipsub:heartbeat', resolve)),
         new Promise((resolve) => nodeB.gs.once('gossipsub:heartbeat', resolve))
@@ -319,7 +319,7 @@ describe('2 nodes', () => {
       expect(nodeA.gs.subscriptions.size).to.equal(0)
 
       const [changedPeerInfo, changedTopics, changedSubs] = await new Promise((resolve) => {
-        nodeB.gs.once('meshsub:subscription-change', (...args) => resolve(args))
+        nodeB.gs.once('pubsub:subscription-change', (...args) => resolve(args))
       })
       await new Promise((resolve) => nodeB.gs.once('gossipsub:heartbeat', resolve))
 
@@ -332,7 +332,7 @@ describe('2 nodes', () => {
 
     it('Publish to a topic after unsubscribe', async () => {
       nodeA.gs.unsubscribe(topic)
-      await new Promise((resolve) => nodeB.gs.once('meshsub:subscription-change', resolve))
+      await new Promise((resolve) => nodeB.gs.once('pubsub:subscription-change', resolve))
       await new Promise((resolve) => nodeB.gs.once('gossipsub:heartbeat', resolve))
 
       const promise = new Promise((resolve, reject) => {
@@ -395,8 +395,8 @@ describe('2 nodes', () => {
       await dialNode(nodeA, nodeB.peerInfo)
 
       await Promise.all([
-        new Promise((resolve) => nodeA.gs.once('meshsub:subscription-change', resolve)),
-        new Promise((resolve) => nodeB.gs.once('meshsub:subscription-change', resolve))
+        new Promise((resolve) => nodeA.gs.once('pubsub:subscription-change', resolve)),
+        new Promise((resolve) => nodeB.gs.once('pubsub:subscription-change', resolve))
       ])
       expect(nodeA.gs.peers.size).to.equal(1)
       expect(nodeB.gs.peers.size).to.equal(1)
