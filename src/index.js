@@ -16,6 +16,7 @@ const { MessageCache } = require('./messageCache')
 const { rpc } = require('./message')
 const constants = require('./constants')
 const errcode = require('err-code')
+const Heartbeat = require('./heartbeat')
 
 class GossipSub extends BasicPubsub {
   /**
@@ -65,6 +66,11 @@ class GossipSub extends BasicPubsub {
      *
      */
     this.messageCache = new MessageCache(constants.GossipSubHistoryGossip, constants.GossipSubHistoryLength)
+
+    /**
+     * A heartbeat timer that maintains the mesh
+     */
+    this.heartbeat = new Heartbeat(this)
   }
 
   /**
@@ -292,36 +298,8 @@ class GossipSub extends BasicPubsub {
    */
   start (callback) {
     super.start((err) => {
-      if (err) {
-        return callback(err)
-      }
-      if (this._heartbeatTimer) {
-        const errMsg = 'Heartbeat timer is already running'
-
-        this.log(errMsg)
-        throw errcode(new Error(errMsg), 'ERR_HEARTBEAT_ALREADY_RUNNING')
-      }
-
-      const heartbeatTimer = {
-        _onCancel: null,
-        _timeoutId: null,
-        runPeriodically: (fn, period) => {
-          heartbeatTimer._timeoutId = setInterval(fn, period)
-        },
-        cancel: (cb) => {
-          clearTimeout(heartbeatTimer._timeoutId)
-          cb()
-        }
-      }
-
-      const heartbeat = this._heartbeat.bind(this)
-      setTimeout(() => {
-        heartbeat()
-        heartbeatTimer.runPeriodically(heartbeat, constants.GossipSubHeartbeatInterval)
-      }, constants.GossipSubHeartbeatInitialDelay)
-
-      this._heartbeatTimer = heartbeatTimer
-      callback()
+      if (err) return callback(err)
+      this.heartbeat.start(callback)
     })
   }
 
@@ -333,12 +311,6 @@ class GossipSub extends BasicPubsub {
    * @returns {void}
    */
   stop (callback) {
-    if (!this._heartbeatTimer) {
-      const errMsg = 'Heartbeat timer is not running'
-      this.log(errMsg)
-
-      throw errcode(new Error(errMsg), 'ERR_HEARTBEATIMER_NO_RUNNING')
-    }
     super.stop((err) => {
       if (err) return callback(err)
       this.mesh = new Map()
@@ -346,10 +318,7 @@ class GossipSub extends BasicPubsub {
       this.lastpub = new Map()
       this.gossip = new Map()
       this.control = new Map()
-      this._heartbeatTimer.cancel(() => {
-        this._heartbeatTimer = null
-        callback()
-      })
+      this.heartbeat.stop(callback)
     })
   }
 
@@ -529,107 +498,6 @@ class GossipSub extends BasicPubsub {
 
   _piggybackGossip (peer, outRpc, ihave) {
     outRpc.control.ihave = ihave
-  }
-
-  /**
-   * Maintains the mesh and fanout maps in gossipsub.
-   *
-   * @returns {void}
-   */
-  _heartbeat () {
-    // flush pending control message from retries and gossip
-    // that hasn't been piggybacked since the last heartbeat
-    this._flush()
-
-    /**
-     * @type {Map<Peer, Array<String>>}
-     */
-    const tograft = new Map()
-    const toprune = new Map()
-
-    // maintain the mesh for topics we have joined
-    this.mesh.forEach((peers, topic) => {
-      // do we have enough peers?
-      if (peers.size < constants.GossipSubDlo) {
-        const ineed = constants.GossipSubD - peers.size
-        const peersSet = this._getPeers(topic, ineed)
-        peersSet.forEach((peer) => {
-          // add topic peers not already in mesh
-          if (peers.has(peer)) {
-            return
-          }
-
-          this.log('HEARTBEAT: Add mesh link to %s in %s', peer.info.id.toB58String(), topic)
-          peers.add(peer)
-          peer.topics.add(topic)
-          if (!tograft.has(peer)) {
-            tograft.set(peer, [])
-          }
-          tograft.get(peer).push(topic)
-        })
-      }
-
-      // do we have to many peers?
-      if (peers.size > constants.GossipSubDhi) {
-        const idontneed = peers.size - constants.GossipSubD
-        let peersArray = new Array(peers)
-        peersArray = this._shufflePeers(peersArray)
-
-        const tmp = peersArray.slice(0, idontneed)
-        tmp.forEach((peer) => {
-          this.log('HEARTBEAT: Remove mesh link to %s in %s', peer.info.id.toB58String(), topic)
-          peers.delete(peer)
-          peer.topics.remove(topic)
-          if (!toprune.has(peer)) {
-            toprune.set(peer, [])
-          }
-          toprune.get(peer).push(topic)
-        })
-      }
-
-      this._emitGossip(topic, peers)
-    })
-
-    // expire fanout for topics we haven't published to in a while
-    const now = this._now()
-    this.lastpub.forEach((topic, lastpb) => {
-      if ((lastpb + constants.GossipSubFanoutTTL) < now) {
-        this.fanout.delete(topic)
-        this.lastpub.delete(topic)
-      }
-    })
-
-    // maintain our fanout for topics we are publishing but we have not joined
-    this.fanout.forEach((topic, peers) => {
-      // checks whether our peers are still in the topic
-      peers.forEach((peer) => {
-        if (this.topics.has(peer)) {
-          peers.delete(peer)
-        }
-      })
-
-      // do we need more peers?
-      if (peers.size < constants.GossipSubD) {
-        const ineed = constants.GossipSubD - peers.size
-        const peersSet = this._getPeers(topic, ineed)
-        peersSet.forEach((peer) => {
-          if (!peers.has(peer)) {
-            return
-          }
-
-          peers.add(peer)
-        })
-      }
-
-      this._emitGossip(topic, peers)
-    })
-    // send coalesced GRAFT/PRUNE messages (will piggyback gossip)
-    this._sendGraftPrune(tograft, toprune)
-
-    // advance the message history window
-    this.messageCache.shift()
-
-    this.emit('gossipsub:heartbeat')
   }
 
   /**
