@@ -9,6 +9,7 @@ const pull = require('pull-stream')
 const lp = require('pull-length-prefixed')
 const nextTick = require('async/nextTick')
 const { utils } = require('libp2p-pubsub')
+const asyncMap = require('async/map')
 
 const assert = require('assert')
 
@@ -276,16 +277,16 @@ class BasicPubSub extends Pubsub {
    * @param {Array<any>|any} messages
    * @returns {void}
    */
-  publish (topics, messages) {
+  publish (topics, messages, callback) {
     assert(this.started, 'Pubsub has not started')
     this.log('publish', topics, messages)
-
     topics = utils.ensureArray(topics)
     messages = utils.ensureArray(messages)
+    callback = callback || (() => {})
 
     const from = this.libp2p.peerInfo.id.toB58String()
 
-    const buildMessage = (msg) => {
+    const buildMessage = (msg, cb) => {
       const seqno = utils.randomSeqno()
       const msgObj = {
         from: from,
@@ -295,11 +296,13 @@ class BasicPubSub extends Pubsub {
       }
       this.messageCache.put(msgObj)
       this.seenCache.put(msgObj.seqno)
-      return msgObj
+      this._buildMessage(msgObj, cb)
     }
 
-    const msgObjs = utils.normalizeOutRpcMessages(messages.map(buildMessage))
-    this._publish(msgObjs)
+    asyncMap(messages, buildMessage, (err, msgObjects) => {
+      if (err) callback(err)
+      this._publish(utils.normalizeOutRpcMessages(msgObjects))
+    })
   }
 
   _publish (rpcs) {
