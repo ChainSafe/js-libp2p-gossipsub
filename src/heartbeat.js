@@ -92,29 +92,31 @@ class Heartbeat {
 
           this.gossipsub.log('HEARTBEAT: Add mesh link to %s in %s', peer.info.id.toB58String(), topic)
           peers.add(peer)
-          peer.topics.add(topic)
-          if (!tograft.has(peer)) {
-            tograft.set(peer, [])
+          const peerGrafts = tograft.get(peer)
+          if (!peerGrafts) {
+            tograft.set(peer, [topic])
+          } else {
+            peerGrafts.push(topic)
           }
-          tograft.get(peer).push(topic)
         })
       }
 
       // do we have to many peers?
       if (peers.size > constants.GossipSubDhi) {
         const idontneed = peers.size - constants.GossipSubD
-        let peersArray = new Array(peers)
+        let peersArray = Array.from(peers)
         peersArray = this.gossipsub._shufflePeers(peersArray)
+        peersArray = peersArray.slice(0, idontneed)
 
-        const tmp = peersArray.slice(0, idontneed)
-        tmp.forEach((peer) => {
+        peersArray.forEach((peer) => {
           this.gossipsub.log('HEARTBEAT: Remove mesh link to %s in %s', peer.info.id.toB58String(), topic)
           peers.delete(peer)
-          peer.topics.remove(topic)
-          if (!toprune.has(peer)) {
-            toprune.set(peer, [])
+          const peerPrunes = toprune.get(peer)
+          if (!peerPrunes) {
+            toprune.set(peer, [topic])
+          } else {
+            peerPrunes.push(topic)
           }
-          toprune.get(peer).push(topic)
         })
       }
 
