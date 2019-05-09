@@ -121,8 +121,8 @@ class BasicPubSub extends Pubsub {
       utils.normalizeInRpcMessages(msgs).forEach((msg) => {
         const seqno = utils.msgId(msg.from, msg.seqno)
         if (!this.seenCache.has(seqno)) {
-          this.seenCache.put(seqno)
           this._processRpcMessage(msg)
+          this.seenCache.put(seqno)
         }
       })
     }
@@ -294,7 +294,6 @@ class BasicPubSub extends Pubsub {
         seqno: seqno,
         topicIDs: topics
       }
-      this.messageCache.put(msgObj)
       this.seenCache.put(msgObj.seqno)
       this._buildMessage(msgObj, cb)
     }

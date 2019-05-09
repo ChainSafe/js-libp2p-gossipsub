@@ -124,7 +124,7 @@ class GossipSub extends BasicPubsub {
       return
     }
 
-    const outRpc = this._rpcWithControl(null, iHave, iWant, null, prune)
+    const outRpc = this._rpcWithControl(iHave, null, iWant, null, prune)
     this._sendRpc(rpc.from, outRpc)
   }
 
@@ -200,11 +200,12 @@ class GossipSub extends BasicPubsub {
 
   /**
    * Handles IWANT messages
+   * Returns messages to send back to peer
    *
    * @param {Peer} peer
    * @param {Array<rpc.RPC.ControlIWant>} iwant
    *
-   * @returns {rpc.RPC.ControlIHave}
+   * @returns {Array<rpc.RPC.Message>}
    */
   _handleIWant (peer, iwant) {
     // @type {Map<string, rpc.RPC.Message>}
@@ -225,9 +226,7 @@ class GossipSub extends BasicPubsub {
 
     this.log('IWANT: Sending %d messages to %s', ihave.size, peer.info.id.toB58String())
 
-    return {
-      messageIDs: Array.from(ihave.values())
-    }
+    return Array.from(ihave.values())
   }
 
   /**
@@ -377,6 +376,7 @@ class GossipSub extends BasicPubsub {
 
   _publish (messages) {
     messages.forEach((msgObj) => {
+      this.messageCache.put(msgObj)
       // @type Set<string>
       const tosend = new Set()
       msgObj.topicIDs.forEach((topic) => {
@@ -531,7 +531,7 @@ class GossipSub extends BasicPubsub {
    * Emits gossip to peers in a particular topic
    *
    * @param {String} topic
-   * @param {Set<Peer>} peers
+   * @param {Set<Peer>} peers - peers to exclude
    * @returns {void}
    */
   _emitGossip (topic, peers) {
@@ -552,6 +552,9 @@ class GossipSub extends BasicPubsub {
     })
   }
 
+  /**
+   * Flush gossip and control messages
+   */
   _flush () {
     // send gossip first, which will also piggyback control
     for (const [peer, ihave] of this.gossip.entries()) {
@@ -575,9 +578,9 @@ class GossipSub extends BasicPubsub {
    * @returns {void}
    */
   _pushGossip (peer, controlIHaveMsgs) {
-    let gossip = this.gossip.get(peer)
-    gossip = gossip.concat(controlIHaveMsgs)
-    this.gossip.set(peer, gossip)
+    this.log('Add gossip to %s', peer.info.id.toB58String())
+    const gossip = this.gossip.get(peer) || []
+    this.gossip.set(peer, gossip.concat(controlIHaveMsgs))
   }
 
   /**
