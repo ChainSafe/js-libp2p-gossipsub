@@ -6,6 +6,7 @@ const sinon = require('sinon')
 
 const { GossipSubDhi } = require('../src/constants')
 const {
+  first,
   createNode,
   dialNode,
   startNode,
@@ -61,5 +62,41 @@ describe('gossip', () => {
 
     // unset spy
     nodeA.gs.log.restore()
+  })
+
+  it('should send piggyback gossip into other sent messages', async function () {
+    this.timeout(0)
+    const nodeA = nodes[0]
+    const topic = 'Z'
+    // add subscriptions to each node
+    nodes.forEach((n) => n.gs.subscribe(topic))
+    // every node connected to every other
+    for (let i = 0; i < nodes.length - 1; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        await dialNode(nodes[i], nodes[j].peerInfo)
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    // await mesh rebalancing
+    await Promise.all(nodes.map((n) => new Promise((resolve) => n.gs.once('gossipsub:heartbeat', resolve))))
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
+    const peerB = first(nodeA.gs.mesh.get(topic))
+    const nodeB = nodes.find((n) => n.peerInfo.id.toB58String() === peerB.info.id.toB58String())
+    // set spy
+    sinon.spy(nodeB.gs, 'log')
+
+    // manually add control message to be sent to peerB
+    nodeA.gs.control.set(peerB, { graft: [{ topicID: topic }] })
+    nodeA.gs.publish(topic, Buffer.from('hey'))
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    expect(nodeB.gs.log.callCount).to.be.gt(1)
+    // expect control message to be sent alongside published message
+    const call = nodeB.gs.log.getCalls().find((call) => call.args[0] === 'GRAFT: Add mesh link from %s in %s')
+    expect(call).to.not.equal(undefined)
+    expect(call.args[1]).to.equal(nodeA.peerInfo.id.toB58String())
+
+    // unset spy
+    nodeB.gs.log.restore()
   })
 })
