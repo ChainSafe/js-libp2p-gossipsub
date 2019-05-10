@@ -28,7 +28,7 @@ describe('heartbeat', () => {
     const t1 = Date.now()
     await new Promise((resolve) => nodeA.gs.once('gossipsub:heartbeat', resolve))
     const t2 = Date.now()
-    const safeDelta = 10 // ms
+    const safeDelta = 100 // ms
     expect(t2 - t1).to.be.lt(GossipSubHeartbeatInterval + safeDelta)
   })
 })
