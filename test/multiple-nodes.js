@@ -271,7 +271,8 @@ describe('multiple nodes (more than 2)', () => {
       let e
       const topic = 'Z'
 
-      beforeEach(async () => {
+      beforeEach(async function () {
+        this.timeout(5000)
         a = await createNode('/ip4/127.0.0.1/tcp/0')
         b = await createNode('/ip4/127.0.0.1/tcp/0')
         c = await createNode('/ip4/127.0.0.1/tcp/0')
@@ -295,6 +296,8 @@ describe('multiple nodes (more than 2)', () => {
         await dialNode(b, c.peerInfo)
         await dialNode(c, d.peerInfo)
         await dialNode(d, e.peerInfo)
+
+        await new Promise((resolve) => setTimeout(resolve, 500))
 
         a.gs.subscribe(topic)
         b.gs.subscribe(topic)
