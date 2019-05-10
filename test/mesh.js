@@ -58,6 +58,6 @@ describe('mesh overlay', () => {
     await new Promise((resolve) => setTimeout(resolve, 500))
     // await mesh rebalancing
     await new Promise((resolve) => node0.gs.once('gossipsub:heartbeat', resolve))
-    expect(node0.gs.mesh.get(topic).size).to.be.lt(GossipSubDhi)
+    expect(node0.gs.mesh.get(topic).size).to.be.lte(GossipSubDhi)
   })
 })
