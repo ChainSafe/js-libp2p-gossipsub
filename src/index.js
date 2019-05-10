@@ -466,14 +466,14 @@ class GossipSub extends BasicPubsub {
     // piggyback control message retries
     const ctrl = this.control.get(peer)
     if (ctrl) {
-      this.piggybackControl(peer, outRpc, ctrl)
+      this._piggybackControl(peer, outRpc, ctrl)
       this.control.delete(peer)
     }
 
     // piggyback gossip
     const ihave = this.gossip.get(peer)
     if (ihave) {
-      this.piggybackGossip(peer, outRpc, ihave)
+      this._piggybackGossip(peer, outRpc, ihave)
       this.gossip.delete(peer)
     }
 
@@ -481,22 +481,22 @@ class GossipSub extends BasicPubsub {
   }
 
   _piggybackControl (peer, outRpc, ctrl) {
-    const hasPeerInTopic = (topicID) => {
-      const meshPeers = this.mesh.get(topicID)
-      return meshPeers && meshPeers.has(peer)
-    }
-    const tograft = (ctrl.graft || []).filter(({ topicID }) => hasPeerInTopic(topicID))
-    const toprune = (ctrl.prune || []).filter(({ topicID }) => hasPeerInTopic(topicID))
+    const tograft = (ctrl.graft || [])
+      .filter(({ topicID }) => (this.mesh.get(topicID) || new Set()).has(peer))
+    const toprune = (ctrl.prune || [])
+      .filter(({ topicID }) => !(this.mesh.get(topicID) || new Set()).has(peer))
 
     if (!tograft.length && !toprune.length) {
       return
     }
 
-    outRpc.control.graft = outRpc.control.graft.concat(tograft)
-    outRpc.control.prune = outRpc.control.graft.concat(toprune)
+    outRpc.control = outRpc.control || {}
+    outRpc.control.graft = (outRpc.control.graft || []).concat(tograft)
+    outRpc.control.prune = (outRpc.control.prune || []).concat(toprune)
   }
 
   _piggybackGossip (peer, outRpc, ihave) {
+    outRpc.control = outRpc.control || {}
     outRpc.control.ihave = ihave
   }
 
