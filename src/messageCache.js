@@ -1,5 +1,5 @@
-/* eslint-disable valid-jsdoc */
 'use strict'
+
 const { utils } = require('libp2p-pubsub')
 
 class CacheEntry {
@@ -45,8 +45,7 @@ class MessageCache {
   /**
    * Adds a message to the current window and the cache
    *
-   * @param {RPC.Message Object} msg
-   *
+   * @param {rpc.RPC.Message} msg
    * @returns {void}
    */
   put (msg) {
@@ -59,8 +58,7 @@ class MessageCache {
    * Retrieves a message from the cache by its ID, if it is still present
    *
    * @param {String} msgID
-   *
-   * @returns {RPC.Message Object}
+   * @returns {rpc.RPC.Message}
    */
   get (msgID) {
     return this.msgs.get(msgID)

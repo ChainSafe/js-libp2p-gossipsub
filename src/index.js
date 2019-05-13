@@ -1,13 +1,6 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable no-warning-comments */
-/* eslint-disable valid-jsdoc */
-
 'use strict'
 
 const assert = require('assert')
-const pull = require('pull-stream')
-const lp = require('pull-length-prefixed')
-const nextTick = require('async/nextTick')
 const { utils } = require('libp2p-pubsub')
 
 const BasicPubsub = require('./pubsub')
@@ -15,7 +8,6 @@ const { MessageCache } = require('./messageCache')
 
 const { rpc } = require('./message')
 const constants = require('./constants')
-const errcode = require('err-code')
 const Heartbeat = require('./heartbeat')
 
 class GossipSub extends BasicPubsub {
@@ -85,11 +77,13 @@ class GossipSub extends BasicPubsub {
     // Only delete when no one else if referencing this peer.
     if (peer._references === 0) {
       // Remove this peer from the mesh
-      for (const [topic, peers] of this.mesh.entries()) {
+      // eslint-disable-next-line no-unused-vars
+      for (const [_, peers] of this.mesh.entries()) {
         peers.delete(peer)
       }
       // Remove this peer from the fanout
-      for (const [topic, peers] of this.fanout.entries()) {
+      // eslint-disable-next-line no-unused-vars
+      for (const [_, peers] of this.fanout.entries()) {
         peers.delete(peer)
       }
 
@@ -131,6 +125,7 @@ class GossipSub extends BasicPubsub {
   /**
    * Process incoming message,
    * emitting locally and forwarding on to relevant floodsub and gossipsub peers
+   * @param {rpc.RPC.Message} msg
    */
   _processRpcMessage (msg) {
     super._processRpcMessage(msg)

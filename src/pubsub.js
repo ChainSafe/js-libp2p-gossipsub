@@ -1,7 +1,3 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable no-warning-comments */
-/* eslint-disable valid-jsdoc */
-
 'use strict'
 
 const Pubsub = require('libp2p-pubsub')
@@ -15,11 +11,12 @@ const errcode = require('err-code')
 const assert = require('assert')
 
 const { rpc } = require('./message')
-const constants = require('./constants')
 
 class BasicPubSub extends Pubsub {
   /**
-   * @param {Object} libp2p
+   * @param {String} debugName
+   * @param {String} multicodec
+   * @param {Object} libp2p libp2p implementation
    * @constructor
    */
   constructor (debugName, multicodec, libp2p) {
@@ -276,6 +273,7 @@ class BasicPubSub extends Pubsub {
    *
    * @param {Array<string>|string} topics
    * @param {Array<any>|any} messages
+   * @param {Function|null} callback
    * @returns {void}
    */
   publish (topics, messages, callback) {

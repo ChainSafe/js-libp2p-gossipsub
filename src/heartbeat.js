@@ -1,5 +1,3 @@
-/* eslint-disable valid-jsdoc */
-
 'use strict'
 
 const constants = require('./constants')
