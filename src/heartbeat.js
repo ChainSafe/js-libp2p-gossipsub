@@ -54,7 +54,7 @@ class Heartbeat {
     if (!this._heartbeatTimer) {
       const errMsg = 'Heartbeat timer is not running'
       this.gossipsub.log(errMsg)
-      throw errcode(new Error(errMsg), 'ERR_HEARTBEATIMER_NO_RUNNING')
+      return callback(errcode(new Error(errMsg), 'ERR_HEARTBEAT_NO_RUNNING'))
     }
     this._heartbeatTimer.cancel(() => {
       this._heartbeatTimer = null
