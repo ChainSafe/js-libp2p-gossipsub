@@ -30,7 +30,7 @@ describe('gossip', () => {
   })
 
   it('should send gossip to non-mesh peers in topic', async function () {
-    this.timeout(0)
+    this.timeout(6000)
     const nodeA = nodes[0]
     const topic = 'Z'
     // add subscriptions to each node
@@ -65,7 +65,7 @@ describe('gossip', () => {
   })
 
   it('should send piggyback gossip into other sent messages', async function () {
-    this.timeout(0)
+    this.timeout(6000)
     const nodeA = nodes[0]
     const topic = 'Z'
     // add subscriptions to each node

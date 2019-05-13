@@ -43,7 +43,7 @@ describe('mesh overlay', () => {
     expect(node0.gs.mesh.get(topic).size).to.equal(N)
   })
   it('should remove mesh peers once above threshold', async function () {
-    this.timeout(0)
+    this.timeout(6000)
     // test against node0
     const node0 = nodes[0]
     const topic = 'Z'
