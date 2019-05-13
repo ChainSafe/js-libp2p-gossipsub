@@ -10,6 +10,7 @@ const lp = require('pull-length-prefixed')
 const nextTick = require('async/nextTick')
 const { utils } = require('libp2p-pubsub')
 const asyncMap = require('async/map')
+const errcode = require('err-code')
 
 const assert = require('assert')
 
@@ -146,7 +147,7 @@ class BasicPubSub extends Pubsub {
   }
 
   _handleRpcControl (peer, rpc) {
-    // noop - add implementation to subclass
+    throw errcode('_handleRpcControl must be implemented by the subclass', 'ERR_NOT_IMPLEMENTED')
   }
 
   /**
@@ -236,7 +237,7 @@ class BasicPubSub extends Pubsub {
   }
 
   join (topics) {
-    // noop - add implementation to subclass
+    throw errcode('join must be implemented by the subclass', 'ERR_NOT_IMPLEMENTED')
   }
 
   /**
@@ -267,7 +268,7 @@ class BasicPubSub extends Pubsub {
   }
 
   leave (topics) {
-    // noop - add implementation to subclass
+    throw errcode('leave must be implemented by the subclass', 'ERR_NOT_IMPLEMENTED')
   }
 
   /**
@@ -305,7 +306,7 @@ class BasicPubSub extends Pubsub {
   }
 
   _publish (rpcs) {
-    // noop - add implementation to subclass
+    throw errcode('_publish must be implemented by the subclass', 'ERR_NOT_IMPLEMENTED')
   }
 
   /**
