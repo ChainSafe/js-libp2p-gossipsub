@@ -18,7 +18,7 @@ class Heartbeat {
     if (this._heartbeatTimer) {
       const errMsg = 'Heartbeat timer is already running'
       this.gossipsub.log(errMsg)
-      throw errcode(new Error(errMsg), 'ERR_HEARTBEAT_ALREADY_RUNNING')
+      return callback(errcode(new Error(errMsg), 'ERR_HEARTBEAT_ALREADY_RUNNING'))
     }
 
     const heartbeatTimer = {
