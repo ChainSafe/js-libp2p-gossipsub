@@ -1,7 +1,7 @@
 {
   "name": "libp2p-gossipsub",
-  "version": "0.0.0",
-  "description": "An experimental Javascript implementation of gossip sub",
+  "version": "0.0.1",
+  "description": "A javascript implementation of gossipsub",
   "main": "src/index.js",
   "files": [
     "src",
@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ChainSafeSystems/gossipsub-js.git"
+    "url": "git+https://github.com/ChainSafe/gossipsub-js.git"
   },
   "keywords": [
     "gossipsub"
@@ -25,9 +25,9 @@
   "author": "Mikerah",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ChainSafeSystems/gossipsub-js/issues"
+    "url": "https://github.com/ChainSafe/gossipsub-js/issues"
   },
-  "homepage": "https://github.com/ChainSafeSystems/gossipsub-js#readme",
+  "homepage": "https://github.com/ChainSafe/gossipsub-js#readme",
   "pre-push": [
     "lint"
   ],
