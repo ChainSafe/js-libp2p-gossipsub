@@ -6,7 +6,7 @@ js-libp2p-gossipsub
 
 ## Lead Maintainer
 
-[Vasco Santos](https://github.com/vasco-santos)
+[Cayman Nava](https://github.com/wemeetagain)
 
 ## Table of Contents
 
@@ -53,4 +53,4 @@ This module is actively under development. Please check out the issues and submi
 
 ## License
 
-MIT © Protocol Labs
+MIT © ChainSafe Systems
