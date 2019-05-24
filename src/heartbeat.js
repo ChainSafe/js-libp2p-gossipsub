@@ -123,7 +123,7 @@ class Heartbeat {
 
     // expire fanout for topics we haven't published to in a while
     const now = this.gossipsub._now()
-    this.gossipsub.lastpub.forEach((topic, lastpb) => {
+    this.gossipsub.lastpub.forEach((lastpb, topic) => {
       if ((lastpb + constants.GossipSubFanoutTTL) < now) {
         this.gossipsub.fanout.delete(topic)
         this.gossipsub.lastpub.delete(topic)
@@ -131,7 +131,7 @@ class Heartbeat {
     })
 
     // maintain our fanout for topics we are publishing but we have not joined
-    this.gossipsub.fanout.forEach((topic, peers) => {
+    this.gossipsub.fanout.forEach((peers, topic) => {
       // checks whether our peers are still in the topic
       peers.forEach((peer) => {
         if (this.gossipsub.topics.has(peer)) {

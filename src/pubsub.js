@@ -300,6 +300,8 @@ class BasicPubSub extends Pubsub {
     asyncMap(messages, buildMessage, (err, msgObjects) => {
       if (err) callback(err)
       this._publish(utils.normalizeOutRpcMessages(msgObjects))
+
+      callback()
     })
   }
 
