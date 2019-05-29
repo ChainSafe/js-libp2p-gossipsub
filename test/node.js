@@ -1,8 +1,8 @@
 'use strict'
 
-require('./messageCache')
+require('./messageCache.spec')
 require('./2-nodes')
 require('./multiple-nodes')
-require('./heartbeat')
+require('./heartbeat.spec')
 require('./mesh')
 require('./gossip')
