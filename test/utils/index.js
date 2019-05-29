@@ -4,10 +4,11 @@ const PeerId = require('peer-id')
 const PeerInfo = require('peer-info')
 const { expect } = require('chai')
 const promisify = require('promisify-es6')
+const isNode = require('detect-node')
 
-const Node = require('./nodejs-bundle')
+const Node = isNode ? require('./nodejs-bundle') : require('./browser-bundle')
 
-const GossipSub = require('../src')
+const GossipSub = require('../../src')
 
 exports.first = (map) => map.values().next().value
 
