@@ -4,9 +4,7 @@ const PeerId = require('peer-id')
 const PeerInfo = require('peer-info')
 const { expect } = require('chai')
 const promisify = require('promisify-es6')
-const isNode = require('detect-node')
-
-const Node = isNode ? require('./nodejs-bundle') : require('./browser-bundle')
+const Node = require('./nodejs-bundle')
 
 const GossipSub = require('../../src')
 
@@ -16,10 +14,10 @@ exports.expectSet = (set, subs) => {
   expect(Array.from(set.values())).to.eql(subs)
 }
 
-exports.createNode = async (maddr) => {
+exports.createNode = async () => {
   const id = await promisify(PeerId.create)({ bits: 1024 })
   const peerInfo = await promisify(PeerInfo.create)(id)
-  peerInfo.multiaddrs.add(maddr)
+
   const node = new Node({ peerInfo })
   node.gs = new GossipSub(node)
   return node

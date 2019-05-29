@@ -18,7 +18,7 @@ describe('gossip', () => {
 
   beforeEach(async () => {
     for (let i = 0; i < nodes.length; i++) {
-      nodes[i] = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodes[i] = await createNode()
       await startNode(nodes[i])
       await startNode(nodes[i].gs)
     }
@@ -30,7 +30,7 @@ describe('gossip', () => {
   })
 
   it('should send gossip to non-mesh peers in topic', async function () {
-    this.timeout(10000)
+    this.timeout(20000)
     const nodeA = nodes[0]
     const topic = 'Z'
     // add subscriptions to each node
@@ -65,7 +65,7 @@ describe('gossip', () => {
   })
 
   it('should send piggyback gossip into other sent messages', async function () {
-    this.timeout(10000)
+    this.timeout(20000)
     const nodeA = nodes[0]
     const topic = 'Z'
     // add subscriptions to each node

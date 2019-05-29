@@ -7,6 +7,8 @@ chai.use(require('dirty-chai'))
 const expect = chai.expect
 const promisify = require('promisify-es6')
 
+const isNode = require('detect-node')
+
 const {
   createNode,
   expectSet,
@@ -27,10 +29,11 @@ describe('multiple nodes (more than 2)', () => {
         let c
         const topic = 'Z'
 
-        beforeEach(async () => {
-          a = await createNode('/ip4/127.0.0.1/tcp/0')
-          b = await createNode('/ip4/127.0.0.1/tcp/0')
-          c = await createNode('/ip4/127.0.0.1/tcp/0')
+        beforeEach(async function () {
+          this.timeout(10 * 1000)
+          a = await createNode()
+          b = await createNode()
+          c = await createNode()
           await Promise.all([
             startNode(a),
             startNode(b),
@@ -41,12 +44,13 @@ describe('multiple nodes (more than 2)', () => {
             startNode(b.gs),
             startNode(c.gs)
           ])
+
           await dialNode(a, b.peerInfo)
           await dialNode(b, c.peerInfo)
         })
 
         afterEach(async function () {
-          this.timeout(4000)
+          this.timeout(10 * 1000)
           await Promise.all([
             stopNode(a.gs),
             stopNode(b.gs),
@@ -93,100 +97,104 @@ describe('multiple nodes (more than 2)', () => {
         })
       })
 
-      describe('publish', () => {
-        let a
-        let b
-        let c
-        const topic = 'Z'
+      if (isNode) {
+        describe('publish', () => {
+          let a
+          let b
+          let c
+          const topic = 'Z'
 
-        beforeEach(async () => {
-          a = await createNode('/ip4/127.0.0.1/tcp/0')
-          b = await createNode('/ip4/127.0.0.1/tcp/0')
-          c = await createNode('/ip4/127.0.0.1/tcp/0')
-          await Promise.all([
-            startNode(a),
-            startNode(b),
-            startNode(c)
-          ])
-          await Promise.all([
-            startNode(a.gs),
-            startNode(b.gs),
-            startNode(c.gs)
-          ])
-          await dialNode(a, b.peerInfo)
-          await dialNode(b, c.peerInfo)
+          beforeEach(async function () {
+            this.timeout(10 * 1000)
 
-          a.gs.subscribe(topic)
-          b.gs.subscribe(topic)
-          c.gs.subscribe(topic)
+            a = await createNode()
+            b = await createNode()
+            c = await createNode()
+            await Promise.all([
+              startNode(a),
+              startNode(b),
+              startNode(c)
+            ])
+            await Promise.all([
+              startNode(a.gs),
+              startNode(b.gs),
+              startNode(c.gs)
+            ])
+            await dialNode(a, b.peerInfo)
+            await dialNode(b, c.peerInfo)
 
-          await Promise.all([
-            promisify(a.gs.once.bind(a.gs))('gossipsub:heartbeat'),
-            promisify(b.gs.once.bind(b.gs))('gossipsub:heartbeat'),
-            promisify(c.gs.once.bind(c.gs))('gossipsub:heartbeat')
-          ])
-        })
+            a.gs.subscribe(topic)
+            b.gs.subscribe(topic)
+            c.gs.subscribe(topic)
 
-        afterEach(async function () {
-          this.timeout(4000)
-          await Promise.all([
-            stopNode(a.gs),
-            stopNode(b.gs),
-            stopNode(c.gs)
-          ])
-          await Promise.all([
-            stopNode(a),
-            stopNode(b),
-            stopNode(c)
-          ])
-        })
-
-        it('publish on node a', async () => {
-          let msgB = new Promise((resolve) => b.gs.once('Z', resolve))
-          let msgC = new Promise((resolve) => c.gs.once('Z', resolve))
-
-          a.gs.publish('Z', Buffer.from('hey'))
-          msgB = await msgB
-          msgC = await msgC
-
-          expect(msgB.data.toString()).to.equal('hey')
-          expect(msgC.data.toString()).to.equal('hey')
-        })
-
-        it('publish array on node a', async () => {
-          let msgB = new Promise((resolve) => {
-            const output = []
-            b.gs.on('Z', (msg) => {
-              output.push(msg)
-              if (output.length === 2) {
-                b.gs.removeAllListeners('Z')
-                resolve(output)
-              }
-            })
-          })
-          let msgC = new Promise((resolve) => {
-            const output = []
-            c.gs.on('Z', (msg) => {
-              output.push(msg)
-              if (output.length === 2) {
-                c.gs.removeAllListeners('Z')
-                resolve(output)
-              }
-            })
+            await Promise.all([
+              promisify(a.gs.once.bind(a.gs))('gossipsub:heartbeat'),
+              promisify(b.gs.once.bind(b.gs))('gossipsub:heartbeat'),
+              promisify(c.gs.once.bind(c.gs))('gossipsub:heartbeat')
+            ])
           })
 
-          a.gs.publish('Z', [Buffer.from('hey'), Buffer.from('hey')])
-          msgB = await msgB
-          msgC = await msgC
+          afterEach(async function () {
+            this.timeout(4000)
+            await Promise.all([
+              stopNode(a.gs),
+              stopNode(b.gs),
+              stopNode(c.gs)
+            ])
+            await Promise.all([
+              stopNode(a),
+              stopNode(b),
+              stopNode(c)
+            ])
+          })
 
-          expect(msgB.length).to.equal(2)
-          expect(msgB[0].data.toString()).to.equal('hey')
-          expect(msgB[1].data.toString()).to.equal('hey')
-          expect(msgC.length).to.equal(2)
-          expect(msgC[0].data.toString()).to.equal('hey')
-          expect(msgC[1].data.toString()).to.equal('hey')
+          it('publish on node a', async () => {
+            let msgB = new Promise((resolve) => b.gs.once('Z', resolve))
+            let msgC = new Promise((resolve) => c.gs.once('Z', resolve))
+
+            a.gs.publish('Z', Buffer.from('hey'))
+            msgB = await msgB
+            msgC = await msgC
+
+            expect(msgB.data.toString()).to.equal('hey')
+            expect(msgC.data.toString()).to.equal('hey')
+          })
+
+          it('publish array on node a', async () => {
+            let msgB = new Promise((resolve) => {
+              const output = []
+              b.gs.on('Z', (msg) => {
+                output.push(msg)
+                if (output.length === 2) {
+                  b.gs.removeAllListeners('Z')
+                  resolve(output)
+                }
+              })
+            })
+            let msgC = new Promise((resolve) => {
+              const output = []
+              c.gs.on('Z', (msg) => {
+                output.push(msg)
+                if (output.length === 2) {
+                  c.gs.removeAllListeners('Z')
+                  resolve(output)
+                }
+              })
+            })
+
+            a.gs.publish('Z', [Buffer.from('hey'), Buffer.from('hey')])
+            msgB = await msgB
+            msgC = await msgC
+
+            expect(msgB.length).to.equal(2)
+            expect(msgB[0].data.toString()).to.equal('hey')
+            expect(msgB[1].data.toString()).to.equal('hey')
+            expect(msgC.length).to.equal(2)
+            expect(msgC[0].data.toString()).to.equal('hey')
+            expect(msgC[1].data.toString()).to.equal('hey')
+          })
         })
-      })
+      }
     })
 
     describe('1 level tree', () => {
@@ -202,9 +210,9 @@ describe('multiple nodes (more than 2)', () => {
       const topic = 'Z'
 
       beforeEach(async () => {
-        a = await createNode('/ip4/127.0.0.1/tcp/0')
-        b = await createNode('/ip4/127.0.0.1/tcp/0')
-        c = await createNode('/ip4/127.0.0.1/tcp/0')
+        a = await createNode()
+        b = await createNode()
+        c = await createNode()
         await Promise.all([
           startNode(a),
           startNode(b),
@@ -273,11 +281,11 @@ describe('multiple nodes (more than 2)', () => {
 
       beforeEach(async function () {
         this.timeout(5000)
-        a = await createNode('/ip4/127.0.0.1/tcp/0')
-        b = await createNode('/ip4/127.0.0.1/tcp/0')
-        c = await createNode('/ip4/127.0.0.1/tcp/0')
-        d = await createNode('/ip4/127.0.0.1/tcp/0')
-        e = await createNode('/ip4/127.0.0.1/tcp/0')
+        a = await createNode()
+        b = await createNode()
+        c = await createNode()
+        d = await createNode()
+        e = await createNode()
         await Promise.all([
           startNode(a),
           startNode(b),

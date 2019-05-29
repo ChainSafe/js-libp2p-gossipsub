@@ -24,7 +24,7 @@ describe('1 node', () => {
     let nodeA
 
     beforeEach(async () => {
-      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeA = await createNode()
       await startNode(nodeA)
     })
 
@@ -59,8 +59,8 @@ describe('2 nodes', () => {
     let nodeB
 
     beforeEach(async () => {
-      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
-      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeA = await createNode()
+      nodeB = await createNode()
       await startNode(nodeA)
       await startNode(nodeB)
 
@@ -96,8 +96,8 @@ describe('2 nodes', () => {
 
     beforeEach(async function () {
       this.timeout(4000)
-      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
-      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeA = await createNode()
+      nodeB = await createNode()
       await startNode(nodeA)
       await startNode(nodeB)
 
@@ -160,8 +160,8 @@ describe('2 nodes', () => {
 
     beforeEach(async function () {
       this.timeout(4000)
-      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
-      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeA = await createNode()
+      nodeB = await createNode()
       await startNode(nodeA)
       await startNode(nodeB)
 
@@ -279,8 +279,8 @@ describe('2 nodes', () => {
 
     beforeEach(async function () {
       this.timeout(4000)
-      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
-      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeA = await createNode()
+      nodeB = await createNode()
       await startNode(nodeA)
       await startNode(nodeB)
 
@@ -359,8 +359,8 @@ describe('2 nodes', () => {
     let nodeB
 
     before(async () => {
-      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
-      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeA = await createNode()
+      nodeB = await createNode()
       await startNode(nodeA)
       await startNode(nodeB)
 
@@ -416,8 +416,8 @@ describe('2 nodes', () => {
     let nodeB
 
     before(async () => {
-      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
-      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeA = await createNode()
+      nodeB = await createNode()
       await startNode(nodeA)
       await startNode(nodeB)
 
@@ -455,8 +455,8 @@ describe('2 nodes', () => {
 
     before(async () => {
       sandbox = chai.spy.sandbox()
-      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
-      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeA = await createNode()
+      nodeB = await createNode()
       await startNode(nodeA)
       await startNode(nodeB)
 
@@ -504,8 +504,8 @@ describe('2 nodes', () => {
     before(async () => {
       sandbox = chai.spy.sandbox()
 
-      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
-      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeA = await createNode()
+      nodeB = await createNode()
       await startNode(nodeA)
       await startNode(nodeB)
 
@@ -568,8 +568,8 @@ describe('2 nodes', () => {
     before(async () => {
       sandbox = chai.spy.sandbox()
 
-      nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
-      nodeB = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodeA = await createNode()
+      nodeB = await createNode()
       await startNode(nodeA)
       await startNode(nodeB)
 

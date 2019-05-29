@@ -10,10 +10,15 @@
   "scripts": {
     "lint": "aegir lint",
     "release": "aegir release",
+    "release-minor": "aegir release --type minor",
+    "release-major": "aegir release --type major",
     "build": "aegir build",
     "test": "aegir test",
     "test:node": "aegir test --target node",
     "test:browser": "aegir test --target browser"
+  },
+  "browser": {
+    "test/utils/nodejs-bundle": "./test/utils/browser-bundle.js"
   },
   "repository": {
     "type": "git",
@@ -33,6 +38,7 @@
   ],
   "dependencies": {
     "async": "^2.6.2",
+    "detect-node": "^2.0.4",
     "err-code": "^1.1.2",
     "libp2p": "~0.25.0-rc.5",
     "libp2p-crypto": "~0.16.1",
@@ -52,14 +58,15 @@
     "benchmark": "^2.1.4",
     "chai": "^4.2.0",
     "chai-spies": "^1.0.0",
-    "detect-node": "^2.0.4",
     "dirty-chai": "^2.0.1",
     "libp2p-secio": "~0.11.1",
     "libp2p-spdy": "~0.13.1",
     "libp2p-tcp": "~0.13.0",
-    "libp2p-websockets": "~0.12.2",
+    "libp2p-websocket-star": "~0.10.2",
+    "libp2p-websocket-star-rendezvous": "~0.3.0",
     "lodash": "^4.17.11",
     "mocha": "^5.2.0",
+    "multiaddr": "^6.0.6",
     "promisify-es6": "^1.0.3",
     "sinon": "^7.3.2"
   },

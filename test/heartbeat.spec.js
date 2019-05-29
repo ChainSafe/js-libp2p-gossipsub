@@ -13,7 +13,7 @@ const {
 describe('heartbeat', () => {
   let nodeA
   before(async () => {
-    nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
+    nodeA = await createNode()
     await startNode(nodeA)
     await startNode(nodeA.gs)
   })

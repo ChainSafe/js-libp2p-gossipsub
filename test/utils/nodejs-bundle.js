@@ -13,6 +13,8 @@ class Node extends libp2p {
       connEncryption: [secio]
     }
 
+    peerInfo.multiaddrs.add('/ip4/127.0.0.1/tcp/0')
+
     super({
       modules,
       peerInfo,

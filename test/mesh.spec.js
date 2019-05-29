@@ -2,6 +2,7 @@
 /* eslint-env mocha */
 
 const { expect } = require('chai')
+const isNode = require('detect-node')
 
 const { GossipSubDhi } = require('../src/constants')
 const {
@@ -16,7 +17,7 @@ describe('mesh overlay', () => {
 
   beforeEach(async () => {
     for (let i = 0; i < nodes.length; i++) {
-      nodes[i] = await createNode('/ip4/127.0.0.1/tcp/0')
+      nodes[i] = await createNode()
       await startNode(nodes[i])
       await startNode(nodes[i].gs)
     }
@@ -42,22 +43,25 @@ describe('mesh overlay', () => {
     await new Promise((resolve) => node0.gs.once('gossipsub:heartbeat', resolve))
     expect(node0.gs.mesh.get(topic).size).to.equal(N)
   })
-  it('should remove mesh peers once above threshold', async function () {
-    this.timeout(10000)
-    // test against node0
-    const node0 = nodes[0]
-    const topic = 'Z'
-    // add subscriptions to each node
-    nodes.forEach((n) => n.gs.subscribe(topic))
-    // connect all nodes to node0
-    for (let i = 0; i < nodes.length - 1; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        await dialNode(nodes[i], nodes[j].peerInfo)
+
+  if (isNode) {
+    it('should remove mesh peers once above threshold', async function () {
+      this.timeout(10000)
+      // test against node0
+      const node0 = nodes[0]
+      const topic = 'Z'
+      // add subscriptions to each node
+      nodes.forEach((n) => n.gs.subscribe(topic))
+      // connect all nodes to node0
+      for (let i = 0; i < nodes.length - 1; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          await dialNode(nodes[i], nodes[j].peerInfo)
+        }
       }
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    // await mesh rebalancing
-    await new Promise((resolve) => node0.gs.once('gossipsub:heartbeat', resolve))
-    expect(node0.gs.mesh.get(topic).size).to.be.lte(GossipSubDhi)
-  })
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      // await mesh rebalancing
+      await new Promise((resolve) => node0.gs.once('gossipsub:heartbeat', resolve))
+      expect(node0.gs.mesh.get(topic).size).to.be.lte(GossipSubDhi)
+    })
+  }
 })
