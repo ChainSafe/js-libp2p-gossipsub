@@ -9,7 +9,7 @@ const suite = new Benchmark.Suite('gossipsub')
 
 // Benchmark how many messages we can send from one peer to another
 
-map([0,1], (i, cb) => {
+map([0, 1], (i, cb) => {
   utils.createNode('/ip4/127.0.0.1/tcp/0', (err, node) => {
     if (err) {
       return cb(err)
@@ -56,11 +56,11 @@ map([0,1], (i, cb) => {
       .on('cycle', (event) => {
         console.log(String(event.target)) //eslint-disable-line
       })
-    .on('complete', () => {
+      .on('complete', () => {
         process.exit()
-    })
-    .run({
+      })
+      .run({
         async: true
-    })
+      })
   })
 })
