@@ -1,8 +1,7 @@
 'use strict'
 const Benchmark = require('benchmark')
 const GossipSub = require('../src')
-const utils  = require('../test/utils')
-const promisify = require('promisify-es6')
+const utils = require('../test/utils')
 const map = require('async/map')
 const parallel = require('async/parallel')
 const crypto = require('libp2p-crypto')
@@ -55,13 +54,13 @@ map([0,1], (i, cb) => {
 
     suite
       .on('cycle', (event) => {
-        console.log(String(event.target))
+        console.log(String(event.target)) //eslint-disable-line
       })
     .on('complete', () => {
-      process.exit()
+        process.exit()
     })
     .run({
-      async: true
+        async: true
     })
   })
 })
