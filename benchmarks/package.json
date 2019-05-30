@@ -1,0 +1,14 @@
+{
+  "name": "gossipsub-benchmarks",
+  "version": "0.0.1",
+  "description": "Benchmark for Libp2p's Gossipsub specification in Js",
+  "main": "benchmark.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "fastbench": "^1.0.1"
+  }
+}
