@@ -9,6 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "fastbench": "^1.0.1"
+    "benchmark": "^2.1.4"
   }
 }
