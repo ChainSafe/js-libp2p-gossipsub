@@ -22,8 +22,8 @@
   "keywords": [
     "gossipsub"
   ],
-  "author": "Mikerah",
-  "license": "MIT",
+  "author": "Cayman Nava",
+  "license": "Apache2.0",
   "bugs": {
     "url": "https://github.com/ChainSafe/gossipsub-js/issues"
   },
