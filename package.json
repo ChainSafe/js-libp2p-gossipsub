@@ -34,8 +34,8 @@
   "dependencies": {
     "async": "^2.6.2",
     "err-code": "^1.1.2",
-    "libp2p-floodsub": "~0.15.8",
-    "libp2p-pubsub": "~0.1.0",
+    "libp2p-floodsub": "~0.17.0",
+    "libp2p-pubsub": "~0.2.0",
     "peer-id": "~0.12.2",
     "peer-info": "~0.15.1",
     "protons": "^1.0.1",

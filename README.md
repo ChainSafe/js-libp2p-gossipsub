@@ -47,6 +47,17 @@ gsub.start((err) => {
 
 ## API
 
+### Create a gossipsub implementation
+
+```js
+const options = {…}
+const gossipsub = new Gossipsub(libp2pNode, options)
+```
+
+Options is an optional object with the following key-value pairs:
+
+* **`fallbackToFloodsub`**: boolean identifying wether the node should fallback to the floodsub protocol, if another connecting peer does not support gossipsub.
+
 ## Contribute
 
 This module is actively under development. Please check out the issues and submit PRs!
