@@ -64,7 +64,7 @@ class BasicPubSub extends Pubsub {
   /**
    * Dial a received peer.
    * @override
-   * @param {PeerInfo} peerInfo peer info
+   * @param {PeerInfo} peerInfo The peer being dialed
    * @param {function} callback
    *
    * @returns {void}

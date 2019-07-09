@@ -12,7 +12,7 @@ const Heartbeat = require('./heartbeat')
 
 class GossipSub extends BasicPubsub {
   /**
-   * @param {Object} libp2p libp2p implementation
+   * @param {Object} libp2p an instance of Libp2p
    * @param {Object} options
    * @param {bool} options.fallbackToFloodsub if dial should fallback to floodsub, defaults to true
    * @constructor
