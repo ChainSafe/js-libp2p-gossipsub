@@ -5,6 +5,7 @@ const Pubsub = require('libp2p-pubsub')
 const pull = require('pull-stream')
 const lp = require('pull-length-prefixed')
 const nextTick = require('async/nextTick')
+const { constants: multistreamConstants } = require('multistream-select')
 const { utils } = require('libp2p-pubsub')
 const asyncMap = require('async/map')
 const errcode = require('err-code')
@@ -70,6 +71,16 @@ class BasicPubSub extends Pubsub {
    * @returns {void}
    */
   _dialPeer (peerInfo, callback) {
+    const onDial = (idB58Str, pubsubStopped, conn) => {
+      // pubsub has been stopped, so we should just bail out
+      if (pubsubStopped) {
+        this.log('pubsub was stopped, not processing dial to %s', idB58Str)
+        return callback()
+      }
+
+      this._onDial(peerInfo, conn, callback)
+    }
+
     callback = callback || function noop () { }
     const idB58Str = peerInfo.id.toB58String()
 
@@ -84,39 +95,58 @@ class BasicPubSub extends Pubsub {
       this.log('already dialing %s, ignoring dial attempt', idB58Str)
       return nextTick(() => callback())
     }
-    this._dials.add(idB58Str)
 
-    this.log('dialing %s', idB58Str)
+    // Verify if is known that the peer does not support Gossipsub
+    let notSupportingGossipsub = peerInfo.protocols.size && !peerInfo.protocols.has(this.multicodec)
 
     // Define multicodec to use
+    // Should fallback to floodsub if fallback is enabled, protocols were negotiated, and no Gossipsub available
     let multicodec = this.multicodec
 
-    // Should fallback to floodsub if no Gossipsub and fallback enabled
-    if (this._options.fallbackToFloodsub &&
-      !peerInfo.protocols.has(this.multicodec)) {
+    if (this._options.fallbackToFloodsub && notSupportingGossipsub) {
       multicodec = floodsubMulticodec
     }
+
+    this._dials.add(idB58Str)
+
+    this.log('dialing %s %s', multicodec, idB58Str)
 
     this.libp2p.dialProtocol(peerInfo, multicodec, (err, conn) => {
       this.log('dial to %s complete', idB58Str)
 
-      // If the dial is not in the set, it means that pubsub has been
-      // stopped
+      // If the dial is not in the set, it means that pubsub has been stopped
       const pubsubStopped = !this._dials.has(idB58Str)
       this._dials.delete(idB58Str)
 
       if (err) {
-        this.log.err(err)
-        return callback()
-      }
+        // If previously dialed gossipsub and not supported, try floodsub if enabled fallback
+        if (this._options.fallbackToFloodsub &&
+          multicodec === this.multicodec &&
+          err.code === multistreamConstants.errors.MULTICODEC_NOT_SUPPORTED) {
+          this._dials.add(idB58Str)
+          this.log('dialing %s %s', floodsubMulticodec, idB58Str)
 
-      // pubsub has been stopped, so we should just bail out
-      if (pubsubStopped) {
-        this.log('pubsub was stopped, not processing dial to %s', idB58Str)
-        return callback()
-      }
+          this.libp2p.dialProtocol(peerInfo, floodsubMulticodec, (err, conn) => {
+            this.log('dial to %s complete', idB58Str)
 
-      this._onDial(peerInfo, conn, callback)
+            // If the dial is not in the set, it means that pubsub has been stopped
+            const pubsubStopped = !this._dials.has(idB58Str)
+            this._dials.delete(idB58Str)
+
+            if (err) {
+              this.log.err(err)
+              return callback()
+            }
+
+            onDial(idB58Str, pubsubStopped, conn)
+          })
+        } else {
+          this.log.err(err)
+          return callback()
+        }
+      } else {
+        onDial(idB58Str, pubsubStopped, conn)
+      }
     })
   }
 
