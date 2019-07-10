@@ -44,19 +44,12 @@ class BasicPubSub extends Pubsub {
    * @override
    * @param {PeerInfo} peerInfo The peer dialed
    * @param {Connection} conn  The connection with the peer
-   * @param {bool} pubsubStopped Has pubsub already stopped
    * @param {Function} callback
    *
    * @returns {void}
    */
-  _onDial (peerInfo, conn, pubsubStopped, callback) {
+  _onDial (peerInfo, conn, callback) {
     const idB58Str = peerInfo.id.toB58String()
-
-    // pubsub has been stopped, so we should just bail out
-    if (pubsubStopped) {
-      this.log('pubsub was stopped, not processing dial to %s', idB58Str)
-      return callback()
-    }
 
     super._onDial(peerInfo, conn, (err) => {
       if (err) return callback(err)
@@ -106,14 +99,10 @@ class BasicPubSub extends Pubsub {
     }
 
     this._dials.add(idB58Str)
-
     this.log('dialing %s %s', multicodec, idB58Str)
 
     this.libp2p.dialProtocol(peerInfo, multicodec, (err, conn) => {
       this.log('dial to %s complete', idB58Str)
-
-      // If the dial is not in the set, it means that pubsub has been stopped
-      const pubsubStopped = !this._dials.has(idB58Str)
       this._dials.delete(idB58Str)
 
       if (err) {
@@ -126,23 +115,20 @@ class BasicPubSub extends Pubsub {
 
           this.libp2p.dialProtocol(peerInfo, floodsubMulticodec, (err, conn) => {
             this.log('dial to %s complete', idB58Str)
-
-            // If the dial is not in the set, it means that pubsub has been stopped
-            const pubsubStopped = !this._dials.has(idB58Str)
             this._dials.delete(idB58Str)
 
             if (err) {
               this.log.err(err)
               return callback()
             }
-            this._onDial(peerInfo, conn, pubsubStopped, callback)
+            this._onDial(peerInfo, conn, callback)
           })
         } else {
           this.log.err(err)
           return callback()
         }
       } else {
-        this._onDial(peerInfo, conn, pubsubStopped, callback)
+        this._onDial(peerInfo, conn, callback)
       }
     })
   }
