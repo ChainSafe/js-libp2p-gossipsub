@@ -24,7 +24,7 @@ class BasicPubSub extends Pubsub {
    * @constructor
    */
   constructor (debugName, multicodec, libp2p, options) {
-     super(debugName, multicodec, libp2p, options)
+    super(debugName, multicodec, libp2p, options)
     /**
      * A set of subscriptions
      */
@@ -42,17 +42,25 @@ class BasicPubSub extends Pubsub {
   /**
    * When a peer has dialed into another peer, it sends its subscriptions to it.
    * @override
-   * @param {PeerInfo} peerInfo
-   * @param {Connection} conn
+   * @param {PeerInfo} peerInfo The peer dialed
+   * @param {Connection} conn  The connection with the peer
+   * @param {bool} pubsubStopped Has pubsub already stopped
    * @param {Function} callback
    *
    * @returns {void}
-   *
    */
-  _onDial (peerInfo, conn, callback) {
+  _onDial (peerInfo, conn, pubsubStopped, callback) {
+    const idB58Str = peerInfo.id.toB58String()
+
+    // pubsub has been stopped, so we should just bail out
+    if (pubsubStopped) {
+      this.log('pubsub was stopped, not processing dial to %s', idB58Str)
+      return callback()
+    }
+
     super._onDial(peerInfo, conn, (err) => {
       if (err) return callback(err)
-      const idB58Str = peerInfo.id.toB58String()
+
       const peer = this.peers.get(idB58Str)
       if (peer && peer.isWritable) {
         // Immediately send my own subscription to the newly established conn
@@ -71,16 +79,6 @@ class BasicPubSub extends Pubsub {
    * @returns {void}
    */
   _dialPeer (peerInfo, callback) {
-    const onDial = (idB58Str, pubsubStopped, conn) => {
-      // pubsub has been stopped, so we should just bail out
-      if (pubsubStopped) {
-        this.log('pubsub was stopped, not processing dial to %s', idB58Str)
-        return callback()
-      }
-
-      this._onDial(peerInfo, conn, callback)
-    }
-
     callback = callback || function noop () { }
     const idB58Str = peerInfo.id.toB58String()
 
@@ -137,15 +135,14 @@ class BasicPubSub extends Pubsub {
               this.log.err(err)
               return callback()
             }
-
-            onDial(idB58Str, pubsubStopped, conn)
+            this._onDial(peerInfo, conn, pubsubStopped, callback)
           })
         } else {
           this.log.err(err)
           return callback()
         }
       } else {
-        onDial(idB58Str, pubsubStopped, conn)
+        this._onDial(peerInfo, conn, pubsubStopped, callback)
       }
     })
   }
