@@ -24,7 +24,7 @@ class BasicPubSub extends Pubsub {
    * @constructor
    */
   constructor (debugName, multicodec, libp2p, options) {
-    super(debugName, multicodec, libp2p)
+     super(debugName, multicodec, libp2p, options)
     /**
      * A set of subscriptions
      */
@@ -97,13 +97,13 @@ class BasicPubSub extends Pubsub {
     }
 
     // Verify if is known that the peer does not support Gossipsub
-    let notSupportingGossipsub = peerInfo.protocols.size && !peerInfo.protocols.has(this.multicodec)
+    let onlySupportsFloodsub = peerInfo.protocols.has(floodsubMulticodec) && !peerInfo.protocols.has(this.multicodec)
 
     // Define multicodec to use
     // Should fallback to floodsub if fallback is enabled, protocols were negotiated, and no Gossipsub available
     let multicodec = this.multicodec
 
-    if (this._options.fallbackToFloodsub && notSupportingGossipsub) {
+    if (this._options.fallbackToFloodsub && onlySupportsFloodsub) {
       multicodec = floodsubMulticodec
     }
 
