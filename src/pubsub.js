@@ -1,9 +1,11 @@
 'use strict'
 
+const { multicodec: floodsubMulticodec } = require('libp2p-floodsub')
 const Pubsub = require('libp2p-pubsub')
 const pull = require('pull-stream')
 const lp = require('pull-length-prefixed')
 const nextTick = require('async/nextTick')
+const { constants: multistreamConstants } = require('multistream-select')
 const { utils } = require('libp2p-pubsub')
 const asyncMap = require('async/map')
 const errcode = require('err-code')
@@ -17,36 +19,117 @@ class BasicPubSub extends Pubsub {
    * @param {String} debugName
    * @param {String} multicodec
    * @param {Object} libp2p libp2p implementation
+   * @param {Object} options
+   * @param {bool} options.fallbackToFloodsub if dial should fallback to floodsub, defaults to true
    * @constructor
    */
-  constructor (debugName, multicodec, libp2p) {
-    super(debugName, multicodec, libp2p)
+  constructor (debugName, multicodec, libp2p, options) {
+    super(debugName, multicodec, libp2p, options)
     /**
      * A set of subscriptions
      */
     this.subscriptions = new Set()
+
+    /**
+     * Pubsub options
+     */
+    this._options = {
+      fallbackToFloodsub: true,
+      ...options
+    }
   }
 
   /**
    * When a peer has dialed into another peer, it sends its subscriptions to it.
    * @override
-   * @param {PeerInfo} peerInfo
-   * @param {Connection} conn
+   * @param {PeerInfo} peerInfo The peer dialed
+   * @param {Connection} conn  The connection with the peer
    * @param {Function} callback
    *
    * @returns {void}
-   *
    */
   _onDial (peerInfo, conn, callback) {
+    const idB58Str = peerInfo.id.toB58String()
+
     super._onDial(peerInfo, conn, (err) => {
       if (err) return callback(err)
-      const idB58Str = peerInfo.id.toB58String()
+
       const peer = this.peers.get(idB58Str)
       if (peer && peer.isWritable) {
         // Immediately send my own subscription to the newly established conn
         peer.sendSubscriptions(this.subscriptions)
       }
       nextTick(() => callback())
+    })
+  }
+
+  /**
+   * Dial a received peer.
+   * @override
+   * @param {PeerInfo} peerInfo The peer being dialed
+   * @param {function} callback
+   *
+   * @returns {void}
+   */
+  _dialPeer (peerInfo, callback) {
+    callback = callback || function noop () { }
+    const idB58Str = peerInfo.id.toB58String()
+
+    // If already have a PubSub conn, ignore
+    const peer = this.peers.get(idB58Str)
+    if (peer && peer.isConnected) {
+      return nextTick(() => callback())
+    }
+
+    // If already dialing this peer, ignore
+    if (this._dials.has(idB58Str)) {
+      this.log('already dialing %s, ignoring dial attempt', idB58Str)
+      return nextTick(() => callback())
+    }
+
+    // Verify if is known that the peer does not support Gossipsub
+    let onlySupportsFloodsub = peerInfo.protocols.has(floodsubMulticodec) && !peerInfo.protocols.has(this.multicodec)
+
+    // Define multicodec to use
+    // Should fallback to floodsub if fallback is enabled, protocols were negotiated, and no Gossipsub available
+    let multicodec = this.multicodec
+
+    if (this._options.fallbackToFloodsub && onlySupportsFloodsub) {
+      multicodec = floodsubMulticodec
+    }
+
+    this._dials.add(idB58Str)
+    this.log('dialing %s %s', multicodec, idB58Str)
+
+    this.libp2p.dialProtocol(peerInfo, multicodec, (err, conn) => {
+      this.log('dial to %s complete', idB58Str)
+      this._dials.delete(idB58Str)
+
+      if (err) {
+        // If previously dialed gossipsub and not supported, try floodsub if enabled fallback
+        if (this._options.fallbackToFloodsub &&
+          multicodec === this.multicodec &&
+          err.code === multistreamConstants.errors.MULTICODEC_NOT_SUPPORTED) {
+          this._dials.add(idB58Str)
+          this.log('dialing %s %s', floodsubMulticodec, idB58Str)
+
+          this.libp2p.dialProtocol(peerInfo, floodsubMulticodec, (err, conn) => {
+            this.log('dial to %s complete', idB58Str)
+            this._dials.delete(idB58Str)
+
+            if (err) {
+              this.log.err(err)
+              return callback()
+            }
+            this._onDial(peerInfo, conn, callback)
+          })
+        } else {
+          this.log.err(err)
+          return callback()
+        }
+      } else {
+        this._onDial(peerInfo, conn, callback)
+      }
     })
   }
 
@@ -185,6 +268,10 @@ class BasicPubSub extends Pubsub {
     super.start((err) => {
       if (err) {
         return callback(err)
+      }
+      // if fallback to floodsub enabled, we need to listen to its protocol
+      if (this._options.fallbackToFloodsub) {
+        this.libp2p.handle(floodsubMulticodec, this._onConnection)
       }
       callback()
     })
