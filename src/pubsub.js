@@ -271,7 +271,7 @@ class BasicPubSub extends Pubsub {
       }
       // if fallback to floodsub enabled, we need to listen to its protocol
       if (this._options.fallbackToFloodsub) {
-        this.libp2p.handle('/floodsub/1.0.0', this._onConnection)
+        this.libp2p.handle(floodsubMulticodec, this._onConnection)
       }
       callback()
     })
