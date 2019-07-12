@@ -1,5 +1,5 @@
 {
-  "name": "libp2p-gossipsub",
+  "name": "@chainsafe/gossipsub",
   "version": "0.0.3",
   "description": "A javascript implementation of gossipsub",
   "main": "src/index.js",
