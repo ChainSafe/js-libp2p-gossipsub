@@ -14,6 +14,7 @@ class GossipSub extends BasicPubsub {
   /**
    * @param {Object} libp2p an instance of Libp2p
    * @param {Object} options
+   * @param {bool} options.emitSelf if publish should emit to self, if subscribed, defaults to false
    * @param {bool} options.fallbackToFloodsub if dial should fallback to floodsub, defaults to true
    * @constructor
    */

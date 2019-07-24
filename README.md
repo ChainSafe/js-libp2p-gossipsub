@@ -56,7 +56,8 @@ const gossipsub = new Gossipsub(libp2pNode, options)
 
 Options is an optional object with the following key-value pairs:
 
-* **`fallbackToFloodsub`**: boolean identifying whether the node should fallback to the floodsub protocol, if another connecting peer does not support gossipsub.
+* **`fallbackToFloodsub`**: boolean identifying whether the node should fallback to the floodsub protocol, if another connecting peer does not support gossipsub (defaults to **true**).
+* **`emitSelf`**: boolean identifying whether the node should emit to self on publish, in the event of the topic being subscribed (defaults to **false**).
 
 ## Contribute
 
