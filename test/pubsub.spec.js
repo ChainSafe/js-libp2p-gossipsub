@@ -75,7 +75,7 @@ describe('Pubsub', () => {
         expect(gossipsub._processRpcMessage.called).to.eql(false)
         expect(dropLogs).to.have.length(1)
         resolve()
-      }, 0))
+      }, 500))
     })
 
     it('should not drop signed messages', async () => {
@@ -107,7 +107,7 @@ describe('Pubsub', () => {
         expect(gossipsub._processRpcMessage.callCount).to.eql(1)
         expect(dropLogs).to.be.empty()
         resolve()
-      }, 0))
+      }, 500))
     })
 
     it('should not drop unsigned messages if strict signing is disabled', () => {
@@ -137,7 +137,7 @@ describe('Pubsub', () => {
         expect(gossipsub._processRpcMessage.callCount).to.eql(1)
         expect(dropLogs).to.be.empty()
         resolve()
-      }, 0))
+      }, 500))
     })
   })
 })
