@@ -367,10 +367,20 @@ class BasicPubSub extends Pubsub {
       this.subscriptions.delete(topic)
     })
 
-    // Broadcast UNSUBSCRIBE to all peers
-    this.peers.forEach((peer) => {
-      peer.sendUnsubscriptions(topics)
-    })
+    // Broadcast UNSUBSCRIBE to all peers ready
+    this.peers.forEach((peer) => sendUnsubscriptionsOnceReady(peer))
+    // make sure that Gossipsub is already mounted
+    function sendUnsubscriptionsOnceReady (peer) {
+      if (peer && peer.isWritable) {
+        return peer.sendUnsubscriptions(topics)
+      }
+      const onConnection = () => {
+        peer.removeListener('connection', onConnection)
+        sendUnsubscriptionsOnceReady(peer)
+      }
+      peer.on('connection', onConnection)
+      peer.once('close', () => peer.removeListener('connection', onConnection))
+    }
 
     this.leave(unTopics)
   }
@@ -405,6 +415,7 @@ class BasicPubSub extends Pubsub {
         topicIDs: topics
       }
       this.seenCache.put(msgObj.seqno)
+
       this._buildMessage(msgObj, cb)
     }
 
