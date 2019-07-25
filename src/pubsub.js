@@ -20,6 +20,7 @@ class BasicPubSub extends Pubsub {
    * @param {String} multicodec
    * @param {Object} libp2p libp2p implementation
    * @param {Object} options
+   * @param {bool} options.emitSelf if publish should emit to self, if subscribed, defaults to false
    * @param {bool} options.fallbackToFloodsub if dial should fallback to floodsub, defaults to true
    * @constructor
    */
@@ -34,6 +35,7 @@ class BasicPubSub extends Pubsub {
      * Pubsub options
      */
     this._options = {
+      emitSelf: false,
       fallbackToFloodsub: true,
       ...options
     }
@@ -414,7 +416,11 @@ class BasicPubSub extends Pubsub {
         seqno: seqno,
         topicIDs: topics
       }
+      // put in seen cache
       this.seenCache.put(msgObj.seqno)
+
+      // Emit to self if I'm interested and emitSelf enabled
+      this._options.emitSelf && this._emitMessages(topics, [msgObj])
 
       this._buildMessage(msgObj, cb)
     }
@@ -424,6 +430,18 @@ class BasicPubSub extends Pubsub {
       this._publish(utils.normalizeOutRpcMessages(msgObjects))
 
       callback()
+    })
+  }
+
+  _emitMessages (topics, messages) {
+    topics.forEach((topic) => {
+      if (!this.subscriptions.has(topic)) {
+        return
+      }
+
+      messages.forEach((message) => {
+        this.emit(topic, message)
+      })
     })
   }
 
