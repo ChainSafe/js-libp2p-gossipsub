@@ -327,9 +327,19 @@ class BasicPubSub extends Pubsub {
     })
 
     // Broadcast SUBSCRIBE to all peers
-    this.peers.forEach((peer) => {
-      peer.sendSubscriptions(newTopics)
-    })
+    this.peers.forEach((peer) => sendSubscriptionsOnceReady(peer))
+    // make sure that Gossipsub is already mounted
+    function sendSubscriptionsOnceReady (peer) {
+      if (peer && peer.isWritable) {
+        return peer.sendSubscriptions(topics)
+      }
+      const onConnection = () => {
+        peer.removeListener('connection', onConnection)
+        sendSubscriptionsOnceReady(peer)
+      }
+      peer.on('connection', onConnection)
+      peer.once('close', () => peer.removeListener('connection', onConnection))
+    }
 
     this.join(newTopics)
   }
@@ -357,10 +367,20 @@ class BasicPubSub extends Pubsub {
       this.subscriptions.delete(topic)
     })
 
-    // Broadcast UNSUBSCRIBE to all peers
-    this.peers.forEach((peer) => {
-      peer.sendUnsubscriptions(topics)
-    })
+    // Broadcast UNSUBSCRIBE to all peers ready
+    this.peers.forEach((peer) => sendUnsubscriptionsOnceReady(peer))
+    // make sure that Gossipsub is already mounted
+    function sendUnsubscriptionsOnceReady (peer) {
+      if (peer && peer.isWritable) {
+        return peer.sendUnsubscriptions(topics)
+      }
+      const onConnection = () => {
+        peer.removeListener('connection', onConnection)
+        sendUnsubscriptionsOnceReady(peer)
+      }
+      peer.on('connection', onConnection)
+      peer.once('close', () => peer.removeListener('connection', onConnection))
+    }
 
     this.leave(unTopics)
   }
@@ -395,6 +415,7 @@ class BasicPubSub extends Pubsub {
         topicIDs: topics
       }
       this.seenCache.put(msgObj.seqno)
+
       this._buildMessage(msgObj, cb)
     }
 

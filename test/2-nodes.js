@@ -106,7 +106,6 @@ describe('2 nodes', () => {
         startNode(nodeB.gs)
       ])
       await dialNode(nodeA, nodeB.peerInfo)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
     })
 
     afterEach(async function () {
@@ -170,7 +169,6 @@ describe('2 nodes', () => {
         startNode(nodeB.gs)
       ])
       await dialNode(nodeA, nodeB.peerInfo)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
       nodeA.gs.subscribe(topic)
       nodeB.gs.subscribe(topic)
@@ -289,7 +287,6 @@ describe('2 nodes', () => {
         startNode(nodeB.gs)
       ])
       await dialNode(nodeA, nodeB.peerInfo)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
       nodeA.gs.subscribe(topic)
       nodeB.gs.subscribe(topic)
@@ -427,7 +424,6 @@ describe('2 nodes', () => {
       ])
 
       await dialNode(nodeA, nodeB.peerInfo)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
     })
 
     after(async function () {
