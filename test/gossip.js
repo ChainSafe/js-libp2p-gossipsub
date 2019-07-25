@@ -3,6 +3,7 @@
 
 const { expect } = require('chai')
 const sinon = require('sinon')
+const promisify = require('promisify-es6')
 
 const { GossipSubDhi } = require('../src/constants')
 const {
@@ -48,7 +49,7 @@ describe('gossip', () => {
     // set spy
     sinon.spy(nodeA.gs, 'log')
 
-    nodeA.gs.publish(topic, Buffer.from('hey'))
+    await promisify(nodeA.gs.publish, { context: nodeA.gs })(topic, Buffer.from('hey'))
     await new Promise((resolve) => nodeA.gs.once('gossipsub:heartbeat', resolve))
     expect(nodeA.gs.log.callCount).to.be.gt(1)
     nodeA.gs.log.getCalls()
@@ -88,8 +89,8 @@ describe('gossip', () => {
 
     // manually add control message to be sent to peerB
     nodeA.gs.control.set(peerB, { graft: [{ topicID: topic }] })
-    nodeA.gs.publish(topic, Buffer.from('hey'))
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await promisify(nodeA.gs.publish, { context: nodeA.gs })(topic, Buffer.from('hey'))
+    await new Promise((resolve) => nodeA.gs.once('gossipsub:heartbeat', resolve))
     expect(nodeB.gs.log.callCount).to.be.gt(1)
     // expect control message to be sent alongside published message
     const call = nodeB.gs.log.getCalls().find((call) => call.args[0] === 'GRAFT: Add mesh link from %s in %s')

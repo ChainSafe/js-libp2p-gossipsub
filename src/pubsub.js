@@ -199,12 +199,26 @@ class BasicPubSub extends Pubsub {
     }
 
     if (msgs.length) {
-      utils.normalizeInRpcMessages(msgs).forEach((msg) => {
+      msgs.forEach(message => {
+        const msg = utils.normalizeInRpcMessage(message)
         const seqno = utils.msgId(msg.from, msg.seqno)
-        if (!this.seenCache.has(seqno)) {
-          this._processRpcMessage(msg)
-          this.seenCache.put(seqno)
+
+        // Ignore if we've already seen the message
+        if (this.seenCache.has(seqno)) {
+          return
         }
+
+        this.seenCache.put(seqno)
+
+        // Ensure the message is valid before processing it
+        this.validate(message, (err, isValid) => {
+          if (err || !isValid) {
+            this.log('Message could not be validated, dropping it. isValid=%s', isValid, err)
+            return
+          }
+
+          this._processRpcMessage(msg)
+        })
       })
     }
     this._handleRpcControl(peer, rpc)
