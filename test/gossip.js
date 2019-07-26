@@ -15,7 +15,7 @@ const {
 } = require('./utils')
 
 describe('gossip', () => {
-  let nodes = Array.from({ length: GossipSubDhi + 2 }) // enough nodes to trigger high threshold
+  const nodes = Array.from({ length: GossipSubDhi + 2 }) // enough nodes to trigger high threshold
 
   beforeEach(async () => {
     for (let i = 0; i < nodes.length; i++) {
