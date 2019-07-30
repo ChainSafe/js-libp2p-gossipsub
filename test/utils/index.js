@@ -35,6 +35,6 @@ exports.createFloodsubNode = async (maddr) => {
   return node
 }
 
-exports.startNode = async (node) => promisify(node.start.bind(node))()
-exports.stopNode = async (node) => promisify(node.stop.bind(node))()
-exports.dialNode = async (node, peerInfo) => promisify(node.dial.bind(node))(peerInfo)
+exports.startNode = (node) => promisify(node.start.bind(node))()
+exports.stopNode = (node) => promisify(node.stop.bind(node))()
+exports.dialNode = (node, peerInfo) => promisify(node.dial.bind(node))(peerInfo)

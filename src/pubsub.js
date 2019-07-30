@@ -90,7 +90,7 @@ class BasicPubSub extends Pubsub {
     }
 
     // Verify if is known that the peer does not support Gossipsub
-    let onlySupportsFloodsub = peerInfo.protocols.has(floodsubMulticodec) && !peerInfo.protocols.has(this.multicodec)
+    const onlySupportsFloodsub = peerInfo.protocols.has(floodsubMulticodec) && !peerInfo.protocols.has(this.multicodec)
 
     // Define multicodec to use
     // Should fallback to floodsub if fallback is enabled, protocols were negotiated, and no Gossipsub available
