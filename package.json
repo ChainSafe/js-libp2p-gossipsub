@@ -1,6 +1,6 @@
 {
   "name": "libp2p-gossipsub",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A javascript implementation of gossipsub",
   "main": "src/index.js",
   "files": [
