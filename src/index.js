@@ -15,6 +15,7 @@ class GossipSub extends BasicPubsub {
    * @param {Object} libp2p an instance of Libp2p
    * @param {Object} options
    * @param {bool} options.emitSelf if publish should emit to self, if subscribed, defaults to false
+   * @param {bool} options.gossipIncoming if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
    * @param {bool} options.fallbackToFloodsub if dial should fallback to floodsub, defaults to true
    * @constructor
    */
@@ -134,6 +135,10 @@ class GossipSub extends BasicPubsub {
     super._processRpcMessage(msg)
     const topics = msg.topicIDs
 
+    // If options.gossipIncoming is false, do NOT emit incoming messages to peers
+    if (!this._options.gossipIncoming) {
+      return
+    }
     // Emit to floodsub peers
     this.peers.forEach((peer) => {
       if (peer.info.protocols.has(constants.FloodSubID) &&
