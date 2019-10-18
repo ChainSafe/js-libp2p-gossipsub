@@ -1,162 +1,126 @@
 'use strict'
 
-const { multicodec: floodsubMulticodec } = require('libp2p-floodsub')
-const Pubsub = require('libp2p-pubsub')
-const pull = require('pull-stream')
-const lp = require('pull-length-prefixed')
-const nextTick = require('async/nextTick')
-const { constants: multistreamConstants } = require('multistream-select')
-const { utils } = require('libp2p-pubsub')
-const asyncMap = require('async/map')
+const assert = require('assert')
+const debug = require('debug')
+const debugName = 'libp2p:gossipsub'
+const log = debug(debugName)
+log.error = debug(`${debugName}:error`)
 const errcode = require('err-code')
 
-const assert = require('assert')
+const TimeCache = require('time-cache')
 
+const pipe = require('it-pipe')
+const lp = require('it-length-prefixed')
+const pMap = require('p-map')
+
+const { GossipSubID } = require('../src/constants')
+const { multicodec: floodsubMulticodec } = require('libp2p-floodsub')
+const Pubsub = require('libp2p-pubsub')
+
+const { utils } = require('libp2p-pubsub')
 const { rpc } = require('./message')
 
 class BasicPubSub extends Pubsub {
   /**
-   * @param {String} debugName
-   * @param {String} multicodec
-   * @param {Object} libp2p libp2p implementation
-   * @param {Object} options
-   * @param {bool} options.emitSelf if publish should emit to self, if subscribed, defaults to false
-   * @param {bool} options.gossipIncoming if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
-   * @param {bool} options.fallbackToFloodsub if dial should fallback to floodsub, defaults to true
+   * @param {Object} props
+   * @param {String} props.debugName log namespace
+   * @param {string} props.multicodec protocol identificer to connect
+   * @param {PeerInfo} props.peerInfo peer's peerInfo
+   * @param {Object} props.registrar registrar for libp2p protocols
+   * @param {function} props.registrar.register
+   * @param {function} props.registrar.unregister
+   * @param {Object} [props.options]
+   * @param {bool} [props.options.emitSelf] if publish should emit to self, if subscribed, defaults to false
+   * @param {bool} [props.options.gossipIncoming] if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
+   * @param {bool} [props.options.fallbackToFloodsub] if dial should fallback to floodsub, defaults to true
    * @constructor
    */
-  constructor (debugName, multicodec, libp2p, options) {
-    super(debugName, multicodec, libp2p, options)
+  constructor ({ debugName, multicodec, peerInfo, registrar, options = {} }) {
+    const multicodecs = [multicodec]
+    const _options = {
+      emitSelf: false,
+      gossipIncoming: true,
+      fallbackToFloodsub: true,
+      ...options
+    }
+
+    // Also wants to get notified of peers connected using floodsub
+    if (_options.fallbackToFloodsub) {
+      multicodecs.push(floodsubMulticodec)
+    }
+
+    super({
+      debugName,
+      multicodecs,
+      peerInfo,
+      registrar,
+      ..._options
+    })
+
     /**
      * A set of subscriptions
      */
     this.subscriptions = new Set()
 
     /**
+     * Cache of seen messages
+     *
+     * @type {TimeCache}
+     */
+    this.seenCache = new TimeCache()
+
+    /**
      * Pubsub options
      */
-    this._options = {
-      emitSelf: false,
-      gossipIncoming: true,
-      fallbackToFloodsub: true,
-      ...options
-    }
+    this._options = _options
+
+    this._onRpc = this._onRpc.bind(this)
   }
 
   /**
-   * When a peer has dialed into another peer, it sends its subscriptions to it.
+   * Peer connected successfully with pubsub protocol.
    * @override
-   * @param {PeerInfo} peerInfo The peer dialed
-   * @param {Connection} conn  The connection with the peer
-   * @param {Function} callback
-   *
-   * @returns {void}
+   * @param {PeerInfo} peerInfo peer info
+   * @param {Connection} conn connection to the peer
    */
-  _onDial (peerInfo, conn, callback) {
+  _onPeerConnected (peerInfo, conn) {
+    super._onPeerConnected(peerInfo, conn)
     const idB58Str = peerInfo.id.toB58String()
-
-    super._onDial(peerInfo, conn, (err) => {
-      if (err) return callback(err)
-
-      const peer = this.peers.get(idB58Str)
-      if (peer && peer.isWritable) {
-        // Immediately send my own subscription to the newly established conn
-        peer.sendSubscriptions(this.subscriptions)
-      }
-      nextTick(() => callback())
-    })
-  }
-
-  /**
-   * Dial a received peer.
-   * @override
-   * @param {PeerInfo} peerInfo The peer being dialed
-   * @param {function} callback
-   *
-   * @returns {void}
-   */
-  _dialPeer (peerInfo, callback) {
-    callback = callback || function noop () { }
-    const idB58Str = peerInfo.id.toB58String()
-
-    // If already have a PubSub conn, ignore
     const peer = this.peers.get(idB58Str)
-    if (peer && peer.isConnected) {
-      return nextTick(() => callback())
+
+    if (peer && peer.isWritable) {
+      // Immediately send my own subscriptions to the newly established conn
+      peer.sendSubscriptions(this.subscriptions)
     }
-
-    // If already dialing this peer, ignore
-    if (this._dials.has(idB58Str)) {
-      this.log('already dialing %s, ignoring dial attempt', idB58Str)
-      return nextTick(() => callback())
-    }
-
-    // Verify if is known that the peer does not support Gossipsub
-    const onlySupportsFloodsub = peerInfo.protocols.has(floodsubMulticodec) && !peerInfo.protocols.has(this.multicodec)
-
-    // Define multicodec to use
-    // Should fallback to floodsub if fallback is enabled, protocols were negotiated, and no Gossipsub available
-    let multicodec = this.multicodec
-
-    if (this._options.fallbackToFloodsub && onlySupportsFloodsub) {
-      multicodec = floodsubMulticodec
-    }
-
-    this._dials.add(idB58Str)
-    this.log('dialing %s %s', multicodec, idB58Str)
-
-    this.libp2p.dialProtocol(peerInfo, multicodec, (err, conn) => {
-      this.log('dial to %s complete', idB58Str)
-      this._dials.delete(idB58Str)
-
-      if (err) {
-        // If previously dialed gossipsub and not supported, try floodsub if enabled fallback
-        if (this._options.fallbackToFloodsub &&
-          multicodec === this.multicodec &&
-          err.code === multistreamConstants.errors.MULTICODEC_NOT_SUPPORTED) {
-          this._dials.add(idB58Str)
-          this.log('dialing %s %s', floodsubMulticodec, idB58Str)
-
-          this.libp2p.dialProtocol(peerInfo, floodsubMulticodec, (err, conn) => {
-            this.log('dial to %s complete', idB58Str)
-            this._dials.delete(idB58Str)
-
-            if (err) {
-              this.log.err(err)
-              return callback()
-            }
-            this._onDial(peerInfo, conn, callback)
-          })
-        } else {
-          this.log.err(err)
-          return callback()
-        }
-      } else {
-        this._onDial(peerInfo, conn, callback)
-      }
-    })
   }
 
   /**
-   * Processes a peer's connection to another peer.
-   *
-   * @param {String} idB58Str
-   * @param {Connection} conn
-   * @param {Peer} peer
-   *
+   * Overriding the implementation of _processConnection should keep the connection and is
+   * responsible for processing each RPC message received by other peers.
+   * @override
+   * @param {string} idB58Str peer id string in base58
+   * @param {Connection} conn connection
+   * @param {PeerInfo} peer peer info
    * @returns {void}
    *
    */
-  _processConnection (idB58Str, conn, peer) {
-    pull(
-      conn,
-      lp.decode(),
-      pull.map((data) => rpc.RPC.decode(data)),
-      pull.drain(
-        (rpc) => this._onRpc(idB58Str, rpc),
-        (err) => this._onConnectionEnd(idB58Str, peer, err)
+  async _processMessages (idB58Str, conn, peer) {
+    const onRpcFunc = this._onRpc
+    try {
+      await pipe(
+        conn,
+        lp.decode(),
+        async function collect (source) {
+          for await (const data of source) {
+            const rpcMsg = Buffer.isBuffer(data) ? data : data.slice()
+
+            onRpcFunc(idB58Str, rpc.RPC.decode(rpcMsg))
+          }
+        }
       )
-    )
+    } catch (err) {
+      this._onPeerDisconnected(peer, err)
+    }
   }
 
   /**
@@ -176,7 +140,7 @@ class BasicPubSub extends Pubsub {
       return
     }
 
-    this.log('rpc from', idB58Str)
+    log('rpc from', idB58Str)
     const subs = rpc.subscriptions
     const msgs = rpc.msgs
 
@@ -203,7 +167,7 @@ class BasicPubSub extends Pubsub {
     }
 
     if (msgs.length) {
-      msgs.forEach(message => {
+      msgs.forEach(async message => {
         const msg = utils.normalizeInRpcMessage(message)
         const seqno = utils.msgId(msg.from, msg.seqno)
 
@@ -215,14 +179,21 @@ class BasicPubSub extends Pubsub {
         this.seenCache.put(seqno)
 
         // Ensure the message is valid before processing it
-        this.validate(message, (err, isValid) => {
-          if (err || !isValid) {
-            this.log('Message could not be validated, dropping it. isValid=%s', isValid, err)
-            return
-          }
+        let isValid
+        let error
 
-          this._processRpcMessage(msg)
-        })
+        try {
+          isValid = await this.validate(message)
+        } catch (err) {
+          error = err
+        }
+
+        if (error || !isValid) {
+          log('Message could not be validated, dropping it. isValid=%s', isValid, error)
+          return
+        }
+
+        this._processRpcMessage(msg)
       })
     }
     this._handleRpcControl(peer, rpc)
@@ -245,73 +216,45 @@ class BasicPubSub extends Pubsub {
   }
 
   _handleRpcControl (peer, rpc) {
-    throw errcode('_handleRpcControl must be implemented by the subclass', 'ERR_NOT_IMPLEMENTED')
+    throw errcode(new Error('_handleRpcControl must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
   }
 
   /**
    * Returns a buffer of a RPC message that contains a control message
-   *
    * @param {Array<rpc.RPC.Message>} msgs
    * @param {Array<rpc.RPC.ControlIHave>} ihave
    * @param {Array<rpc.RPC.ControlIWant>} iwant
    * @param {Array<rpc.RPC.ControlGraft>} graft
    * @param {Array<rpc.RPC.Prune>} prune
-   *
    * @returns {rpc.RPC}
-   *
    */
-  _rpcWithControl (msgs, ihave, iwant, graft, prune) {
+  _rpcWithControl (msgs = [], ihave = [], iwant = [], graft = [], prune = []) {
     return {
       subscriptions: [],
-      msgs: msgs || [],
+      msgs: msgs,
       control: {
-        ihave: ihave || [],
-        iwant: iwant || [],
-        graft: graft || [],
-        prune: prune || []
+        ihave: ihave,
+        iwant: iwant,
+        graft: graft,
+        prune: prune
       }
     }
   }
 
   /**
-   * Mounts the protocol onto the libp2p node and sends our
-   * our subscriptions to every peer connected
-   *
-   * @override
-   * @param {Function} callback
-   * @returns {void}
-   *
-   */
-  start (callback) {
-    super.start((err) => {
-      if (err) {
-        return callback(err)
-      }
-      // if fallback to floodsub enabled, we need to listen to its protocol
-      if (this._options.fallbackToFloodsub) {
-        this.libp2p.handle(floodsubMulticodec, this._onConnection)
-      }
-      callback()
-    })
-  }
-
-  /**
    * Unmounts the protocol and shuts down every connection
-   *
    * @override
-   * @param {Function} callback
    * @returns {void}
    */
-  stop (callback) {
-    super.stop((err) => {
-      if (err) return callback(err)
-      this.subscriptions = new Set()
-      callback()
-    })
+  async stop () {
+    await super.stop()
+
+    this.subscriptions = new Set()
   }
 
   /**
    * Subscribes to topics
+   * @override
    * @param {Array<string>|string} topics
    * @returns {void}
    */
@@ -332,6 +275,7 @@ class BasicPubSub extends Pubsub {
 
     // Broadcast SUBSCRIBE to all peers
     this.peers.forEach((peer) => sendSubscriptionsOnceReady(peer))
+
     // make sure that Gossipsub is already mounted
     function sendSubscriptionsOnceReady (peer) {
       if (peer && peer.isWritable) {
@@ -349,16 +293,18 @@ class BasicPubSub extends Pubsub {
   }
 
   join (topics) {
-    throw errcode('join must be implemented by the subclass', 'ERR_NOT_IMPLEMENTED')
+    throw errcode(new Error('join must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
   }
 
   /**
    * Leaves a topic
-   *
+   * @override
    * @param {Array<string>|string} topics
    * @returns {void}
    */
   unsubscribe (topics) {
+    assert(this.started, 'Pubsub has not started')
+
     topics = utils.ensureArray(topics)
 
     const unTopics = topics.filter((topic) => this.subscriptions.has(topic))
@@ -373,6 +319,7 @@ class BasicPubSub extends Pubsub {
 
     // Broadcast UNSUBSCRIBE to all peers ready
     this.peers.forEach((peer) => sendUnsubscriptionsOnceReady(peer))
+
     // make sure that Gossipsub is already mounted
     function sendUnsubscriptionsOnceReady (peer) {
       if (peer && peer.isWritable) {
@@ -390,25 +337,25 @@ class BasicPubSub extends Pubsub {
   }
 
   leave (topics) {
-    throw errcode('leave must be implemented by the subclass', 'ERR_NOT_IMPLEMENTED')
+    throw errcode(new Error('leave must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
   }
 
   /**
    * Publishes messages to all subscribed peers
-   *
+   * @override
    * @param {Array<string>|string} topics
    * @param {Array<any>|any} messages
-   * @param {Function|null} callback
    * @returns {void}
    */
-  publish (topics, messages, callback) {
+  async publish (topics, messages) {
     assert(this.started, 'Pubsub has not started')
-    this.log('publish', topics, messages)
+
+    log('publish', topics, messages)
+
     topics = utils.ensureArray(topics)
     messages = utils.ensureArray(messages)
-    callback = callback || (() => {})
 
-    const from = this.libp2p.peerInfo.id.toB58String()
+    const from = this.peerInfo.id.toB58String()
 
     const buildMessage = (msg, cb) => {
       const seqno = utils.randomSeqno()
@@ -424,15 +371,23 @@ class BasicPubSub extends Pubsub {
       // Emit to self if I'm interested and emitSelf enabled
       this._options.emitSelf && this._emitMessages(topics, [msgObj])
 
-      this._buildMessage(msgObj, cb)
+      return this._buildMessage(msgObj)
     }
+    const msgObjects = await pMap(messages, buildMessage)
 
-    asyncMap(messages, buildMessage, (err, msgObjects) => {
-      if (err) callback(err)
-      this._publish(utils.normalizeOutRpcMessages(msgObjects))
+    // send to all the other peers
+    this._publish(utils.normalizeOutRpcMessages(msgObjects))
+  }
 
-      callback()
-    })
+  /**
+   * Get the list of topics which the peer is subscribed to.
+   * @override
+   * @returns {Array<String>}
+   */
+  getTopics () {
+    assert(this.started, 'FloodSub is not started')
+
+    return Array.from(this.subscriptions)
   }
 
   _emitMessages (topics, messages) {
@@ -448,7 +403,7 @@ class BasicPubSub extends Pubsub {
   }
 
   _publish (rpcs) {
-    throw errcode('_publish must be implemented by the subclass', 'ERR_NOT_IMPLEMENTED')
+    throw errcode(new Error('_publish must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
   }
 
   /**
@@ -468,7 +423,7 @@ class BasicPubSub extends Pubsub {
     // Adds all peers using our protocol
     let peers = []
     peersInTopic.forEach((peer) => {
-      if (peer.info.protocols.has(this.multicodec)) {
+      if (peer.info.protocols.has(GossipSubID)) {
         peers.push(peer)
       }
     })

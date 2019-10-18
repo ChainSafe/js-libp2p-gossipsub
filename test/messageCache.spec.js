@@ -1,5 +1,4 @@
 /* eslint-env mocha */
-/* eslint max-nested-callbacks: ["error", 5] */
 /* eslint-disable no-unused-expressions */
 'use strict'
 
@@ -12,7 +11,7 @@ const expect = chai.expect
 
 const { MessageCache } = require('../src/messageCache')
 const { utils } = require('libp2p-pubsub')
-const Buffer = require('buffer').Buffer
+const { Buffer } = require('buffer')
 
 const getMsgID = (msg) => {
   return utils.msgId(msg.from, msg.seqno)

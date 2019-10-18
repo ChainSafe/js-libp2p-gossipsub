@@ -12,11 +12,11 @@ class Heartbeat {
     this.gossipsub = gossipsub
   }
 
-  start (callback) {
+  start () {
     if (this._heartbeatTimer) {
       const errMsg = 'Heartbeat timer is already running'
       this.gossipsub.log(errMsg)
-      return callback(errcode(new Error(errMsg), 'ERR_HEARTBEAT_ALREADY_RUNNING'))
+      throw errcode(new Error(errMsg), 'ERR_HEARTBEAT_ALREADY_RUNNING')
     }
 
     const heartbeatTimer = {
@@ -25,39 +25,35 @@ class Heartbeat {
       runPeriodically: (fn, period) => {
         heartbeatTimer._timeoutId = setInterval(fn, period)
       },
-      cancel: (cb) => {
+      cancel: () => {
         clearTimeout(heartbeatTimer._timeoutId)
-        cb()
       }
     }
 
     const heartbeat = this._heartbeat.bind(this)
+
     setTimeout(() => {
       heartbeat()
       heartbeatTimer.runPeriodically(heartbeat, constants.GossipSubHeartbeatInterval)
     }, constants.GossipSubHeartbeatInitialDelay)
 
     this._heartbeatTimer = heartbeatTimer
-    callback()
   }
 
   /**
    * Unmounts the gossipsub protocol and shuts down every connection
-   *
    * @override
-   * @param {Function} callback
    * @returns {void}
    */
-  stop (callback) {
+  stop () {
     if (!this._heartbeatTimer) {
       const errMsg = 'Heartbeat timer is not running'
       this.gossipsub.log(errMsg)
-      return callback(errcode(new Error(errMsg), 'ERR_HEARTBEAT_NO_RUNNING'))
+      throw errcode(new Error(errMsg), 'ERR_HEARTBEAT_NO_RUNNING')
     }
-    this._heartbeatTimer.cancel(() => {
-      this._heartbeatTimer = null
-      callback()
-    })
+
+    this._heartbeatTimer.cancel()
+    this._heartbeatTimer = null
   }
 
   /**

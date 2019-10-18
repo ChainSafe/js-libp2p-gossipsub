@@ -3,6 +3,8 @@
 const assert = require('assert')
 const { utils } = require('libp2p-pubsub')
 
+const PeerInfo = require('peer-info')
+
 const BasicPubsub = require('./pubsub')
 const { MessageCache } = require('./messageCache')
 
@@ -12,15 +14,30 @@ const Heartbeat = require('./heartbeat')
 
 class GossipSub extends BasicPubsub {
   /**
-   * @param {Object} libp2p an instance of Libp2p
-   * @param {Object} options
-   * @param {bool} options.emitSelf if publish should emit to self, if subscribed, defaults to false
-   * @param {bool} options.gossipIncoming if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
-   * @param {bool} options.fallbackToFloodsub if dial should fallback to floodsub, defaults to true
+   * @param {PeerInfo} peerInfo instance of the peer's PeerInfo
+   * @param {Object} registrar
+   * @param {function} registrar.register
+   * @param {function} registrar.unregister
+   * @param {Object} [options]
+   * @param {bool} [options.emitSelf] if publish should emit to self, if subscribed, defaults to false
+   * @param {bool} [options.gossipIncoming] if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
+   * @param {bool} [options.fallbackToFloodsub] if dial should fallback to floodsub, defaults to true
    * @constructor
    */
-  constructor (libp2p, options) {
-    super('libp2p:gossipsub', constants.GossipSubID, libp2p, options)
+  constructor (peerInfo, registrar, options = {}) {
+    assert(PeerInfo.isPeerInfo(peerInfo), 'peer info must be an instance of `peer-info`')
+
+    // registrar handling
+    assert(registrar && typeof registrar.register === 'function', 'a register function must be provided in registrar')
+    assert(registrar && typeof registrar.unregister === 'function', 'a unregister function must be provided in registrar')
+
+    super({
+      debugName: 'libp2p:gossipsub',
+      multicodec: constants.GossipSubID,
+      peerInfo,
+      registrar,
+      options
+    })
 
     /**
      * Map of topic meshes
@@ -71,37 +88,35 @@ class GossipSub extends BasicPubsub {
 
   /**
    * Removes a peer from the router
-   *
    * @override
    * @param {Peer} peer
    * @returns {PeerInfo}
    */
   _removePeer (peer) {
     super._removePeer(peer)
-    // Only delete when no one else if referencing this peer.
-    if (peer._references === 0) {
-      // Remove this peer from the mesh
-      // eslint-disable-next-line no-unused-vars
-      for (const [_, peers] of this.mesh.entries()) {
-        peers.delete(peer)
-      }
-      // Remove this peer from the fanout
-      // eslint-disable-next-line no-unused-vars
-      for (const [_, peers] of this.fanout.entries()) {
-        peers.delete(peer)
-      }
 
-      // Remove from gossip mapping
-      this.gossip.delete(peer)
-      // Remove from control mapping
-      this.control.delete(peer)
+    // Remove this peer from the mesh
+    // eslint-disable-next-line no-unused-vars
+    for (const [_, peers] of this.mesh.entries()) {
+      peers.delete(peer)
     }
+
+    // Remove this peer from the fanout
+    // eslint-disable-next-line no-unused-vars
+    for (const [_, peers] of this.fanout.entries()) {
+      peers.delete(peer)
+    }
+
+    // Remove from gossip mapping
+    this.gossip.delete(peer)
+    // Remove from control mapping
+    this.control.delete(peer)
+
     return peer
   }
 
   /**
    * Handles an rpc control message from a peer
-   *
    * @param {Peer} peer
    * @param {rpc.RPC} rpc
    * @returns {void}
@@ -139,6 +154,7 @@ class GossipSub extends BasicPubsub {
     if (!this._options.gossipIncoming) {
       return
     }
+
     // Emit to floodsub peers
     this.peers.forEach((peer) => {
       if (peer.info.protocols.has(constants.FloodSubID) &&
@@ -168,10 +184,8 @@ class GossipSub extends BasicPubsub {
 
   /**
    * Handles IHAVE messages
-   *
    * @param {Peer} peer
    * @param {Array<rpc.RPC.ControlIHave>} ihave
-   *
    * @returns {rpc.RPC.ControlIWant}
    */
   _handleIHave (peer, ihave) {
@@ -204,10 +218,8 @@ class GossipSub extends BasicPubsub {
   /**
    * Handles IWANT messages
    * Returns messages to send back to peer
-   *
    * @param {Peer} peer
    * @param {Array<rpc.RPC.ControlIWant>} iwant
-   *
    * @returns {Array<rpc.RPC.Message>}
    */
   _handleIWant (peer, iwant) {
@@ -234,12 +246,9 @@ class GossipSub extends BasicPubsub {
 
   /**
    * Handles Graft messages
-   *
    * @param {Peer} peer
    * @param {Array<rpc.RPC.ControlGraft>} graft
-   *
    * @return {Array<rpc.RPC.ControlPrune>}
-   *
    */
   _handleGraft (peer, graft) {
     const prune = []
@@ -271,12 +280,9 @@ class GossipSub extends BasicPubsub {
 
   /**
    * Handles Prune messages
-   *
    * @param {Peer} peer
    * @param {Array<rpc.RPC.ControlPrune>} prune
-   *
    * @returns {void}
-   *
    */
   _handlePrune (peer, prune) {
     prune.forEach(({ topicID }) => {
@@ -292,36 +298,28 @@ class GossipSub extends BasicPubsub {
   /**
    * Mounts the gossipsub protocol onto the libp2p node and sends our
    * our subscriptions to every peer connected
-   *
    * @override
-   * @param {Function} callback
-   * @returns {void}
-   *
+   * @returns {Promise}
    */
-  start (callback) {
-    super.start((err) => {
-      if (err) return callback(err)
-      this.heartbeat.start(callback)
-    })
+  async start () {
+    await super.start()
+    this.heartbeat.start()
   }
 
   /**
    * Unmounts the gossipsub protocol and shuts down every connection
-   *
    * @override
-   * @param {Function} callback
-   * @returns {void}
+   * @returns {Promise}
    */
-  stop (callback) {
-    super.stop((err) => {
-      if (err) return callback(err)
-      this.mesh = new Map()
-      this.fanout = new Map()
-      this.lastpub = new Map()
-      this.gossip = new Map()
-      this.control = new Map()
-      this.heartbeat.stop(callback)
-    })
+  async stop () {
+    await super.stop()
+    this.heartbeat.stop()
+
+    this.mesh = new Map()
+    this.fanout = new Map()
+    this.lastpub = new Map()
+    this.gossip = new Map()
+    this.control = new Map()
   }
 
   /**
@@ -355,7 +353,6 @@ class GossipSub extends BasicPubsub {
 
   /**
    * Leave topics
-   *
    * @param {Array<string>|string} topics
    * @returns {void}
    */
@@ -431,7 +428,6 @@ class GossipSub extends BasicPubsub {
 
   /**
    * Sends a GRAFT message to a peer
-   *
    * @param {Peer} peer
    * @param {String} topic
    * @returns {void}
@@ -447,7 +443,6 @@ class GossipSub extends BasicPubsub {
 
   /**
    * Sends a PRUNE message to a peer
-   *
    * @param {Peer} peer
    * @param {String} topic
    * @returns {void}
@@ -505,7 +500,6 @@ class GossipSub extends BasicPubsub {
 
   /**
    * Send graft and prune messages
-   *
    * @param {Map<Peer, Array<String>>} tograft
    * @param {Map<Peer, Array<String>>} toprune
    */
@@ -532,7 +526,6 @@ class GossipSub extends BasicPubsub {
 
   /**
    * Emits gossip to peers in a particular topic
-   *
    * @param {String} topic
    * @param {Set<Peer>} peers - peers to exclude
    * @returns {void}
@@ -575,7 +568,6 @@ class GossipSub extends BasicPubsub {
 
   /**
    * Adds new IHAVE messages to pending gossip
-   *
    * @param {Peer} peer
    * @param {Array<rpc.RPC.ControlIHave>} controlIHaveMsgs
    * @returns {void}
@@ -588,7 +580,6 @@ class GossipSub extends BasicPubsub {
 
   /**
    * Returns the current time in milliseconds
-   *
    * @returns {number}
    */
   _now () {
