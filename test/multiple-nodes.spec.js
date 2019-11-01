@@ -7,11 +7,11 @@ chai.use(require('dirty-chai'))
 const expect = chai.expect
 const promisify = require('promisify-es6')
 
-const DuplexPair = require('it-pair/duplex')
 const { GossipSubID: multicodec } = require('../src/constants')
 const {
   createGossipsubNodes,
-  expectSet
+  expectSet,
+  ConnectionPair
 } = require('./utils')
 
 describe('multiple nodes (more than 2)', () => {
@@ -40,11 +40,11 @@ describe('multiple nodes (more than 2)', () => {
           const onConnectC = registrarRecords[2][multicodec].onConnect
 
           // Notice peers of connection
-          const [d0, d1] = DuplexPair()
+          const [d0, d1] = ConnectionPair()
           onConnectA(b.peerInfo, d0)
           onConnectB(a.peerInfo, d1)
 
-          const [d2, d3] = DuplexPair()
+          const [d2, d3] = ConnectionPair()
           onConnectB(c.peerInfo, d2)
           onConnectC(b.peerInfo, d3)
         })
@@ -105,11 +105,11 @@ describe('multiple nodes (more than 2)', () => {
           const onConnectC = registrarRecords[2][multicodec].onConnect
 
           // Notice peers of connection
-          const [d0, d1] = DuplexPair()
+          const [d0, d1] = ConnectionPair()
           onConnectA(b.peerInfo, d0)
           onConnectB(a.peerInfo, d1)
 
-          const [d2, d3] = DuplexPair()
+          const [d2, d3] = ConnectionPair()
           onConnectB(c.peerInfo, d2)
           onConnectC(b.peerInfo, d3)
 
@@ -200,11 +200,11 @@ describe('multiple nodes (more than 2)', () => {
         const onConnectC = registrarRecords[2][multicodec].onConnect
 
         // Notice peers of connection
-        const [d0, d1] = DuplexPair()
+        const [d0, d1] = ConnectionPair()
         onConnectA(b.peerInfo, d0)
         onConnectB(a.peerInfo, d1)
 
-        const [d2, d3] = DuplexPair()
+        const [d2, d3] = ConnectionPair()
         onConnectB(c.peerInfo, d2)
         onConnectC(b.peerInfo, d3)
 
@@ -265,19 +265,19 @@ describe('multiple nodes (more than 2)', () => {
         const onConnectE = registrarRecords[4][multicodec].onConnect
 
         // Notice peers of connection
-        const [d0, d1] = DuplexPair()
+        const [d0, d1] = ConnectionPair()
         onConnectA(b.peerInfo, d0)
         onConnectB(a.peerInfo, d1)
 
-        const [d2, d3] = DuplexPair()
+        const [d2, d3] = ConnectionPair()
         onConnectB(c.peerInfo, d2)
         onConnectC(b.peerInfo, d3)
 
-        const [d4, d5] = DuplexPair()
+        const [d4, d5] = ConnectionPair()
         onConnectC(d.peerInfo, d4)
         onConnectD(c.peerInfo, d5)
 
-        const [d6, d7] = DuplexPair()
+        const [d6, d7] = ConnectionPair()
         onConnectD(e.peerInfo, d6)
         onConnectE(d.peerInfo, d7)
 

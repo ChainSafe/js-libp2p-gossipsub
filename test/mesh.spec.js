@@ -2,10 +2,12 @@
 /* eslint-env mocha */
 
 const { expect } = require('chai')
-const DuplexPair = require('it-pair/duplex')
 
 const { GossipSubDhi, GossipSubID: multicodec } = require('../src/constants')
-const { createGossipsubNodes } = require('./utils')
+const {
+  createGossipsubNodes,
+  ConnectionPair
+} = require('./utils')
 
 describe('mesh overlay', () => {
   let nodes, registrarRecords
@@ -39,7 +41,7 @@ describe('mesh overlay', () => {
       const onConnectN = registrarRecords[n][multicodec].onConnect
 
       // Notice peers of connection
-      const [d0, d1] = DuplexPair()
+      const [d0, d1] = ConnectionPair()
       onConnect0(nodes[n].peerInfo, d0)
       onConnectN(nodes[0].peerInfo, d1)
     }
@@ -66,7 +68,7 @@ describe('mesh overlay', () => {
       const onConnectN = registrarRecords[i][multicodec].onConnect
 
       // Notice peers of connection
-      const [d0, d1] = DuplexPair()
+      const [d0, d1] = ConnectionPair()
       onConnect0(nodes[i].peerInfo, d0)
       onConnectN(nodes[0].peerInfo, d1)
     }

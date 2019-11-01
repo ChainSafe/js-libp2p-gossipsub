@@ -6,7 +6,6 @@ chai.use(require('dirty-chai'))
 
 const expect = chai.expect
 const times = require('lodash/times')
-const DuplexPair = require('it-pair/duplex')
 
 const { multicodec: floodsubMulticodec } = require('libp2p-floodsub')
 
@@ -14,6 +13,8 @@ const {
   createGossipsub,
   createFloodsubNode,
   expectSet,
+  createMockRegistrar,
+  ConnectionPair,
   first
 } = require('./utils')
 
@@ -21,19 +22,6 @@ const shouldNotHappen = () => expect.fail()
 
 describe('gossipsub fallbacks to floodsub', () => {
   let registrarRecords = Array.from({ length: 2 })
-
-  const registrar = (registrarRecord) => ({
-    register: (multicodecs, handlers) => {
-      multicodecs.forEach((multicodec) => {
-        registrarRecord[multicodec] = handlers
-      })
-    },
-    unregister: (multicodecs) => {
-      multicodecs.forEach((multicodec) => {
-        delete registrarRecord[multicodec]
-      })
-    }
-  })
 
   describe('basics', () => {
     let nodeGs
@@ -43,8 +31,8 @@ describe('gossipsub fallbacks to floodsub', () => {
       registrarRecords[0] = {}
       registrarRecords[1] = {}
 
-      nodeGs = await createGossipsub(registrar(registrarRecords[0]), true)
-      nodeFs = await createFloodsubNode(registrar(registrarRecords[1]), true)
+      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), true)
+      nodeFs = await createFloodsubNode(createMockRegistrar(registrarRecords[1]), true)
     })
 
     afterEach(async function () {
@@ -63,7 +51,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       expect(onConnectFs).to.exist()
 
       // Notice peers of connection
-      const [d0, d1] = DuplexPair()
+      const [d0, d1] = ConnectionPair()
       onConnectGs(nodeFs.peerInfo, d0)
       onConnectFs(nodeGs.peerInfo, d1)
 
@@ -80,8 +68,8 @@ describe('gossipsub fallbacks to floodsub', () => {
       registrarRecords[0] = {}
       registrarRecords[1] = {}
 
-      nodeGs = await createGossipsub(registrar(registrarRecords[0]), true, { fallbackToFloodsub: false })
-      nodeFs = await createFloodsubNode(registrar(registrarRecords[1]), true)
+      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), true, { fallbackToFloodsub: false })
+      nodeFs = await createFloodsubNode(createMockRegistrar(registrarRecords[1]), true)
     })
 
     after(async function () {
@@ -120,14 +108,14 @@ describe('gossipsub fallbacks to floodsub', () => {
       registrarRecords[0] = {}
       registrarRecords[1] = {}
 
-      nodeGs = await createGossipsub(registrar(registrarRecords[0]), true)
-      nodeFs = await createFloodsubNode(registrar(registrarRecords[1]), true)
+      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), true)
+      nodeFs = await createFloodsubNode(createMockRegistrar(registrarRecords[1]), true)
 
       const onConnectGs = registrarRecords[0][floodsubMulticodec].onConnect
       const onConnectFs = registrarRecords[1][floodsubMulticodec].onConnect
 
       // Notice peers of connection
-      const [d0, d1] = DuplexPair()
+      const [d0, d1] = ConnectionPair()
       onConnectGs(nodeFs.peerInfo, d0)
       onConnectFs(nodeGs.peerInfo, d1)
     })
@@ -175,14 +163,14 @@ describe('gossipsub fallbacks to floodsub', () => {
       registrarRecords[0] = {}
       registrarRecords[1] = {}
 
-      nodeGs = await createGossipsub(registrar(registrarRecords[0]), true)
-      nodeFs = await createFloodsubNode(registrar(registrarRecords[1]), true)
+      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), true)
+      nodeFs = await createFloodsubNode(createMockRegistrar(registrarRecords[1]), true)
 
       const onConnectGs = registrarRecords[0][floodsubMulticodec].onConnect
       const onConnectFs = registrarRecords[1][floodsubMulticodec].onConnect
 
       // Notice peers of connection
-      const [d0, d1] = DuplexPair()
+      const [d0, d1] = ConnectionPair()
       onConnectGs(nodeFs.peerInfo, d0)
       onConnectFs(nodeGs.peerInfo, d1)
 
@@ -286,16 +274,16 @@ describe('gossipsub fallbacks to floodsub', () => {
       registrarRecords[0] = {}
       registrarRecords[1] = {}
 
-      nodeGs = await createGossipsub(registrar(registrarRecords[0]), true)
-      nodeFs = await createFloodsubNode(registrar(registrarRecords[1]), true)
+      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), true)
+      nodeFs = await createFloodsubNode(createMockRegistrar(registrarRecords[1]), true)
 
       const onConnectGs = registrarRecords[0][floodsubMulticodec].onConnect
       const onConnectFs = registrarRecords[1][floodsubMulticodec].onConnect
 
       // Notice peers of connection
-      const [d0, d1] = DuplexPair()
-      onConnectGs(nodeFs.peerInfo, d0)
-      onConnectFs(nodeGs.peerInfo, d1)
+      const [d0, d1] = ConnectionPair()
+      await onConnectGs(nodeFs.peerInfo, d0)
+      await onConnectFs(nodeGs.peerInfo, d1)
 
       nodeGs.subscribe(topic)
       nodeFs.subscribe(topic)

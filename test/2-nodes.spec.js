@@ -7,7 +7,6 @@ chai.use(require('chai-spies'))
 const expect = chai.expect
 
 const { GossipSubID: multicodec } = require('../src/constants')
-const DuplexPair = require('it-pair/duplex')
 
 const {
   createGossipsub,
@@ -15,6 +14,7 @@ const {
   createGossipsubConnectedNodes,
   mockRegistrar,
   expectSet,
+  ConnectionPair,
   first
 } = require('./utils')
 
@@ -66,7 +66,7 @@ describe('2 nodes', () => {
       const onConnect1 = registrarRecords[1][multicodec].onConnect
 
       // Notice peers of connection
-      const [d0, d1] = DuplexPair()
+      const [d0, d1] = ConnectionPair()
       onConnect0(nodes[1].peerInfo, d0)
       onConnect1(nodes[0].peerInfo, d1)
 
@@ -315,7 +315,7 @@ describe('2 nodes', () => {
       const onConnect1 = registrarRecords[1][multicodec].onConnect
 
       // Notice peers of connection
-      const [d0, d1] = DuplexPair()
+      const [d0, d1] = ConnectionPair()
       onConnect0(nodes[1].peerInfo, d0)
       onConnect1(nodes[0].peerInfo, d1)
 

@@ -16,6 +16,7 @@ class GossipSub extends BasicPubsub {
   /**
    * @param {PeerInfo} peerInfo instance of the peer's PeerInfo
    * @param {Object} registrar
+   * @param {function} registrar.handle
    * @param {function} registrar.register
    * @param {function} registrar.unregister
    * @param {Object} [options]
@@ -28,6 +29,7 @@ class GossipSub extends BasicPubsub {
     assert(PeerInfo.isPeerInfo(peerInfo), 'peer info must be an instance of `peer-info`')
 
     // registrar handling
+    assert(registrar && typeof registrar.handle === 'function', 'a handle function must be provided in registrar')
     assert(registrar && typeof registrar.register === 'function', 'a register function must be provided in registrar')
     assert(registrar && typeof registrar.unregister === 'function', 'a unregister function must be provided in registrar')
 
@@ -588,3 +590,4 @@ class GossipSub extends BasicPubsub {
 }
 
 module.exports = GossipSub
+module.exports.multicodec = constants.GossipSubID

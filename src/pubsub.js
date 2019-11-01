@@ -27,6 +27,7 @@ class BasicPubSub extends Pubsub {
    * @param {string} props.multicodec protocol identificer to connect
    * @param {PeerInfo} props.peerInfo peer's peerInfo
    * @param {Object} props.registrar registrar for libp2p protocols
+   * @param {function} props.registrar.handle
    * @param {function} props.registrar.register
    * @param {function} props.registrar.unregister
    * @param {Object} [props.options]
@@ -82,9 +83,10 @@ class BasicPubSub extends Pubsub {
    * @override
    * @param {PeerInfo} peerInfo peer info
    * @param {Connection} conn connection to the peer
+   * @returns {Promise<void>}
    */
-  _onPeerConnected (peerInfo, conn) {
-    super._onPeerConnected(peerInfo, conn)
+  async _onPeerConnected (peerInfo, conn) {
+    await super._onPeerConnected(peerInfo, conn)
     const idB58Str = peerInfo.id.toB58String()
     const peer = this.peers.get(idB58Str)
 
@@ -110,7 +112,7 @@ class BasicPubSub extends Pubsub {
       await pipe(
         conn,
         lp.decode(),
-        async function collect (source) {
+        async function (source) {
           for await (const data of source) {
             const rpcMsg = Buffer.isBuffer(data) ? data : data.slice()
 

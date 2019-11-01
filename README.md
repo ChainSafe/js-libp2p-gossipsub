@@ -29,20 +29,29 @@ Gossipsub is an implementation of pubsub based on meshsub and floodsub. You can 
 ```javascript
 const Gossipsub = require('libp2p-gossipsub')
 
-const gsub = new Gossipsub(node)
+const registrar = {
+  handle: (multicodecs, handle) => {
+    // register multicodec to libp2p
+    // handle function is called everytime a remote peer opens a stream to the peer.
+  },
+  register: (multicodecs, handlers) => {
+    // handlers will be used to notify pubsub of peer connection establishment or closing
+  },
+  unregister: (id) => {
 
-gsub.start((err) => {
-  if (err) {
-    console.log('Upsy', err)
   }
-  gsub.on('fruit', (data) => {
-    console.log(data)
-  })
-  gsub.subscribe('fruit')
+}
 
-  gsub.publish('fruit', new Buffer('banana'))
+const gsub = new Gossipsub(peerInfo, registrar, options)
+
+await gsub.start()
+
+gsub.on('fruit', (data) => {
+  console.log(data)
 })
+gsub.subscribe('fruit')
 
+gsub.publish('fruit', new Buffer('banana'))
 ```
 
 ## API
@@ -51,13 +60,15 @@ gsub.start((err) => {
 
 ```js
 const options = {…}
-const gossipsub = new Gossipsub(libp2pNode, options)
+const gossipsub = new Gossipsub(peerInfo, registrar, options)
 ```
 
 Options is an optional object with the following key-value pairs:
 
 * **`fallbackToFloodsub`**: boolean identifying whether the node should fallback to the floodsub protocol, if another connecting peer does not support gossipsub (defaults to **true**).
 * **`emitSelf`**: boolean identifying whether the node should emit to self on publish, in the event of the topic being subscribed (defaults to **false**).
+
+For the remaining API, see https://github.com/libp2p/js-libp2p-pubsub
 
 ## Contribute
 

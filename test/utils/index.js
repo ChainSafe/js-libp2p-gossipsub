@@ -45,19 +45,10 @@ exports.createGossipsub = createGossipsub
 const createGossipsubNodes = async (n, shouldStart, options) => {
   const registrarRecords = Array.from({ length: n })
 
-  const registrar = (registrarRecord) => ({
-    register: (multicodecs, handlers) => {
-      registrarRecord[multicodecs[0]] = handlers
-    },
-    unregister: (multicodecs) => {
-      delete registrarRecord[multicodecs[0]]
-    }
-  })
-
   const nodes = await pTimes(n, (index) => {
     registrarRecords[index] = {}
 
-    return createGossipsub(registrar(registrarRecords[index]), shouldStart, options)
+    return createGossipsub(createMockRegistrar(registrarRecords[index]), shouldStart, options)
   })
 
   return {
@@ -76,7 +67,7 @@ const connectGossipsubNodes = (nodes, registrarRecords, multicodec) => {
       const onConnectJ = registrarRecords[j][multicodec].onConnect
 
       // Notice peers of connection
-      const [d0, d1] = DuplexPair()
+      const [d0, d1] = ConnectionPair()
       onConnectI(nodes[j].peerInfo, d0)
       onConnectJ(nodes[i].peerInfo, d1)
     }
@@ -110,10 +101,53 @@ const createFloodsubNode = async (registrar, shouldStart = false, options) => {
 exports.createFloodsubNode = createFloodsubNode
 
 exports.mockRegistrar = {
-  register: (multicodecs, handlers) => {
-
-  },
-  unregister: (multicodecs) => {
-
-  }
+  handle: () => { },
+  register: () => { },
+  unregister: () => { }
 }
+
+const createMockRegistrar = (registrarRecord) => ({
+  handle: (multicodecs, handler) => {
+    multicodecs.forEach((multicodec) => {
+      const rec = registrarRecord[multicodec] || {}
+
+      registrarRecord[multicodec] = {
+        ...rec,
+        handler
+      }
+    })
+  },
+  register: ({ multicodecs, handlers }) => {
+    multicodecs.forEach((multicodec) => {
+      const rec = registrarRecord[multicodec] || {}
+
+      registrarRecord[multicodec] = {
+        ...rec,
+        ...handlers
+      }
+    })
+    return multicodecs[0]
+  },
+  unregister: (id) => {
+    delete registrarRecord[id]
+  }
+})
+
+exports.createMockRegistrar = createMockRegistrar
+
+const ConnectionPair = () => {
+  const [d0, d1] = DuplexPair()
+
+  return [
+    {
+      stream: d0,
+      newStream: () => Promise.resolve({ stream: d0 })
+    },
+    {
+      stream: d1,
+      newStream: () => Promise.resolve({ stream: d1 })
+    }
+  ]
+}
+
+exports.ConnectionPair = ConnectionPair
