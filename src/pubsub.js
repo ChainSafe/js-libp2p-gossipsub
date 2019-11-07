@@ -1,10 +1,6 @@
 'use strict'
 
 const assert = require('assert')
-const debug = require('debug')
-const debugName = 'libp2p:gossipsub'
-const log = debug(debugName)
-log.error = debug(`${debugName}:error`)
 const errcode = require('err-code')
 
 const TimeCache = require('time-cache')
@@ -76,6 +72,7 @@ class BasicPubSub extends Pubsub {
     this._options = _options
 
     this._onRpc = this._onRpc.bind(this)
+    this.log = this.log.bind(this)
   }
 
   /**
@@ -142,7 +139,7 @@ class BasicPubSub extends Pubsub {
       return
     }
 
-    log('rpc from', idB58Str)
+    this.log('rpc from', idB58Str)
     const subs = rpc.subscriptions
     const msgs = rpc.msgs
 
@@ -191,7 +188,7 @@ class BasicPubSub extends Pubsub {
         }
 
         if (error || !isValid) {
-          log('Message could not be validated, dropping it. isValid=%s', isValid, error)
+          this.log('Message could not be validated, dropping it. isValid=%s', isValid, error)
           return
         }
 
@@ -352,7 +349,7 @@ class BasicPubSub extends Pubsub {
   async publish (topics, messages) {
     assert(this.started, 'Pubsub has not started')
 
-    log('publish', topics, messages)
+    this.log('publish', topics, messages)
 
     topics = utils.ensureArray(topics)
     messages = utils.ensureArray(messages)

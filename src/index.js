@@ -28,11 +28,6 @@ class GossipSub extends BasicPubsub {
   constructor (peerInfo, registrar, options = {}) {
     assert(PeerInfo.isPeerInfo(peerInfo), 'peer info must be an instance of `peer-info`')
 
-    // registrar handling
-    assert(registrar && typeof registrar.handle === 'function', 'a handle function must be provided in registrar')
-    assert(registrar && typeof registrar.register === 'function', 'a register function must be provided in registrar')
-    assert(registrar && typeof registrar.unregister === 'function', 'a unregister function must be provided in registrar')
-
     super({
       debugName: 'libp2p:gossipsub',
       multicodec: constants.GossipSubID,

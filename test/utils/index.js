@@ -117,13 +117,14 @@ const createMockRegistrar = (registrarRecord) => ({
       }
     })
   },
-  register: ({ multicodecs, handlers }) => {
+  register: ({ multicodecs, _onConnect, _onDisconnect }) => {
     multicodecs.forEach((multicodec) => {
       const rec = registrarRecord[multicodec] || {}
 
       registrarRecord[multicodec] = {
         ...rec,
-        ...handlers
+        onConnect: _onConnect,
+        onDisconnect: _onDisconnect
       }
     })
     return multicodecs[0]
