@@ -384,7 +384,7 @@ class BasicPubSub extends Pubsub {
    * @returns {Array<String>}
    */
   getTopics () {
-    assert(this.started, 'FloodSub is not started')
+    assert(this.started, 'Pubsub is not started')
 
     return Array.from(this.subscriptions)
   }
