@@ -1,15 +1,17 @@
 'use strict'
 
+const { expect } = require('chai')
+
+const DuplexPair = require('it-pair/duplex')
+const pTimes = require('p-times')
+
+const FloodSub = require('libp2p-floodsub')
+const { multicodec: floodsubMulticodec } = require('libp2p-floodsub')
 const PeerId = require('peer-id')
 const PeerInfo = require('peer-info')
-const { expect } = require('chai')
-const promisify = require('promisify-es6')
-const isNode = require('detect-node')
-
-const Node = isNode ? require('./nodejs-bundle') : require('./browser-bundle')
 
 const GossipSub = require('../../src')
-const FloodSub = require('libp2p-floodsub')
+const { GossipSubID } = require('../../src/constants')
 
 exports.first = (map) => map.values().next().value
 
@@ -17,24 +19,136 @@ exports.expectSet = (set, subs) => {
   expect(Array.from(set.values())).to.eql(subs)
 }
 
-exports.createNode = async (maddr, options = {}) => {
-  const id = await promisify(PeerId.create)({ bits: 1024 })
-  const peerInfo = await promisify(PeerInfo.create)(id)
-  peerInfo.multiaddrs.add(maddr)
-  const node = new Node({ peerInfo })
-  node.gs = new GossipSub(node, options)
-  return node
+const createPeerInfo = async (protocol = GossipSubID) => {
+  const peerId = await PeerId.create({ bits: 1024 })
+  const peerInfo = await PeerInfo.create(peerId)
+  peerInfo.protocols.add(protocol)
+
+  return peerInfo
 }
 
-exports.createFloodsubNode = async (maddr) => {
-  const id = await promisify(PeerId.create)({ bits: 1024 })
-  const peerInfo = await promisify(PeerInfo.create)(id)
-  peerInfo.multiaddrs.add(maddr)
-  const node = new Node({ peerInfo })
-  node.fs = new FloodSub(node)
-  return node
+exports.createPeerInfo = createPeerInfo
+
+const createGossipsub = async (registrar, shouldStart = false, options) => {
+  const peerInfo = await createPeerInfo()
+  const gs = new GossipSub(peerInfo, registrar, options)
+
+  if (shouldStart) {
+    await gs.start()
+  }
+
+  return gs
 }
 
-exports.startNode = (node) => promisify(node.start.bind(node))()
-exports.stopNode = (node) => promisify(node.stop.bind(node))()
-exports.dialNode = (node, peerInfo) => promisify(node.dial.bind(node))(peerInfo)
+exports.createGossipsub = createGossipsub
+
+const createGossipsubNodes = async (n, shouldStart, options) => {
+  const registrarRecords = Array.from({ length: n })
+
+  const nodes = await pTimes(n, (index) => {
+    registrarRecords[index] = {}
+
+    return createGossipsub(createMockRegistrar(registrarRecords[index]), shouldStart, options)
+  })
+
+  return {
+    nodes,
+    registrarRecords
+  }
+}
+
+exports.createGossipsubNodes = createGossipsubNodes
+
+const connectGossipsubNodes = (nodes, registrarRecords, multicodec) => {
+  // connect all nodes
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const onConnectI = registrarRecords[i][multicodec].onConnect
+      const onConnectJ = registrarRecords[j][multicodec].onConnect
+
+      // Notice peers of connection
+      const [d0, d1] = ConnectionPair()
+      onConnectI(nodes[j].peerInfo, d0)
+      onConnectJ(nodes[i].peerInfo, d1)
+    }
+  }
+
+  return nodes
+}
+
+exports.connectGossipsubNodes = connectGossipsubNodes
+
+const createGossipsubConnectedNodes = async (n, multicodec, options) => {
+  const { nodes, registrarRecords } = await createGossipsubNodes(n, true, options)
+
+  // connect all nodes
+  return connectGossipsubNodes(nodes, registrarRecords, multicodec)
+}
+
+exports.createGossipsubConnectedNodes = createGossipsubConnectedNodes
+
+const createFloodsubNode = async (registrar, shouldStart = false, options) => {
+  const peerInfo = await createPeerInfo(floodsubMulticodec)
+  const fs = new FloodSub(peerInfo, registrar, options)
+
+  if (shouldStart) {
+    await fs.start()
+  }
+
+  return fs
+}
+
+exports.createFloodsubNode = createFloodsubNode
+
+exports.mockRegistrar = {
+  handle: () => { },
+  register: () => { },
+  unregister: () => { }
+}
+
+const createMockRegistrar = (registrarRecord) => ({
+  handle: (multicodecs, handler) => {
+    multicodecs.forEach((multicodec) => {
+      const rec = registrarRecord[multicodec] || {}
+
+      registrarRecord[multicodec] = {
+        ...rec,
+        handler
+      }
+    })
+  },
+  register: ({ multicodecs, _onConnect, _onDisconnect }) => {
+    multicodecs.forEach((multicodec) => {
+      const rec = registrarRecord[multicodec] || {}
+
+      registrarRecord[multicodec] = {
+        ...rec,
+        onConnect: _onConnect,
+        onDisconnect: _onDisconnect
+      }
+    })
+    return multicodecs[0]
+  },
+  unregister: (id) => {
+    delete registrarRecord[id]
+  }
+})
+
+exports.createMockRegistrar = createMockRegistrar
+
+const ConnectionPair = () => {
+  const [d0, d1] = DuplexPair()
+
+  return [
+    {
+      stream: d0,
+      newStream: () => Promise.resolve({ stream: d0 })
+    },
+    {
+      stream: d1,
+      newStream: () => Promise.resolve({ stream: d1 })
+    }
+  ]
+}
+
+exports.ConnectionPair = ConnectionPair

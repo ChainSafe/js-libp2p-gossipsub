@@ -3,30 +3,26 @@
 
 const { expect } = require('chai')
 
+const Gossipsub = require('../src')
 const { GossipSubHeartbeatInterval } = require('../src/constants')
-const {
-  createNode,
-  startNode,
-  stopNode
-} = require('./utils')
+const { createPeerInfo, mockRegistrar } = require('./utils')
 
 describe('heartbeat', () => {
-  let nodeA
+  let gossipsub
+
   before(async () => {
-    nodeA = await createNode('/ip4/127.0.0.1/tcp/0')
-    await startNode(nodeA)
-    await startNode(nodeA.gs)
+    const peerInfo = await createPeerInfo()
+    gossipsub = new Gossipsub(peerInfo, mockRegistrar, { emitSelf: true })
+    await gossipsub.start()
   })
-  after(async () => {
-    await stopNode(nodeA.gs)
-    await stopNode(nodeA)
-  })
+
+  after(() => gossipsub.stop())
 
   it('should occur with regularity defined by a constant', async function () {
     this.timeout(3000)
-    await new Promise((resolve) => nodeA.gs.once('gossipsub:heartbeat', resolve))
+    await new Promise((resolve) => gossipsub.once('gossipsub:heartbeat', resolve))
     const t1 = Date.now()
-    await new Promise((resolve) => nodeA.gs.once('gossipsub:heartbeat', resolve))
+    await new Promise((resolve) => gossipsub.once('gossipsub:heartbeat', resolve))
     const t2 = Date.now()
     const safeDelta = 100 // ms
     expect(t2 - t1).to.be.lt(GossipSubHeartbeatInterval + safeDelta)
