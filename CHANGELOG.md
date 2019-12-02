@@ -1,3 +1,16 @@
+<a name="0.2.0"></a>
+## [0.2.0](https://github.com/ChainSafe/gossipsub-js/compare/v0.0.5...v0.1.0) (2019-12-02)
+
+### Chores
+
+* update dependencies ([7a44b66](https://github.com/ChainSafe/gossipsub-js/commit/7a44b66))
+
+### BREAKING CHANGES
+
+* getPeersSubscribed from parent class renamed to getSubscribers to remove redundant wording.
+
+
+
 <a name="0.1.0"></a>
 ## [0.1.0](https://github.com/ChainSafe/gossipsub-js/compare/v0.0.5...v0.1.0) (2019-19-14)
 
