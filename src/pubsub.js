@@ -72,7 +72,6 @@ class BasicPubSub extends Pubsub {
     this._options = _options
 
     this._onRpc = this._onRpc.bind(this)
-    this.log = this.log.bind(this)
   }
 
   /**
