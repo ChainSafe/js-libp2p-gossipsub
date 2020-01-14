@@ -1,3 +1,13 @@
+<a name="0.2.1"></a>
+## 0.2.1 (2019-01-14)
+
+
+### Bug Fixes
+
+* bind is not needed ([7faae98](https://github.com/ChainSafe/gossipsub-js/commit/7faae98))
+
+
+
 <a name="0.2.0"></a>
 ## [0.2.0](https://github.com/ChainSafe/gossipsub-js/compare/v0.0.5...v0.1.0) (2019-12-02)
 
