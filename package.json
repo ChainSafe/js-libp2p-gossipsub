@@ -1,6 +1,6 @@
 {
   "name": "libp2p-gossipsub",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A javascript implementation of gossipsub",
   "leadMaintainer": "Cayman Nava <caymannava@gmail.com>",
   "main": "src/index.js",
@@ -65,6 +65,9 @@
     "Cayman <caymannava@gmail.com>",
     "ChainSafe <aidan@chainsafe.io>",
     "ChainSafe <superadmin@chainsafe.io>",
+    "Gregory Markou <16929357+GregTheGreek@users.noreply.github.com>",
+    "Gregory Markou <gregorymarkou@gmail.com>",
+    "Jacob Heun <jacobheun@gmail.com>",
     "Mikerah <mikerahqc@protonmail.com>",
     "Mikerah <mikerah14@gmail.com>",
     "Vasco Santos <vasco.santos@moxy.studio>",
