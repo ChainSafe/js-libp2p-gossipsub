@@ -133,11 +133,11 @@ describe('Pubsub', () => {
           return {
             stream: {
               sink: async source => {
-                for await (const _ of source) {
+                for await (const _ of source) { // eslint-disable-line no-unused-vars
                   // mock stream just swallows any data sent
                 }
               },
-              source: (async function * () {
+              source: (async function * () { // eslint-disable-line require-yield
                 // throw in a bit
                 await new Promise(resolve => setTimeout(resolve, 100))
                 throw new Error('boom')
