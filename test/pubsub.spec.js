@@ -6,10 +6,12 @@ const chai = require('chai')
 chai.use(require('dirty-chai'))
 const expect = chai.expect
 const sinon = require('sinon')
+const pWaitFor = require('p-wait-for')
 
 const { utils } = require('libp2p-pubsub')
 const {
   createGossipsub,
+  createPeerInfo,
   mockRegistrar
 } = require('./utils')
 
@@ -118,6 +120,36 @@ describe('Pubsub', () => {
         expect(gossipsub._processRpcMessage.callCount).to.eql(1)
         resolve()
       }, 500))
+    })
+  })
+
+  describe('process', () => {
+    it('should disconnect peer on stream error', async () => {
+      sinon.spy(gossipsub, '_onPeerDisconnected')
+
+      const peerInfo = await createPeerInfo()
+      const mockConn = {
+        newStream () {
+          return {
+            stream: {
+              sink: async source => {
+                for await (const _ of source) { // eslint-disable-line no-unused-vars
+                  // mock stream just swallows any data sent
+                }
+              },
+              source: (async function * () { // eslint-disable-line require-yield
+                // throw in a bit
+                await new Promise(resolve => setTimeout(resolve, 100))
+                throw new Error('boom')
+              })()
+            }
+          }
+        }
+      }
+
+      gossipsub._onPeerConnected(peerInfo, mockConn)
+
+      await pWaitFor(() => gossipsub._onPeerDisconnected.calledWith(peerInfo), { timeout: 1000 })
     })
   })
 })
