@@ -19,25 +19,24 @@ class Heartbeat {
       throw errcode(new Error(errMsg), 'ERR_HEARTBEAT_ALREADY_RUNNING')
     }
 
-    const heartbeatTimer = {
-      _onCancel: null,
-      _timeoutId: null,
-      runPeriodically: (fn, period) => {
-        heartbeatTimer._timeoutId = setInterval(fn, period)
-      },
-      cancel: () => {
-        clearTimeout(heartbeatTimer._timeoutId)
-      }
-    }
-
     const heartbeat = this._heartbeat.bind(this)
 
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       heartbeat()
-      heartbeatTimer.runPeriodically(heartbeat, constants.GossipSubHeartbeatInterval)
+      this._heartbeatTimer.runPeriodically(heartbeat, constants.GossipSubHeartbeatInterval)
     }, constants.GossipSubHeartbeatInitialDelay)
 
-    this._heartbeatTimer = heartbeatTimer
+    this._heartbeatTimer = {
+      _onCancel: null,
+      _intervalId: null,
+      runPeriodically: (fn, period) => {
+        this._heartbeatTimer._intervalId = setInterval(fn, period)
+      },
+      cancel: () => {
+        clearTimeout(timeout)
+        clearInterval(this._heartbeatTimer._intervalId)
+      }
+    }
   }
 
   /**
