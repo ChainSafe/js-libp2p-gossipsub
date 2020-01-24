@@ -2,7 +2,7 @@ js-libp2p-gossipsub
 ==================
 
 [![](https://img.shields.io/badge/made%20by-ChainSafe-blue.svg?style=flat-square)](https://chainsafe.io/)
-[![Travis CI](https://flat.badgen.net/travis/ipfs/aegir)](https://travis-ci.com/ipfs/aegir)
+[![Travis CI](https://flat.badgen.net/travis/ChainSafe/gossipsub-js)](https://travis-ci.com/ChainSafe/gossipsub-js)
 
 ## Lead Maintainer
 
