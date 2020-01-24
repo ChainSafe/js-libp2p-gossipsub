@@ -201,6 +201,10 @@ class BasicPubSub extends Pubsub {
    * @param {rpc.RPC.Message} msg
    */
   _processRpcMessage (msg) {
+    if (this.peerInfo.id.toB58String() === msg.from && !this._options.emitSelf) {
+      return
+    }
+
     // Emit to self
     this._emitMessage(msg.topicIDs, msg)
   }

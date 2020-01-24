@@ -18,8 +18,6 @@ const {
   first
 } = require('./utils')
 
-const shouldNotHappen = () => expect.fail()
-
 describe('gossipsub fallbacks to floodsub', () => {
   let registrarRecords = Array.from({ length: 2 })
 
@@ -189,18 +187,23 @@ describe('gossipsub fallbacks to floodsub', () => {
       ])
     })
 
-    it('Publish to a topic - nodeGs', async () => {
+    it('Publish to a topic - nodeGs', (done) => {
+      const shouldNotHappen = () => {
+        done(new Error('Should not be here'))
+      }
+
       const promise = new Promise((resolve) => nodeFs.once(topic, resolve))
       nodeGs.once(topic, (m) => shouldNotHappen)
 
       nodeGs.publish(topic, Buffer.from('hey'))
 
-      const msg = await promise
+      promise.then((msg) => {
+        expect(msg.data.toString()).to.equal('hey')
+        expect(msg.from).to.be.eql(nodeGs.peerInfo.id.toB58String())
 
-      expect(msg.data.toString()).to.equal('hey')
-      expect(msg.from).to.be.eql(nodeGs.peerInfo.id.toB58String())
-
-      nodeGs.removeListener(topic, shouldNotHappen)
+        nodeGs.removeListener(topic, shouldNotHappen)
+        done()
+      }, done)
     })
 
     it('Publish to a topic - nodeFs', async () => {
@@ -212,19 +215,20 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       expect(msg.data.toString()).to.equal('banana')
       expect(msg.from).to.be.eql(nodeFs.peerInfo.id.toB58String())
-
-      nodeFs.removeListener(topic, shouldNotHappen)
     })
 
     it('Publish 10 msg to a topic', (done) => {
       let counter = 0
 
-      nodeGs.once(topic, shouldNotHappen)
+      const shouldNotHappen = (msg) => {
+        done(new Error('Should not be here'))
+      }
 
+      nodeGs.once(topic, shouldNotHappen)
       nodeFs.on(topic, receivedMsg)
 
       function receivedMsg (msg) {
-        expect(msg.data.toString()).to.equal('banana')
+        expect(msg.data.toString()).to.equal('banana ' + counter)
         expect(msg.from).to.be.eql(nodeGs.peerInfo.id.toB58String())
         expect(Buffer.isBuffer(msg.seqno)).to.be.true()
         expect(msg.topicIDs).to.be.eql([topic])
@@ -236,18 +240,22 @@ describe('gossipsub fallbacks to floodsub', () => {
         }
       }
 
-      times(10, () => nodeGs.publish(topic, Buffer.from('banana')))
+      times(10, (index) => nodeGs.publish(topic, Buffer.from('banana ' + index)))
     })
 
     it('Publish 10 msg to a topic as array', (done) => {
       let counter = 0
+
+      const shouldNotHappen = () => {
+        done(new Error('Should not be here'))
+      }
 
       nodeGs.once(topic, shouldNotHappen)
 
       nodeFs.on(topic, receivedMsg)
 
       function receivedMsg (msg) {
-        expect(msg.data.toString()).to.equal('banana')
+        expect(msg.data.toString()).to.equal('banana ' + counter)
         expect(msg.from).to.be.eql(nodeGs.peerInfo.id.toB58String())
         expect(Buffer.isBuffer(msg.seqno)).to.be.true()
         expect(msg.topicIDs).to.be.eql([topic])
@@ -260,7 +268,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       }
 
       const msgs = []
-      times(10, () => msgs.push(Buffer.from('banana')))
+      times(10, (index) => msgs.push(Buffer.from('banana ' + index)))
       nodeGs.publish(topic, msgs)
     })
   })
