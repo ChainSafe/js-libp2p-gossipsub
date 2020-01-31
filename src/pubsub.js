@@ -10,7 +10,7 @@ const lp = require('it-length-prefixed')
 const pMap = require('p-map')
 
 const { GossipSubID } = require('../src/constants')
-const { multicodec: floodsubMulticodec } = require('libp2p-floodsub')
+const floodsubMulticodec = '/floodsub/1.0.0'
 const Pubsub = require('libp2p-pubsub')
 
 const { utils } = require('libp2p-pubsub')
