@@ -1,6 +1,5 @@
 'use strict'
 
-const assert = require('assert')
 const errcode = require('err-code')
 
 const TimeCache = require('time-cache')
@@ -261,7 +260,9 @@ class BasicPubSub extends Pubsub {
    * @returns {void}
    */
   subscribe (topics) {
-    assert(this.started, 'Pubsub has not started')
+    if (!this.started) {
+      throw new Error('Pubsub has not started')
+    }
 
     topics = utils.ensureArray(topics)
 
@@ -305,7 +306,9 @@ class BasicPubSub extends Pubsub {
    * @returns {void}
    */
   unsubscribe (topics) {
-    assert(this.started, 'Pubsub has not started')
+    if (!this.started) {
+      throw new Error('Pubsub has not started')
+    }
 
     topics = utils.ensureArray(topics)
 
@@ -350,7 +353,9 @@ class BasicPubSub extends Pubsub {
    * @returns {void}
    */
   async publish (topics, messages) {
-    assert(this.started, 'Pubsub has not started')
+    if (!this.started) {
+      throw new Error('Pubsub has not started')
+    }
 
     this.log('publish', topics, messages)
 
@@ -387,7 +392,9 @@ class BasicPubSub extends Pubsub {
    * @returns {Array<String>}
    */
   getTopics () {
-    assert(this.started, 'Pubsub is not started')
+    if (!this.started) {
+      throw new Error('Pubsub is not started')
+    }
 
     return Array.from(this.subscriptions)
   }

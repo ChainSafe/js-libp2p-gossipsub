@@ -1,6 +1,5 @@
 'use strict'
 
-const assert = require('assert')
 const { utils } = require('libp2p-pubsub')
 
 const PeerInfo = require('peer-info')
@@ -26,7 +25,9 @@ class GossipSub extends BasicPubsub {
    * @constructor
    */
   constructor (peerInfo, registrar, options = {}) {
-    assert(PeerInfo.isPeerInfo(peerInfo), 'peer info must be an instance of `peer-info`')
+    if (!PeerInfo.isPeerInfo(peerInfo)) {
+      throw new Error('peer info must be an instance of `peer-info`')
+    }
 
     super({
       debugName: 'libp2p:gossipsub',
@@ -325,7 +326,9 @@ class GossipSub extends BasicPubsub {
    * @returns {void}
    */
   join (topics) {
-    assert(this.started, 'GossipSub has not started')
+    if (!this.started) {
+      throw new Error('GossipSub has not started')
+    }
     topics = utils.ensureArray(topics)
 
     this.log('JOIN %s', topics)
