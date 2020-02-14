@@ -1,6 +1,6 @@
 {
   "name": "libp2p-gossipsub",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "A javascript implementation of gossipsub",
   "leadMaintainer": "Cayman Nava <caymannava@gmail.com>",
   "main": "src/index.js",
@@ -64,6 +64,7 @@
   },
   "contributors": [
     "Alan Shaw <alan.shaw@protocol.ai>",
+    "Alex Potsides <alex@achingbrain.net>",
     "Cayman <caymannava@gmail.com>",
     "ChainSafe <aidan@chainsafe.io>",
     "ChainSafe <superadmin@chainsafe.io>",
@@ -73,7 +74,6 @@
     "Mikerah <mikerahqc@protonmail.com>",
     "Mikerah <mikerah14@gmail.com>",
     "Vasco Santos <vasco.santos@moxy.studio>",
-    "Vasco Santos <vasco.santos@ua.pt>",
-    "achingbrain <alex@achingbrain.net>"
+    "Vasco Santos <vasco.santos@ua.pt>"
   ]
 }
