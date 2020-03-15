@@ -8,6 +8,7 @@
     "src",
     "dist"
   ],
+  "types": "src/index.d.ts",
   "scripts": {
     "lint": "aegir lint",
     "release": "aegir release",

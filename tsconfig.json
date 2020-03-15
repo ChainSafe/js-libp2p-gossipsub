@@ -1,0 +1,30 @@
+
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "lib": [
+      "es6"
+    ],
+    "target": "ES5",
+    "noImplicitAny": false,
+    "noImplicitThis": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": true,
+    "baseUrl": ".",
+    },
+    "types": [
+      "node",
+      "mocha",
+      "chai"
+    ],
+    "noEmit": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "files": [
+    "./src/index.d.ts"
+  ]
+}
