@@ -380,6 +380,13 @@ class GossipSub extends BasicPubsub {
     })
   }
 
+  /**
+   * Override the default implementation in BasicPubSub.
+   * If we don't provide msgIdFn in constructor option, it's the same.
+   * @override
+   * @param {rpc.RPC.Message} msg the message object
+   * @returns {string} message id as string
+   */
   getMsgId (msg) {
     return this._msgIdFn(msg)
   }
