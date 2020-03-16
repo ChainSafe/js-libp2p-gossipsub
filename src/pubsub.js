@@ -71,6 +71,13 @@ class BasicPubSub extends Pubsub {
     this._options = _options
 
     this._onRpc = this._onRpc.bind(this)
+
+    /**
+     * The default msgID implementation
+     * @param {rpc.RPC.Message} msg the message object
+     * @returns {string} message id as string
+     */
+    this.defaultMsgIdFn = (msg) => utils.msgId(msg.from, msg.seqno)
   }
 
   /**
@@ -166,14 +173,14 @@ class BasicPubSub extends Pubsub {
     if (msgs.length) {
       msgs.forEach(async message => {
         const msg = utils.normalizeInRpcMessage(message)
-        const seqno = utils.msgId(msg.from, msg.seqno)
+        const msgID = this.getMsgId(msg)
 
         // Ignore if we've already seen the message
-        if (this.seenCache.has(seqno)) {
+        if (this.seenCache.has(msgID)) {
           return
         }
 
-        this.seenCache.put(seqno)
+        this.seenCache.put(msgID)
 
         // Ensure the message is valid before processing it
         let isValid
@@ -397,6 +404,15 @@ class BasicPubSub extends Pubsub {
     }
 
     return Array.from(this.subscriptions)
+  }
+
+  /**
+   * Child class can override this.
+   * @param {rpc.RPC.Message} msg the message object
+   * @returns {string} message id as string
+   */
+  getMsgId (msg) {
+    return this.defaultMsgIdFn(msg)
   }
 
   _emitMessages (topics, messages) {
