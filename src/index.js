@@ -23,6 +23,7 @@ class GossipSub extends BasicPubsub {
    * @param {bool} [options.gossipIncoming] if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
    * @param {bool} [options.fallbackToFloodsub] if dial should fallback to floodsub, defaults to true
    * @param {function} [options.msgIdFn] override the default message id function
+   * @param {Object} [options.messageCache] override the default MessageCache
    * @constructor
    */
   constructor (peerInfo, registrar, options = {}) {
@@ -82,7 +83,7 @@ class GossipSub extends BasicPubsub {
      * A message cache that contains the messages for last few hearbeat ticks
      *
      */
-    this.messageCache = new MessageCache(constants.GossipSubHistoryGossip, constants.GossipSubHistoryLength, this._msgIdFn)
+    this.messageCache = options.messageCache || new MessageCache(constants.GossipSubHistoryGossip, constants.GossipSubHistoryLength, this._msgIdFn)
 
     /**
      * A heartbeat timer that maintains the mesh

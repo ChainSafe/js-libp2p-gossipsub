@@ -53,9 +53,18 @@ class MessageCache {
    * @returns {void}
    */
   put (msg) {
-    const msgID = this.msgIdFn(msg)
+    const msgID = this.getMsgId(msg)
     this.msgs.set(msgID, msg)
     this.history[0].push(new CacheEntry(msgID, msg.topicIDs))
+  }
+
+  /**
+   * Get message id of message.
+   * @param {rpc.RPC.Message} msg
+   * @returns {string}
+   */
+  getMsgId (msg) {
+    return this.msgIdFn(msg)
   }
 
   /**
