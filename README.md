@@ -67,6 +67,8 @@ Options is an optional object with the following key-value pairs:
 
 * **`fallbackToFloodsub`**: boolean identifying whether the node should fallback to the floodsub protocol, if another connecting peer does not support gossipsub (defaults to **true**).
 * **`emitSelf`**: boolean identifying whether the node should emit to self on publish, in the event of the topic being subscribed (defaults to **false**).
+* **`msgIdFn`**: a function with signature `(message) => string` defining the message id given a message, used internally to deduplicate gossip (defaults to `(message) => message.from + message.seqno.toString('hex')`)
+* **`messageCache`**: optional, a customized `MessageCache` instance, see the implementation for the interface.
 
 For the remaining API, see https://github.com/libp2p/js-libp2p-pubsub
 

@@ -1,7 +1,5 @@
 'use strict'
 
-const { utils } = require('libp2p-pubsub')
-
 class CacheEntry {
   /**
    * @param {String} msgID
@@ -19,10 +17,11 @@ class MessageCache {
   /**
    * @param {Number} gossip
    * @param {Number} history
+   * @param {msgIdFn} msgIdFn a function that returns message id from a message
    *
    * @constructor
    */
-  constructor (gossip, history) {
+  constructor (gossip, history, msgIdFn) {
     /**
      * @type {Map<string, RPC.Message>}
      */
@@ -40,6 +39,11 @@ class MessageCache {
      * @type {Number}
      */
     this.gossip = gossip
+
+    /**
+     * @type {Function}
+     */
+    this.msgIdFn = msgIdFn
   }
 
   /**
@@ -49,9 +53,18 @@ class MessageCache {
    * @returns {void}
    */
   put (msg) {
-    const msgID = utils.msgId(msg.from, msg.seqno)
+    const msgID = this.getMsgId(msg)
     this.msgs.set(msgID, msg)
     this.history[0].push(new CacheEntry(msgID, msg.topicIDs))
+  }
+
+  /**
+   * Get message id of message.
+   * @param {rpc.RPC.Message} msg
+   * @returns {string}
+   */
+  getMsgId (msg) {
+    return this.msgIdFn(msg)
   }
 
   /**

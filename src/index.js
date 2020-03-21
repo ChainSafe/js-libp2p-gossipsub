@@ -22,6 +22,8 @@ class GossipSub extends BasicPubsub {
    * @param {bool} [options.emitSelf] if publish should emit to self, if subscribed, defaults to false
    * @param {bool} [options.gossipIncoming] if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
    * @param {bool} [options.fallbackToFloodsub] if dial should fallback to floodsub, defaults to true
+   * @param {function} [options.msgIdFn] override the default message id function
+   * @param {Object} [options.messageCache] override the default MessageCache
    * @constructor
    */
   constructor (peerInfo, registrar, options = {}) {
@@ -73,10 +75,15 @@ class GossipSub extends BasicPubsub {
     this.control = new Map()
 
     /**
+     * Use the overriden mesgIdFn or the default one.
+     */
+    this._msgIdFn = options.msgIdFn || this.defaultMsgIdFn
+
+    /**
      * A message cache that contains the messages for last few hearbeat ticks
      *
      */
-    this.messageCache = new MessageCache(constants.GossipSubHistoryGossip, constants.GossipSubHistoryLength)
+    this.messageCache = options.messageCache || new MessageCache(constants.GossipSubHistoryGossip, constants.GossipSubHistoryLength, this._msgIdFn)
 
     /**
      * A heartbeat timer that maintains the mesh
@@ -372,6 +379,17 @@ class GossipSub extends BasicPubsub {
         this.mesh.delete(topic)
       }
     })
+  }
+
+  /**
+   * Override the default implementation in BasicPubSub.
+   * If we don't provide msgIdFn in constructor option, it's the same.
+   * @override
+   * @param {rpc.RPC.Message} msg the message object
+   * @returns {string} message id as string
+   */
+  getMsgId (msg) {
+    return this._msgIdFn(msg)
   }
 
   _publish (messages) {

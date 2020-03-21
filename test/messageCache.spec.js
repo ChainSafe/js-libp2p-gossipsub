@@ -18,7 +18,7 @@ const getMsgID = (msg) => {
 }
 
 describe('Testing Message Cache Operations', () => {
-  const messageCache = new MessageCache(3, 5)
+  const messageCache = new MessageCache(3, 5, getMsgID)
   const testMessages = []
 
   before(() => {
