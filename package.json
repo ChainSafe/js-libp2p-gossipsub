@@ -1,6 +1,6 @@
 {
   "name": "libp2p-gossipsub",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "A javascript implementation of gossipsub",
   "leadMaintainer": "Cayman Nava <caymannava@gmail.com>",
   "main": "src/index.js",
@@ -73,6 +73,7 @@
     "Jacob Heun <jacobheun@gmail.com>",
     "Mikerah <mikerahqc@protonmail.com>",
     "Mikerah <mikerah14@gmail.com>",
+    "Tuyen <tuyen@wetrust.io>",
     "Vasco Santos <vasco.santos@moxy.studio>",
     "Vasco Santos <vasco.santos@ua.pt>"
   ]
