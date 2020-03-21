@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset='utf-8'>
-  <title>libp2p-gossipsub 0.2.4 | Documentation</title>
+  <title>libp2p-gossipsub 0.2.5 | Documentation</title>
   <meta name='description' content='A javascript implementation of gossipsub'>
   <meta name='viewport' content='width=device-width,initial-scale=1'>
   <link href='assets/bass.css' rel='stylesheet'>
@@ -15,7 +15,7 @@
       <div id='split-left' class='overflow-auto fs0 height-viewport-100'>
         <div class='py1 px2'>
           <h3 class='mb0 no-anchor'>libp2p-gossipsub</h3>
-          <div class='mb1'><code>0.2.4</code></div>
+          <div class='mb1'><code>0.2.5</code></div>
           <input
             placeholder='Filter'
             id='filter-input'
@@ -89,6 +89,16 @@
                   href='#control'
                   class="">
                   control
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
+                  href='#_msgidfn'
+                  class="">
+                  _msgIdFn
                   
                 </a>
                 
@@ -226,6 +236,16 @@
               
                 
                 <li><a
+                  href='#getmsgid'
+                  class="">
+                  getMsgId
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
                   href='#_sendgraft'
                   class="">
                   _sendGraft
@@ -336,6 +356,16 @@
               
                 
                 <li><a
+                  href='#defaultmsgidfn'
+                  class="">
+                  defaultMsgIdFn
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
                   href='#_onpeerconnected'
                   class="">
                   _onPeerConnected
@@ -436,6 +466,16 @@
               
                 
                 <li><a
+                  href='#getmsgid'
+                  class="">
+                  getMsgId
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
                   href='#_getpeers'
                   class="">
                   _getPeers
@@ -506,9 +546,29 @@
               
                 
                 <li><a
+                  href='#msgidfn'
+                  class="">
+                  msgIdFn
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
                   href='#put'
                   class="">
                   put
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
+                  href='#getmsgid'
+                  class="">
+                  getMsgId
                   
                 </a>
                 
@@ -632,7 +692,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L27-L85'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L29-L92'>
       <span>src/index.js</span>
       </a>
     
@@ -759,6 +819,24 @@
 
 
               
+                <tr>
+  <td class='break-word'><span class='code bold'>options.msgIdFn</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function">function</a>?</code>
+  </td>
+  <td class='break-word'><span>override the default message id function
+</span></td>
+</tr>
+
+
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>options.messageCache</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a>?</code>
+  </td>
+  <td class='break-word'><span>override the default MessageCache
+</span></td>
+</tr>
+
+
+              
             </tbody>
           </table>
           
@@ -797,7 +875,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L45-L45'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L47-L47'>
       <span>src/index.js</span>
       </a>
     
@@ -854,7 +932,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L52-L52'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L54-L54'>
       <span>src/index.js</span>
       </a>
     
@@ -911,7 +989,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L59-L59'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L61-L61'>
       <span>src/index.js</span>
       </a>
     
@@ -968,7 +1046,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L66-L66'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L68-L68'>
       <span>src/index.js</span>
       </a>
     
@@ -1020,7 +1098,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L73-L73'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L75-L75'>
       <span>src/index.js</span>
       </a>
     
@@ -1067,12 +1145,64 @@
   
   <div class='clearfix'>
     
+    <h3 class='fl m0' id='_msgidfn'>
+      _msgIdFn
+    </h3>
+    
+    
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L80-L80'>
+      <span>src/index.js</span>
+      </a>
+    
+  </div>
+  
+
+  <p>Use the overriden mesgIdFn or the default one.</p>
+
+    <div class='pre p1 fill-light mt0'>_msgIdFn</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
     <h3 class='fl m0' id='messagecache'>
       messageCache
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L79-L79'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L86-L86'>
       <span>src/index.js</span>
       </a>
     
@@ -1124,7 +1254,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L84-L84'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L91-L91'>
       <span>src/index.js</span>
       </a>
     
@@ -1176,7 +1306,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L93-L114'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L100-L121'>
       <span>src/index.js</span>
       </a>
     
@@ -1249,7 +1379,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L122-L140'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L129-L147'>
       <span>src/index.js</span>
       </a>
     
@@ -1330,7 +1460,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L147-L181'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L154-L188'>
       <span>src/index.js</span>
       </a>
     
@@ -1396,7 +1526,7 @@ emitting locally and forwarding on to relevant floodsub and gossipsub peers</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L189-L214'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L196-L221'>
       <span>src/index.js</span>
       </a>
     
@@ -1477,7 +1607,7 @@ emitting locally and forwarding on to relevant floodsub and gossipsub peers</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L223-L243'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L230-L250'>
       <span>src/index.js</span>
       </a>
     
@@ -1559,7 +1689,7 @@ Returns messages to send back to peer</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L251-L277'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L258-L284'>
       <span>src/index.js</span>
       </a>
     
@@ -1640,7 +1770,7 @@ Returns messages to send back to peer</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L285-L294'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L292-L301'>
       <span>src/index.js</span>
       </a>
     
@@ -1721,7 +1851,7 @@ Returns messages to send back to peer</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L302-L305'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L309-L312'>
       <span>src/index.js</span>
       </a>
     
@@ -1782,7 +1912,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L312-L321'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L319-L328'>
       <span>src/index.js</span>
       </a>
     
@@ -1842,7 +1972,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L328-L352'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L335-L359'>
       <span>src/index.js</span>
       </a>
     
@@ -1915,7 +2045,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L359-L375'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L366-L382'>
       <span>src/index.js</span>
       </a>
     
@@ -1983,12 +2113,87 @@ our subscriptions to every peer connected</p>
   
   <div class='clearfix'>
     
+    <h3 class='fl m0' id='getmsgid'>
+      getMsgId
+    </h3>
+    
+    
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L391-L393'>
+      <span>src/index.js</span>
+      </a>
+    
+  </div>
+  
+
+  <p>Override the default implementation in BasicPubSub.
+If we don't provide msgIdFn in constructor option, it's the same.</p>
+
+    <div class='pre p1 fill-light mt0'>getMsgId(msg: rpc.RPC.Message): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>msg</span> <code class='quiet'>(rpc.RPC.Message)</code>
+	    the message object
+
+          </div>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>:
+        message id as string
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
     <h3 class='fl m0' id='_sendgraft'>
       _sendGraft
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L435-L442'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L453-L460'>
       <span>src/index.js</span>
       </a>
     
@@ -2069,7 +2274,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L450-L457'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L468-L475'>
       <span>src/index.js</span>
       </a>
     
@@ -2150,7 +2355,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L506-L525'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L524-L543'>
       <span>src/index.js</span>
       </a>
     
@@ -2223,7 +2428,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L533-L549'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L551-L567'>
       <span>src/index.js</span>
       </a>
     
@@ -2305,7 +2510,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L554-L567'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L572-L585'>
       <span>src/index.js</span>
       </a>
     
@@ -2357,7 +2562,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L575-L579'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L593-L597'>
       <span>src/index.js</span>
       </a>
     
@@ -2438,7 +2643,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/index.js#L585-L587'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/index.js#L603-L605'>
       <span>src/index.js</span>
       </a>
     
@@ -2498,7 +2703,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L34-L74'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L34-L81'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -2679,7 +2884,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L59-L59'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L59-L59'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -2731,7 +2936,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L66-L66'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L66-L66'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -2788,7 +2993,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L71-L71'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L71-L71'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -2835,12 +3040,86 @@ our subscriptions to every peer connected</p>
   
   <div class='clearfix'>
     
+    <h3 class='fl m0' id='defaultmsgidfn'>
+      defaultMsgIdFn
+    </h3>
+    
+    
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L80-L80'>
+      <span>src/pubsub.js</span>
+      </a>
+    
+  </div>
+  
+
+  <p>The default msgID implementation</p>
+
+    <div class='pre p1 fill-light mt0'>defaultMsgIdFn(msg: rpc.RPC.Message): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>msg</span> <code class='quiet'>(rpc.RPC.Message)</code>
+	    the message object
+
+          </div>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>:
+        message id as string
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
     <h3 class='fl m0' id='_onpeerconnected'>
       _onPeerConnected
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L83-L92'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L90-L99'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -2923,7 +3202,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L104-L121'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L111-L128'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -3016,7 +3295,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L130-L197'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L137-L204'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -3097,7 +3376,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L202-L209'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L209-L216'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -3161,7 +3440,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L232-L243'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L239-L250'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -3271,7 +3550,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L250-L254'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L257-L261'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -3331,7 +3610,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L262-L296'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L269-L303'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -3404,7 +3683,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L308-L342'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L315-L349'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -3477,7 +3756,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L355-L387'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L362-L394'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -3558,7 +3837,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L394-L400'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L401-L407'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -3613,12 +3892,86 @@ responsible for processing each RPC message received by other peers.</p>
   
   <div class='clearfix'>
     
+    <h3 class='fl m0' id='getmsgid'>
+      getMsgId
+    </h3>
+    
+    
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L414-L416'>
+      <span>src/pubsub.js</span>
+      </a>
+    
+  </div>
+  
+
+  <p>Child class can override this.</p>
+
+    <div class='pre p1 fill-light mt0'>getMsgId(msg: rpc.RPC.Message): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>msg</span> <code class='quiet'>(rpc.RPC.Message)</code>
+	    the message object
+
+          </div>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>:
+        message id as string
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
     <h3 class='fl m0' id='_getpeers'>
       _getPeers
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L426-L447'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L442-L463'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -3699,7 +4052,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/pubsub.js#L455-L472'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/pubsub.js#L471-L488'>
       <span>src/pubsub.js</span>
       </a>
     
@@ -3772,7 +4125,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/messageCache.js#L12-L15'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/messageCache.js#L10-L13'>
       <span>src/messageCache.js</span>
       </a>
     
@@ -3844,7 +4197,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/messageCache.js#L25-L43'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/messageCache.js#L24-L47'>
       <span>src/messageCache.js</span>
       </a>
     
@@ -3852,7 +4205,7 @@ responsible for processing each RPC message received by other peers.</p>
   
 
   
-    <div class='pre p1 fill-light mt0'>new constructor(gossip: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">Number</a>, history: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">Number</a>)</div>
+    <div class='pre p1 fill-light mt0'>new constructor(gossip: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">Number</a>, history: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">Number</a>, msgIdFn: msgIdFn)</div>
   
   
 
@@ -3879,6 +4232,15 @@ responsible for processing each RPC message received by other peers.</p>
           <div>
             <span class='code bold'>history</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">Number</a>)</code>
 	    
+          </div>
+          
+        </div>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>msgIdFn</span> <code class='quiet'>(msgIdFn)</code>
+	    a function that returns message id from a message
+
           </div>
           
         </div>
@@ -3916,7 +4278,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/messageCache.js#L29-L29'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/messageCache.js#L28-L28'>
       <span>src/messageCache.js</span>
       </a>
     
@@ -3972,7 +4334,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/messageCache.js#L34-L34'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/messageCache.js#L33-L33'>
       <span>src/messageCache.js</span>
       </a>
     
@@ -4028,7 +4390,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/messageCache.js#L42-L42'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/messageCache.js#L41-L41'>
       <span>src/messageCache.js</span>
       </a>
     
@@ -4079,12 +4441,68 @@ responsible for processing each RPC message received by other peers.</p>
   
   <div class='clearfix'>
     
+    <h3 class='fl m0' id='msgidfn'>
+      msgIdFn
+    </h3>
+    
+    
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/messageCache.js#L46-L46'>
+      <span>src/messageCache.js</span>
+      </a>
+    
+  </div>
+  
+
+  
+    <div class='pre p1 fill-light mt0'>msgIdFn</div>
+  
+    <p>
+      Type:
+      <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function">Function</a>
+    </p>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
     <h3 class='fl m0' id='put'>
       put
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/messageCache.js#L51-L55'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/messageCache.js#L55-L59'>
       <span>src/messageCache.js</span>
       </a>
     
@@ -4152,12 +4570,85 @@ responsible for processing each RPC message received by other peers.</p>
   
   <div class='clearfix'>
     
+    <h3 class='fl m0' id='getmsgid'>
+      getMsgId
+    </h3>
+    
+    
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/messageCache.js#L66-L68'>
+      <span>src/messageCache.js</span>
+      </a>
+    
+  </div>
+  
+
+  <p>Get message id of message.</p>
+
+    <div class='pre p1 fill-light mt0'>getMsgId(msg: rpc.RPC.Message): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>msg</span> <code class='quiet'>(rpc.RPC.Message)</code>
+	    
+          </div>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>:
+        
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
     <h3 class='fl m0' id='get'>
       get
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/messageCache.js#L63-L65'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/messageCache.js#L76-L78'>
       <span>src/messageCache.js</span>
       </a>
     
@@ -4230,7 +4721,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/messageCache.js#L74-L88'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/messageCache.js#L87-L101'>
       <span>src/messageCache.js</span>
       </a>
     
@@ -4303,7 +4794,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/messageCache.js#L95-L103'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/messageCache.js#L108-L116'>
       <span>src/messageCache.js</span>
       </a>
     
@@ -4363,7 +4854,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/heartbeat.js#L11-L13'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/heartbeat.js#L11-L13'>
       <span>src/heartbeat.js</span>
       </a>
     
@@ -4427,7 +4918,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/heartbeat.js#L47-L56'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/heartbeat.js#L47-L56'>
       <span>src/heartbeat.js</span>
       </a>
     
@@ -4487,7 +4978,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/heartbeat.js#L63-L159'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/heartbeat.js#L63-L159'>
       <span>src/heartbeat.js</span>
       </a>
     
@@ -4547,7 +5038,7 @@ responsible for processing each RPC message received by other peers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/97515f7022b305867440f61acde365c61c802159/src/heartbeat.js#L71-L71'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/gossipsub-js/blob/7c6f65bdc14e596f696e01a918990ae2fbec65a9/src/heartbeat.js#L71-L71'>
       <span>src/heartbeat.js</span>
       </a>
     
