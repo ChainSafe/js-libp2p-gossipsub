@@ -20,6 +20,8 @@ js-libp2p-gossipsub
 ## Specs
 Gossipsub is an implementation of pubsub based on meshsub and floodsub. You can read the specification [here](https://github.com/libp2p/specs/tree/master/pubsub/gossipsub).
 
+`libp2p-gossipsub` currently implements the `v1.0` of the spec.
+
 ## Install
 
 `npm install libp2p-gossipsub`
