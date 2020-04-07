@@ -6,12 +6,9 @@ const DuplexPair = require('it-pair/duplex')
 const pTimes = require('p-times')
 
 const FloodSub = require('libp2p-floodsub')
-const { multicodec: floodsubMulticodec } = require('libp2p-floodsub')
 const PeerId = require('peer-id')
-const PeerInfo = require('peer-info')
 
 const GossipSub = require('../../src')
-const { GossipSubID } = require('../../src/constants')
 
 exports.first = (map) => map.values().next().value
 
@@ -19,19 +16,17 @@ exports.expectSet = (set, subs) => {
   expect(Array.from(set.values())).to.eql(subs)
 }
 
-const createPeerInfo = async (protocol = GossipSubID) => {
+const createPeerId = async () => {
   const peerId = await PeerId.create({ bits: 1024 })
-  const peerInfo = await PeerInfo.create(peerId)
-  peerInfo.protocols.add(protocol)
 
-  return peerInfo
+  return peerId
 }
 
-exports.createPeerInfo = createPeerInfo
+exports.createPeerId = createPeerId
 
 const createGossipsub = async (registrar, shouldStart = false, options) => {
-  const peerInfo = await createPeerInfo()
-  const gs = new GossipSub(peerInfo, registrar, options)
+  const peerId = await createPeerId()
+  const gs = new GossipSub(peerId, registrar, options)
 
   if (shouldStart) {
     await gs.start()
@@ -68,8 +63,8 @@ const connectGossipsubNodes = (nodes, registrarRecords, multicodec) => {
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
-      onConnectI(nodes[j].peerInfo, d0)
-      onConnectJ(nodes[i].peerInfo, d1)
+      onConnectI(nodes[j].peerId, d0)
+      onConnectJ(nodes[i].peerId, d1)
     }
   }
 
@@ -88,8 +83,8 @@ const createGossipsubConnectedNodes = async (n, multicodec, options) => {
 exports.createGossipsubConnectedNodes = createGossipsubConnectedNodes
 
 const createFloodsubNode = async (registrar, shouldStart = false, options) => {
-  const peerInfo = await createPeerInfo(floodsubMulticodec)
-  const fs = new FloodSub(peerInfo, registrar, options)
+  const peerId = await createPeerId()
+  const fs = new FloodSub(peerId, registrar, options)
 
   if (shouldStart) {
     await fs.start()

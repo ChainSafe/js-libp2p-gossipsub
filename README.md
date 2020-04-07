@@ -44,7 +44,7 @@ const registrar = {
   }
 }
 
-const gsub = new Gossipsub(peerInfo, registrar, options)
+const gsub = new Gossipsub(peerId, registrar, options)
 
 await gsub.start()
 
@@ -62,7 +62,7 @@ gsub.publish('fruit', new Buffer('banana'))
 
 ```js
 const options = {…}
-const gossipsub = new Gossipsub(peerInfo, registrar, options)
+const gossipsub = new Gossipsub(peerId, registrar, options)
 ```
 
 Options is an optional object with the following key-value pairs:

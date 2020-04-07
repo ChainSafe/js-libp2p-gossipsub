@@ -11,7 +11,7 @@ const pWaitFor = require('p-wait-for')
 const { utils } = require('libp2p-pubsub')
 const {
   createGossipsub,
-  createPeerInfo,
+  createPeerId,
   mockRegistrar
 } = require('./utils')
 
@@ -127,7 +127,7 @@ describe('Pubsub', () => {
     it('should disconnect peer on stream error', async () => {
       sinon.spy(gossipsub, '_onPeerDisconnected')
 
-      const peerInfo = await createPeerInfo()
+      const peerId = await createPeerId()
       const mockConn = {
         newStream () {
           return {
@@ -147,9 +147,9 @@ describe('Pubsub', () => {
         }
       }
 
-      gossipsub._onPeerConnected(peerInfo, mockConn)
+      gossipsub._onPeerConnected(peerId, mockConn)
 
-      await pWaitFor(() => gossipsub._onPeerDisconnected.calledWith(peerInfo), { timeout: 1000 })
+      await pWaitFor(() => gossipsub._onPeerDisconnected.calledWith(peerId), { timeout: 1000 })
     })
   })
 })

@@ -42,8 +42,8 @@ describe('mesh overlay', () => {
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
-      onConnect0(nodes[n].peerInfo, d0)
-      onConnectN(nodes[0].peerInfo, d1)
+      onConnect0(nodes[n].peerId, d0)
+      onConnectN(nodes[0].peerId, d1)
     }
 
     // await mesh rebalancing
@@ -69,8 +69,8 @@ describe('mesh overlay', () => {
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
-      onConnect0(nodes[i].peerInfo, d0)
-      onConnectN(nodes[0].peerInfo, d1)
+      onConnect0(nodes[i].peerId, d0)
+      onConnectN(nodes[0].peerId, d1)
     }
 
     await new Promise((resolve) => setTimeout(resolve, 500))

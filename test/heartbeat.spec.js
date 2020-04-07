@@ -5,14 +5,14 @@ const { expect } = require('chai')
 
 const Gossipsub = require('../src')
 const { GossipSubHeartbeatInterval } = require('../src/constants')
-const { createPeerInfo, mockRegistrar } = require('./utils')
+const { createPeerId, mockRegistrar } = require('./utils')
 
 describe('heartbeat', () => {
   let gossipsub
 
   before(async () => {
-    const peerInfo = await createPeerInfo()
-    gossipsub = new Gossipsub(peerInfo, mockRegistrar, { emitSelf: true })
+    const peerId = await createPeerId()
+    gossipsub = new Gossipsub(peerId, mockRegistrar, { emitSelf: true })
     await gossipsub.start()
   })
 

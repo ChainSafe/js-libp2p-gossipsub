@@ -67,8 +67,8 @@ describe('2 nodes', () => {
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
-      onConnect0(nodes[1].peerInfo, d0)
-      onConnect1(nodes[0].peerInfo, d1)
+      onConnect0(nodes[1].peerId, d0)
+      onConnect1(nodes[0].peerId, d1)
 
       expect(nodes[0].peers.size).to.be.eql(1)
       expect(nodes[1].peers.size).to.be.eql(1)
@@ -92,7 +92,7 @@ describe('2 nodes', () => {
       nodes[1].subscribe(topic)
 
       // await subscription change
-      const [changedPeerInfo, changedTopics, changedSubs] = await new Promise((resolve) => {
+      const [changedPeerId, changedTopics, changedSubs] = await new Promise((resolve) => {
         nodes[0].once('pubsub:subscription-change', (...args) => resolve(args))
       })
 
@@ -103,7 +103,7 @@ describe('2 nodes', () => {
       expectSet(first(nodes[0].peers).topics, [topic])
       expectSet(first(nodes[1].peers).topics, [topic])
 
-      expect(changedPeerInfo.id.toB58String()).to.equal(first(nodes[0].peers).info.id.toB58String())
+      expect(changedPeerId.toB58String()).to.equal(first(nodes[0].peers).id.toB58String())
       expectSet(changedTopics, [topic])
       expect(changedSubs).to.be.eql([{ topicID: topic, subscribe: true }])
 
@@ -113,8 +113,8 @@ describe('2 nodes', () => {
         new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
       ])
 
-      expect(first(nodes[0].mesh.get(topic)).info.id.toB58String()).to.equal(first(nodes[0].peers).info.id.toB58String())
-      expect(first(nodes[1].mesh.get(topic)).info.id.toB58String()).to.equal(first(nodes[1].peers).info.id.toB58String())
+      expect(first(nodes[0].mesh.get(topic)).id.toB58String()).to.equal(first(nodes[0].peers).id.toB58String())
+      expect(first(nodes[1].mesh.get(topic)).id.toB58String()).to.equal(first(nodes[1].peers).id.toB58String())
     })
   })
 
@@ -151,7 +151,7 @@ describe('2 nodes', () => {
       const msg = await promise
 
       expect(msg.data.toString()).to.equal('hey')
-      expect(msg.from).to.be.eql(nodes[0].peerInfo.id.toB58String())
+      expect(msg.from).to.be.eql(nodes[0].peerId.toB58String())
 
       nodes[0].removeListener(topic, shouldNotHappen)
     })
@@ -165,7 +165,7 @@ describe('2 nodes', () => {
       const msg = await promise
 
       expect(msg.data.toString()).to.equal('banana')
-      expect(msg.from).to.be.eql(nodes[1].peerInfo.id.toB58String())
+      expect(msg.from).to.be.eql(nodes[1].peerId.toB58String())
 
       nodes[1].removeListener(topic, shouldNotHappen)
     })
@@ -179,7 +179,7 @@ describe('2 nodes', () => {
 
       function receivedMsg (msg) {
         expect(msg.data.toString()).to.equal('banana')
-        expect(msg.from).to.be.eql(nodes[1].peerInfo.id.toB58String())
+        expect(msg.from).to.be.eql(nodes[1].peerId.toB58String())
         expect(Buffer.isBuffer(msg.seqno)).to.be.true()
         expect(msg.topicIDs).to.be.eql([topic])
 
@@ -204,7 +204,7 @@ describe('2 nodes', () => {
 
       function receivedMsg (msg) {
         expect(msg.data.toString()).to.equal('banana')
-        expect(msg.from).to.be.eql(nodes[1].peerInfo.id.toB58String())
+        expect(msg.from).to.be.eql(nodes[1].peerId.toB58String())
         expect(Buffer.isBuffer(msg.seqno)).to.be.true()
         expect(msg.topicIDs).to.be.eql([topic])
 
@@ -251,14 +251,14 @@ describe('2 nodes', () => {
       nodes[0].unsubscribe(topic)
       expect(nodes[0].subscriptions.size).to.equal(0)
 
-      const [changedPeerInfo, changedTopics, changedSubs] = await new Promise((resolve) => {
+      const [changedPeerId, changedTopics, changedSubs] = await new Promise((resolve) => {
         nodes[1].once('pubsub:subscription-change', (...args) => resolve(args))
       })
       await new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
 
       expect(nodes[1].peers.size).to.equal(1)
       expectSet(first(nodes[1].peers).topics, [])
-      expect(changedPeerInfo.id.toB58String()).to.equal(first(nodes[1].peers).info.id.toB58String())
+      expect(changedPeerId.toB58String()).to.equal(first(nodes[1].peers).id.toB58String())
       expectSet(changedTopics, [])
       expect(changedSubs).to.be.eql([{ topicID: topic, subscribe: false }])
     })
@@ -316,8 +316,8 @@ describe('2 nodes', () => {
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
-      onConnect0(nodes[1].peerInfo, d0)
-      onConnect1(nodes[0].peerInfo, d1)
+      onConnect0(nodes[1].peerId, d0)
+      onConnect1(nodes[0].peerId, d1)
 
       await Promise.all([
         new Promise((resolve) => nodes[0].once('pubsub:subscription-change', resolve)),
