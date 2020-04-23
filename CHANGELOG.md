@@ -1,3 +1,18 @@
+<a name="0.4.0"></a>
+# [0.4.0](https://github.com/ChainSafe/gossipsub-js/compare/v0.3.0...v0.4.0) (2020-04-23)
+
+
+### Chores
+
+* remove peer-info usage ([602ccaa](https://github.com/ChainSafe/gossipsub-js/commit/602ccaa))
+
+
+### BREAKING CHANGES
+
+* using new topology api with peer-id instead of peer-info and new pubsub internal peer data structure
+
+
+
 <a name="0.3.0"></a>
 # [0.3.0](https://github.com/ChainSafe/gossipsub-js/compare/v0.2.6...v0.3.0) (2020-04-23)
 
