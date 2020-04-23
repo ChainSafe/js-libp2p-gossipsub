@@ -41,12 +41,12 @@ describe('multiple nodes (more than 2)', () => {
 
           // Notice peers of connection
           const [d0, d1] = ConnectionPair()
-          onConnectA(b.peerInfo, d0)
-          onConnectB(a.peerInfo, d1)
+          onConnectA(b.peerId, d0)
+          onConnectB(a.peerId, d1)
 
           const [d2, d3] = ConnectionPair()
-          onConnectB(c.peerInfo, d2)
-          onConnectC(b.peerInfo, d3)
+          onConnectB(c.peerId, d2)
+          onConnectC(b.peerId, d3)
         })
 
         after(() => Promise.all(nodes.map((n) => n.stop())))
@@ -70,9 +70,9 @@ describe('multiple nodes (more than 2)', () => {
           expect(b.peers.size).to.equal(2)
           expect(c.peers.size).to.equal(1)
 
-          const aPeerId = a.peerInfo.id.toB58String()
-          const bPeerId = b.peerInfo.id.toB58String()
-          const cPeerId = c.peerInfo.id.toB58String()
+          const aPeerId = a.peerId.toB58String()
+          const bPeerId = b.peerId.toB58String()
+          const cPeerId = c.peerId.toB58String()
 
           expectSet(a.peers.get(bPeerId).topics, [topic])
           expectSet(b.peers.get(aPeerId).topics, [topic])
@@ -106,12 +106,12 @@ describe('multiple nodes (more than 2)', () => {
 
           // Notice peers of connection
           const [d0, d1] = ConnectionPair()
-          onConnectA(b.peerInfo, d0)
-          onConnectB(a.peerInfo, d1)
+          onConnectA(b.peerId, d0)
+          onConnectB(a.peerId, d1)
 
           const [d2, d3] = ConnectionPair()
-          onConnectB(c.peerInfo, d2)
-          onConnectC(b.peerInfo, d3)
+          onConnectB(c.peerId, d2)
+          onConnectC(b.peerId, d3)
 
           a.subscribe(topic)
           b.subscribe(topic)
@@ -201,12 +201,12 @@ describe('multiple nodes (more than 2)', () => {
 
         // Notice peers of connection
         const [d0, d1] = ConnectionPair()
-        onConnectA(b.peerInfo, d0)
-        onConnectB(a.peerInfo, d1)
+        onConnectA(b.peerId, d0)
+        onConnectB(a.peerId, d1)
 
         const [d2, d3] = ConnectionPair()
-        onConnectB(c.peerInfo, d2)
-        onConnectC(b.peerInfo, d3)
+        onConnectB(c.peerId, d2)
+        onConnectC(b.peerId, d3)
 
         a.subscribe(topic)
         b.subscribe(topic)
@@ -266,20 +266,20 @@ describe('multiple nodes (more than 2)', () => {
 
         // Notice peers of connection
         const [d0, d1] = ConnectionPair()
-        onConnectA(b.peerInfo, d0)
-        onConnectB(a.peerInfo, d1)
+        onConnectA(b.peerId, d0)
+        onConnectB(a.peerId, d1)
 
         const [d2, d3] = ConnectionPair()
-        onConnectB(c.peerInfo, d2)
-        onConnectC(b.peerInfo, d3)
+        onConnectB(c.peerId, d2)
+        onConnectC(b.peerId, d3)
 
         const [d4, d5] = ConnectionPair()
-        onConnectC(d.peerInfo, d4)
-        onConnectD(c.peerInfo, d5)
+        onConnectC(d.peerId, d4)
+        onConnectD(c.peerId, d5)
 
         const [d6, d7] = ConnectionPair()
-        onConnectD(e.peerInfo, d6)
-        onConnectE(d.peerInfo, d7)
+        onConnectD(e.peerId, d6)
+        onConnectE(d.peerId, d7)
 
         a.subscribe(topic)
         b.subscribe(topic)

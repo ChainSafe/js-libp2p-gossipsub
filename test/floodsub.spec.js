@@ -51,8 +51,8 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
-      onConnectGs(nodeFs.peerInfo, d0)
-      onConnectFs(nodeGs.peerInfo, d1)
+      onConnectGs(nodeFs.peerId, d0)
+      onConnectFs(nodeGs.peerId, d1)
 
       expect(nodeGs.peers.size).to.equal(1)
       expect(nodeFs.peers.size).to.equal(1)
@@ -115,8 +115,8 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
-      onConnectGs(nodeFs.peerInfo, d0)
-      onConnectFs(nodeGs.peerInfo, d1)
+      onConnectGs(nodeFs.peerId, d0)
+      onConnectFs(nodeGs.peerId, d1)
     })
 
     after(async function () {
@@ -134,7 +134,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       nodeFs.subscribe(topic)
 
       // await subscription change
-      const [changedPeerInfo, changedTopics, changedSubs] = await new Promise((resolve) => {
+      const [changedPeerId, changedTopics, changedSubs] = await new Promise((resolve) => {
         nodeGs.once('pubsub:subscription-change', (...args) => resolve(args))
       })
       await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -146,7 +146,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       expectSet(first(nodeGs.peers).topics, [topic])
       expectSet(first(nodeFs.peers).topics, [topic])
 
-      expect(changedPeerInfo.id.toB58String()).to.equal(first(nodeGs.peers).info.id.toB58String())
+      expect(changedPeerId.toB58String()).to.equal(first(nodeGs.peers).id.toB58String())
       expectSet(changedTopics, [topic])
       expect(changedSubs).to.be.eql([{ topicID: topic, subscribe: true }])
     })
@@ -170,8 +170,8 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
-      onConnectGs(nodeFs.peerInfo, d0)
-      onConnectFs(nodeGs.peerInfo, d1)
+      onConnectGs(nodeFs.peerId, d0)
+      onConnectFs(nodeGs.peerId, d1)
 
       nodeGs.subscribe(topic)
       nodeFs.subscribe(topic)
@@ -200,7 +200,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       promise.then((msg) => {
         expect(msg.data.toString()).to.equal('hey')
-        expect(msg.from).to.be.eql(nodeGs.peerInfo.id.toB58String())
+        expect(msg.from).to.be.eql(nodeGs.peerId.toB58String())
 
         nodeGs.removeListener(topic, shouldNotHappen)
         done()
@@ -215,7 +215,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       const msg = await promise
 
       expect(msg.data.toString()).to.equal('banana')
-      expect(msg.from).to.be.eql(nodeFs.peerInfo.id.toB58String())
+      expect(msg.from).to.be.eql(nodeFs.peerId.toB58String())
     })
 
     it('Publish 10 msg to a topic', (done) => {
@@ -230,7 +230,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       function receivedMsg (msg) {
         expect(msg.data.toString()).to.equal('banana ' + counter)
-        expect(msg.from).to.be.eql(nodeGs.peerInfo.id.toB58String())
+        expect(msg.from).to.be.eql(nodeGs.peerId.toB58String())
         expect(Buffer.isBuffer(msg.seqno)).to.be.true()
         expect(msg.topicIDs).to.be.eql([topic])
 
@@ -257,7 +257,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       function receivedMsg (msg) {
         expect(msg.data.toString()).to.equal('banana ' + counter)
-        expect(msg.from).to.be.eql(nodeGs.peerInfo.id.toB58String())
+        expect(msg.from).to.be.eql(nodeGs.peerId.toB58String())
         expect(Buffer.isBuffer(msg.seqno)).to.be.true()
         expect(msg.topicIDs).to.be.eql([topic])
 
@@ -291,8 +291,8 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
-      await onConnectGs(nodeFs.peerInfo, d0)
-      await onConnectFs(nodeGs.peerInfo, d1)
+      await onConnectGs(nodeFs.peerId, d0)
+      await onConnectFs(nodeGs.peerId, d1)
 
       nodeGs.subscribe(topic)
       nodeFs.subscribe(topic)
@@ -313,13 +313,13 @@ describe('gossipsub fallbacks to floodsub', () => {
       nodeGs.unsubscribe(topic)
       expect(nodeGs.subscriptions.size).to.equal(0)
 
-      const [changedPeerInfo, changedTopics, changedSubs] = await new Promise((resolve) => {
+      const [changedPeerId, changedTopics, changedSubs] = await new Promise((resolve) => {
         nodeFs.once('floodsub:subscription-change', (...args) => resolve(args))
       })
 
       expect(nodeFs.peers.size).to.equal(1)
       expectSet(first(nodeFs.peers).topics, [])
-      expect(changedPeerInfo.id.toB58String()).to.equal(first(nodeFs.peers).info.id.toB58String())
+      expect(changedPeerId.toB58String()).to.equal(first(nodeFs.peers).id.toB58String())
       expectSet(changedTopics, [])
       expect(changedSubs).to.be.eql([{ topicID: topic, subscribe: false }])
     })

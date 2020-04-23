@@ -52,7 +52,7 @@ describe('gossip', () => {
       .map((call) => call.args[1])
       .forEach((peerId) => {
         nodeA.mesh.get(topic).forEach((meshPeer) => {
-          expect(meshPeer.info.id.toB58String()).to.not.equal(peerId)
+          expect(meshPeer.id.toB58String()).to.not.equal(peerId)
         })
       })
 
@@ -76,7 +76,7 @@ describe('gossip', () => {
     await new Promise((resolve) => setTimeout(resolve, 500))
 
     const peerB = first(nodeA.mesh.get(topic))
-    const nodeB = nodes.find((n) => n.peerInfo.id.toB58String() === peerB.info.id.toB58String())
+    const nodeB = nodes.find((n) => n.peerId.toB58String() === peerB.id.toB58String())
 
     // set spy
     sinon.spy(nodeB, 'log')
@@ -91,7 +91,7 @@ describe('gossip', () => {
     // expect control message to be sent alongside published message
     const call = nodeB.log.getCalls().find((call) => call.args[0] === 'GRAFT: Add mesh link from %s in %s')
     expect(call).to.not.equal(undefined)
-    expect(call.args[1]).to.equal(nodeA.peerInfo.id.toB58String())
+    expect(call.args[1]).to.equal(nodeA.peerId.toB58String())
 
     // unset spy
     nodeB.log.restore()

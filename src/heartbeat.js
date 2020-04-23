@@ -83,7 +83,7 @@ class Heartbeat {
             return
           }
 
-          this.gossipsub.log('HEARTBEAT: Add mesh link to %s in %s', peer.info.id.toB58String(), topic)
+          this.gossipsub.log('HEARTBEAT: Add mesh link to %s in %s', peer.id.toB58String(), topic)
           peers.add(peer)
           const peerGrafts = tograft.get(peer)
           if (!peerGrafts) {
@@ -102,7 +102,7 @@ class Heartbeat {
         peersArray = peersArray.slice(0, idontneed)
 
         peersArray.forEach((peer) => {
-          this.gossipsub.log('HEARTBEAT: Remove mesh link to %s in %s', peer.info.id.toB58String(), topic)
+          this.gossipsub.log('HEARTBEAT: Remove mesh link to %s in %s', peer.id.toB58String(), topic)
           peers.delete(peer)
           const peerPrunes = toprune.get(peer)
           if (!peerPrunes) {

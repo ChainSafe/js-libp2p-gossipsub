@@ -48,7 +48,7 @@ describe('gossip incoming', () => {
       const msg = await promise
 
       expect(msg.data.toString()).to.equal('hey')
-      expect(msg.from).to.be.eql(nodes[0].peerInfo.id.toB58String())
+      expect(msg.from).to.be.eql(nodes[0].peerId.toB58String())
 
       nodes[0].removeListener(topic, shouldNotHappen)
     })

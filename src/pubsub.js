@@ -20,18 +20,18 @@ class BasicPubSub extends Pubsub {
    * @param {Object} props
    * @param {String} props.debugName log namespace
    * @param {string} props.multicodec protocol identificer to connect
-   * @param {PeerInfo} props.peerInfo peer's peerInfo
+   * @param {PeerId} props.peerId peer's peerId
    * @param {Object} props.registrar registrar for libp2p protocols
    * @param {function} props.registrar.handle
    * @param {function} props.registrar.register
    * @param {function} props.registrar.unregister
    * @param {Object} [props.options]
-   * @param {bool} [props.options.emitSelf] if publish should emit to self, if subscribed, defaults to false
-   * @param {bool} [props.options.gossipIncoming] if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
-   * @param {bool} [props.options.fallbackToFloodsub] if dial should fallback to floodsub, defaults to true
+   * @param {boolean} [props.options.emitSelf] if publish should emit to self, if subscribed, defaults to false
+   * @param {boolean} [props.options.gossipIncoming] if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
+   * @param {boolean} [props.options.fallbackToFloodsub] if dial should fallback to floodsub, defaults to true
    * @constructor
    */
-  constructor ({ debugName, multicodec, peerInfo, registrar, options = {} }) {
+  constructor ({ debugName, multicodec, peerId, registrar, options = {} }) {
     const multicodecs = [multicodec]
     const _options = {
       emitSelf: false,
@@ -48,7 +48,7 @@ class BasicPubSub extends Pubsub {
     super({
       debugName,
       multicodecs,
-      peerInfo,
+      peerId,
       registrar,
       ..._options
     })
@@ -83,13 +83,13 @@ class BasicPubSub extends Pubsub {
   /**
    * Peer connected successfully with pubsub protocol.
    * @override
-   * @param {PeerInfo} peerInfo peer info
+   * @param {PeerId} peerId peer id
    * @param {Connection} conn connection to the peer
    * @returns {Promise<void>}
    */
-  async _onPeerConnected (peerInfo, conn) {
-    await super._onPeerConnected(peerInfo, conn)
-    const idB58Str = peerInfo.id.toB58String()
+  async _onPeerConnected (peerId, conn) {
+    await super._onPeerConnected(peerId, conn)
+    const idB58Str = peerId.toB58String()
     const peer = this.peers.get(idB58Str)
 
     if (peer && peer.isWritable) {
@@ -123,7 +123,7 @@ class BasicPubSub extends Pubsub {
         }
       )
     } catch (err) {
-      this._onPeerDisconnected(peer.info, err)
+      this._onPeerDisconnected(peer.id, err)
     }
   }
 
@@ -167,7 +167,7 @@ class BasicPubSub extends Pubsub {
           topicSet.delete(peer)
         }
       })
-      this.emit('pubsub:subscription-change', peer.info, peer.topics, subs)
+      this.emit('pubsub:subscription-change', peer.id, peer.topics, subs)
     }
 
     if (msgs.length) {
@@ -207,7 +207,7 @@ class BasicPubSub extends Pubsub {
    * @param {rpc.RPC.Message} msg
    */
   _processRpcMessage (msg) {
-    if (this.peerInfo.id.toB58String() === msg.from && !this._options.emitSelf) {
+    if (this.peerId.toB58String() === msg.from && !this._options.emitSelf) {
       return
     }
 
@@ -369,7 +369,7 @@ class BasicPubSub extends Pubsub {
     topics = utils.ensureArray(topics)
     messages = utils.ensureArray(messages)
 
-    const from = this.peerInfo.id.toB58String()
+    const from = this.peerId.toB58String()
 
     const buildMessage = (msg, cb) => {
       const seqno = utils.randomSeqno()
@@ -448,7 +448,7 @@ class BasicPubSub extends Pubsub {
     // Adds all peers using our protocol
     let peers = []
     peersInTopic.forEach((peer) => {
-      if (peer.info.protocols.has(GossipSubID)) {
+      if (peer.protocols.includes(GossipSubID)) {
         peers.push(peer)
       }
     })
