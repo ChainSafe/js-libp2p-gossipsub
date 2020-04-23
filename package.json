@@ -1,6 +1,6 @@
 {
   "name": "libp2p-gossipsub",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "description": "A javascript implementation of gossipsub",
   "leadMaintainer": "Cayman Nava <caymannava@gmail.com>",
   "main": "src/index.js",
@@ -65,19 +65,15 @@
     "sinon": "^9.0.2"
   },
   "contributors": [
-    "Alan Shaw <alan.shaw@protocol.ai>",
-    "Alex Potsides <alex@achingbrain.net>",
     "Cayman <caymannava@gmail.com>",
-    "ChainSafe <aidan@chainsafe.io>",
-    "ChainSafe <superadmin@chainsafe.io>",
-    "Gregory Markou <16929357+GregTheGreek@users.noreply.github.com>",
-    "Gregory Markou <gregorymarkou@gmail.com>",
-    "Jacob Heun <jacobheun@gmail.com>",
-    "Marin Petrunić <marin.petrunic@gmail.com>",
     "Mikerah <mikerahqc@protonmail.com>",
-    "Mikerah <mikerah14@gmail.com>",
-    "Tuyen <tuyen@wetrust.io>",
     "Vasco Santos <vasco.santos@moxy.studio>",
-    "Vasco Santos <vasco.santos@ua.pt>"
+    "Alan Shaw <alan.shaw@protocol.ai>",
+    "Tuyen <tuyen@wetrust.io>",
+    "achingbrain <alex@achingbrain.net>",
+    "Jacob Heun <jacobheun@gmail.com>",
+    "ChainSafe <aidan@chainsafe.io>",
+    "Marin Petrunić <marin.petrunic@gmail.com>",
+    "Hugo Dias <hugomrdias@gmail.com>"
   ]
 }
