@@ -1,6 +1,6 @@
 {
   "name": "libp2p-gossipsub",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "description": "A javascript implementation of gossipsub",
   "leadMaintainer": "Cayman Nava <caymannava@gmail.com>",
   "main": "src/index.js",
@@ -34,20 +34,21 @@
     "lint"
   ],
   "dependencies": {
+    "buffer": "^5.6.0",
     "debug": "^4.1.1",
     "err-code": "^2.0.0",
     "it-length-prefixed": "^3.0.0",
     "it-pipe": "^1.0.1",
     "libp2p-pubsub": "^0.5.0",
-    "p-map": "^3.0.0",
+    "p-map": "^4.0.0",
     "peer-id": "~0.13.3",
     "protons": "^1.0.1",
     "time-cache": "^0.3.0"
   },
   "devDependencies": {
     "@types/chai": "^4.2.3",
-    "@types/mocha": "^5.2.7",
-    "aegir": "^20.5.0",
+    "@types/mocha": "^7.0.2",
+    "aegir": "^21.9.0",
     "benchmark": "^2.1.4",
     "chai": "^4.2.0",
     "chai-spies": "^1.0.0",
@@ -56,26 +57,22 @@
     "it-pair": "^1.0.0",
     "libp2p-floodsub": "^0.21.0",
     "lodash": "^4.17.15",
-    "mocha": "^6.2.1",
+    "mocha": "^7.1.1",
     "p-times": "^2.1.0",
     "p-wait-for": "^3.1.0",
     "promisify-es6": "^1.0.3",
-    "sinon": "^7.5.0"
+    "sinon": "^9.0.2"
   },
   "contributors": [
-    "Alan Shaw <alan.shaw@protocol.ai>",
-    "Alex Potsides <alex@achingbrain.net>",
     "Cayman <caymannava@gmail.com>",
-    "ChainSafe <aidan@chainsafe.io>",
-    "ChainSafe <superadmin@chainsafe.io>",
-    "Gregory Markou <16929357+GregTheGreek@users.noreply.github.com>",
-    "Gregory Markou <gregorymarkou@gmail.com>",
-    "Jacob Heun <jacobheun@gmail.com>",
-    "Marin Petrunić <marin.petrunic@gmail.com>",
     "Mikerah <mikerahqc@protonmail.com>",
-    "Mikerah <mikerah14@gmail.com>",
-    "Tuyen <tuyen@wetrust.io>",
     "Vasco Santos <vasco.santos@moxy.studio>",
-    "Vasco Santos <vasco.santos@ua.pt>"
+    "Alan Shaw <alan.shaw@protocol.ai>",
+    "Tuyen <tuyen@wetrust.io>",
+    "achingbrain <alex@achingbrain.net>",
+    "Jacob Heun <jacobheun@gmail.com>",
+    "ChainSafe <aidan@chainsafe.io>",
+    "Marin Petrunić <marin.petrunic@gmail.com>",
+    "Hugo Dias <hugomrdias@gmail.com>"
   ]
 }

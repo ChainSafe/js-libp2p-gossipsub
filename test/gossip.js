@@ -1,6 +1,7 @@
 'use strict'
 /* eslint-env mocha */
 
+const { Buffer } = require('buffer')
 const { expect } = require('chai')
 const sinon = require('sinon')
 

@@ -1,7 +1,7 @@
 'use strict'
 
 const errcode = require('err-code')
-
+const { Buffer } = require('buffer')
 const TimeCache = require('time-cache')
 
 const pipe = require('it-pipe')
