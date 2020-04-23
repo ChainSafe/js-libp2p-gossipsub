@@ -1,7 +1,7 @@
 /* eslint-env mocha */
 /* eslint-disable no-unused-expressions */
 'use strict'
-
+const { Buffer } = require('buffer')
 const chai = require('chai')
 const dirtyChai = require('dirty-chai')
 chai.use(dirtyChai)
@@ -11,7 +11,6 @@ const expect = chai.expect
 
 const { MessageCache } = require('../src/messageCache')
 const { utils } = require('libp2p-pubsub')
-const { Buffer } = require('buffer')
 
 const getMsgID = (msg) => {
   return utils.msgId(msg.from, msg.seqno)
