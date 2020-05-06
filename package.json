@@ -48,7 +48,7 @@
   "devDependencies": {
     "@types/chai": "^4.2.3",
     "@types/mocha": "^7.0.2",
-    "aegir": "^21.9.0",
+    "aegir": "^21.10.2",
     "benchmark": "^2.1.4",
     "chai": "^4.2.0",
     "chai-spies": "^1.0.0",
