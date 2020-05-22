@@ -11,6 +11,7 @@ const { rpc } = require('./message')
 const constants = require('./constants')
 const Heartbeat = require('./heartbeat')
 const { createGossipRpc } = require('./createGossipRpc')
+const { shuffle } = require('./shuffle')
 
 class GossipSub extends BasicPubsub {
   /**
@@ -90,6 +91,37 @@ class GossipSub extends BasicPubsub {
      * A heartbeat timer that maintains the mesh
      */
     this.heartbeat = new Heartbeat(this)
+  }
+
+  /**
+   * Given a topic, returns up to count peers subscribed to that topic
+   *
+   * @param {String} topic
+   * @param {Number} count
+   * @returns {Set<Peer>}
+   *
+   */
+  _getGossipPeers (topic, count) {
+    const peersInTopic = this.topics.get(topic)
+    if (!peersInTopic) {
+      return new Set()
+    }
+
+    // Adds all peers using our protocol
+    let peers = []
+    peersInTopic.forEach((peer) => {
+      if (peer.protocols.includes(constants.GossipSubID)) {
+        peers.push(peer)
+      }
+    })
+
+    // Pseudo-randomly shuffles peers
+    peers = shuffle(peers)
+    if (count > 0 && peers.length > count) {
+      peers = peers.slice(0, count)
+    }
+
+    return new Set(peers)
   }
 
   /**

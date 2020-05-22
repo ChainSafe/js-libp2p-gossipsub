@@ -8,13 +8,11 @@ const pipe = require('it-pipe')
 const lp = require('it-length-prefixed')
 const pMap = require('p-map')
 
-const { GossipSubID } = require('../src/constants')
 const floodsubMulticodec = '/floodsub/1.0.0'
 const Pubsub = require('libp2p-pubsub')
 
 const { utils } = require('libp2p-pubsub')
 const { rpc } = require('./message')
-const { shuffle } = require('./shuffle')
 
 class BasicPubSub extends Pubsub {
   /**
@@ -412,37 +410,6 @@ class BasicPubSub extends Pubsub {
 
   _publish (rpcs) {
     throw errcode(new Error('_publish must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
-  }
-
-  /**
-   * Given a topic, returns up to count peers subscribed to that topic
-   *
-   * @param {String} topic
-   * @param {Number} count
-   * @returns {Set<Peer>}
-   *
-   */
-  _getGossipPeers (topic, count) {
-    const peersInTopic = this.topics.get(topic)
-    if (!peersInTopic) {
-      return new Set()
-    }
-
-    // Adds all peers using our protocol
-    let peers = []
-    peersInTopic.forEach((peer) => {
-      if (peer.protocols.includes(GossipSubID)) {
-        peers.push(peer)
-      }
-    })
-
-    // Pseudo-randomly shuffles peers
-    peers = shuffle(peers)
-    if (count > 0 && peers.length > count) {
-      peers = peers.slice(0, count)
-    }
-
-    return new Set(peers)
   }
 }
 
