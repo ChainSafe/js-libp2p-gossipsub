@@ -10,6 +10,7 @@ const { MessageCache } = require('./messageCache')
 const { rpc } = require('./message')
 const constants = require('./constants')
 const Heartbeat = require('./heartbeat')
+const { createGossipRpc } = require('./createGossipRpc')
 
 class GossipSub extends BasicPubsub {
   /**
@@ -131,16 +132,16 @@ class GossipSub extends BasicPubsub {
       return
     }
 
-    const iWant = this._handleIHave(peer, controlMsg.ihave)
-    const iHave = this._handleIWant(peer, controlMsg.iwant)
+    const iwant = this._handleIHave(peer, controlMsg.ihave)
+    const ihave = this._handleIWant(peer, controlMsg.iwant)
     const prune = this._handleGraft(peer, controlMsg.graft)
     this._handlePrune(peer, controlMsg.prune)
 
-    if (!iWant || !iHave || !prune) {
+    if (!iwant || !ihave || !prune) {
       return
     }
 
-    const outRpc = this._createGossipRpc(iHave, null, iWant, null, prune)
+    const outRpc = createGossipRpc([], { ihave, iwant, prune })
     this._sendRpc(peer, outRpc)
   }
 
@@ -454,7 +455,7 @@ class GossipSub extends BasicPubsub {
       topicID: topic
     }]
 
-    const out = this._createGossipRpc(null, null, null, graft, null)
+    const out = createGossipRpc([], { graft })
     this._sendRpc(peer, out)
   }
 
@@ -469,7 +470,7 @@ class GossipSub extends BasicPubsub {
       topicID: topic
     }]
 
-    const out = this._createGossipRpc(null, null, null, null, prune)
+    const out = createGossipRpc([], { prune })
     this._sendRpc(peer, out)
   }
 
@@ -531,12 +532,12 @@ class GossipSub extends BasicPubsub {
         toprune.delete(p)
       }
 
-      const outRpc = this._createGossipRpc(null, null, null, graft, prune)
+      const outRpc = createGossipRpc([], { graft, prune })
       this._sendRpc(p, outRpc)
     }
     for (const [p, topics] of toprune) {
       const prune = topics.map((topicID) => ({ topicID }))
-      const outRpc = this._createGossipRpc(null, null, null, null, prune)
+      const outRpc = createGossipRpc([], { prune })
       this._sendRpc(p, outRpc)
     }
   }
@@ -572,13 +573,13 @@ class GossipSub extends BasicPubsub {
     // send gossip first, which will also piggyback control
     for (const [peer, ihave] of this.gossip.entries()) {
       this.gossip.delete(peer)
-      const out = this._createGossipRpc(null, ihave, null, null, null)
+      const out = createGossipRpc([], { ihave })
       this._sendRpc(peer, out)
     }
     // send the remaining control messages
     for (const [peer, control] of this.control.entries()) {
       this.control.delete(peer)
-      const out = this._createGossipRpc(null, null, null, control.graft, control.prune)
+      const out = createGossipRpc([], { graft: control.graft, prune: control.prune })
       this._sendRpc(peer, out)
     }
   }

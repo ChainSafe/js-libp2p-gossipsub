@@ -233,28 +233,6 @@ class BasicPubSub extends Pubsub {
   }
 
   /**
-   * Create a gossipsub RPC object
-   * @param {Array<rpc.RPC.Message>} msgs
-   * @param {Array<rpc.RPC.ControlIHave>} ihave
-   * @param {Array<rpc.RPC.ControlIWant>} iwant
-   * @param {Array<rpc.RPC.ControlGraft>} graft
-   * @param {Array<rpc.RPC.Prune>} prune
-   * @returns {rpc.RPC}
-   */
-  _createGossipRpc (msgs = [], ihave = [], iwant = [], graft = [], prune = []) {
-    return {
-      subscriptions: [],
-      msgs: msgs,
-      control: {
-        ihave: ihave,
-        iwant: iwant,
-        graft: graft,
-        prune: prune
-      }
-    }
-  }
-
-  /**
    * Unmounts the protocol and shuts down every connection
    * @override
    * @returns {void}
