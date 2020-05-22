@@ -14,6 +14,7 @@ const Pubsub = require('libp2p-pubsub')
 
 const { utils } = require('libp2p-pubsub')
 const { rpc } = require('./message')
+const { shuffle } = require('./shuffle')
 
 class BasicPubSub extends Pubsub {
   /**
@@ -458,37 +459,12 @@ class BasicPubSub extends Pubsub {
     })
 
     // Pseudo-randomly shuffles peers
-    peers = this._shufflePeers(peers)
+    peers = shuffle(peers)
     if (count > 0 && peers.length > count) {
       peers = peers.slice(0, count)
     }
 
     return new Set(peers)
-  }
-
-  /**
-   * Pseudo-randomly shuffles peers
-   *
-   * @param {Array<Peers>} peers
-   * @returns {Array<Peers>}
-   */
-  _shufflePeers (peers) {
-    if (peers.length <= 1) {
-      return peers
-    }
-
-    for (let i = 0; i < peers.length; i++) {
-      const randInt = () => {
-        return Math.floor(Math.random() * Math.floor(peers.length))
-      }
-
-      const j = randInt()
-      const tmp = peers[i]
-      peers[i] = peers[j]
-      peers[j] = tmp
-
-      return peers
-    }
   }
 }
 

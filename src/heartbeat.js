@@ -2,6 +2,7 @@
 
 const constants = require('./constants')
 const errcode = require('err-code')
+const { shuffle } = require('./shuffle')
 
 class Heartbeat {
   /**
@@ -98,7 +99,7 @@ class Heartbeat {
       if (peers.size > constants.GossipSubDhi) {
         const idontneed = peers.size - constants.GossipSubD
         let peersArray = Array.from(peers)
-        peersArray = this.gossipsub._shufflePeers(peersArray)
+        peersArray = shuffle(peersArray)
         peersArray = peersArray.slice(0, idontneed)
 
         peersArray.forEach((peer) => {
