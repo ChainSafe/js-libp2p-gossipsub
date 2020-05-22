@@ -123,12 +123,10 @@ class GossipSub extends BasicPubsub {
   /**
    * Handles an rpc control message from a peer
    * @param {Peer} peer
-   * @param {rpc.RPC} rpc
+   * @param {rpc.RPC.ControlMessage} controlMsg
    * @returns {void}
    */
-  _handleRpcControl (peer, rpc) {
-    const controlMsg = rpc.control
-
+  _onRpcControlMessage (peer, controlMsg) {
     if (!controlMsg) {
       return
     }
@@ -142,17 +140,18 @@ class GossipSub extends BasicPubsub {
       return
     }
 
-    const outRpc = this._rpcWithControl(iHave, null, iWant, null, prune)
-    this._sendRpc(rpc.from, outRpc)
+    const outRpc = this._createGossipRpc(iHave, null, iWant, null, prune)
+    this._sendRpc(peer, outRpc)
   }
 
   /**
    * Process incoming message,
    * emitting locally and forwarding on to relevant floodsub and gossipsub peers
+   * @param {Peer} peer
    * @param {rpc.RPC.Message} msg
    */
-  _processRpcMessage (msg) {
-    super._processRpcMessage(msg)
+  _onRpcMessage (peer, msg) {
+    super._onRpcMessage(peer, msg)
     const topics = msg.topicIDs
 
     // If options.gossipIncoming is false, do NOT emit incoming messages to peers
@@ -348,7 +347,7 @@ class GossipSub extends BasicPubsub {
         this.fanout.delete(topic)
         this.lastpub.delete(topic)
       } else {
-        const peers = this._getPeers(topic, constants.GossipSubD)
+        const peers = this._getGossipPeers(topic, constants.GossipSubD)
         this.mesh.set(topic, peers)
       }
       this.mesh.get(topic).forEach((peer) => {
@@ -417,7 +416,7 @@ class GossipSub extends BasicPubsub {
           meshPeers = this.fanout.get(topic)
           if (!meshPeers) {
             // If we are not in the fanout, then pick any peers in topic
-            const peers = this._getPeers(topic, constants.GossipSubD)
+            const peers = this._getGossipPeers(topic, constants.GossipSubD)
 
             if (peers.size > 0) {
               meshPeers = peers
@@ -455,7 +454,7 @@ class GossipSub extends BasicPubsub {
       topicID: topic
     }]
 
-    const out = this._rpcWithControl(null, null, null, graft, null)
+    const out = this._createGossipRpc(null, null, null, graft, null)
     this._sendRpc(peer, out)
   }
 
@@ -470,7 +469,7 @@ class GossipSub extends BasicPubsub {
       topicID: topic
     }]
 
-    const out = this._rpcWithControl(null, null, null, null, prune)
+    const out = this._createGossipRpc(null, null, null, null, prune)
     this._sendRpc(peer, out)
   }
 
@@ -532,12 +531,12 @@ class GossipSub extends BasicPubsub {
         toprune.delete(p)
       }
 
-      const outRpc = this._rpcWithControl(null, null, null, graft, prune)
+      const outRpc = this._createGossipRpc(null, null, null, graft, prune)
       this._sendRpc(p, outRpc)
     }
     for (const [p, topics] of toprune) {
       const prune = topics.map((topicID) => ({ topicID }))
-      const outRpc = this._rpcWithControl(null, null, null, null, prune)
+      const outRpc = this._createGossipRpc(null, null, null, null, prune)
       this._sendRpc(p, outRpc)
     }
   }
@@ -554,7 +553,7 @@ class GossipSub extends BasicPubsub {
       return
     }
 
-    const gossipSubPeers = this._getPeers(topic, constants.GossipSubD)
+    const gossipSubPeers = this._getGossipPeers(topic, constants.GossipSubD)
     gossipSubPeers.forEach((peer) => {
       // skip mesh peers
       if (!peers.has(peer)) {
@@ -573,13 +572,13 @@ class GossipSub extends BasicPubsub {
     // send gossip first, which will also piggyback control
     for (const [peer, ihave] of this.gossip.entries()) {
       this.gossip.delete(peer)
-      const out = this._rpcWithControl(null, ihave, null, null, null)
+      const out = this._createGossipRpc(null, ihave, null, null, null)
       this._sendRpc(peer, out)
     }
     // send the remaining control messages
     for (const [peer, control] of this.control.entries()) {
       this.control.delete(peer)
-      const out = this._rpcWithControl(null, null, null, control.graft, control.prune)
+      const out = this._createGossipRpc(null, null, null, control.graft, control.prune)
       this._sendRpc(peer, out)
     }
   }

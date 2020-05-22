@@ -76,7 +76,7 @@ class Heartbeat {
       // do we have enough peers?
       if (peers.size < constants.GossipSubDlo) {
         const ineed = constants.GossipSubD - peers.size
-        const peersSet = this.gossipsub._getPeers(topic, ineed)
+        const peersSet = this.gossipsub._getGossipPeers(topic, ineed)
         peersSet.forEach((peer) => {
           // add topic peers not already in mesh
           if (peers.has(peer)) {
@@ -137,7 +137,7 @@ class Heartbeat {
       // do we need more peers?
       if (peers.size < constants.GossipSubD) {
         const ineed = constants.GossipSubD - peers.size
-        const peersSet = this.gossipsub._getPeers(topic, ineed)
+        const peersSet = this.gossipsub._getGossipPeers(topic, ineed)
         peersSet.forEach((peer) => {
           if (!peers.has(peer)) {
             return

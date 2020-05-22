@@ -197,16 +197,20 @@ class BasicPubSub extends Pubsub {
           return
         }
 
-        this._processRpcMessage(msg)
+        this._onRpcMessage(peer, msg)
       })
     }
-    this._handleRpcControl(peer, rpc)
+
+    this._onRpcControlMessage(peer, rpc.control)
   }
 
   /**
+   * Handles an message from a peer
+   *
+   * @param {Peer} peer
    * @param {rpc.RPC.Message} msg
    */
-  _processRpcMessage (msg) {
+  _onRpcMessage (peer, msg) {
     if (this.peerId.toB58String() === msg.from && !this._options.emitSelf) {
       return
     }
@@ -223,12 +227,12 @@ class BasicPubSub extends Pubsub {
     })
   }
 
-  _handleRpcControl (peer, rpc) {
-    throw errcode(new Error('_handleRpcControl must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
+  _onRpcControlMessage (peer, rpc) {
+    throw errcode(new Error('_onRpcControlMessage must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
   }
 
   /**
-   * Returns a buffer of a RPC message that contains a control message
+   * Create a gossipsub RPC object
    * @param {Array<rpc.RPC.Message>} msgs
    * @param {Array<rpc.RPC.ControlIHave>} ihave
    * @param {Array<rpc.RPC.ControlIWant>} iwant
@@ -236,7 +240,7 @@ class BasicPubSub extends Pubsub {
    * @param {Array<rpc.RPC.Prune>} prune
    * @returns {rpc.RPC}
    */
-  _rpcWithControl (msgs = [], ihave = [], iwant = [], graft = [], prune = []) {
+  _createGossipRpc (msgs = [], ihave = [], iwant = [], graft = [], prune = []) {
     return {
       subscriptions: [],
       msgs: msgs,
@@ -439,7 +443,7 @@ class BasicPubSub extends Pubsub {
    * @returns {Set<Peer>}
    *
    */
-  _getPeers (topic, count) {
+  _getGossipPeers (topic, count) {
     const peersInTopic = this.topics.get(topic)
     if (!peersInTopic) {
       return new Set()

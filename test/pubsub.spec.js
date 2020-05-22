@@ -44,7 +44,7 @@ describe('Pubsub', () => {
 
   describe('validate', () => {
     it('should drop unsigned messages', () => {
-      sinon.spy(gossipsub, '_processRpcMessage')
+      sinon.spy(gossipsub, '_onRpcMessage')
       sinon.spy(gossipsub, 'validate')
       sinon.stub(gossipsub.peers, 'get').returns({})
 
@@ -63,13 +63,13 @@ describe('Pubsub', () => {
 
       return new Promise(resolve => setTimeout(() => {
         expect(gossipsub.validate.callCount).to.eql(1)
-        expect(gossipsub._processRpcMessage.called).to.eql(false)
+        expect(gossipsub._onRpcMessage.called).to.eql(false)
         resolve()
       }, 500))
     })
 
     it('should not drop signed messages', async () => {
-      sinon.spy(gossipsub, '_processRpcMessage')
+      sinon.spy(gossipsub, '_onRpcMessage')
       sinon.spy(gossipsub, 'validate')
       sinon.stub(gossipsub.peers, 'get').returns({})
 
@@ -90,13 +90,13 @@ describe('Pubsub', () => {
 
       return new Promise(resolve => setTimeout(() => {
         expect(gossipsub.validate.callCount).to.eql(1)
-        expect(gossipsub._processRpcMessage.callCount).to.eql(1)
+        expect(gossipsub._onRpcMessage.callCount).to.eql(1)
         resolve()
       }, 500))
     })
 
     it('should not drop unsigned messages if strict signing is disabled', () => {
-      sinon.spy(gossipsub, '_processRpcMessage')
+      sinon.spy(gossipsub, '_onRpcMessage')
       sinon.spy(gossipsub, 'validate')
       sinon.stub(gossipsub.peers, 'get').returns({})
       // Disable strict signing
@@ -117,7 +117,7 @@ describe('Pubsub', () => {
 
       return new Promise(resolve => setTimeout(() => {
         expect(gossipsub.validate.callCount).to.eql(1)
-        expect(gossipsub._processRpcMessage.callCount).to.eql(1)
+        expect(gossipsub._onRpcMessage.callCount).to.eql(1)
         resolve()
       }, 500))
     })
