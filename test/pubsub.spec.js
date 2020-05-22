@@ -59,7 +59,7 @@ describe('Pubsub', () => {
         }]
       }
 
-      gossipsub._onRpc('QmAnotherPeer', rpc)
+      gossipsub._onRpc('QmAnotherPeer', {}, rpc)
 
       return new Promise(resolve => setTimeout(() => {
         expect(gossipsub.validate.callCount).to.eql(1)
@@ -86,7 +86,7 @@ describe('Pubsub', () => {
         msgs: [signedMessage]
       }
 
-      gossipsub._onRpc('QmAnotherPeer', rpc)
+      gossipsub._onRpc('QmAnotherPeer', {}, rpc)
 
       return new Promise(resolve => setTimeout(() => {
         expect(gossipsub.validate.callCount).to.eql(1)
@@ -113,7 +113,7 @@ describe('Pubsub', () => {
         }]
       }
 
-      gossipsub._onRpc('QmAnotherPeer', rpc)
+      gossipsub._onRpc('QmAnotherPeer', {}, rpc)
 
       return new Promise(resolve => setTimeout(() => {
         expect(gossipsub.validate.callCount).to.eql(1)

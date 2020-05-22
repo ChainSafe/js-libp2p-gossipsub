@@ -69,8 +69,6 @@ class BasicPubSub extends Pubsub {
      */
     this._options = _options
 
-    this._onRpc = this._onRpc.bind(this)
-
     /**
      * The default msgID implementation
      * @param {rpc.RPC.Message} msg the message object
@@ -108,16 +106,16 @@ class BasicPubSub extends Pubsub {
    *
    */
   async _processMessages (idB58Str, conn, peer) {
-    const onRpcFunc = this._onRpc
     try {
       await pipe(
         conn,
         lp.decode(),
-        async function (source) {
+        async (source) => {
           for await (const data of source) {
-            const rpcMsg = Buffer.isBuffer(data) ? data : data.slice()
+            const rpcMsgBuf = Buffer.isBuffer(data) ? data : data.slice()
+            const rpcMsg = rpc.RPC.decode(rpcMsgBuf)
 
-            onRpcFunc(idB58Str, rpc.RPC.decode(rpcMsg))
+            this._onRpc(idB58Str, peer, rpcMsg)
           }
         }
       )
@@ -130,19 +128,11 @@ class BasicPubSub extends Pubsub {
    * Handles an rpc request from a peer
    *
    * @param {String} idB58Str
-   * @param {Object} rpc
+   * @param {Peer} peer
+   * @param {rpc.RPC} rpc
    * @returns {void}
    */
-  _onRpc (idB58Str, rpc) {
-    if (!rpc) {
-      return
-    }
-
-    const peer = this.peers.get(idB58Str)
-    if (!peer) {
-      return
-    }
-
+  _onRpc (idB58Str, peer, rpc) {
     this.log('rpc from', idB58Str)
     const subs = rpc.subscriptions
     const msgs = rpc.msgs
@@ -199,8 +189,6 @@ class BasicPubSub extends Pubsub {
         this._onRpcMessage(peer, msg)
       })
     }
-
-    this._onRpcControlMessage(peer, rpc.control)
   }
 
   /**
@@ -224,10 +212,6 @@ class BasicPubSub extends Pubsub {
         this.emit(topic, message)
       }
     })
-  }
-
-  _onRpcControlMessage (peer, rpc) {
-    throw errcode(new Error('_onRpcControlMessage must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
   }
 
   /**

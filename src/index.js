@@ -153,6 +153,11 @@ class GossipSub extends BasicPubsub {
     return peer
   }
 
+  _onRpc (idB58Str, peer, rpc) {
+    super._onRpc(idB58Str, peer, rpc)
+    this._onRpcControlMessage(peer, rpc.control)
+  }
+
   /**
    * Handles an rpc control message from a peer
    * @param {Peer} peer
