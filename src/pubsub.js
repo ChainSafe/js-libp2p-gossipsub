@@ -134,22 +134,7 @@ class BasicPubSub extends Pubsub {
     if (subs.length) {
       // update peer subscriptions
       peer.updateSubscriptions(subs)
-      subs.forEach((subOptMsg) => {
-        const t = subOptMsg.topicID
-
-        if (!this.topics.has(t)) {
-          this.topics.set(t, new Set())
-        }
-
-        const topicSet = this.topics.get(t)
-        if (subOptMsg.subscribe) {
-          // subscribe peer to new topic
-          topicSet.add(peer)
-        } else {
-          // unsubscribe from existing topic
-          topicSet.delete(peer)
-        }
-      })
+      subs.forEach((subOpt) => this._processRpcSubOpt(peer, subOpt))
       this.emit('pubsub:subscription-change', peer.id, peer.topics, subs)
     }
 
@@ -182,6 +167,30 @@ class BasicPubSub extends Pubsub {
 
         this._processRpcMessage(peer, msg)
       })
+    }
+  }
+
+  /**
+   * Handles an subscription change from a peer
+   *
+   * @param {Peer} peer
+   * @param {rpc.RPC.SubOpt} subOpt
+   */
+  _processRpcSubOpt (peer, subOpt) {
+    const t = subOpt.topicID
+
+    let topicSet = this.topics.get(t)
+    if (!topicSet) {
+      topicSet = new Set()
+      this.topics.set(t, topicSet)
+    }
+
+    if (subOpt.subscribe) {
+      // subscribe peer to new topic
+      topicSet.add(peer)
+    } else {
+      // unsubscribe from existing topic
+      topicSet.delete(peer)
     }
   }
 
