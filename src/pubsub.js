@@ -235,22 +235,31 @@ class BasicPubSub extends Pubsub {
       throw new Error('Pubsub has not started')
     }
 
+    // normalize input and remove existing subscriptions
     topics = utils.ensureArray(topics)
-
     const newTopics = topics.filter((topic) => !this.subscriptions.has(topic))
     if (newTopics.length === 0) {
       return
     }
+    this._subscribe(newTopics)
+  }
 
+  /**
+   * Subscribes to topics
+   *
+   * @param {Array<string>} topics
+   * @returns {void}
+   */
+  _subscribe (topics) {
     // set subscriptions
-    newTopics.forEach((topic) => {
+    topics.forEach((topic) => {
       this.subscriptions.add(topic)
     })
 
     // Broadcast SUBSCRIBE to all peers
     this.peers.forEach((peer) => sendSubscriptionsOnceReady(peer))
 
-    // make sure that Gossipsub is already mounted
+    // make sure that the protocol is already mounted
     function sendSubscriptionsOnceReady (peer) {
       if (peer && peer.isWritable) {
         return peer.sendSubscriptions(topics)
@@ -262,12 +271,6 @@ class BasicPubSub extends Pubsub {
       peer.on('connection', onConnection)
       peer.once('close', () => peer.removeListener('connection', onConnection))
     }
-
-    this.join(newTopics)
-  }
-
-  join (topics) {
-    throw errcode(new Error('join must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
   }
 
   /**
@@ -281,22 +284,31 @@ class BasicPubSub extends Pubsub {
       throw new Error('Pubsub has not started')
     }
 
+    // normalize input and remove existing unsubscriptions
     topics = utils.ensureArray(topics)
-
     const unTopics = topics.filter((topic) => this.subscriptions.has(topic))
-    if (!unTopics.length) {
+    if (unTopics.length === 0) {
       return
     }
+    this._unsubscribe(unTopics)
+  }
 
+  /**
+   * Unsubscribes to topics
+   *
+   * @param {Array<string>} topics
+   * @returns {void}
+   */
+  _unsubscribe (topics) {
     // delete subscriptions
-    unTopics.forEach((topic) => {
+    topics.forEach((topic) => {
       this.subscriptions.delete(topic)
     })
 
     // Broadcast UNSUBSCRIBE to all peers ready
     this.peers.forEach((peer) => sendUnsubscriptionsOnceReady(peer))
 
-    // make sure that Gossipsub is already mounted
+    // make sure that the protocol is already mounted
     function sendUnsubscriptionsOnceReady (peer) {
       if (peer && peer.isWritable) {
         return peer.sendUnsubscriptions(topics)
@@ -308,12 +320,6 @@ class BasicPubSub extends Pubsub {
       peer.on('connection', onConnection)
       peer.once('close', () => peer.removeListener('connection', onConnection))
     }
-
-    this.leave(unTopics)
-  }
-
-  leave (topics) {
-    throw errcode(new Error('leave must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
   }
 
   /**

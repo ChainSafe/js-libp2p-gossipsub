@@ -386,6 +386,16 @@ class GossipSub extends BasicPubsub {
     this.control = new Map()
   }
 
+  _subscribe (topics) {
+    super._subscribe(topics)
+    this.join(topics)
+  }
+
+  _unsubscribe (topics) {
+    super._unsubscribe(topics)
+    this.leave(topics)
+  }
+
   /**
    * Join topics
    * @param {Array<string>|string} topics
