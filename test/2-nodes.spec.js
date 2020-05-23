@@ -88,14 +88,16 @@ describe('2 nodes', () => {
 
     it('Subscribe to a topic', async () => {
       const topic = 'Z'
-      await new Promise((resolve) => setTimeout(resolve, 2000))
       nodes[0].subscribe(topic)
       nodes[1].subscribe(topic)
 
       // await subscription change
-      const [changedPeerId, changedTopics, changedSubs] = await new Promise((resolve) => {
-        nodes[0].once('pubsub:subscription-change', (...args) => resolve(args))
-      })
+      const [evt0] = await Promise.all([
+        new Promise(resolve => nodes[0].once('pubsub:subscription-change', (...args) => resolve(args))),
+        new Promise(resolve => nodes[1].once('pubsub:subscription-change', (...args) => resolve(args)))
+      ])
+
+      const [changedPeerId, changedTopics, changedSubs] = evt0
 
       expectSet(nodes[0].subscriptions, [topic])
       expectSet(nodes[1].subscriptions, [topic])
@@ -134,7 +136,9 @@ describe('2 nodes', () => {
       nodes[1].subscribe(topic)
 
       // await subscription change and heartbeat
-      await new Promise((resolve) => nodes[0].once('pubsub:subscription-change', resolve))
+      await Promise.all(
+        nodes.map(n => new Promise(resolve => n.once('pubsub:subscription-change', resolve)))
+      )
       await Promise.all([
         new Promise((resolve) => nodes[0].once('gossipsub:heartbeat', resolve)),
         new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))

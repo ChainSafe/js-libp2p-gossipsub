@@ -78,6 +78,15 @@ class BasicPubSub extends Pubsub {
      * @returns {string} message id as string
      */
     this.defaultMsgIdFn = (msg) => utils.msgId(msg.from, msg.seqno)
+
+    /**
+     * Topic validator map
+     *
+     * Keyed by topic
+     * Topic validators are functions with the following input:
+     * (topic: string, peer: Peer, message: rpc.RPC)
+     */
+    this.topicValidators = new Map()
   }
 
   /**
@@ -183,17 +192,14 @@ class BasicPubSub extends Pubsub {
         this.seenCache.put(msgID)
 
         // Ensure the message is valid before processing it
-        let isValid
-        let error
-
         try {
-          isValid = await this.validate(message)
+          const isValid = await this.validate(peer, message)
+          if (!isValid) {
+            this.log('Message is invalid, dropping it.')
+            return
+          }
         } catch (err) {
-          error = err
-        }
-
-        if (error || !isValid) {
-          this.log('Message could not be validated, dropping it. isValid=%s', isValid, error)
+          this.log('Error in message validation, dropping it. %O', err)
           return
         }
 
@@ -201,6 +207,46 @@ class BasicPubSub extends Pubsub {
       })
     }
     this._handleRpcControl(peer, rpc)
+  }
+
+  /**
+   * Validates the given message.
+   * @param {Peer} peer
+   * @param {rpc.RPC.Message} message
+   * @returns {Promise<Boolean>}
+   */
+  async validate (peer, message) {
+    const isValid = await super.validate(message)
+    if (!isValid) {
+      return false
+    }
+    for (const topic of message.topicIDs) {
+      const validatorFn = this.topicValidators.get(topic)
+      if (validatorFn) {
+        const result = validatorFn(topic, peer, message)
+        if (!this._processTopicValidatorResult(topic, peer, message, result)) {
+          return false
+        }
+      }
+    }
+    return true
+  }
+
+  /**
+   * Coerces topic validator result to determine message validity
+   *
+   * Defaults to true if truthy
+   *
+   * Override this method to provide custom topic validator result processing (eg: scoring)
+   *
+   * @param {String} topic
+   * @param {Peer} peer
+   * @param {rpc.RPC.Message} message
+   * @param {unknown} result
+   * @returns {Promise<Boolean>}
+   */
+  _processTopicValidatorResult (topic, peer, message, result) {
+    return Boolean(result)
   }
 
   /**
