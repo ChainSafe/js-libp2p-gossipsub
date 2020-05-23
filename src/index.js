@@ -2,8 +2,6 @@
 
 const { utils } = require('libp2p-pubsub')
 
-const PeerId = require('peer-id')
-
 const BasicPubsub = require('./pubsub')
 const { MessageCache } = require('./messageCache')
 
@@ -29,16 +27,24 @@ class GossipSub extends BasicPubsub {
    * @constructor
    */
   constructor (peerId, registrar, options = {}) {
-    if (!PeerId.isPeerId(peerId)) {
-      throw new Error('peerId must be an instance of `peer-id`')
+    const multicodecs = [constants.GossipSubID]
+    const _options = {
+      gossipIncoming: true,
+      fallbackToFloodsub: true,
+      ...options
+    }
+
+    // Also wants to get notified of peers connected using floodsub
+    if (_options.fallbackToFloodsub) {
+      multicodecs.push(constants.FloodSubID)
     }
 
     super({
       debugName: 'libp2p:gossipsub',
-      multicodec: constants.GossipSubID,
+      multicodecs,
       peerId,
       registrar,
-      options
+      options: _options
     })
 
     /**

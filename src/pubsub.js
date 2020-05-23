@@ -3,12 +3,12 @@
 const errcode = require('err-code')
 const { Buffer } = require('buffer')
 const TimeCache = require('time-cache')
+const PeerId = require('peer-id')
 
 const pipe = require('it-pipe')
 const lp = require('it-length-prefixed')
 const pMap = require('p-map')
 
-const floodsubMulticodec = '/floodsub/1.0.0'
 const Pubsub = require('libp2p-pubsub')
 
 const { utils } = require('libp2p-pubsub')
@@ -26,22 +26,16 @@ class BasicPubSub extends Pubsub {
    * @param {function} props.registrar.unregister
    * @param {Object} [props.options]
    * @param {boolean} [props.options.emitSelf] if publish should emit to self, if subscribed, defaults to false
-   * @param {boolean} [props.options.gossipIncoming] if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
-   * @param {boolean} [props.options.fallbackToFloodsub] if dial should fallback to floodsub, defaults to true
    * @constructor
    */
-  constructor ({ debugName, multicodec, peerId, registrar, options = {} }) {
-    const multicodecs = [multicodec]
-    const _options = {
-      emitSelf: false,
-      gossipIncoming: true,
-      fallbackToFloodsub: true,
-      ...options
+  constructor ({ debugName, multicodecs, peerId, registrar, options = {} }) {
+    if (!PeerId.isPeerId(peerId)) {
+      throw new Error('peerId must be an instance of `peer-id`')
     }
 
-    // Also wants to get notified of peers connected using floodsub
-    if (_options.fallbackToFloodsub) {
-      multicodecs.push(floodsubMulticodec)
+    const _options = {
+      emitSelf: false,
+      ...options
     }
 
     super({
