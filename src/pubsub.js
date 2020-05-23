@@ -11,7 +11,7 @@ const pMap = require('p-map')
 const Pubsub = require('libp2p-pubsub')
 
 const { utils } = require('libp2p-pubsub')
-const { rpc } = require('./message')
+const { RPC } = require('./message')
 
 class BasicPubSub extends Pubsub {
   /**
@@ -57,7 +57,7 @@ class BasicPubSub extends Pubsub {
 
     /**
      * The default msgID implementation
-     * @param {rpc.RPC.Message} msg the message object
+     * @param {RPC.Message} msg the message object
      * @returns {string} message id as string
      */
     this.defaultMsgIdFn = (msg) => utils.msgId(msg.from, msg.seqno)
@@ -116,10 +116,10 @@ class BasicPubSub extends Pubsub {
    * Override to use an extended protocol-specific protobuf decoder
    *
    * @param {Buffer} buf
-   * @returns {rpc.RPC}
+   * @returns {RPC}
    */
   _decodeRpc (buf) {
-    return rpc.RPC.decode(buf)
+    return RPC.decode(buf)
   }
 
   /**
@@ -127,7 +127,7 @@ class BasicPubSub extends Pubsub {
    *
    * @param {String} idB58Str
    * @param {Peer} peer
-   * @param {rpc.RPC} rpc
+   * @param {RPC} rpc
    * @returns {void}
    */
   _processRpc (idB58Str, peer, rpc) {
@@ -170,7 +170,7 @@ class BasicPubSub extends Pubsub {
    * Handles an subscription change from a peer
    *
    * @param {Peer} peer
-   * @param {rpc.RPC.SubOpt} subOpt
+   * @param {RPC.SubOpt} subOpt
    */
   _processRpcSubOpt (peer, subOpt) {
     const t = subOpt.topicID
@@ -194,7 +194,7 @@ class BasicPubSub extends Pubsub {
    * Handles an message from a peer
    *
    * @param {Peer} peer
-   * @param {rpc.RPC.Message} msg
+   * @param {RPC.Message} msg
    */
   _processRpcMessage (peer, msg) {
     if (this.peerId.toB58String() === msg.from && !this._options.emitSelf) {
@@ -369,7 +369,7 @@ class BasicPubSub extends Pubsub {
 
   /**
    * Child class can override this.
-   * @param {rpc.RPC.Message} msg the message object
+   * @param {RPC.Message} msg the message object
    * @returns {string} message id as string
    */
   getMsgId (msg) {

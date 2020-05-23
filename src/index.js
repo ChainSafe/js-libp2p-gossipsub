@@ -6,7 +6,7 @@ const TimeCache = require('time-cache')
 const BasicPubsub = require('./pubsub')
 const { MessageCache } = require('./messageCache')
 
-const { rpc } = require('./message')
+const { RPC } = require('./message')
 const constants = require('./constants')
 const Heartbeat = require('./heartbeat')
 const { createGossipRpc } = require('./createGossipRpc')
@@ -79,14 +79,14 @@ class GossipSub extends BasicPubsub {
     /**
      * Map of pending messages to gossip
      *
-     * @type {Map<Peer, Array<rpc.RPC.ControlIHave object>> }
+     * @type {Map<Peer, Array<RPC.ControlIHave object>> }
      */
     this.gossip = new Map()
 
     /**
      * Map of control messages
      *
-     * @type {Map<Peer, rpc.RPC.ControlMessage object>}
+     * @type {Map<Peer, RPC.ControlMessage object>}
      */
     this.control = new Map()
 
@@ -175,7 +175,7 @@ class GossipSub extends BasicPubsub {
   /**
    * Handles an rpc control message from a peer
    * @param {Peer} peer
-   * @param {rpc.RPC.ControlMessage} controlMsg
+   * @param {RPC.ControlMessage} controlMsg
    * @returns {void}
    */
   _processRpcControlMessage (peer, controlMsg) {
@@ -200,7 +200,7 @@ class GossipSub extends BasicPubsub {
    * Process incoming message,
    * emitting locally and forwarding on to relevant floodsub and gossipsub peers
    * @param {Peer} peer
-   * @param {rpc.RPC.Message} msg
+   * @param {RPC.Message} msg
    */
   _processRpcMessage (peer, msg) {
     const msgID = this.getMsgId(msg)
@@ -249,8 +249,8 @@ class GossipSub extends BasicPubsub {
   /**
    * Handles IHAVE messages
    * @param {Peer} peer
-   * @param {Array<rpc.RPC.ControlIHave>} ihave
-   * @returns {rpc.RPC.ControlIWant}
+   * @param {Array<RPC.ControlIHave>} ihave
+   * @returns {RPC.ControlIWant}
    */
   _handleIHave (peer, ihave) {
     const iwant = new Set()
@@ -283,11 +283,11 @@ class GossipSub extends BasicPubsub {
    * Handles IWANT messages
    * Returns messages to send back to peer
    * @param {Peer} peer
-   * @param {Array<rpc.RPC.ControlIWant>} iwant
-   * @returns {Array<rpc.RPC.Message>}
+   * @param {Array<RPC.ControlIWant>} iwant
+   * @returns {Array<RPC.Message>}
    */
   _handleIWant (peer, iwant) {
-    // @type {Map<string, rpc.RPC.Message>}
+    // @type {Map<string, RPC.Message>}
     const ihave = new Map()
 
     iwant.forEach(({ messageIDs }) => {
@@ -311,8 +311,8 @@ class GossipSub extends BasicPubsub {
   /**
    * Handles Graft messages
    * @param {Peer} peer
-   * @param {Array<rpc.RPC.ControlGraft>} graft
-   * @return {Array<rpc.RPC.ControlPrune>}
+   * @param {Array<RPC.ControlGraft>} graft
+   * @return {Array<RPC.ControlPrune>}
    */
   _handleGraft (peer, graft) {
     const prune = []
@@ -345,7 +345,7 @@ class GossipSub extends BasicPubsub {
   /**
    * Handles Prune messages
    * @param {Peer} peer
-   * @param {Array<rpc.RPC.ControlPrune>} prune
+   * @param {Array<RPC.ControlPrune>} prune
    * @returns {void}
    */
   _handlePrune (peer, prune) {
@@ -444,7 +444,7 @@ class GossipSub extends BasicPubsub {
    * Override the default implementation in BasicPubSub.
    * If we don't provide msgIdFn in constructor option, it's the same.
    * @override
-   * @param {rpc.RPC.Message} msg the message object
+   * @param {RPC.Message} msg the message object
    * @returns {string} message id as string
    */
   getMsgId (msg) {
@@ -556,7 +556,7 @@ class GossipSub extends BasicPubsub {
       this.gossip.delete(peer)
     }
 
-    peer.write(rpc.RPC.encode(outRpc))
+    peer.write(RPC.encode(outRpc))
   }
 
   _piggybackControl (peer, outRpc, ctrl) {
@@ -650,7 +650,7 @@ class GossipSub extends BasicPubsub {
   /**
    * Adds new IHAVE messages to pending gossip
    * @param {Peer} peer
-   * @param {Array<rpc.RPC.ControlIHave>} controlIHaveMsgs
+   * @param {Array<RPC.ControlIHave>} controlIHaveMsgs
    * @returns {void}
    */
   _pushGossip (peer, controlIHaveMsgs) {

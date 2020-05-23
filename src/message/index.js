@@ -7,4 +7,5 @@ const topicDescriptorProto = protons(require('./topic-descriptor.proto.js'))
 
 exports = module.exports
 exports.rpc = rpcProto
+exports.RPC = rpcProto.RPC
 exports.td = topicDescriptorProto

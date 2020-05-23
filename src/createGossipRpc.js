@@ -2,9 +2,9 @@
 
 /**
  * Create a gossipsub RPC object
- * @param {Array<rpc.RPC.Message>} msgs
- * @param {Partial<rpc.RPC.ControlMessage>} control
- * @returns {rpc.RPC}
+ * @param {Array<RPC.Message>} msgs
+ * @param {Partial<RPC.ControlMessage>} control
+ * @returns {RPC}
  */
 exports.createGossipRpc = (msgs = [], control = {}) => {
   return {
