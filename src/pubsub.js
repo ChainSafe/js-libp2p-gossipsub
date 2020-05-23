@@ -107,7 +107,7 @@ class BasicPubSub extends Pubsub {
         async (source) => {
           for await (const data of source) {
             const rpcMsgBuf = Buffer.isBuffer(data) ? data : data.slice()
-            const rpcMsg = rpc.RPC.decode(rpcMsgBuf)
+            const rpcMsg = this._decodeRpc(rpcMsgBuf)
 
             this._processRpc(idB58Str, peer, rpcMsg)
           }
@@ -116,6 +116,18 @@ class BasicPubSub extends Pubsub {
     } catch (err) {
       this._onPeerDisconnected(peer.id, err)
     }
+  }
+
+  /**
+   * Decode a buffer into an RPC object
+   *
+   * Override to use an extended protocol-specific protobuf decoder
+   *
+   * @param {Buffer} buf
+   * @returns {rpc.RPC}
+   */
+  _decodeRpc (buf) {
+    return rpc.RPC.decode(buf)
   }
 
   /**
