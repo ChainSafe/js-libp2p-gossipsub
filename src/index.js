@@ -1,6 +1,7 @@
 'use strict'
 
 const { utils } = require('libp2p-pubsub')
+const TimeCache = require('time-cache')
 
 const BasicPubsub = require('./pubsub')
 const { MessageCache } = require('./messageCache')
@@ -46,6 +47,13 @@ class GossipSub extends BasicPubsub {
       registrar,
       options: _options
     })
+
+    /**
+     * Cache of seen messages
+     *
+     * @type {TimeCache}
+     */
+    this.seenCache = new TimeCache()
 
     /**
      * Map of topic meshes
@@ -195,6 +203,14 @@ class GossipSub extends BasicPubsub {
    * @param {rpc.RPC.Message} msg
    */
   _processRpcMessage (peer, msg) {
+    const msgID = this.getMsgId(msg)
+
+    // Ignore if we've already seen the message
+    if (this.seenCache.has(msgID)) {
+      return
+    }
+    this.seenCache.put(msgID)
+
     super._processRpcMessage(peer, msg)
     const topics = msg.topicIDs
 
@@ -437,6 +453,10 @@ class GossipSub extends BasicPubsub {
 
   _publish (messages) {
     messages.forEach((msgObj) => {
+      const msgID = this.getMsgId(msgObj)
+      // put in seen cache
+      this.seenCache.put(msgID)
+
       this.messageCache.put(msgObj)
       // @type Set<string>
       const tosend = new Set()

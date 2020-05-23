@@ -2,7 +2,6 @@
 
 const errcode = require('err-code')
 const { Buffer } = require('buffer')
-const TimeCache = require('time-cache')
 const PeerId = require('peer-id')
 
 const pipe = require('it-pipe')
@@ -50,13 +49,6 @@ class BasicPubSub extends Pubsub {
      * A set of subscriptions
      */
     this.subscriptions = new Set()
-
-    /**
-     * Cache of seen messages
-     *
-     * @type {TimeCache}
-     */
-    this.seenCache = new TimeCache()
 
     /**
      * Pubsub options
@@ -153,14 +145,6 @@ class BasicPubSub extends Pubsub {
     if (msgs.length) {
       msgs.forEach(async message => {
         const msg = utils.normalizeInRpcMessage(message)
-        const msgID = this.getMsgId(msg)
-
-        // Ignore if we've already seen the message
-        if (this.seenCache.has(msgID)) {
-          return
-        }
-
-        this.seenCache.put(msgID)
 
         // Ensure the message is valid before processing it
         let isValid
@@ -359,9 +343,6 @@ class BasicPubSub extends Pubsub {
         seqno: seqno,
         topicIDs: topics
       }
-      // put in seen cache
-      this.seenCache.put(msgObj.seqno)
-
       // Emit to self if I'm interested and emitSelf enabled
       this._options.emitSelf && this._emitMessages(topics, [msgObj])
 
