@@ -159,9 +159,9 @@ class GossipSub extends BasicPubsub {
     return peer
   }
 
-  _onRpc (idB58Str, peer, rpc) {
-    super._onRpc(idB58Str, peer, rpc)
-    this._onRpcControlMessage(peer, rpc.control)
+  _processRpc (idB58Str, peer, rpc) {
+    super._processRpc(idB58Str, peer, rpc)
+    this._processRpcControlMessage(peer, rpc.control)
   }
 
   /**
@@ -170,7 +170,7 @@ class GossipSub extends BasicPubsub {
    * @param {rpc.RPC.ControlMessage} controlMsg
    * @returns {void}
    */
-  _onRpcControlMessage (peer, controlMsg) {
+  _processRpcControlMessage (peer, controlMsg) {
     if (!controlMsg) {
       return
     }
@@ -194,8 +194,8 @@ class GossipSub extends BasicPubsub {
    * @param {Peer} peer
    * @param {rpc.RPC.Message} msg
    */
-  _onRpcMessage (peer, msg) {
-    super._onRpcMessage(peer, msg)
+  _processRpcMessage (peer, msg) {
+    super._processRpcMessage(peer, msg)
     const topics = msg.topicIDs
 
     // If options.gossipIncoming is false, do NOT emit incoming messages to peers

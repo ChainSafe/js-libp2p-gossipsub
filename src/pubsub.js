@@ -109,7 +109,7 @@ class BasicPubSub extends Pubsub {
             const rpcMsgBuf = Buffer.isBuffer(data) ? data : data.slice()
             const rpcMsg = rpc.RPC.decode(rpcMsgBuf)
 
-            this._onRpc(idB58Str, peer, rpcMsg)
+            this._processRpc(idB58Str, peer, rpcMsg)
           }
         }
       )
@@ -126,7 +126,7 @@ class BasicPubSub extends Pubsub {
    * @param {rpc.RPC} rpc
    * @returns {void}
    */
-  _onRpc (idB58Str, peer, rpc) {
+  _processRpc (idB58Str, peer, rpc) {
     this.log('rpc from', idB58Str)
     const subs = rpc.subscriptions
     const msgs = rpc.msgs
@@ -180,7 +180,7 @@ class BasicPubSub extends Pubsub {
           return
         }
 
-        this._onRpcMessage(peer, msg)
+        this._processRpcMessage(peer, msg)
       })
     }
   }
@@ -191,7 +191,7 @@ class BasicPubSub extends Pubsub {
    * @param {Peer} peer
    * @param {rpc.RPC.Message} msg
    */
-  _onRpcMessage (peer, msg) {
+  _processRpcMessage (peer, msg) {
     if (this.peerId.toB58String() === msg.from && !this._options.emitSelf) {
       return
     }
