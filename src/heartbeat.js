@@ -2,7 +2,7 @@
 
 const constants = require('./constants')
 const errcode = require('err-code')
-const { shuffle } = require('./shuffle')
+const { shuffle } = require('./utils')
 
 class Heartbeat {
   /**

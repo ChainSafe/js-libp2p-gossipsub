@@ -9,8 +9,7 @@ const { MessageCache } = require('./messageCache')
 const { RPC } = require('./message')
 const constants = require('./constants')
 const Heartbeat = require('./heartbeat')
-const { createGossipRpc } = require('./createGossipRpc')
-const { shuffle } = require('./shuffle')
+const { createGossipRpc, shuffle } = require('./utils')
 
 class GossipSub extends BasicPubsub {
   /**
