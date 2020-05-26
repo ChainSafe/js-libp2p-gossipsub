@@ -9,7 +9,8 @@ const { MessageCache } = require('./messageCache')
 const { RPC } = require('./message')
 const constants = require('./constants')
 const Heartbeat = require('./heartbeat')
-const { createGossipRpc, shuffle } = require('./utils')
+const getGossipPeers = require('./getGossipPeers')
+const { createGossipRpc } = require('./utils')
 
 class GossipSub extends BasicPubsub {
   /**
@@ -104,37 +105,6 @@ class GossipSub extends BasicPubsub {
      * A heartbeat timer that maintains the mesh
      */
     this.heartbeat = new Heartbeat(this)
-  }
-
-  /**
-   * Given a topic, returns up to count peers subscribed to that topic
-   *
-   * @param {String} topic
-   * @param {Number} count
-   * @returns {Set<Peer>}
-   *
-   */
-  _getGossipPeers (topic, count) {
-    const peersInTopic = this.topics.get(topic)
-    if (!peersInTopic) {
-      return new Set()
-    }
-
-    // Adds all peers using our protocol
-    let peers = []
-    peersInTopic.forEach((peer) => {
-      if (peer.protocols.includes(constants.GossipSubID)) {
-        peers.push(peer)
-      }
-    })
-
-    // Pseudo-randomly shuffles peers
-    peers = shuffle(peers)
-    if (count > 0 && peers.length > count) {
-      peers = peers.slice(0, count)
-    }
-
-    return new Set(peers)
   }
 
   /**
@@ -440,7 +410,7 @@ class GossipSub extends BasicPubsub {
         this.fanout.delete(topic)
         this.lastpub.delete(topic)
       } else {
-        const peers = this._getGossipPeers(topic, constants.GossipSubD)
+        const peers = getGossipPeers(this, topic, constants.GossipSubD)
         this.mesh.set(topic, peers)
       }
       this.mesh.get(topic).forEach((peer) => {
@@ -492,8 +462,8 @@ class GossipSub extends BasicPubsub {
    * @param {Array<RPC>} rpcs
    * @returns {void}
    */
-  _publish (messages) {
-    messages.forEach((msgObj) => {
+  _publish (rpcs) {
+    rpcs.forEach((msgObj) => {
       const msgID = this.getMsgId(msgObj)
       // put in seen cache
       this.seenCache.put(msgID)
@@ -521,7 +491,7 @@ class GossipSub extends BasicPubsub {
           meshPeers = this.fanout.get(topic)
           if (!meshPeers) {
             // If we are not in the fanout, then pick any peers in topic
-            const peers = this._getGossipPeers(topic, constants.GossipSubD)
+            const peers = getGossipPeers(this, topic, constants.GossipSubD)
 
             if (peers.size > 0) {
               meshPeers = peers
@@ -658,7 +628,7 @@ class GossipSub extends BasicPubsub {
       return
     }
 
-    const gossipSubPeers = this._getGossipPeers(topic, constants.GossipSubD)
+    const gossipSubPeers = getGossipPeers(this, topic, constants.GossipSubD)
     gossipSubPeers.forEach((peer) => {
       // skip mesh peers
       if (!peers.has(peer)) {
