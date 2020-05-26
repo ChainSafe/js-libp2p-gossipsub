@@ -166,6 +166,15 @@ class GossipSub extends BasicPubsub {
     return peer
   }
 
+  /**
+   * Handles an rpc request from a peer
+   *
+   * @override
+   * @param {String} idB58Str
+   * @param {Peer} peer
+   * @param {RPC} rpc
+   * @returns {void}
+   */
   _processRpc (idB58Str, peer, rpc) {
     super._processRpc(idB58Str, peer, rpc)
     this._processRpcControlMessage(peer, rpc.control)
@@ -198,6 +207,7 @@ class GossipSub extends BasicPubsub {
   /**
    * Process incoming message,
    * emitting locally and forwarding on to relevant floodsub and gossipsub peers
+   * @override
    * @param {Peer} peer
    * @param {RPC.Message} msg
    */
@@ -385,11 +395,25 @@ class GossipSub extends BasicPubsub {
     this.control = new Map()
   }
 
+  /**
+   * Subscribes to topics
+   *
+   * @override
+   * @param {Array<string>} topics
+   * @returns {void}
+   */
   _subscribe (topics) {
     super._subscribe(topics)
     this.join(topics)
   }
 
+  /**
+   * Unsubscribes to topics
+   *
+   * @override
+   * @param {Array<string>} topics
+   * @returns {void}
+   */
   _unsubscribe (topics) {
     super._unsubscribe(topics)
     this.leave(topics)
@@ -460,6 +484,14 @@ class GossipSub extends BasicPubsub {
     return this._msgIdFn(msg)
   }
 
+  /**
+   * Publish messages
+   *
+   * Note: this function assumes all messages are well-formed RPC objects
+   * @override
+   * @param {Array<RPC>} rpcs
+   * @returns {void}
+   */
   _publish (messages) {
     messages.forEach((msgObj) => {
       const msgID = this.getMsgId(msgObj)

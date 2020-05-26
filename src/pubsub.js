@@ -394,6 +394,13 @@ class BasicPubSub extends Pubsub {
     })
   }
 
+  /**
+   * Publish messages
+   *
+   * Note: this function assumes all messages are well-formed RPC objects
+   * @param {Array<RPC>} rpcs
+   * @returns {void}
+   */
   _publish (rpcs) {
     throw errcode(new Error('_publish must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
   }
