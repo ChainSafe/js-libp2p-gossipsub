@@ -49,7 +49,7 @@ class MessageCache {
   /**
    * Adds a message to the current window and the cache
    *
-   * @param {rpc.RPC.Message} msg
+   * @param {RPC.Message} msg
    * @returns {void}
    */
   put (msg) {
@@ -60,7 +60,7 @@ class MessageCache {
 
   /**
    * Get message id of message.
-   * @param {rpc.RPC.Message} msg
+   * @param {RPC.Message} msg
    * @returns {string}
    */
   getMsgId (msg) {
@@ -71,7 +71,7 @@ class MessageCache {
    * Retrieves a message from the cache by its ID, if it is still present
    *
    * @param {String} msgID
-   * @returns {rpc.RPC.Message}
+   * @returns {RPC.Message}
    */
   get (msgID) {
     return this.msgs.get(msgID)
