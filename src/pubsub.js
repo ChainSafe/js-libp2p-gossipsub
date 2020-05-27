@@ -63,11 +63,16 @@ class BasicPubSub extends Pubsub {
     this.defaultMsgIdFn = (msg) => utils.msgId(msg.from, msg.seqno)
 
     /**
+     * Topic validator function
+     * @typedef {function(topic: string, peer: Peer, message: RPC): boolean} validator
+     */
+
+    /**
      * Topic validator map
      *
      * Keyed by topic
      * Topic validators are functions with the following input:
-     * (topic: string, peer: Peer, message: rpc.RPC)
+     * @type {Map<string, validator>}
      */
     this.topicValidators = new Map()
   }
@@ -157,7 +162,7 @@ class BasicPubSub extends Pubsub {
 
         // Ensure the message is valid before processing it
         try {
-          const isValid = await this.validate(peer, message)
+          const isValid = await this.validate(message, peer)
           if (!isValid) {
             this.log('Message is invalid, dropping it.')
             return
@@ -174,25 +179,26 @@ class BasicPubSub extends Pubsub {
 
   /**
    * Validates the given message.
-   * @param {Peer} peer
-   * @param {rpc.RPC.Message} message
+   * @param {RPC.Message} message
+   * @param {Peer} [peer]
    * @returns {Promise<Boolean>}
    */
-  async validate (peer, message) {
-    const isValid = await super.validate(message)
+  async validate (message, peer) {
+    const isValid = await super.validate(message, peer)
     if (!isValid) {
       return false
     }
-    for (const topic of message.topicIDs) {
-      const validatorFn = this.topicValidators.get(topic)
-      if (validatorFn) {
-        const result = validatorFn(topic, peer, message)
-        if (!this._processTopicValidatorResult(topic, peer, message, result)) {
-          return false
-        }
-      }
+    // only run topic validators if the peer is passed as an arg
+    if (!peer) {
+      return true
     }
-    return true
+    return message.topicIDs.every(topic => {
+      const validatorFn = this.topicValidators.get(topic)
+      if (!validatorFn) {
+        return true
+      }
+      return this._processTopicValidatorResult(topic, peer, message, validatorFn(topic, peer, message))
+    })
   }
 
   /**
@@ -204,9 +210,9 @@ class BasicPubSub extends Pubsub {
    *
    * @param {String} topic
    * @param {Peer} peer
-   * @param {rpc.RPC.Message} message
+   * @param {RPC.Message} message
    * @param {unknown} result
-   * @returns {Promise<Boolean>}
+   * @returns {Boolean}
    */
   _processTopicValidatorResult (topic, peer, message, result) {
     return Boolean(result)

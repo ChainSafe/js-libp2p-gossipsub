@@ -36,7 +36,7 @@ describe('Pubsub', () => {
 
       // Get the first message sent to _publish, and validate it
       const signedMessage = gossipsub._publish.getCall(0).lastArg[0]
-      const isValid = await gossipsub.validate({}, signedMessage)
+      const isValid = await gossipsub.validate(signedMessage)
 
       expect(isValid).to.eql(true)
     })
