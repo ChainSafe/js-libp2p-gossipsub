@@ -61,6 +61,20 @@ class BasicPubSub extends Pubsub {
      * @returns {string} message id as string
      */
     this.defaultMsgIdFn = (msg) => utils.msgId(msg.from, msg.seqno)
+
+    /**
+     * Topic validator function
+     * @typedef {function(topic: string, peer: Peer, message: RPC): boolean} validator
+     */
+
+    /**
+     * Topic validator map
+     *
+     * Keyed by topic
+     * Topic validators are functions with the following input:
+     * @type {Map<string, validator>}
+     */
+    this.topicValidators = new Map()
   }
 
   /**
@@ -147,23 +161,61 @@ class BasicPubSub extends Pubsub {
         const msg = utils.normalizeInRpcMessage(message)
 
         // Ensure the message is valid before processing it
-        let isValid
-        let error
-
         try {
-          isValid = await this.validate(message)
+          const isValid = await this.validate(message, peer)
+          if (!isValid) {
+            this.log('Message is invalid, dropping it.')
+            return
+          }
         } catch (err) {
-          error = err
-        }
-
-        if (error || !isValid) {
-          this.log('Message could not be validated, dropping it. isValid=%s', isValid, error)
+          this.log('Error in message validation, dropping it. %O', err)
           return
         }
 
         this._processRpcMessage(peer, msg)
       })
     }
+  }
+
+  /**
+   * Validates the given message.
+   * @param {RPC.Message} message
+   * @param {Peer} [peer]
+   * @returns {Promise<Boolean>}
+   */
+  async validate (message, peer) {
+    const isValid = await super.validate(message, peer)
+    if (!isValid) {
+      return false
+    }
+    // only run topic validators if the peer is passed as an arg
+    if (!peer) {
+      return true
+    }
+    return message.topicIDs.every(topic => {
+      const validatorFn = this.topicValidators.get(topic)
+      if (!validatorFn) {
+        return true
+      }
+      return this._processTopicValidatorResult(topic, peer, message, validatorFn(topic, peer, message))
+    })
+  }
+
+  /**
+   * Coerces topic validator result to determine message validity
+   *
+   * Defaults to true if truthy
+   *
+   * Override this method to provide custom topic validator result processing (eg: scoring)
+   *
+   * @param {String} topic
+   * @param {Peer} peer
+   * @param {RPC.Message} message
+   * @param {unknown} result
+   * @returns {Boolean}
+   */
+  _processTopicValidatorResult (topic, peer, message, result) {
+    return Boolean(result)
   }
 
   /**

@@ -152,4 +152,75 @@ describe('Pubsub', () => {
       await pWaitFor(() => gossipsub._onPeerDisconnected.calledWith(peerId), { timeout: 1000 })
     })
   })
+
+  describe('topic validators', () => {
+    it('should filter messages by topic validator', async () => {
+      // use processRpcMessage.callCount to see if a message is valid or not
+      // a valid message will trigger processRpcMessage
+      sinon.stub(gossipsub, '_processRpcMessage')
+      // Disable strict signing
+      sinon.stub(gossipsub, 'strictSigning').value(false)
+      const filteredTopic = 't'
+      const peerStr = 'QmAnotherPeer'
+      gossipsub.peers.set(peerStr, {})
+
+      // Set a trivial topic validator
+      gossipsub.topicValidators.set(filteredTopic, (topic, peer, message) => {
+        return message.data.equals(Buffer.from('a message'))
+      })
+
+      // valid case
+      const validRpc = {
+        subscriptions: [],
+        msgs: [{
+          from: gossipsub.peerId.id,
+          data: Buffer.from('a message'),
+          seqno: utils.randomSeqno(),
+          topicIDs: [filteredTopic]
+        }]
+      }
+
+      // process valid message
+      gossipsub._processRpc(peerStr, {}, validRpc)
+      await new Promise(resolve => setTimeout(resolve, 500))
+      expect(gossipsub._processRpcMessage.callCount).to.eql(1)
+
+      // invalid case
+      const invalidRpc = {
+        subscriptions: [],
+        msgs: [{
+          from: gossipsub.peerId.id,
+          data: Buffer.from('a different message'),
+          seqno: utils.randomSeqno(),
+          topicIDs: [filteredTopic]
+        }]
+      }
+
+      // process invalid message
+      gossipsub._processRpc(peerStr, {}, invalidRpc)
+      await new Promise(resolve => setTimeout(resolve, 500))
+      expect(gossipsub._processRpcMessage.callCount).to.eql(1)
+
+      // remove topic validator
+      gossipsub.topicValidators.delete(filteredTopic)
+
+      // another invalid case
+      const invalidRpc2 = {
+        subscriptions: [],
+        msgs: [{
+          from: gossipsub.peerId.id,
+          data: Buffer.from('a different message'),
+          seqno: utils.randomSeqno(),
+          topicIDs: [filteredTopic]
+        }]
+      }
+
+      // process previously invalid message, now is valid
+      gossipsub._processRpc(peerStr, {}, invalidRpc2)
+      await new Promise(resolve => setTimeout(resolve, 500))
+      expect(gossipsub._processRpcMessage.callCount).to.eql(2)
+      // cleanup
+      gossipsub.peers.delete(peerStr)
+    })
+  })
 })
