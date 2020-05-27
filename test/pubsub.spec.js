@@ -59,7 +59,7 @@ describe('Pubsub', () => {
         }]
       }
 
-      gossipsub._onRpc('QmAnotherPeer', rpc)
+      gossipsub._processRpc('QmAnotherPeer', {}, rpc)
 
       return new Promise(resolve => setTimeout(() => {
         expect(gossipsub.validate.callCount).to.eql(1)
@@ -86,7 +86,7 @@ describe('Pubsub', () => {
         msgs: [signedMessage]
       }
 
-      gossipsub._onRpc('QmAnotherPeer', rpc)
+      gossipsub._processRpc('QmAnotherPeer', {}, rpc)
 
       return new Promise(resolve => setTimeout(() => {
         expect(gossipsub.validate.callCount).to.eql(1)
@@ -113,7 +113,7 @@ describe('Pubsub', () => {
         }]
       }
 
-      gossipsub._onRpc('QmAnotherPeer', rpc)
+      gossipsub._processRpc('QmAnotherPeer', {}, rpc)
 
       return new Promise(resolve => setTimeout(() => {
         expect(gossipsub.validate.callCount).to.eql(1)
@@ -155,8 +155,8 @@ describe('Pubsub', () => {
 
   describe('topic validators', () => {
     it('should filter messages by topic validator', async () => {
-      // use onRpcMessage.callCount to see if a message is valid or not
-      // a valid message will trigger onRpcMessage
+      // use processRpcMessage.callCount to see if a message is valid or not
+      // a valid message will trigger processRpcMessage
       sinon.stub(gossipsub, '_processRpcMessage')
       // Disable strict signing
       sinon.stub(gossipsub, 'strictSigning').value(false)
@@ -181,7 +181,7 @@ describe('Pubsub', () => {
       }
 
       // process valid message
-      gossipsub._onRpc(peerStr, validRpc)
+      gossipsub._processRpc(peerStr, {}, validRpc)
       await new Promise(resolve => setTimeout(resolve, 500))
       expect(gossipsub._processRpcMessage.callCount).to.eql(1)
 
@@ -197,7 +197,7 @@ describe('Pubsub', () => {
       }
 
       // process invalid message
-      gossipsub._onRpc(peerStr, invalidRpc)
+      gossipsub._processRpc(peerStr, {}, invalidRpc)
       await new Promise(resolve => setTimeout(resolve, 500))
       expect(gossipsub._processRpcMessage.callCount).to.eql(1)
 
@@ -216,7 +216,7 @@ describe('Pubsub', () => {
       }
 
       // process previously invalid message, now is valid
-      gossipsub._onRpc(peerStr, invalidRpc2)
+      gossipsub._processRpc(peerStr, {}, invalidRpc2)
       await new Promise(resolve => setTimeout(resolve, 500))
       expect(gossipsub._processRpcMessage.callCount).to.eql(2)
       // cleanup

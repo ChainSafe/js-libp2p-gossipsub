@@ -3,8 +3,5 @@
 const protons = require('protons')
 
 const rpcProto = protons(require('./rpc.proto.js'))
-const topicDescriptorProto = protons(require('./topic-descriptor.proto.js'))
 
-exports = module.exports
-exports.rpc = rpcProto
-exports.td = topicDescriptorProto
+exports.RPC = rpcProto.RPC

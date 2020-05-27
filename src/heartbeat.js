@@ -1,7 +1,9 @@
 'use strict'
 
-const constants = require('./constants')
 const errcode = require('err-code')
+const constants = require('./constants')
+const getGossipPeers = require('./getGossipPeers')
+const { shuffle } = require('./utils')
 
 class Heartbeat {
   /**
@@ -76,7 +78,7 @@ class Heartbeat {
       // do we have enough peers?
       if (peers.size < constants.GossipSubDlo) {
         const ineed = constants.GossipSubD - peers.size
-        const peersSet = this.gossipsub._getPeers(topic, ineed)
+        const peersSet = getGossipPeers(this.gossipsub, topic, ineed)
         peersSet.forEach((peer) => {
           // add topic peers not already in mesh
           if (peers.has(peer)) {
@@ -98,7 +100,7 @@ class Heartbeat {
       if (peers.size > constants.GossipSubDhi) {
         const idontneed = peers.size - constants.GossipSubD
         let peersArray = Array.from(peers)
-        peersArray = this.gossipsub._shufflePeers(peersArray)
+        peersArray = shuffle(peersArray)
         peersArray = peersArray.slice(0, idontneed)
 
         peersArray.forEach((peer) => {
@@ -137,7 +139,7 @@ class Heartbeat {
       // do we need more peers?
       if (peers.size < constants.GossipSubD) {
         const ineed = constants.GossipSubD - peers.size
-        const peersSet = this.gossipsub._getPeers(topic, ineed)
+        const peersSet = getGossipPeers(this.gossipsub, topic, ineed)
         peersSet.forEach((peer) => {
           if (!peers.has(peer)) {
             return
