@@ -1,7 +1,6 @@
 language: node_js
 cache: npm
 stages:
-  - build
   - check
   - test
   - cov
@@ -21,12 +20,9 @@ jobs:
     - os: windows
       cache: false
 
-    - stage: build
-      script:
-        -  npm run prebuild
-
     - stage: check
       script:
+        - npm run prebuild
         - npx aegir dep-check
         - npm run lint
 
@@ -35,6 +31,7 @@ jobs:
       addons:
         chrome: stable
       script:
+        - npm run prebuild
         - npx aegir test -t browser
         - npx aegir test -t webworker
 
@@ -43,6 +40,7 @@ jobs:
       addons:
         firefox: latest
       script:
+        - npm run prebuild
         - npx aegir test -t browser -- --browsers FirefoxHeadless
         - npx aegir test -t webworker -- --browsers FirefoxHeadless
 
