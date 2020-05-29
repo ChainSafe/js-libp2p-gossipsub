@@ -1,6 +1,7 @@
 language: node_js
 cache: npm
 stages:
+  - build
   - check
   - test
   - cov
@@ -19,6 +20,10 @@ jobs:
   include:
     - os: windows
       cache: false
+
+    - stage: build
+      script:
+        -  npm run prebuild
 
     - stage: check
       script:
