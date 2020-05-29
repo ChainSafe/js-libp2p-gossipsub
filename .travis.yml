@@ -12,6 +12,7 @@ os:
   - linux
   - osx
 
+before_script: npm run prebuild
 script: npx nyc -s npm run test:node -- --bail
 after_success: npx nyc report --reporter=text-lcov > coverage.lcov && npx codecov
 
