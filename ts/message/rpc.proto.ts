@@ -1,5 +1,4 @@
-'use strict'
-module.exports = `
+export default `
 message RPC {
   repeated SubOpts subscriptions = 1;
   repeated Message msgs = 2;

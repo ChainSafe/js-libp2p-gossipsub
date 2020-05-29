@@ -11,13 +11,13 @@ const pMap = require('p-map')
 const Pubsub = require('libp2p-pubsub')
 
 const { utils } = require('libp2p-pubsub')
-const { RPC } = require('./message')
+const { RPCCodec } = require('./message')
 
 class BasicPubSub extends Pubsub {
   /**
    * @param {Object} props
    * @param {String} props.debugName log namespace
-   * @param {string} props.multicodec protocol identificer to connect
+   * @param {string[]} props.multicodecs protocol identifiers to connect
    * @param {PeerId} props.peerId peer's peerId
    * @param {Object} props.registrar registrar for libp2p protocols
    * @param {function} props.registrar.handle
@@ -64,7 +64,7 @@ class BasicPubSub extends Pubsub {
 
     /**
      * Topic validator function
-     * @typedef {function(topic: string, peer: Peer, message: RPC): boolean} validator
+     * @typedef {function(string, Peer, RPC): boolean} validator
      */
 
     /**
@@ -133,7 +133,7 @@ class BasicPubSub extends Pubsub {
    * @returns {RPC}
    */
   _decodeRpc (buf) {
-    return RPC.decode(buf)
+    return RPCCodec.decode(buf)
   }
 
   /**
@@ -450,10 +450,10 @@ class BasicPubSub extends Pubsub {
    * Publish messages
    *
    * Note: this function assumes all messages are well-formed RPC objects
-   * @param {Array<RPC>} rpcs
+   * @param {Array<Message>} msgs
    * @returns {void}
    */
-  _publish (rpcs) {
+  _publish (msgs) {
     throw errcode(new Error('_publish must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
   }
 }

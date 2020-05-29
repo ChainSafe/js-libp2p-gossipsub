@@ -1,20 +1,29 @@
 'use strict'
 
-const errcode = require('err-code')
-const constants = require('./constants')
-const getGossipPeers = require('./getGossipPeers')
-const { shuffle } = require('./utils')
+import * as constants from './constants'
+import { getGossipPeers } from './getGossipPeers'
+import { shuffle } from './utils'
+import { GossipSub } from './index'
+import { Peer } from './peer'
+import errcode = require('err-code')
 
-class Heartbeat {
+export class Heartbeat {
+  gossipsub: GossipSub
+  _heartbeatTimer: {
+    _intervalId: NodeJS.Timeout | undefined
+    runPeriodically (fn: () => void, period: number): void
+    cancel (): void
+  } | null
+
   /**
    * @param {Object} gossipsub
    * @constructor
    */
-  constructor (gossipsub) {
+  constructor (gossipsub: GossipSub) {
     this.gossipsub = gossipsub
   }
 
-  start () {
+  start (): void {
     if (this._heartbeatTimer) {
       const errMsg = 'Heartbeat timer is already running'
       this.gossipsub.log(errMsg)
@@ -25,18 +34,17 @@ class Heartbeat {
 
     const timeout = setTimeout(() => {
       heartbeat()
-      this._heartbeatTimer.runPeriodically(heartbeat, constants.GossipSubHeartbeatInterval)
+      this._heartbeatTimer!.runPeriodically(heartbeat, constants.GossipSubHeartbeatInterval)
     }, constants.GossipSubHeartbeatInitialDelay)
 
     this._heartbeatTimer = {
-      _onCancel: null,
-      _intervalId: null,
+      _intervalId: undefined,
       runPeriodically: (fn, period) => {
-        this._heartbeatTimer._intervalId = setInterval(fn, period)
+        this._heartbeatTimer!._intervalId = setInterval(fn, period)
       },
       cancel: () => {
         clearTimeout(timeout)
-        clearInterval(this._heartbeatTimer._intervalId)
+        clearInterval(this._heartbeatTimer!._intervalId as NodeJS.Timeout)
       }
     }
   }
@@ -46,7 +54,7 @@ class Heartbeat {
    * @override
    * @returns {void}
    */
-  stop () {
+  stop (): void {
     if (!this._heartbeatTimer) {
       const errMsg = 'Heartbeat timer is not running'
       this.gossipsub.log(errMsg)
@@ -62,7 +70,7 @@ class Heartbeat {
    *
    * @returns {void}
    */
-  _heartbeat () {
+  _heartbeat (): void {
     // flush pending control message from retries and gossip
     // that hasn't been piggybacked since the last heartbeat
     this.gossipsub._flush()
@@ -70,8 +78,8 @@ class Heartbeat {
     /**
      * @type {Map<Peer, Array<String>>}
      */
-    const tograft = new Map()
-    const toprune = new Map()
+    const tograft = new Map<Peer, string[]>()
+    const toprune = new Map<Peer, string[]>()
 
     // maintain the mesh for topics we have joined
     this.gossipsub.mesh.forEach((peers, topic) => {
@@ -160,5 +168,3 @@ class Heartbeat {
     this.gossipsub.emit('gossipsub:heartbeat')
   }
 }
-
-module.exports = Heartbeat
