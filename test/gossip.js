@@ -5,7 +5,7 @@ const { Buffer } = require('buffer')
 const { expect } = require('chai')
 const sinon = require('sinon')
 
-const { GossipSubID: multicodec, GossipSubDhi } = require('../src/constants')
+const { GossipsubID: multicodec, GossipsubDhi } = require('../src/constants')
 const {
   first,
   createGossipsubNodes,
@@ -20,7 +20,7 @@ describe('gossip', () => {
     ({
       nodes,
       registrarRecords
-    } = await createGossipsubNodes(GossipSubDhi + 2, true))
+    } = await createGossipsubNodes(GossipsubDhi + 2, true))
   })
 
   afterEach(() => Promise.all(nodes.map((n) => n.stop())))

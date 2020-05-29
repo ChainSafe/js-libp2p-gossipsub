@@ -3,12 +3,12 @@
 import * as constants from './constants'
 import { getGossipPeers } from './getGossipPeers'
 import { shuffle } from './utils'
-import { GossipSub } from './index'
+import { Gossipsub } from './index'
 import { Peer } from './peer'
 import errcode = require('err-code')
 
 export class Heartbeat {
-  gossipsub: GossipSub
+  gossipsub: Gossipsub
   _heartbeatTimer: {
     _intervalId: NodeJS.Timeout | undefined
     runPeriodically (fn: () => void, period: number): void
@@ -19,7 +19,7 @@ export class Heartbeat {
    * @param {Object} gossipsub
    * @constructor
    */
-  constructor (gossipsub: GossipSub) {
+  constructor (gossipsub: Gossipsub) {
     this.gossipsub = gossipsub
   }
 
@@ -34,8 +34,8 @@ export class Heartbeat {
 
     const timeout = setTimeout(() => {
       heartbeat()
-      this._heartbeatTimer!.runPeriodically(heartbeat, constants.GossipSubHeartbeatInterval)
-    }, constants.GossipSubHeartbeatInitialDelay)
+      this._heartbeatTimer!.runPeriodically(heartbeat, constants.GossipsubHeartbeatInterval)
+    }, constants.GossipsubHeartbeatInitialDelay)
 
     this._heartbeatTimer = {
       _intervalId: undefined,
@@ -84,8 +84,8 @@ export class Heartbeat {
     // maintain the mesh for topics we have joined
     this.gossipsub.mesh.forEach((peers, topic) => {
       // do we have enough peers?
-      if (peers.size < constants.GossipSubDlo) {
-        const ineed = constants.GossipSubD - peers.size
+      if (peers.size < constants.GossipsubDlo) {
+        const ineed = constants.GossipsubD - peers.size
         const peersSet = getGossipPeers(this.gossipsub, topic, ineed)
         peersSet.forEach((peer) => {
           // add topic peers not already in mesh
@@ -105,8 +105,8 @@ export class Heartbeat {
       }
 
       // do we have to many peers?
-      if (peers.size > constants.GossipSubDhi) {
-        const idontneed = peers.size - constants.GossipSubD
+      if (peers.size > constants.GossipsubDhi) {
+        const idontneed = peers.size - constants.GossipsubD
         let peersArray = Array.from(peers)
         peersArray = shuffle(peersArray)
         peersArray = peersArray.slice(0, idontneed)
@@ -129,7 +129,7 @@ export class Heartbeat {
     // expire fanout for topics we haven't published to in a while
     const now = this.gossipsub._now()
     this.gossipsub.lastpub.forEach((lastpb, topic) => {
-      if ((lastpb + constants.GossipSubFanoutTTL) < now) {
+      if ((lastpb + constants.GossipsubFanoutTTL) < now) {
         this.gossipsub.fanout.delete(topic)
         this.gossipsub.lastpub.delete(topic)
       }
@@ -145,8 +145,8 @@ export class Heartbeat {
       })
 
       // do we need more peers?
-      if (peers.size < constants.GossipSubD) {
-        const ineed = constants.GossipSubD - peers.size
+      if (peers.size < constants.GossipsubD) {
+        const ineed = constants.GossipsubD - peers.size
         const peersSet = getGossipPeers(this.gossipsub, topic, ineed)
         peersSet.forEach((peer) => {
           if (!peers.has(peer)) {

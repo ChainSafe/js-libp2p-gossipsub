@@ -1,6 +1,6 @@
 import * as constants from './constants'
 import { shuffle } from './utils'
-import { GossipSub } from './index'
+import { Gossipsub } from './index'
 import { Peer } from './peer'
 
 /**
@@ -12,7 +12,7 @@ import { Peer } from './peer'
  * @returns {Set<Peer>}
  *
  */
-export function getGossipPeers (router: GossipSub, topic: string, count: number): Set<Peer> {
+export function getGossipPeers (router: Gossipsub, topic: string, count: number): Set<Peer> {
   const peersInTopic = router.topics.get(topic)
   if (!peersInTopic) {
     return new Set()
@@ -21,7 +21,7 @@ export function getGossipPeers (router: GossipSub, topic: string, count: number)
   // Adds all peers using our protocol
   let peers: Peer[] = []
   peersInTopic.forEach((peer) => {
-    if (peer.protocols.includes(constants.GossipSubID)) {
+    if (peer.protocols.includes(constants.GossipsubID)) {
       peers.push(peer)
     }
   })

@@ -22,7 +22,7 @@ interface GossipOptions {
   messageCache: MessageCache
 }
 
-export class GossipSub extends BasicPubsub {
+export class Gossipsub extends BasicPubsub {
   mesh: Map<string, Set<Peer>>
   fanout: Map<string, Set<Peer>>
   lastPub: Map<string, number>
@@ -45,7 +45,7 @@ export class GossipSub extends BasicPubsub {
    * @constructor
    */
   constructor (peerId: PeerId, registrar: Registrar, options: Partial<GossipOptions> = {}) {
-    const multicodecs = [constants.GossipSubID]
+    const multicodecs = [constants.GossipsubID]
     const _options = {
       gossipIncoming: true,
       fallbackToFloodsub: true,
@@ -116,7 +116,7 @@ export class GossipSub extends BasicPubsub {
      * A message cache that contains the messages for last few hearbeat ticks
      *
      */
-    this.messageCache = options.messageCache || new MessageCache(constants.GossipSubHistoryGossip, constants.GossipSubHistoryLength, this._msgIdFn)
+    this.messageCache = options.messageCache || new MessageCache(constants.GossipsubHistoryGossip, constants.GossipsubHistoryLength, this._msgIdFn)
 
     /**
      * A heartbeat timer that maintains the mesh
@@ -422,7 +422,7 @@ export class GossipSub extends BasicPubsub {
    */
   join (topics: string[] | string): void {
     if (!this.started) {
-      throw new Error('GossipSub has not started')
+      throw new Error('Gossipsub has not started')
     }
     topics = utils.ensureArray(topics)
 
@@ -436,7 +436,7 @@ export class GossipSub extends BasicPubsub {
         this.fanout.delete(topic)
         this.lastpub.delete(topic)
       } else {
-        const peers = getGossipPeers(this, topic, constants.GossipSubD)
+        const peers = getGossipPeers(this, topic, constants.GossipsubD)
         this.mesh.set(topic, peers)
       }
       this.mesh.get(topic)!.forEach((peer) => {
@@ -516,7 +516,7 @@ export class GossipSub extends BasicPubsub {
           meshPeers = this.fanout.get(topic)
           if (!meshPeers) {
             // If we are not in the fanout, then pick any peers in topic
-            const peers = getGossipPeers(this, topic, constants.GossipSubD)
+            const peers = getGossipPeers(this, topic, constants.GossipsubD)
 
             if (peers.size > 0) {
               meshPeers = peers
@@ -658,7 +658,7 @@ export class GossipSub extends BasicPubsub {
       return
     }
 
-    const gossipSubPeers = getGossipPeers(this, topic, constants.GossipSubD)
+    const gossipSubPeers = getGossipPeers(this, topic, constants.GossipsubD)
     gossipSubPeers.forEach((peer) => {
       // skip mesh peers
       if (!peers.has(peer)) {
@@ -709,5 +709,5 @@ export class GossipSub extends BasicPubsub {
   }
 }
 
-module.exports = GossipSub
-module.exports.multicodec = constants.GossipSubID
+module.exports = Gossipsub
+module.exports.multicodec = constants.GossipsubID

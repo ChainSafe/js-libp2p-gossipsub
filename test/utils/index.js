@@ -8,7 +8,7 @@ const pTimes = require('p-times')
 const FloodSub = require('libp2p-floodsub')
 const PeerId = require('peer-id')
 
-const GossipSub = require('../../src')
+const Gossipsub = require('../../src')
 
 exports.first = (map) => map.values().next().value
 
@@ -26,7 +26,7 @@ exports.createPeerId = createPeerId
 
 const createGossipsub = async (registrar, shouldStart = false, options) => {
   const peerId = await createPeerId()
-  const gs = new GossipSub(peerId, registrar, options)
+  const gs = new Gossipsub(peerId, registrar, options)
 
   if (shouldStart) {
     await gs.start()

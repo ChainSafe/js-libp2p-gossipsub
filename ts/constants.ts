@@ -5,20 +5,20 @@ const minute = exports.minute = 60 * second
 
 // Protocol identifiers
 export const FloodSubID = '/floodsub/1.0.0'
-export const GossipSubID = '/meshsub/1.0.0'
+export const GossipsubID = '/meshsub/1.0.0'
 
 // Overlay parameters
-export const GossipSubD = 6
-export const GossipSubDlo = 4
-export const GossipSubDhi = 12
+export const GossipsubD = 6
+export const GossipsubDlo = 4
+export const GossipsubDhi = 12
 
 // Gossip parameters
-export const GossipSubHistoryLength = 5
-export const GossipSubHistoryGossip = 3
+export const GossipsubHistoryLength = 5
+export const GossipsubHistoryGossip = 3
 
 // Heartbeat interval
-export const GossipSubHeartbeatInitialDelay = 100 / second
-export const GossipSubHeartbeatInterval = second
+export const GossipsubHeartbeatInitialDelay = 100 / second
+export const GossipsubHeartbeatInterval = second
 
 // Fanout ttl
-export const GossipSubFanoutTTL = minute
+export const GossipsubFanoutTTL = minute
