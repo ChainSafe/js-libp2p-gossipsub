@@ -14,7 +14,7 @@ export interface Peer {
   readonly isConnected: boolean
   readonly isWritable: boolean
   write (buf: Buffer): void
-  attachConnection (conn: Connection)
+  attachConnection (conn: Connection): void
   sendSubscriptions (topics: string[]): void
   sendUnsubscriptions (topics: string[]): void
   sendMessages (msgs: Message[]): void

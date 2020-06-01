@@ -1,4 +1,6 @@
 import rpcProtoStr from './rpc.proto'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import protons = require('protons')
 
 const rpcProto = protons(rpcProtoStr)

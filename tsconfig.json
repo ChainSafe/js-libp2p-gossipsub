@@ -5,13 +5,14 @@
       "es6"
     ],
     "target": "es6",
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "noImplicitThis": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "esModuleInterop": true,
     "allowJs": true,
     "outDir": "./src",
+    "declaration": true,
     "types": [
       "node"
     ],

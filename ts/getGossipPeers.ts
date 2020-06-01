@@ -1,7 +1,7 @@
 import * as constants from './constants'
 import { shuffle } from './utils'
-import { Gossipsub } from './index'
 import { Peer } from './peer'
+import Gossipsub = require('./index')
 
 /**
  * Given a topic, returns up to count peers subscribed to that topic

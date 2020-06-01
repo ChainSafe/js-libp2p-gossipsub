@@ -1,10 +1,10 @@
-'use strict'
-
 import * as constants from './constants'
 import { getGossipPeers } from './getGossipPeers'
 import { shuffle } from './utils'
-import { Gossipsub } from './index'
 import { Peer } from './peer'
+import Gossipsub = require('./index')
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import errcode = require('err-code')
 
 export class Heartbeat {
@@ -138,8 +138,9 @@ export class Heartbeat {
     // maintain our fanout for topics we are publishing but we have not joined
     this.gossipsub.fanout.forEach((peers, topic) => {
       // checks whether our peers are still in the topic
+      const topicGossip = this.gossipsub.topics.get(topic)
       peers.forEach((peer) => {
-        if (this.gossipsub.topics.has(peer)) {
+        if (topicGossip!.has(peer)) {
           peers.delete(peer)
         }
       })

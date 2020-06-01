@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-ignore
 import { utils } from 'libp2p-pubsub'
 import { MessageCache } from './messageCache'
 import {
@@ -10,6 +12,7 @@ import { Heartbeat } from './heartbeat'
 import { getGossipPeers } from './getGossipPeers'
 import { createGossipRpc } from './utils'
 import { Peer, Registrar } from './peer'
+// @ts-ignore
 import TimeCache = require('time-cache')
 import PeerId = require('peer-id')
 import BasicPubsub = require('./pubsub')
@@ -22,10 +25,12 @@ interface GossipOptions {
   messageCache: MessageCache
 }
 
-export class Gossipsub extends BasicPubsub {
+class Gossipsub extends BasicPubsub {
+  peers: Map<string, Peer>
+  topics: Map<string, Set<Peer>>
   mesh: Map<string, Set<Peer>>
   fanout: Map<string, Set<Peer>>
-  lastPub: Map<string, number>
+  lastpub: Map<string, number>
   gossip: Map<Peer, ControlIHave[]>
   control: Map<Peer, ControlMessage>
   _options: GossipOptions
@@ -335,7 +340,7 @@ export class Gossipsub extends BasicPubsub {
       return
     }
 
-    const buildCtrlPruneMsg = (topic) => {
+    const buildCtrlPruneMsg = (topic: string) => {
       return {
         topicID: topic
       }
@@ -709,5 +714,5 @@ export class Gossipsub extends BasicPubsub {
   }
 }
 
-module.exports = Gossipsub
+export = Gossipsub
 module.exports.multicodec = constants.GossipsubID
