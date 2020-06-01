@@ -27,7 +27,7 @@ export interface SubOpts {
  */
 export interface Message {
   /**
-   * Author of the message
+   * Peer id of the author of the message
    *
    * Note: This is not necessarily the peer who sent the RPC this message is contained in
    */
@@ -59,17 +59,19 @@ export interface Message {
   key?: Buffer
 }
 
+type Overwrite<T1, T2> = {
+    [P in Exclude<keyof T1, keyof T2>]: T1[P]
+} & T2;
+
 /**
- * Same as Message, but `from` is an optional string
+ * Pubsub message, with `from` as a base58-encoded string
  */
-export interface InMessage {
+export type InMessage = Overwrite<Message, {
+  /**
+   * Base58-encoded peer id
+   */
   from?: string
-  data?: Buffer
-  seqno?: Buffer
-  topicIDs: string[]
-  signature?: Buffer
-  key?: Buffer
-}
+}>
 
 /**
  * IHAVE control message
