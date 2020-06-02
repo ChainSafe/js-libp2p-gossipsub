@@ -14,6 +14,7 @@
     "release": "aegir release",
     "prebuild": "tsc",
     "build": "aegir build",
+    "pretest": "tsc",
     "test": "aegir test",
     "test:node": "aegir test --target node",
     "test:browser": "aegir test --target browser"
