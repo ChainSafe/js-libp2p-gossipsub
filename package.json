@@ -39,7 +39,7 @@
     "err-code": "^2.0.0",
     "it-length-prefixed": "^3.0.0",
     "it-pipe": "^1.0.1",
-    "libp2p-pubsub": "^0.5.0",
+    "libp2p-pubsub": "libp2p/js-libp2p-pubsub#fix/use-unidirectional-streams",
     "p-map": "^4.0.0",
     "peer-id": "~0.13.3",
     "protons": "^1.0.1",

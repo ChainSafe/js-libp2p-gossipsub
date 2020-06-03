@@ -303,10 +303,8 @@ describe('2 nodes', () => {
       } = await createGossipsubNodes(2, true))
     })
 
-    after(() => Promise.all(nodes.map((n) => n.stop())))
-
-    it('existing subscriptions are sent upon peer connection', async function () {
-      this.timeout(5000)
+    // Make subscriptions prior to new nodes
+    before(() => {
       nodes[0].subscribe('Za')
       nodes[1].subscribe('Zb')
 
@@ -314,17 +312,42 @@ describe('2 nodes', () => {
       expectSet(nodes[0].subscriptions, ['Za'])
       expect(nodes[1].peers.size).to.equal(0)
       expectSet(nodes[1].subscriptions, ['Zb'])
+    })
 
-      // Connect nodes
-      const onConnect0 = registrarRecords[0][multicodec].onConnect
-      const onConnect1 = registrarRecords[1][multicodec].onConnect
+    after(() => Promise.all(nodes.map((n) => n.stop())))
 
-      // Notice peers of connection
-      const [d0, d1] = ConnectionPair()
-      onConnect0(nodes[1].peerId, d0)
-      onConnect1(nodes[0].peerId, d1)
+    it('existing subscriptions are sent upon peer connection', async function () {
+      this.timeout(5000)
+
+      const dial = async () => {
+        // Connect nodes
+        const onConnect0 = registrarRecords[0][multicodec].onConnect
+        const onConnect1 = registrarRecords[1][multicodec].onConnect
+        const handle0 = registrarRecords[0][multicodec].handler
+        const handle1 = registrarRecords[1][multicodec].handler
+
+        // Notice peers of connection
+        const [d0, d1] = ConnectionPair()
+        await onConnect0(nodes[1].peerId, d0)
+        await handle1({
+          protocol: multicodec,
+          stream: d1.stream,
+          connection: {
+            remotePeer: nodes[0].peerId
+          }
+        })
+        await onConnect1(nodes[0].peerId, d1)
+        await handle0({
+          protocol: multicodec,
+          stream: d0.stream,
+          connection: {
+            remotePeer: nodes[1].peerId
+          }
+        })
+      }
 
       await Promise.all([
+        dial(),
         new Promise((resolve) => nodes[0].once('pubsub:subscription-change', resolve)),
         new Promise((resolve) => nodes[1].once('pubsub:subscription-change', resolve))
       ])

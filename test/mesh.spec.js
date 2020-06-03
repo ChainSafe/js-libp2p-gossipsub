@@ -35,15 +35,31 @@ describe('mesh overlay', () => {
     // connect N (< GossipsubD) nodes to node0
     const N = 4
     const onConnect0 = registrarRecords[0][multicodec].onConnect
+    const handle0 = registrarRecords[0][multicodec].handler
 
     for (let i = nodes.length; i > nodes.length - N; i--) {
       const n = i - 1
       const onConnectN = registrarRecords[n][multicodec].onConnect
+      const handleN = registrarRecords[n][multicodec].handler
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
-      onConnect0(nodes[n].peerId, d0)
-      onConnectN(nodes[0].peerId, d1)
+      await onConnect0(nodes[n].peerId, d0)
+      await handleN({
+        protocol: multicodec,
+        stream: d1.stream,
+        connection: {
+          remotePeer: nodes[0].peerId
+        }
+      })
+      await onConnectN(nodes[0].peerId, d1)
+      await handle0({
+        protocol: multicodec,
+        stream: d0.stream,
+        connection: {
+          remotePeer: nodes[n].peerId
+        }
+      })
     }
 
     // await mesh rebalancing

@@ -32,7 +32,7 @@ describe('gossip', () => {
     // add subscriptions to each node
     nodes.forEach((n) => n.subscribe(topic))
 
-    connectGossipsubNodes(nodes, registrarRecords, multicodec)
+    await connectGossipsubNodes(nodes, registrarRecords, multicodec)
 
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
@@ -69,7 +69,7 @@ describe('gossip', () => {
     nodes.forEach((n) => n.subscribe(topic))
 
     // every node connected to every other
-    connectGossipsubNodes(nodes, registrarRecords, multicodec)
+    await connectGossipsubNodes(nodes, registrarRecords, multicodec)
     await new Promise((resolve) => setTimeout(resolve, 500))
     // await mesh rebalancing
     await Promise.all(nodes.map((n) => new Promise((resolve) => n.once('gossipsub:heartbeat', resolve))))
