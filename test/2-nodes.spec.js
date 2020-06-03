@@ -7,7 +7,7 @@ chai.use(require('dirty-chai'))
 chai.use(require('chai-spies'))
 const expect = chai.expect
 
-const { GossipsubID: multicodec } = require('../src/constants')
+const { multicodec } = require('../src')
 
 const {
   createGossipsub,

@@ -35,6 +35,8 @@ class Gossipsub extends BasicPubsub {
   control: Map<Peer, ControlMessage>
   _options: GossipOptions
 
+  public static multicodec: string = constants.GossipsubID
+
   /**
    * @param {PeerId} peerId instance of the peer's PeerId
    * @param {Object} registrar
@@ -715,4 +717,3 @@ class Gossipsub extends BasicPubsub {
 }
 
 export = Gossipsub
-module.exports.multicodec = constants.GossipsubID
