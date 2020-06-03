@@ -12,6 +12,7 @@ os:
   - linux
   - osx
 
+before_script: npm run prebuild
 script: npx nyc -s npm run test:node -- --bail
 after_success: npx nyc report --reporter=text-lcov > coverage.lcov && npx codecov
 
@@ -22,6 +23,7 @@ jobs:
 
     - stage: check
       script:
+        - npm run prebuild
         - npx aegir dep-check
         - npm run lint
 
@@ -30,6 +32,7 @@ jobs:
       addons:
         chrome: stable
       script:
+        - npm run prebuild
         - npx aegir test -t browser
         - npx aegir test -t webworker
 
@@ -38,6 +41,7 @@ jobs:
       addons:
         firefox: latest
       script:
+        - npm run prebuild
         - npx aegir test -t browser -- --browsers FirefoxHeadless
         - npx aegir test -t webworker -- --browsers FirefoxHeadless
 

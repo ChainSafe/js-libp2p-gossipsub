@@ -1,19 +1,16 @@
-'use strict'
+import { InMessage } from './message'
 
-class CacheEntry {
-  /**
-   * @param {String} msgID
-   * @param {Array<String>} topics
-   *
-   * @constructor
-   */
-  constructor (msgID, topics) {
-    this.msgID = msgID
-    this.topics = topics
-  }
+export interface CacheEntry {
+  msgID: string
+  topics: string[]
 }
 
-class MessageCache {
+export class MessageCache {
+  msgs: Map<string, InMessage>
+  history: CacheEntry[][]
+  gossip: number
+  msgIdFn: (msg: InMessage) => string
+
   /**
    * @param {Number} gossip
    * @param {Number} history
@@ -21,7 +18,7 @@ class MessageCache {
    *
    * @constructor
    */
-  constructor (gossip, history, msgIdFn) {
+  constructor (gossip: number, history: number, msgIdFn: (msg: InMessage) => string) {
     /**
      * @type {Map<string, RPC.Message>}
      */
@@ -52,10 +49,10 @@ class MessageCache {
    * @param {RPC.Message} msg
    * @returns {void}
    */
-  put (msg) {
+  put (msg: InMessage): void {
     const msgID = this.getMsgId(msg)
     this.msgs.set(msgID, msg)
-    this.history[0].push(new CacheEntry(msgID, msg.topicIDs))
+    this.history[0].push({ msgID, topics: msg.topicIDs })
   }
 
   /**
@@ -63,7 +60,7 @@ class MessageCache {
    * @param {RPC.Message} msg
    * @returns {string}
    */
-  getMsgId (msg) {
+  getMsgId (msg: InMessage): string {
     return this.msgIdFn(msg)
   }
 
@@ -71,9 +68,9 @@ class MessageCache {
    * Retrieves a message from the cache by its ID, if it is still present
    *
    * @param {String} msgID
-   * @returns {RPC.Message}
+   * @returns {Message}
    */
-  get (msgID) {
+  get (msgID: string): InMessage | undefined {
     return this.msgs.get(msgID)
   }
 
@@ -84,8 +81,8 @@ class MessageCache {
    *
    * @returns {Array<String>}
    */
-  getGossipIDs (topic) {
-    const msgIDs = []
+  getGossipIDs (topic: string): string[] {
+    const msgIDs: string[] = []
     for (let i = 0; i < this.gossip; i++) {
       this.history[i].forEach((entry) => {
         for (const t of entry.topics) {
@@ -105,7 +102,7 @@ class MessageCache {
    *
    * @returns {void}
    */
-  shift () {
+  shift (): void {
     const last = this.history[this.history.length - 1]
     last.forEach((entry) => {
       this.msgs.delete(entry.msgID)
@@ -114,9 +111,4 @@ class MessageCache {
     this.history.pop()
     this.history.unshift([])
   }
-}
-
-module.exports = {
-  CacheEntry,
-  MessageCache
 }

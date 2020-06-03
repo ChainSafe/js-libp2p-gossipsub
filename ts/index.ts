@@ -1,18 +1,40 @@
-'use strict'
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-ignore
+import { utils } from 'libp2p-pubsub'
+import { MessageCache } from './messageCache'
+import {
+  RPCCodec,
+  RPC, Message, InMessage,
+  ControlMessage, ControlIHave, ControlGraft, ControlIWant, ControlPrune
+} from './message'
+import * as constants from './constants'
+import { Heartbeat } from './heartbeat'
+import { getGossipPeers } from './getGossipPeers'
+import { createGossipRpc } from './utils'
+import { Peer, Registrar } from './peer'
+// @ts-ignore
+import TimeCache = require('time-cache')
+import PeerId = require('peer-id')
+import BasicPubsub = require('./pubsub')
 
-const { utils } = require('libp2p-pubsub')
-const TimeCache = require('time-cache')
+interface GossipOptions {
+  emitSelf: boolean
+  gossipIncoming: boolean
+  fallbackToFloodsub: boolean
+  msgIdFn: (msg: Message) => string
+  messageCache: MessageCache
+}
 
-const BasicPubsub = require('./pubsub')
-const { MessageCache } = require('./messageCache')
+class Gossipsub extends BasicPubsub {
+  peers: Map<string, Peer>
+  topics: Map<string, Set<Peer>>
+  mesh: Map<string, Set<Peer>>
+  fanout: Map<string, Set<Peer>>
+  lastpub: Map<string, number>
+  gossip: Map<Peer, ControlIHave[]>
+  control: Map<Peer, ControlMessage>
+  _options: GossipOptions
 
-const { RPC } = require('./message')
-const constants = require('./constants')
-const Heartbeat = require('./heartbeat')
-const getGossipPeers = require('./getGossipPeers')
-const { createGossipRpc } = require('./utils')
-
-class GossipSub extends BasicPubsub {
   /**
    * @param {PeerId} peerId instance of the peer's PeerId
    * @param {Object} registrar
@@ -27,8 +49,8 @@ class GossipSub extends BasicPubsub {
    * @param {Object} [options.messageCache] override the default MessageCache
    * @constructor
    */
-  constructor (peerId, registrar, options = {}) {
-    const multicodecs = [constants.GossipSubID]
+  constructor (peerId: PeerId, registrar: Registrar, options: Partial<GossipOptions> = {}) {
+    const multicodecs = [constants.GossipsubID]
     const _options = {
       gossipIncoming: true,
       fallbackToFloodsub: true,
@@ -45,7 +67,7 @@ class GossipSub extends BasicPubsub {
       multicodecs,
       peerId,
       registrar,
-      options: _options
+      options: _options as GossipOptions
     })
 
     /**
@@ -79,14 +101,14 @@ class GossipSub extends BasicPubsub {
     /**
      * Map of pending messages to gossip
      *
-     * @type {Map<Peer, Array<RPC.ControlIHave object>> }
+     * @type {Map<Peer, Array<ControlIHave object>> }
      */
     this.gossip = new Map()
 
     /**
      * Map of control messages
      *
-     * @type {Map<Peer, RPC.ControlMessage object>}
+     * @type {Map<Peer, ControlMessage object>}
      */
     this.control = new Map()
 
@@ -99,7 +121,7 @@ class GossipSub extends BasicPubsub {
      * A message cache that contains the messages for last few hearbeat ticks
      *
      */
-    this.messageCache = options.messageCache || new MessageCache(constants.GossipSubHistoryGossip, constants.GossipSubHistoryLength, this._msgIdFn)
+    this.messageCache = options.messageCache || new MessageCache(constants.GossipsubHistoryGossip, constants.GossipsubHistoryLength, this._msgIdFn)
 
     /**
      * A heartbeat timer that maintains the mesh
@@ -113,18 +135,18 @@ class GossipSub extends BasicPubsub {
    * @param {Peer} peer
    * @returns {Peer}
    */
-  _removePeer (peer) {
+  _removePeer (peer: Peer): Peer {
     super._removePeer(peer)
 
     // Remove this peer from the mesh
     // eslint-disable-next-line no-unused-vars
-    for (const [_, peers] of this.mesh.entries()) {
+    for (const peers of this.mesh.values()) {
       peers.delete(peer)
     }
 
     // Remove this peer from the fanout
     // eslint-disable-next-line no-unused-vars
-    for (const [_, peers] of this.fanout.entries()) {
+    for (const peers of this.fanout.values()) {
       peers.delete(peer)
     }
 
@@ -145,18 +167,20 @@ class GossipSub extends BasicPubsub {
    * @param {RPC} rpc
    * @returns {void}
    */
-  _processRpc (idB58Str, peer, rpc) {
+  _processRpc (idB58Str: string, peer: Peer, rpc: RPC): void {
     super._processRpc(idB58Str, peer, rpc)
-    this._processRpcControlMessage(peer, rpc.control)
+    if (rpc.control) {
+      this._processRpcControlMessage(peer, rpc.control)
+    }
   }
 
   /**
    * Handles an rpc control message from a peer
    * @param {Peer} peer
-   * @param {RPC.ControlMessage} controlMsg
+   * @param {ControlMessage} controlMsg
    * @returns {void}
    */
-  _processRpcControlMessage (peer, controlMsg) {
+  _processRpcControlMessage (peer: Peer, controlMsg: ControlMessage): void {
     if (!controlMsg) {
       return
     }
@@ -170,7 +194,7 @@ class GossipSub extends BasicPubsub {
       return
     }
 
-    const outRpc = createGossipRpc([], { ihave, iwant, prune })
+    const outRpc = createGossipRpc(ihave, { iwant: [iwant], prune })
     this._sendRpc(peer, outRpc)
   }
 
@@ -179,9 +203,9 @@ class GossipSub extends BasicPubsub {
    * emitting locally and forwarding on to relevant floodsub and gossipsub peers
    * @override
    * @param {Peer} peer
-   * @param {RPC.Message} msg
+   * @param {Message} msg
    */
-  _processRpcMessage (peer, msg) {
+  _processRpcMessage (peer: Peer, msg: InMessage): void {
     const msgID = this.getMsgId(msg)
 
     // Ignore if we've already seen the message
@@ -212,10 +236,11 @@ class GossipSub extends BasicPubsub {
 
     // Emit to peers in the mesh
     topics.forEach((topic) => {
-      if (!this.mesh.has(topic)) {
+      const meshPeers = this.mesh.get(topic)
+      if (!meshPeers) {
         return
       }
-      this.mesh.get(topic).forEach((peer) => {
+      meshPeers.forEach((peer) => {
         if (!peer.isWritable || peer.id.toB58String() === msg.from) {
           return
         }
@@ -228,14 +253,14 @@ class GossipSub extends BasicPubsub {
   /**
    * Handles IHAVE messages
    * @param {Peer} peer
-   * @param {Array<RPC.ControlIHave>} ihave
-   * @returns {RPC.ControlIWant}
+   * @param {Array<ControlIHave>} ihave
+   * @returns {ControlIWant}
    */
-  _handleIHave (peer, ihave) {
-    const iwant = new Set()
+  _handleIHave (peer: Peer, ihave: ControlIHave[]): ControlIWant | undefined {
+    const iwant = new Set<string>()
 
     ihave.forEach(({ topicID, messageIDs }) => {
-      if (!this.mesh.has(topicID)) {
+      if (!topicID || !this.mesh.has(topicID)) {
         return
       }
 
@@ -262,12 +287,12 @@ class GossipSub extends BasicPubsub {
    * Handles IWANT messages
    * Returns messages to send back to peer
    * @param {Peer} peer
-   * @param {Array<RPC.ControlIWant>} iwant
-   * @returns {Array<RPC.Message>}
+   * @param {Array<ControlIWant>} iwant
+   * @returns {Array<Message>}
    */
-  _handleIWant (peer, iwant) {
-    // @type {Map<string, RPC.Message>}
-    const ihave = new Map()
+  _handleIWant (peer: Peer, iwant: ControlIWant[]): Message[] | undefined {
+    // @type {Map<string, Message>}
+    const ihave = new Map<string, Message>()
 
     iwant.forEach(({ messageIDs }) => {
       messageIDs.forEach((msgID) => {
@@ -290,13 +315,16 @@ class GossipSub extends BasicPubsub {
   /**
    * Handles Graft messages
    * @param {Peer} peer
-   * @param {Array<RPC.ControlGraft>} graft
-   * @return {Array<RPC.ControlPrune>}
+   * @param {Array<ControlGraft>} graft
+   * @return {Array<ControlPrune>}
    */
-  _handleGraft (peer, graft) {
-    const prune = []
+  _handleGraft (peer: Peer, graft: ControlGraft[]): ControlPrune[] | undefined {
+    const prune: string[] = []
 
     graft.forEach(({ topicID }) => {
+      if (!topicID) {
+        return
+      }
       const peers = this.mesh.get(topicID)
       if (!peers) {
         prune.push(topicID)
@@ -312,7 +340,7 @@ class GossipSub extends BasicPubsub {
       return
     }
 
-    const buildCtrlPruneMsg = (topic) => {
+    const buildCtrlPruneMsg = (topic: string) => {
       return {
         topicID: topic
       }
@@ -324,11 +352,14 @@ class GossipSub extends BasicPubsub {
   /**
    * Handles Prune messages
    * @param {Peer} peer
-   * @param {Array<RPC.ControlPrune>} prune
+   * @param {Array<ControlPrune>} prune
    * @returns {void}
    */
-  _handlePrune (peer, prune) {
+  _handlePrune (peer: Peer, prune: ControlPrune[]): void {
     prune.forEach(({ topicID }) => {
+      if (!topicID) {
+        return
+      }
       const peers = this.mesh.get(topicID)
       if (peers) {
         this.log('PRUNE: Remove mesh link to %s in %s', peer.id.toB58String(), topicID)
@@ -344,7 +375,7 @@ class GossipSub extends BasicPubsub {
    * @override
    * @returns {Promise}
    */
-  async start () {
+  async start (): Promise<void> {
     await super.start()
     this.heartbeat.start()
   }
@@ -354,7 +385,7 @@ class GossipSub extends BasicPubsub {
    * @override
    * @returns {Promise}
    */
-  async stop () {
+  async stop (): Promise<void> {
     await super.stop()
     this.heartbeat.stop()
 
@@ -372,7 +403,7 @@ class GossipSub extends BasicPubsub {
    * @param {Array<string>} topics
    * @returns {void}
    */
-  _subscribe (topics) {
+  _subscribe (topics: string[]): void {
     super._subscribe(topics)
     this.join(topics)
   }
@@ -384,7 +415,7 @@ class GossipSub extends BasicPubsub {
    * @param {Array<string>} topics
    * @returns {void}
    */
-  _unsubscribe (topics) {
+  _unsubscribe (topics: string[]): void {
     super._unsubscribe(topics)
     this.leave(topics)
   }
@@ -394,15 +425,15 @@ class GossipSub extends BasicPubsub {
    * @param {Array<string>|string} topics
    * @returns {void}
    */
-  join (topics) {
+  join (topics: string[] | string): void {
     if (!this.started) {
-      throw new Error('GossipSub has not started')
+      throw new Error('Gossipsub has not started')
     }
     topics = utils.ensureArray(topics)
 
     this.log('JOIN %s', topics)
 
-    topics.forEach((topic) => {
+    ;(topics as string[]).forEach((topic) => {
       // Send GRAFT to mesh peers
       const fanoutPeers = this.fanout.get(topic)
       if (fanoutPeers) {
@@ -410,10 +441,10 @@ class GossipSub extends BasicPubsub {
         this.fanout.delete(topic)
         this.lastpub.delete(topic)
       } else {
-        const peers = getGossipPeers(this, topic, constants.GossipSubD)
+        const peers = getGossipPeers(this, topic, constants.GossipsubD)
         this.mesh.set(topic, peers)
       }
-      this.mesh.get(topic).forEach((peer) => {
+      this.mesh.get(topic)!.forEach((peer) => {
         this.log('JOIN: Add mesh link to %s in %s', peer.id.toB58String(), topic)
         this._sendGraft(peer, topic)
       })
@@ -425,12 +456,12 @@ class GossipSub extends BasicPubsub {
    * @param {Array<string>|string} topics
    * @returns {void}
    */
-  leave (topics) {
+  leave (topics: string[] | string): void {
     topics = utils.ensureArray(topics)
 
     this.log('LEAVE %s', topics)
 
-    topics.forEach((topic) => {
+    ;(topics as string[]).forEach((topic) => {
       // Send PRUNE to mesh peers
       const meshPeers = this.mesh.get(topic)
       if (meshPeers) {
@@ -447,10 +478,10 @@ class GossipSub extends BasicPubsub {
    * Override the default implementation in BasicPubSub.
    * If we don't provide msgIdFn in constructor option, it's the same.
    * @override
-   * @param {RPC.Message} msg the message object
+   * @param {Message} msg the message object
    * @returns {string} message id as string
    */
-  getMsgId (msg) {
+  getMsgId (msg: InMessage): string {
     return this._msgIdFn(msg)
   }
 
@@ -459,18 +490,17 @@ class GossipSub extends BasicPubsub {
    *
    * Note: this function assumes all messages are well-formed RPC objects
    * @override
-   * @param {Array<RPC>} rpcs
+   * @param {Array<Message>} msgs
    * @returns {void}
    */
-  _publish (rpcs) {
-    rpcs.forEach((msgObj) => {
+  _publish (msgs: InMessage[]): void {
+    msgs.forEach((msgObj) => {
       const msgID = this.getMsgId(msgObj)
       // put in seen cache
       this.seenCache.put(msgID)
 
       this.messageCache.put(msgObj)
-      // @type Set<string>
-      const tosend = new Set()
+      const tosend = new Set<Peer>()
       msgObj.topicIDs.forEach((topic) => {
         const peersInTopic = this.topics.get(topic)
         if (!peersInTopic) {
@@ -491,20 +521,20 @@ class GossipSub extends BasicPubsub {
           meshPeers = this.fanout.get(topic)
           if (!meshPeers) {
             // If we are not in the fanout, then pick any peers in topic
-            const peers = getGossipPeers(this, topic, constants.GossipSubD)
+            const peers = getGossipPeers(this, topic, constants.GossipsubD)
 
             if (peers.size > 0) {
               meshPeers = peers
               this.fanout.set(topic, peers)
             } else {
-              meshPeers = []
+              meshPeers = new Set()
             }
           }
           // Store the latest publishing time
           this.lastpub.set(topic, this._now())
         }
 
-        meshPeers.forEach((peer) => {
+        meshPeers!.forEach((peer) => {
           tosend.add(peer)
         })
       })
@@ -513,7 +543,7 @@ class GossipSub extends BasicPubsub {
         if (peer.id.toB58String() === msgObj.from) {
           return
         }
-        this._sendRpc(peer, { msgs: [msgObj] })
+        this._sendRpc(peer, createGossipRpc([utils.normalizeOutRpcMessage(msgObj)]))
       })
     })
   }
@@ -524,7 +554,7 @@ class GossipSub extends BasicPubsub {
    * @param {String} topic
    * @returns {void}
    */
-  _sendGraft (peer, topic) {
+  _sendGraft (peer: Peer, topic: string): void {
     const graft = [{
       topicID: topic
     }]
@@ -539,7 +569,7 @@ class GossipSub extends BasicPubsub {
    * @param {String} topic
    * @returns {void}
    */
-  _sendPrune (peer, topic) {
+  _sendPrune (peer: Peer, topic: string): void {
     const prune = [{
       topicID: topic
     }]
@@ -548,7 +578,7 @@ class GossipSub extends BasicPubsub {
     this._sendRpc(peer, out)
   }
 
-  _sendRpc (peer, outRpc) {
+  _sendRpc (peer: Peer, outRpc: RPC): void {
     if (!peer || !peer.isWritable) {
       return
     }
@@ -567,26 +597,31 @@ class GossipSub extends BasicPubsub {
       this.gossip.delete(peer)
     }
 
-    peer.write(RPC.encode(outRpc))
+    peer.write(RPCCodec.encode(outRpc))
   }
 
-  _piggybackControl (peer, outRpc, ctrl) {
+  _piggybackControl (peer: Peer, outRpc: RPC, ctrl: ControlMessage): void {
     const tograft = (ctrl.graft || [])
-      .filter(({ topicID }) => (this.mesh.get(topicID) || new Set()).has(peer))
+      .filter(({ topicID }) => (topicID && this.mesh.get(topicID) || new Set()).has(peer))
     const toprune = (ctrl.prune || [])
-      .filter(({ topicID }) => !(this.mesh.get(topicID) || new Set()).has(peer))
+      .filter(({ topicID }) => !(topicID && this.mesh.get(topicID) || new Set()).has(peer))
 
     if (!tograft.length && !toprune.length) {
       return
     }
 
-    outRpc.control = outRpc.control || {}
-    outRpc.control.graft = (outRpc.control.graft || []).concat(tograft)
-    outRpc.control.prune = (outRpc.control.prune || []).concat(toprune)
+    if (outRpc.control) {
+      outRpc.control.graft = outRpc.control.graft.concat(tograft)
+      outRpc.control.prune = outRpc.control.prune.concat(toprune)
+    } else {
+      outRpc.control = { ihave: [], iwant: [], graft: tograft, prune: toprune }
+    }
   }
 
-  _piggybackGossip (peer, outRpc, ihave) {
-    outRpc.control = outRpc.control || {}
+  _piggybackGossip (peer: Peer, outRpc: RPC, ihave: ControlIHave[]): void {
+    if (!outRpc.control) {
+      outRpc.control = { ihave: [], iwant: [], graft: [], prune: [] }
+    }
     outRpc.control.ihave = ihave
   }
 
@@ -595,10 +630,10 @@ class GossipSub extends BasicPubsub {
    * @param {Map<Peer, Array<String>>} tograft
    * @param {Map<Peer, Array<String>>} toprune
    */
-  _sendGraftPrune (tograft, toprune) {
+  _sendGraftPrune (tograft: Map<Peer, string[]>, toprune: Map<Peer, string[]>): void {
     for (const [p, topics] of tograft) {
       const graft = topics.map((topicID) => ({ topicID }))
-      let prune = null
+      let prune: ControlPrune[] = []
       // If a peer also has prunes, process them now
       const pruneMsg = toprune.get(p)
       if (pruneMsg) {
@@ -622,13 +657,13 @@ class GossipSub extends BasicPubsub {
    * @param {Set<Peer>} peers - peers to exclude
    * @returns {void}
    */
-  _emitGossip (topic, peers) {
+  _emitGossip (topic: string, peers: Set<Peer>): void {
     const messageIDs = this.messageCache.getGossipIDs(topic)
     if (!messageIDs.length) {
       return
     }
 
-    const gossipSubPeers = getGossipPeers(this, topic, constants.GossipSubD)
+    const gossipSubPeers = getGossipPeers(this, topic, constants.GossipsubD)
     gossipSubPeers.forEach((peer) => {
       // skip mesh peers
       if (!peers.has(peer)) {
@@ -643,7 +678,7 @@ class GossipSub extends BasicPubsub {
   /**
    * Flush gossip and control messages
    */
-  _flush () {
+  _flush (): void {
     // send gossip first, which will also piggyback control
     for (const [peer, ihave] of this.gossip.entries()) {
       this.gossip.delete(peer)
@@ -661,10 +696,10 @@ class GossipSub extends BasicPubsub {
   /**
    * Adds new IHAVE messages to pending gossip
    * @param {Peer} peer
-   * @param {Array<RPC.ControlIHave>} controlIHaveMsgs
+   * @param {Array<ControlIHave>} controlIHaveMsgs
    * @returns {void}
    */
-  _pushGossip (peer, controlIHaveMsgs) {
+  _pushGossip (peer: Peer, controlIHaveMsgs: ControlIHave): void {
     this.log('Add gossip to %s', peer.id.toB58String())
     const gossip = this.gossip.get(peer) || []
     this.gossip.set(peer, gossip.concat(controlIHaveMsgs))
@@ -674,10 +709,10 @@ class GossipSub extends BasicPubsub {
    * Returns the current time in milliseconds
    * @returns {number}
    */
-  _now () {
+  _now (): number {
     return Date.now()
   }
 }
 
-module.exports = GossipSub
-module.exports.multicodec = constants.GossipSubID
+export = Gossipsub
+module.exports.multicodec = constants.GossipsubID

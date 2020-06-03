@@ -1,7 +1,7 @@
-'use strict'
-
-const constants = require('./constants')
-const { shuffle } = require('./utils')
+import * as constants from './constants'
+import { shuffle } from './utils'
+import { Peer } from './peer'
+import Gossipsub = require('./index')
 
 /**
  * Given a topic, returns up to count peers subscribed to that topic
@@ -12,16 +12,16 @@ const { shuffle } = require('./utils')
  * @returns {Set<Peer>}
  *
  */
-module.exports = function getGossipPeers (router, topic, count) {
+export function getGossipPeers (router: Gossipsub, topic: string, count: number): Set<Peer> {
   const peersInTopic = router.topics.get(topic)
   if (!peersInTopic) {
     return new Set()
   }
 
   // Adds all peers using our protocol
-  let peers = []
+  let peers: Peer[] = []
   peersInTopic.forEach((peer) => {
-    if (peer.protocols.includes(constants.GossipSubID)) {
+    if (peer.protocols.includes(constants.GossipsubID)) {
       peers.push(peer)
     }
   })

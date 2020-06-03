@@ -3,7 +3,7 @@
 
 const { expect } = require('chai')
 
-const { GossipSubDhi, GossipSubID: multicodec } = require('../src/constants')
+const { GossipsubDhi, GossipsubID: multicodec } = require('../src/constants')
 const {
   createGossipsubNodes,
   ConnectionPair
@@ -17,7 +17,7 @@ describe('mesh overlay', () => {
     ({
       nodes,
       registrarRecords
-    } = await createGossipsubNodes(GossipSubDhi + 2, true))
+    } = await createGossipsubNodes(GossipsubDhi + 2, true))
   })
 
   afterEach(() => Promise.all(nodes.map((n) => n.stop())))
@@ -76,6 +76,6 @@ describe('mesh overlay', () => {
     await new Promise((resolve) => setTimeout(resolve, 500))
     // await mesh rebalancing
     await new Promise((resolve) => node0.once('gossipsub:heartbeat', resolve))
-    expect(node0.mesh.get(topic).size).to.be.lte(GossipSubDhi)
+    expect(node0.mesh.get(topic).size).to.be.lte(GossipsubDhi)
   })
 })

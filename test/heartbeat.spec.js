@@ -4,7 +4,7 @@
 const { expect } = require('chai')
 
 const Gossipsub = require('../src')
-const { GossipSubHeartbeatInterval } = require('../src/constants')
+const { GossipsubHeartbeatInterval } = require('../src/constants')
 const { createPeerId, mockRegistrar } = require('./utils')
 
 describe('heartbeat', () => {
@@ -25,6 +25,6 @@ describe('heartbeat', () => {
     await new Promise((resolve) => gossipsub.once('gossipsub:heartbeat', resolve))
     const t2 = Date.now()
     const safeDelta = 100 // ms
-    expect(t2 - t1).to.be.lt(GossipSubHeartbeatInterval + safeDelta)
+    expect(t2 - t1).to.be.lt(GossipsubHeartbeatInterval + safeDelta)
   })
 })

@@ -7,7 +7,7 @@ chai.use(require('dirty-chai'))
 const expect = chai.expect
 const promisify = require('promisify-es6')
 
-const { GossipSubID: multicodec } = require('../src/constants')
+const { GossipsubID: multicodec } = require('../src/constants')
 const {
   createGossipsubNodes,
   expectSet,
