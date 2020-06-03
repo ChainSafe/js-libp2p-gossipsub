@@ -112,11 +112,27 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       const onConnectGs = registrarRecords[0][floodsubMulticodec].onConnect
       const onConnectFs = registrarRecords[1][floodsubMulticodec].onConnect
+      const handleGs = registrarRecords[0][floodsubMulticodec].handler
+      const handleFs = registrarRecords[1][floodsubMulticodec].handler
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
-      onConnectGs(nodeFs.peerInfo, d0)
-      onConnectFs(nodeGs.peerInfo, d1)
+      await onConnectGs(nodeFs.peerInfo, d0)
+      await handleFs({
+        protocol: floodsubMulticodec,
+        stream: d1.stream,
+        connection: {
+          remotePeer: nodeGs.peerInfo.id
+        }
+      })
+      await onConnectFs(nodeGs.peerInfo, d1)
+      await handleGs({
+        protocol: floodsubMulticodec,
+        stream: d0.stream,
+        connection: {
+          remotePeer: nodeFs.peerInfo.id
+        }
+      })
     })
 
     after(async function () {
@@ -167,11 +183,27 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       const onConnectGs = registrarRecords[0][floodsubMulticodec].onConnect
       const onConnectFs = registrarRecords[1][floodsubMulticodec].onConnect
+      const handleGs = registrarRecords[0][floodsubMulticodec].handler
+      const handleFs = registrarRecords[1][floodsubMulticodec].handler
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
-      onConnectGs(nodeFs.peerInfo, d0)
-      onConnectFs(nodeGs.peerInfo, d1)
+      await onConnectGs(nodeFs.peerInfo, d0)
+      await handleFs({
+        protocol: floodsubMulticodec,
+        stream: d1.stream,
+        connection: {
+          remotePeer: nodeGs.peerInfo.id
+        }
+      })
+      await onConnectFs(nodeGs.peerInfo, d1)
+      await handleGs({
+        protocol: floodsubMulticodec,
+        stream: d0.stream,
+        connection: {
+          remotePeer: nodeFs.peerInfo.id
+        }
+      })
 
       nodeGs.subscribe(topic)
       nodeFs.subscribe(topic)
@@ -288,11 +320,27 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       const onConnectGs = registrarRecords[0][floodsubMulticodec].onConnect
       const onConnectFs = registrarRecords[1][floodsubMulticodec].onConnect
+      const handleGs = registrarRecords[0][floodsubMulticodec].handler
+      const handleFs = registrarRecords[1][floodsubMulticodec].handler
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
       await onConnectGs(nodeFs.peerInfo, d0)
+      await handleFs({
+        protocol: floodsubMulticodec,
+        stream: d1.stream,
+        connection: {
+          remotePeer: nodeGs.peerInfo.id
+        }
+      })
       await onConnectFs(nodeGs.peerInfo, d1)
+      await handleGs({
+        protocol: floodsubMulticodec,
+        stream: d0.stream,
+        connection: {
+          remotePeer: nodeFs.peerInfo.id
+        }
+      })
 
       nodeGs.subscribe(topic)
       nodeFs.subscribe(topic)

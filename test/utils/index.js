@@ -59,17 +59,33 @@ const createGossipsubNodes = async (n, shouldStart, options) => {
 
 exports.createGossipsubNodes = createGossipsubNodes
 
-const connectGossipsubNodes = (nodes, registrarRecords, multicodec) => {
+const connectGossipsubNodes = async (nodes, registrarRecords, multicodec) => {
   // connect all nodes
   for (let i = 0; i < nodes.length; i++) {
     for (let j = i + 1; j < nodes.length; j++) {
       const onConnectI = registrarRecords[i][multicodec].onConnect
       const onConnectJ = registrarRecords[j][multicodec].onConnect
+      const handleI = registrarRecords[i][multicodec].handler
+      const handleJ = registrarRecords[j][multicodec].handler
 
       // Notice peers of connection
       const [d0, d1] = ConnectionPair()
-      onConnectI(nodes[j].peerInfo, d0)
-      onConnectJ(nodes[i].peerInfo, d1)
+      await onConnectI(nodes[j].peerInfo, d0)
+      await handleJ({
+        protocol: multicodec,
+        stream: d1.stream,
+        connection: {
+          remotePeer: nodes[i].peerInfo.id
+        }
+      })
+      await onConnectJ(nodes[i].peerInfo, d1)
+      await handleI({
+        protocol: multicodec,
+        stream: d0.stream,
+        connection: {
+          remotePeer: nodes[j].peerInfo.id
+        }
+      })
     }
   }
 
