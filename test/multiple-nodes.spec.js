@@ -38,15 +38,46 @@ describe('multiple nodes (more than 2)', () => {
           const onConnectA = registrarRecords[0][multicodec].onConnect
           const onConnectB = registrarRecords[1][multicodec].onConnect
           const onConnectC = registrarRecords[2][multicodec].onConnect
+          const handleA = registrarRecords[0][multicodec].handler
+          const handleB = registrarRecords[1][multicodec].handler
+          const handleC = registrarRecords[2][multicodec].handler
 
           // Notice peers of connection
           const [d0, d1] = ConnectionPair()
-          onConnectA(b.peerInfo, d0)
-          onConnectB(a.peerInfo, d1)
+          await onConnectA(b.peerInfo, d0)
+          await handleB({
+            protocol: multicodec,
+            stream: d1.stream,
+            connection: {
+              remotePeer: a.peerInfo.id
+            }
+          })
+          await onConnectB(a.peerInfo, d1)
+          await handleA({
+            protocol: multicodec,
+            stream: d0.stream,
+            connection: {
+              remotePeer: b.peerInfo.id
+            }
+          })
 
           const [d2, d3] = ConnectionPair()
-          onConnectB(c.peerInfo, d2)
-          onConnectC(b.peerInfo, d3)
+          await onConnectB(c.peerInfo, d2)
+          await handleC({
+            protocol: multicodec,
+            stream: d3.stream,
+            connection: {
+              remotePeer: b.peerInfo.id
+            }
+          })
+          await onConnectC(b.peerInfo, d3)
+          await handleB({
+            protocol: multicodec,
+            stream: d2.stream,
+            connection: {
+              remotePeer: c.peerInfo.id
+            }
+          })
         })
 
         after(() => Promise.all(nodes.map((n) => n.stop())))
@@ -103,15 +134,46 @@ describe('multiple nodes (more than 2)', () => {
           const onConnectA = registrarRecords[0][multicodec].onConnect
           const onConnectB = registrarRecords[1][multicodec].onConnect
           const onConnectC = registrarRecords[2][multicodec].onConnect
+          const handleA = registrarRecords[0][multicodec].handler
+          const handleB = registrarRecords[1][multicodec].handler
+          const handleC = registrarRecords[2][multicodec].handler
 
           // Notice peers of connection
           const [d0, d1] = ConnectionPair()
-          onConnectA(b.peerInfo, d0)
-          onConnectB(a.peerInfo, d1)
+          await onConnectA(b.peerInfo, d0)
+          await handleB({
+            protocol: multicodec,
+            stream: d1.stream,
+            connection: {
+              remotePeer: a.peerInfo.id
+            }
+          })
+          await onConnectB(a.peerInfo, d1)
+          await handleA({
+            protocol: multicodec,
+            stream: d0.stream,
+            connection: {
+              remotePeer: b.peerInfo.id
+            }
+          })
 
           const [d2, d3] = ConnectionPair()
-          onConnectB(c.peerInfo, d2)
-          onConnectC(b.peerInfo, d3)
+          await onConnectB(c.peerInfo, d2)
+          await handleC({
+            protocol: multicodec,
+            stream: d3.stream,
+            connection: {
+              remotePeer: b.peerInfo.id
+            }
+          })
+          await onConnectC(b.peerInfo, d3)
+          await handleB({
+            protocol: multicodec,
+            stream: d2.stream,
+            connection: {
+              remotePeer: c.peerInfo.id
+            }
+          })
 
           a.subscribe(topic)
           b.subscribe(topic)
@@ -198,15 +260,46 @@ describe('multiple nodes (more than 2)', () => {
         const onConnectA = registrarRecords[0][multicodec].onConnect
         const onConnectB = registrarRecords[1][multicodec].onConnect
         const onConnectC = registrarRecords[2][multicodec].onConnect
+        const handleA = registrarRecords[0][multicodec].handler
+        const handleB = registrarRecords[1][multicodec].handler
+        const handleC = registrarRecords[2][multicodec].handler
 
         // Notice peers of connection
         const [d0, d1] = ConnectionPair()
-        onConnectA(b.peerInfo, d0)
-        onConnectB(a.peerInfo, d1)
+        await onConnectA(b.peerInfo, d0)
+        await handleB({
+          protocol: multicodec,
+          stream: d1.stream,
+          connection: {
+            remotePeer: a.peerInfo.id
+          }
+        })
+        await onConnectB(a.peerInfo, d1)
+        await handleA({
+          protocol: multicodec,
+          stream: d0.stream,
+          connection: {
+            remotePeer: b.peerInfo.id
+          }
+        })
 
         const [d2, d3] = ConnectionPair()
-        onConnectB(c.peerInfo, d2)
-        onConnectC(b.peerInfo, d3)
+        await onConnectB(c.peerInfo, d2)
+        await handleC({
+          protocol: multicodec,
+          stream: d3.stream,
+          connection: {
+            remotePeer: b.peerInfo.id
+          }
+        })
+        await onConnectC(b.peerInfo, d3)
+        await handleB({
+          protocol: multicodec,
+          stream: d2.stream,
+          connection: {
+            remotePeer: c.peerInfo.id
+          }
+        })
 
         a.subscribe(topic)
         b.subscribe(topic)
@@ -263,23 +356,84 @@ describe('multiple nodes (more than 2)', () => {
         const onConnectC = registrarRecords[2][multicodec].onConnect
         const onConnectD = registrarRecords[3][multicodec].onConnect
         const onConnectE = registrarRecords[4][multicodec].onConnect
+        const handleA = registrarRecords[0][multicodec].handler
+        const handleB = registrarRecords[1][multicodec].handler
+        const handleC = registrarRecords[2][multicodec].handler
+        const handleD = registrarRecords[3][multicodec].handler
+        const handleE = registrarRecords[4][multicodec].handler
 
         // Notice peers of connection
         const [d0, d1] = ConnectionPair()
-        onConnectA(b.peerInfo, d0)
-        onConnectB(a.peerInfo, d1)
+        await onConnectA(b.peerInfo, d0)
+        await handleB({
+          protocol: multicodec,
+          stream: d1.stream,
+          connection: {
+            remotePeer: a.peerInfo.id
+          }
+        })
+        await onConnectB(a.peerInfo, d1)
+        await handleA({
+          protocol: multicodec,
+          stream: d0.stream,
+          connection: {
+            remotePeer: b.peerInfo.id
+          }
+        })
 
         const [d2, d3] = ConnectionPair()
-        onConnectB(c.peerInfo, d2)
-        onConnectC(b.peerInfo, d3)
+        await onConnectB(c.peerInfo, d2)
+        await handleC({
+          protocol: multicodec,
+          stream: d3.stream,
+          connection: {
+            remotePeer: b.peerInfo.id
+          }
+        })
+        await onConnectC(b.peerInfo, d3)
+        await handleB({
+          protocol: multicodec,
+          stream: d2.stream,
+          connection: {
+            remotePeer: c.peerInfo.id
+          }
+        })
 
         const [d4, d5] = ConnectionPair()
-        onConnectC(d.peerInfo, d4)
-        onConnectD(c.peerInfo, d5)
+        await onConnectC(d.peerInfo, d4)
+        await handleD({
+          protocol: multicodec,
+          stream: d5.stream,
+          connection: {
+            remotePeer: c.peerInfo.id
+          }
+        })
+        await onConnectD(c.peerInfo, d5)
+        await handleC({
+          protocol: multicodec,
+          stream: d4.stream,
+          connection: {
+            remotePeer: d.peerInfo.id
+          }
+        })
 
         const [d6, d7] = ConnectionPair()
-        onConnectD(e.peerInfo, d6)
-        onConnectE(d.peerInfo, d7)
+        await onConnectD(e.peerInfo, d6)
+        await handleE({
+          protocol: multicodec,
+          stream: d7.stream,
+          connection: {
+            remotePeer: d.peerInfo.id
+          }
+        })
+        await onConnectE(d.peerInfo, d7)
+        await handleD({
+          protocol: multicodec,
+          stream: d6.stream,
+          connection: {
+            remotePeer: e.peerInfo.id
+          }
+        })
 
         a.subscribe(topic)
         b.subscribe(topic)
