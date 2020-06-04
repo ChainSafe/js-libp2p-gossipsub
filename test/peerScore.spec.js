@@ -326,7 +326,7 @@ describe('PeerScore', () => {
     ps.graft(peerA, mytopic)
 
     // wait for the activation time to kick in
-    await new Promise(resolve => setTimeout(resolve, tparams.meshMessageDeliveriesActivation))
+    await new Promise(resolve => setTimeout(resolve, tparams.meshMessageDeliveriesActivation + 10))
 
     // deliver a bunch of messages from peer A
     const nMessages = 40
@@ -395,7 +395,7 @@ describe('PeerScore', () => {
     })
 
     // wait for the activation time to kick in
-    await new Promise(resolve => setTimeout(resolve, tparams.meshMessageDeliveriesActivation))
+    await new Promise(resolve => setTimeout(resolve, tparams.meshMessageDeliveriesActivation + 10))
 
     // deliver a bunch of messages from peer A. peer B does nothing
     const nMessages = 100
@@ -538,7 +538,7 @@ describe('PeerScore', () => {
 
     // now clear the delivery record
     ps.deliveryRecords.queue.peekFront().expire = Date.now()
-    await new Promise(resolve => setTimeout(resolve, 1))
+    await new Promise(resolve => setTimeout(resolve, 5))
     ps.deliveryRecords.gc()
 
     // insert a new record in the message deliveries
@@ -556,7 +556,7 @@ describe('PeerScore', () => {
 
     // now clear the delivery record again
     ps.deliveryRecords.queue.peekFront().expire = Date.now()
-    await new Promise(resolve => setTimeout(resolve, 1))
+    await new Promise(resolve => setTimeout(resolve, 5))
     ps.deliveryRecords.gc()
 
     // insert a new record in the message deliveries
