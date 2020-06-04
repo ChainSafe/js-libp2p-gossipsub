@@ -222,7 +222,7 @@ describe('PeerScore', () => {
     expect(aScore).to.be.equal(expected)
   })
   it('should score mesh message deliveries', async function () {
-    this.timeout(5000)
+    this.timeout(10000)
     // Create parameters with reasonable default values
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
@@ -299,7 +299,7 @@ describe('PeerScore', () => {
     expect(cScore).to.be.equal(expected)
   })
   it('should decay mesh message deliveries score', async function () {
-    this.timeout(5000)
+    this.timeout(10000)
     // Create parameters with reasonable default values
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
@@ -355,7 +355,7 @@ describe('PeerScore', () => {
     expect(aScore).to.be.equal(expected)
   })
   it('should score mesh message failures', async function () {
-    this.timeout(5000)
+    this.timeout(10000)
     // Create parameters with reasonable default values
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
