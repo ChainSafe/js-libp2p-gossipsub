@@ -3,7 +3,7 @@
 
 const { expect } = require('chai')
 
-const { GossipsubDhi, GossipsubID: multicodec } = require('../src/constants')
+const { GossipsubDhi, GossipsubIDv10: multicodec } = require('../src/constants')
 const {
   createGossipsubNodes,
   ConnectionPair

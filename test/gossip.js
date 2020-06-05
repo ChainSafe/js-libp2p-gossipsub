@@ -5,7 +5,7 @@ const { Buffer } = require('buffer')
 const { expect } = require('chai')
 const sinon = require('sinon')
 
-const { GossipsubID: multicodec, GossipsubDhi } = require('../src/constants')
+const { GossipsubIDv10: multicodec, GossipsubDhi } = require('../src/constants')
 const {
   first,
   createGossipsubNodes,

@@ -21,7 +21,7 @@ export function getGossipPeers (router: Gossipsub, topic: string, count: number)
   // Adds all peers using our protocol
   let peers: Peer[] = []
   peersInTopic.forEach((peer) => {
-    if (peer.protocols.includes(constants.GossipsubID)) {
+    if (peer.protocols.includes(constants.GossipsubIDv10)) {
       peers.push(peer)
     }
   })
