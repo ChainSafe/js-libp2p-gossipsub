@@ -35,7 +35,7 @@ class Gossipsub extends BasicPubsub {
   control: Map<Peer, ControlMessage>
   _options: GossipOptions
 
-  public static multicodec: string = constants.GossipsubID
+  public static multicodec: string = constants.GossipsubIDv10
 
   /**
    * @param {PeerId} peerId instance of the peer's PeerId
@@ -52,7 +52,7 @@ class Gossipsub extends BasicPubsub {
    * @constructor
    */
   constructor (peerId: PeerId, registrar: Registrar, options: Partial<GossipOptions> = {}) {
-    const multicodecs = [constants.GossipsubID]
+    const multicodecs = [constants.GossipsubIDv10]
     const _options = {
       gossipIncoming: true,
       fallbackToFloodsub: true,
@@ -61,7 +61,7 @@ class Gossipsub extends BasicPubsub {
 
     // Also wants to get notified of peers connected using floodsub
     if (_options.fallbackToFloodsub) {
-      multicodecs.push(constants.FloodSubID)
+      multicodecs.push(constants.FloodsubID)
     }
 
     super({
@@ -226,7 +226,7 @@ class Gossipsub extends BasicPubsub {
 
     // Emit to floodsub peers
     this.peers.forEach((peer) => {
-      if (peer.protocols.includes(constants.FloodSubID) &&
+      if (peer.protocols.includes(constants.FloodsubID) &&
         peer.id.toB58String() !== msg.from &&
         utils.anyMatch(peer.topics, topics) &&
         peer.isWritable
@@ -511,7 +511,7 @@ class Gossipsub extends BasicPubsub {
 
         // floodsub peers
         peersInTopic.forEach((peer) => {
-          if (peer.protocols.includes(constants.FloodSubID)) {
+          if (peer.protocols.includes(constants.FloodsubID)) {
             tosend.add(peer)
           }
         })
