@@ -109,7 +109,7 @@ describe('PeerScore', () => {
     }
 
     ps._refreshScores()
-    aScore = ps.score(peerA)
+    const aScore = ps.score(peerA)
     expect(aScore).to.be.equal(
       tparams.topicWeight * tparams.firstMessageDeliveriesWeight * nMessages * tparams.firstMessageDeliveriesDecay
     )
