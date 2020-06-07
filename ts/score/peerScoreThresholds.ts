@@ -1,3 +1,7 @@
+// This file defines PeerScoreThresholds interface
+// as well as a constructor, default constructor, and validation function
+// for this interface
+
 export interface PeerScoreThresholds {
   /**
    * gossipThreshold is the score threshold below which gossip propagation is supressed;
@@ -30,13 +34,19 @@ export interface PeerScoreThresholds {
   opportunisticGraftThreshold: number
 }
 
-export function createPeerScoreThresholds (p: Partial<PeerScoreThresholds>): PeerScoreThresholds {
+export function defaultPeerScoreThresholds (): PeerScoreThresholds {
   return {
-    gossipThreshold: 0,
-    publishThreshold: 0,
-    graylistThreshold: 0,
-    acceptPXThreshold: 0,
-    opportunisticGraftThreshold: 0,
+    gossipThreshold: -10,
+    publishThreshold: -50,
+    graylistThreshold: -80,
+    acceptPXThreshold: 10,
+    opportunisticGraftThreshold: 20
+  }
+}
+
+export function createPeerScoreThresholds (p: Partial<PeerScoreThresholds> = {}): PeerScoreThresholds {
+  return {
+    ...defaultPeerScoreThresholds(),
     ...p
   }
 }

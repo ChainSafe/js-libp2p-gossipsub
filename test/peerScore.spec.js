@@ -6,12 +6,12 @@ const { PeerScore, createPeerScoreParams, createTopicScoreParams } = require('..
 const addrBook = new Map()
 addrBook.getMultiaddrsForPeer = () => ([])
 
-const makeTestMessage = (i) => {
+const makeTestMessage = (i, topicIDs = []) => {
   return {
     seqno: Buffer.alloc(8, i),
     data: Buffer.from([i]),
     from: "test",
-    topicIDs: []
+    topicIDs
   }
 }
 
@@ -20,16 +20,13 @@ describe('PeerScore', () => {
     // Create parameters with reasonable default values
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
-      decayInterval: 1000,
-      invalidMessageDeliveriesDecay: 0.1,
-      decayToZero: 0.1
+      topicScoreCap: 1000
     })
     const tparams = params.topics[mytopic] = createTopicScoreParams({
       topicWeight: 0.5,
       timeInMeshWeight: 1,
       timeInMeshQuantum: 1,
       timeInMeshCap: 3600,
-      invalidMessageDeliveriesDecay: 0.1,
     })
     const peerA = await PeerId.create({keyType: 'secp256k1'})
     // Peer score should start at 0
@@ -54,9 +51,6 @@ describe('PeerScore', () => {
     // Create parameters with reasonable default values
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
-      decayInterval: 1000,
-      invalidMessageDeliveriesDecay: 0.1,
-      decayToZero: 0.1
     })
     const tparams = params.topics[mytopic] = createTopicScoreParams({
       topicWeight: 0.5,
@@ -91,34 +85,25 @@ describe('PeerScore', () => {
     // Create parameters with reasonable default values
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
-      decayInterval: 1000,
-      invalidMessageDeliveriesDecay: 0.1,
-      decayToZero: 0.1
+      topicScoreCap: 1000
     })
     const tparams = params.topics[mytopic] = createTopicScoreParams({
       topicWeight: 1,
       firstMessageDeliveriesWeight: 1,
       firstMessageDeliveriesDecay: 0.9,
-      invalidMessageDeliveriesDecay: 0.9,
       firstMessageDeliveriesCap: 50000,
-      timeInMeshQuantum: 1000
+      timeInMeshWeight: 0
     })
     const peerA = await PeerId.create({keyType: 'secp256k1'})
     // Peer score should start at 0
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
     ps.addPeer(peerA)
-
-    let aScore = ps.score(peerA)
-    expect(aScore, 'expected score to start at zero').to.equal(0)
-
-    // The time in mesh depends on how long the peer has been grafted
     ps.graft(peerA, mytopic)
 
     // deliver a bunch of messages from peer A
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
-      const msg = makeTestMessage(i)
-      msg.topicIDs = [mytopic]
+      const msg = makeTestMessage(i, [mytopic])
       ps.validateMessage(peerA, msg)
       ps.deliverMessage(peerA, msg)
     }
@@ -133,9 +118,7 @@ describe('PeerScore', () => {
     // Create parameters with reasonable default values
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
-      decayInterval: 1000,
-      invalidMessageDeliveriesDecay: 0.1,
-      decayToZero: 0.1
+      topicScoreCap: 1000
     })
     const tparams = params.topics[mytopic] = createTopicScoreParams({
       topicWeight: 1,
@@ -143,7 +126,7 @@ describe('PeerScore', () => {
       firstMessageDeliveriesDecay: 0.9,
       invalidMessageDeliveriesDecay: 0.9,
       firstMessageDeliveriesCap: 50,
-      timeInMeshQuantum: 1000
+      timeInMeshWeight: 0
     })
     const peerA = await PeerId.create({keyType: 'secp256k1'})
     // Peer score should start at 0
@@ -159,8 +142,7 @@ describe('PeerScore', () => {
     // deliver a bunch of messages from peer A
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
-      const msg = makeTestMessage(i)
-      msg.topicIDs = [mytopic]
+      const msg = makeTestMessage(i, [mytopic])
       ps.validateMessage(peerA, msg)
       ps.deliverMessage(peerA, msg)
     }
@@ -175,9 +157,7 @@ describe('PeerScore', () => {
     // Create parameters with reasonable default values
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
-      decayInterval: 1000,
-      invalidMessageDeliveriesDecay: 0.1,
-      decayToZero: 0.1
+      topicScoreCap: 1000
     })
     const tparams = params.topics[mytopic] = createTopicScoreParams({
       topicWeight: 1,
@@ -185,7 +165,7 @@ describe('PeerScore', () => {
       firstMessageDeliveriesDecay: 0.9, // decay 10% per decay interval
       invalidMessageDeliveriesDecay: 0.9,
       firstMessageDeliveriesCap: 50,
-      timeInMeshQuantum: 1000
+      timeInMeshWeight: 0
     })
     const peerA = await PeerId.create({keyType: 'secp256k1'})
     // Peer score should start at 0
@@ -201,8 +181,7 @@ describe('PeerScore', () => {
     // deliver a bunch of messages from peer A
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
-      const msg = makeTestMessage(i)
-      msg.topicIDs = [mytopic]
+      const msg = makeTestMessage(i, [mytopic])
       ps.validateMessage(peerA, msg)
       ps.deliverMessage(peerA, msg)
     }
@@ -226,9 +205,6 @@ describe('PeerScore', () => {
     // Create parameters with reasonable default values
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
-      decayInterval: 1000,
-      invalidMessageDeliveriesDecay: 0.1,
-      decayToZero: 0.1
     })
     const tparams = params.topics[mytopic] = createTopicScoreParams({
       topicWeight: 1,
@@ -240,7 +216,7 @@ describe('PeerScore', () => {
       meshMessageDeliveriesDecay: 0.9,
       invalidMessageDeliveriesDecay: 0.9,
       firstMessageDeliveriesWeight: 0,
-      timeInMeshQuantum: 1000
+      timeInMeshWeight: 0
     })
     // peer A always delivers the message first
     // peer B delivers next (within the delivery window)
@@ -273,8 +249,7 @@ describe('PeerScore', () => {
     // deliver a bunch of messages from peers
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
-      const msg = makeTestMessage(i)
-      msg.topicIDs = [mytopic]
+      const msg = makeTestMessage(i, [mytopic])
 
       ps.validateMessage(peerA, msg)
       ps.deliverMessage(peerA, msg)
@@ -303,9 +278,6 @@ describe('PeerScore', () => {
     // Create parameters with reasonable default values
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
-      decayInterval: 1000,
-      invalidMessageDeliveriesDecay: 0.1,
-      decayToZero: 0.1
     })
     const tparams = params.topics[mytopic] = createTopicScoreParams({
       topicWeight: 1,
@@ -317,7 +289,7 @@ describe('PeerScore', () => {
       meshMessageDeliveriesDecay: 0.9,
       invalidMessageDeliveriesDecay: 0.9,
       firstMessageDeliveriesWeight: 0,
-      timeInMeshQuantum: 1000
+      timeInMeshWeight: 0
     })
     const peerA = await PeerId.create({keyType: 'secp256k1'})
     // Peer score should start at 0
@@ -331,9 +303,7 @@ describe('PeerScore', () => {
     // deliver a bunch of messages from peer A
     const nMessages = 40
     for (let i = 0; i < nMessages; i++) {
-      const msg = makeTestMessage(i)
-      msg.topicIDs = [mytopic]
-
+      const msg = makeTestMessage(i, [mytopic])
       ps.validateMessage(peerA, msg)
       ps.deliverMessage(peerA, msg)
     }
@@ -359,9 +329,6 @@ describe('PeerScore', () => {
     // Create parameters with reasonable default values
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
-      decayInterval: 1000,
-      invalidMessageDeliveriesDecay: 0.1,
-      decayToZero: 0.1
     })
     // the mesh failure penalty is applied when a peer is pruned while their
     // mesh deliveries are under the threshold.
@@ -380,15 +347,14 @@ describe('PeerScore', () => {
       meshMessageDeliveriesCap: 100,
       meshMessageDeliveriesDecay: 0.9,
 
-      invalidMessageDeliveriesDecay: 0.9,
       firstMessageDeliveriesWeight: 0,
-      timeInMeshQuantum: 1000
+      timeInMeshWeight: 0
     })
     const peerA = await PeerId.create({keyType: 'secp256k1'})
     const peerB = await PeerId.create({keyType: 'secp256k1'})
     const peers = [peerA, peerB]
-    // Peer score should start at 0
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
+
     peers.forEach(p => {
       ps.addPeer(p)
       ps.graft(p, mytopic)
@@ -400,9 +366,7 @@ describe('PeerScore', () => {
     // deliver a bunch of messages from peer A. peer B does nothing
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
-      const msg = makeTestMessage(i)
-      msg.topicIDs = [mytopic]
-
+      const msg = makeTestMessage(i, [mytopic])
       ps.validateMessage(peerA, msg)
       ps.deliverMessage(peerA, msg)
     }
@@ -430,15 +394,12 @@ describe('PeerScore', () => {
     // Create parameters with reasonable default values
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
-      decayInterval: 1000,
-      invalidMessageDeliveriesDecay: 0.1,
-      decayToZero: 0.1
     })
     const tparams = params.topics[mytopic] = createTopicScoreParams({
       topicWeight: 1,
       invalidMessageDeliveriesWeight: -1,
       invalidMessageDeliveriesDecay: 0.9,
-      timeInMeshQuantum: 1000
+      timeInMeshWeight: 0
     })
     const peerA = await PeerId.create({keyType: 'secp256k1'})
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
@@ -448,9 +409,7 @@ describe('PeerScore', () => {
     // deliver a bunch of messages from peer A
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
-      const msg = makeTestMessage(i)
-      msg.topicIDs = [mytopic]
-
+      const msg = makeTestMessage(i, [mytopic])
       ps.rejectMessage(peerA, msg)
     }
     ps._refreshScores()
@@ -463,15 +422,12 @@ describe('PeerScore', () => {
     // Create parameters with reasonable default values
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
-      decayInterval: 1000,
-      invalidMessageDeliveriesDecay: 0.1,
-      decayToZero: 0.1
     })
     const tparams = params.topics[mytopic] = createTopicScoreParams({
       topicWeight: 1,
       invalidMessageDeliveriesWeight: -1,
       invalidMessageDeliveriesDecay: 0.9,
-      timeInMeshQuantum: 1000
+      timeInMeshWeight: 0
     })
     const peerA = await PeerId.create({keyType: 'secp256k1'})
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
@@ -481,9 +437,7 @@ describe('PeerScore', () => {
     // deliver a bunch of messages from peer A
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
-      const msg = makeTestMessage(i)
-      msg.topicIDs = [mytopic]
-
+      const msg = makeTestMessage(i, [mytopic])
       ps.rejectMessage(peerA, msg)
     }
     ps._refreshScores()
@@ -504,9 +458,6 @@ describe('PeerScore', () => {
     // this test adds coverage for the dark corners of message rejection
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
-      decayInterval: 1000,
-      invalidMessageDeliveriesDecay: 0.1,
-      decayToZero: 0.1
     })
     const tparams = params.topics[mytopic] = createTopicScoreParams({
       topicWeight: 1,
@@ -520,8 +471,7 @@ describe('PeerScore', () => {
     ps.addPeer(peerA)
     ps.addPeer(peerB)
 
-    const msg = makeTestMessage(0)
-    msg.topicIDs = [mytopic]
+    const msg = makeTestMessage(0, [mytopic])
 
     // insert a record
     ps.validateMessage(peerA, msg)
@@ -576,11 +526,8 @@ describe('PeerScore', () => {
     const mytopic = 'mytopic'
     let appScoreValue = 0
     const params = createPeerScoreParams({
-      decayInterval: 1000,
-      invalidMessageDeliveriesDecay: 0.1,
       appSpecificScore: () => appScoreValue,
-      appSpecificWeight: 0.5,
-      decayToZero: 0.1
+      appSpecificWeight: 0.5
     })
     const peerA = await PeerId.create({keyType: 'secp256k1'})
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
@@ -598,11 +545,8 @@ describe('PeerScore', () => {
   it('should score w/ IP colocation', async function () {
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
-      decayInterval: 1000,
-      invalidMessageDeliveriesDecay: 0.1,
       IPColocationFactorThreshold: 1,
-      IPColocationFactorWeight: -1,
-      decayToZero: 0.1
+      IPColocationFactorWeight: -1
     })
     const peerA = await PeerId.create({keyType: 'secp256k1'})
     const peerB = await PeerId.create({keyType: 'secp256k1'})
@@ -645,11 +589,8 @@ describe('PeerScore', () => {
   })
   it('should score w/ behavior penalty', async function () {
     const params = createPeerScoreParams({
-      decayInterval: 1000,
       behaviourPenaltyWeight: -1,
-      behaviourPenaltyDecay: 0.99,
-      invalidMessageDeliveriesDecay: 0.1,
-      decayToZero: 0.1
+      behaviourPenaltyDecay: 0.99
     })
     const peerA = await PeerId.create({keyType: 'secp256k1'})
 
@@ -682,12 +623,9 @@ describe('PeerScore', () => {
   it('should handle score retention', async function () {
     const mytopic = 'mytopic'
     const params = createPeerScoreParams({
-      decayInterval: 1000,
       appSpecificScore: () => -1000,
       appSpecificWeight: 1,
-      invalidMessageDeliveriesDecay: 0.1,
-      decayToZero: 0.1,
-      retainScore: 800,
+      retainScore: 800
     })
     const peerA = await PeerId.create({keyType: 'secp256k1'})
 

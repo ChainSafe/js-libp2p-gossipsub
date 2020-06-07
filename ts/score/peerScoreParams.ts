@@ -1,5 +1,9 @@
 import PeerId = require('peer-id')
 
+// This file defines PeerScoreParams and TopicScoreParams interfaces
+// as well as constructors, default constructors, and validation functions
+// for these interfaces
+
 export interface PeerScoreParams {
   /**
    * Score parameters per topic.
@@ -131,19 +135,52 @@ export interface TopicScoreParams {
   invalidMessageDeliveriesDecay: number
 }
 
-export function createPeerScoreParams (p: Partial<PeerScoreParams>): PeerScoreParams {
+export function defaultPeerScoreParams (): PeerScoreParams {
   return {
-    topicScoreCap: 0,
-    appSpecificScore: (): number => 0,
-    appSpecificWeight: 0,
-    IPColocationFactorWeight: 0,
-    IPColocationFactorThreshold: 0,
-    IPColocationFactorWhitelist: new Set(p.IPColocationFactorWhitelist),
-    behaviourPenaltyWeight: 0,
-    behaviourPenaltyDecay: 0,
-    decayInterval: 0,
-    decayToZero: 0,
-    retainScore: 0,
+    topics: {},
+    topicScoreCap: 10,
+    appSpecificScore: () => 0,
+    appSpecificWeight: 10,
+    IPColocationFactorWeight: -5,
+    IPColocationFactorThreshold: 10,
+    IPColocationFactorWhitelist: new Set(),
+    behaviourPenaltyWeight: -10,
+    behaviourPenaltyDecay: 0.2,
+    decayInterval: 1000,
+    decayToZero: 0.1,
+    retainScore: 3600 * 1000
+  }
+}
+
+export function defaultTopicScoreParams (): TopicScoreParams {
+  return {
+    topicWeight: 0.5,
+    timeInMeshWeight: 1,
+    timeInMeshQuantum: 1,
+    timeInMeshCap: 3600,
+
+    firstMessageDeliveriesWeight: 1,
+    firstMessageDeliveriesDecay: 0.5,
+    firstMessageDeliveriesCap: 2000,
+
+    meshMessageDeliveriesWeight: -1,
+    meshMessageDeliveriesDecay: 0.5,
+    meshMessageDeliveriesCap: 100,
+    meshMessageDeliveriesThreshold: 20,
+    meshMessageDeliveriesWindow: 10,
+    meshMessageDeliveriesActivation: 5000,
+
+    meshFailurePenaltyWeight: -1,
+    meshFailurePenaltyDecay: 0.5,
+
+    invalidMessageDeliveriesWeight: -1,
+    invalidMessageDeliveriesDecay: 0.3
+  }
+}
+
+export function createPeerScoreParams (p: Partial<PeerScoreParams> = {}): PeerScoreParams {
+  return {
+    ...defaultPeerScoreParams(),
     ...p,
     topics: p.topics
       ? Object.entries(p.topics)
@@ -155,25 +192,9 @@ export function createPeerScoreParams (p: Partial<PeerScoreParams>): PeerScorePa
   }
 }
 
-export function createTopicScoreParams (p: Partial<TopicScoreParams>): TopicScoreParams {
+export function createTopicScoreParams (p: Partial<TopicScoreParams> = {}): TopicScoreParams {
   return {
-    topicWeight: 0,
-    timeInMeshWeight: 0,
-    timeInMeshQuantum: 0,
-    timeInMeshCap: 0,
-    firstMessageDeliveriesWeight: 0,
-    firstMessageDeliveriesDecay: 0,
-    firstMessageDeliveriesCap: 0,
-    meshMessageDeliveriesWeight: 0,
-    meshMessageDeliveriesDecay: 0,
-    meshMessageDeliveriesCap: 0,
-    meshMessageDeliveriesThreshold: 0,
-    meshMessageDeliveriesWindow: 0,
-    meshMessageDeliveriesActivation: 0,
-    meshFailurePenaltyWeight: 0,
-    meshFailurePenaltyDecay: 0,
-    invalidMessageDeliveriesWeight: 0,
-    invalidMessageDeliveriesDecay: 0,
+    ...defaultTopicScoreParams(),
     ...p
   }
 }
