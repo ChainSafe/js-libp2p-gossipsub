@@ -1,5 +1,5 @@
 import { Message } from '../message'
-import { PeerScoreParams, validatePeerScoreParams } from './scoreParams'
+import { PeerScoreParams, validatePeerScoreParams } from './peerScoreParams'
 import { PeerStats, createPeerStats, ensureTopicStats } from './peerStats'
 import { computeScore } from './computeScore'
 import { MessageDeliveries, DeliveryRecordStatus } from './messageDeliveries'

@@ -1,5 +1,5 @@
 import { PeerStats } from './peerStats'
-import { PeerScoreParams } from './scoreParams'
+import { PeerScoreParams } from './peerScoreParams'
 import PeerId = require('peer-id')
 
 export function computeScore (

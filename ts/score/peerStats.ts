@@ -1,4 +1,4 @@
-import { PeerScoreParams } from './scoreParams'
+import { PeerScoreParams } from './peerScoreParams'
 
 export interface PeerStats {
   /**

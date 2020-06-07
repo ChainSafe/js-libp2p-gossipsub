@@ -1,66 +1,5 @@
 import PeerId = require('peer-id')
 
-export interface PeerScoreThresholds {
-  /**
-   * gossipThreshold is the score threshold below which gossip propagation is supressed;
-   * should be negative.
-   */
-  gossipThreshold: number
-
-  /**
-   * publishThreshold is the score threshold below which we shouldn't publish when using flood
-   * publishing (also applies to fanout and floodsub peers); should be negative and <= GossipThreshold.
-   */
-  publishThreshold: number
-
-  /**
-   * graylistThreshold is the score threshold below which message processing is supressed altogether,
-   * implementing an effective graylist according to peer score; should be negative and <= PublisThreshold.
-   */
-  graylistThreshold: number
-
-  /**
-   * acceptPXThreshold is the score threshold below which PX will be ignored; this should be positive
-   * and limited to scores attainable by bootstrappers and other trusted nodes.
-   */
-  acceptPXThreshold: number
-
-  /**
-   * opportunisticGraftThreshold is the median mesh score threshold before triggering opportunistic
-   * grafting; this should have a small positive value.
-   */
-  opportunisticGraftThreshold: number
-}
-
-export function createPeerScoreThresholds (p: Partial<PeerScoreThresholds>): PeerScoreThresholds {
-  return {
-    gossipThreshold: 0,
-    publishThreshold: 0,
-    graylistThreshold: 0,
-    acceptPXThreshold: 0,
-    opportunisticGraftThreshold: 0,
-    ...p
-  }
-}
-
-export function validatePeerScoreThresholds (p: PeerScoreThresholds): void {
-  if (p.gossipThreshold > 0) {
-    throw new Error('invalid gossip threshold; it must be <= 0')
-  }
-  if (p.publishThreshold > 0 || p.publishThreshold > p.gossipThreshold) {
-    throw new Error('invalid publish threshold; it must be <= 0 and <= gossip threshold')
-  }
-  if (p.graylistThreshold > 0 || p.graylistThreshold > p.publishThreshold) {
-    throw new Error('invalid graylist threshold; it must be <= 0 and <= publish threshold')
-  }
-  if (p.acceptPXThreshold < 0) {
-    throw new Error('invalid accept PX threshold; it must be >= 0')
-  }
-  if (p.opportunisticGraftThreshold < 0) {
-    throw new Error('invalid opportunistic grafting threshold; it must be >= 0')
-  }
-}
-
 export interface PeerScoreParams {
   /**
    * Score parameters per topic.
@@ -352,25 +291,4 @@ export function validateTopicScoreParams (p: TopicScoreParams): void {
   if (p.invalidMessageDeliveriesDecay <= 0 || p.invalidMessageDeliveriesDecay >= 1) {
     throw new Error('invalid InvalidMessageDeliveriesDecay; must be between 0 and 1')
   }
-}
-
-const DefaultDecayInterval = 1000
-const DefaultDecayToZero = 0.01
-
-/**
- * ScoreParameterDecay computes the decay factor for a parameter, assuming the DecayInterval is 1s
- * and that the value decays to zero if it drops below 0.01
- */
-export function scoreParameterDecay (decay: number): number {
-  return scoreParameterDecayWithBase(decay, DefaultDecayInterval, DefaultDecayToZero)
-}
-
-/**
- * ScoreParameterDecay computes the decay factor for a parameter using base as the DecayInterval
- */
-export function scoreParameterDecayWithBase (decay: number, base: number, decayToZero: number): number {
-  // the decay is linear, so after n ticks the value is factor^n
-  // so factor^n = decayToZero => factor = decayToZero^(1/n)
-  const ticks = decay / base
-  return decayToZero ** (1 / ticks)
 }
