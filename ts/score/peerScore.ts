@@ -312,11 +312,13 @@ export class PeerScore {
     // mark the message as valid and reward mesh peers that have already forwarded it to us
     drec.status = DeliveryRecordStatus.valid
     drec.validated = now
-    if (drec.peers.has(id)) {
+    drec.peers.forEach(p => {
       // this check is to make sure a peer can't send us a message twice and get a double count
       // if it is a first delivery.
-      this._markDuplicateMessageDelivery(id, message)
-    }
+      if (!p.equals(id)) {
+        this._markDuplicateMessageDelivery(p, message)
+      }
+    })
   }
 
   /**
