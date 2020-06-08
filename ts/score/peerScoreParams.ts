@@ -74,7 +74,7 @@ export interface TopicScoreParams {
   /**
    * P1: time in the mesh
    * This is the time the peer has ben grafted in the mesh.
-   * The value of of the parameter is the time/TimeInMeshQuantum, capped by TimeInMeshCap
+   * The value of the parameter is the time/TimeInMeshQuantum, capped by TimeInMeshCap
    * The weight of the parameter MUST be positive (or zero to disable).
    */
   timeInMeshWeight: number

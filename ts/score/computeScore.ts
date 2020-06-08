@@ -73,7 +73,7 @@ export function computeScore (
     }
 
     // P6 has a cliff (IPColocationFactorThreshold)
-    // It's only applied iff at least that many peers are connected to us from that source IP addr.
+    // It's only applied if at least that many peers are connected to us from that source IP addr.
     // It is quadratic, and the weight is negative (validated in validatePeerScoreParams)
     const peersInIP = peerIPs.get(ip)
     const numPeersInIP = peersInIP ? peersInIP.size : 0
