@@ -153,6 +153,7 @@ export class PeerScore {
   }
 
   /**
+   * Return the score for a peer
    * @param {PeerId} id
    * @returns {Number}
    */
@@ -165,6 +166,7 @@ export class PeerScore {
   }
 
   /**
+   * Apply a behavioural penalty to a peer
    * @param {PeerId} id
    * @param {Number} penalty
    * @returns {void}
