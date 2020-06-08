@@ -135,52 +135,48 @@ export interface TopicScoreParams {
   invalidMessageDeliveriesDecay: number
 }
 
-export function defaultPeerScoreParams (): PeerScoreParams {
-  return {
-    topics: {},
-    topicScoreCap: 10,
-    appSpecificScore: () => 0,
-    appSpecificWeight: 10,
-    IPColocationFactorWeight: -5,
-    IPColocationFactorThreshold: 10,
-    IPColocationFactorWhitelist: new Set(),
-    behaviourPenaltyWeight: -10,
-    behaviourPenaltyDecay: 0.2,
-    decayInterval: 1000,
-    decayToZero: 0.1,
-    retainScore: 3600 * 1000
-  }
+export const defaultPeerScoreParams: PeerScoreParams = {
+  topics: {},
+  topicScoreCap: 10,
+  appSpecificScore: () => 0,
+  appSpecificWeight: 10,
+  IPColocationFactorWeight: -5,
+  IPColocationFactorThreshold: 10,
+  IPColocationFactorWhitelist: new Set(),
+  behaviourPenaltyWeight: -10,
+  behaviourPenaltyDecay: 0.2,
+  decayInterval: 1000,
+  decayToZero: 0.1,
+  retainScore: 3600 * 1000
 }
 
-export function defaultTopicScoreParams (): TopicScoreParams {
-  return {
-    topicWeight: 0.5,
-    timeInMeshWeight: 1,
-    timeInMeshQuantum: 1,
-    timeInMeshCap: 3600,
+export const defaultTopicScoreParams: TopicScoreParams = {
+  topicWeight: 0.5,
+  timeInMeshWeight: 1,
+  timeInMeshQuantum: 1,
+  timeInMeshCap: 3600,
 
-    firstMessageDeliveriesWeight: 1,
-    firstMessageDeliveriesDecay: 0.5,
-    firstMessageDeliveriesCap: 2000,
+  firstMessageDeliveriesWeight: 1,
+  firstMessageDeliveriesDecay: 0.5,
+  firstMessageDeliveriesCap: 2000,
 
-    meshMessageDeliveriesWeight: -1,
-    meshMessageDeliveriesDecay: 0.5,
-    meshMessageDeliveriesCap: 100,
-    meshMessageDeliveriesThreshold: 20,
-    meshMessageDeliveriesWindow: 10,
-    meshMessageDeliveriesActivation: 5000,
+  meshMessageDeliveriesWeight: -1,
+  meshMessageDeliveriesDecay: 0.5,
+  meshMessageDeliveriesCap: 100,
+  meshMessageDeliveriesThreshold: 20,
+  meshMessageDeliveriesWindow: 10,
+  meshMessageDeliveriesActivation: 5000,
 
-    meshFailurePenaltyWeight: -1,
-    meshFailurePenaltyDecay: 0.5,
+  meshFailurePenaltyWeight: -1,
+  meshFailurePenaltyDecay: 0.5,
 
-    invalidMessageDeliveriesWeight: -1,
-    invalidMessageDeliveriesDecay: 0.3
-  }
+  invalidMessageDeliveriesWeight: -1,
+  invalidMessageDeliveriesDecay: 0.3
 }
 
 export function createPeerScoreParams (p: Partial<PeerScoreParams> = {}): PeerScoreParams {
   return {
-    ...defaultPeerScoreParams(),
+    ...defaultPeerScoreParams,
     ...p,
     topics: p.topics
       ? Object.entries(p.topics)
@@ -194,7 +190,7 @@ export function createPeerScoreParams (p: Partial<PeerScoreParams> = {}): PeerSc
 
 export function createTopicScoreParams (p: Partial<TopicScoreParams> = {}): TopicScoreParams {
   return {
-    ...defaultTopicScoreParams(),
+    ...defaultTopicScoreParams,
     ...p
   }
 }

@@ -34,19 +34,17 @@ export interface PeerScoreThresholds {
   opportunisticGraftThreshold: number
 }
 
-export function defaultPeerScoreThresholds (): PeerScoreThresholds {
-  return {
-    gossipThreshold: -10,
-    publishThreshold: -50,
-    graylistThreshold: -80,
-    acceptPXThreshold: 10,
-    opportunisticGraftThreshold: 20
-  }
+export const defaultPeerScoreThresholds: PeerScoreThresholds = {
+  gossipThreshold: -10,
+  publishThreshold: -50,
+  graylistThreshold: -80,
+  acceptPXThreshold: 10,
+  opportunisticGraftThreshold: 20
 }
 
 export function createPeerScoreThresholds (p: Partial<PeerScoreThresholds> = {}): PeerScoreThresholds {
   return {
-    ...defaultPeerScoreThresholds(),
+    ...defaultPeerScoreThresholds,
     ...p
   }
 }
