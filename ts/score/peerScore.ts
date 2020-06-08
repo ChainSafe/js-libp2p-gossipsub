@@ -59,10 +59,12 @@ export class PeerScore {
    */
   start (): void {
     if (this._backgroundInterval) {
-      throw new Error('Peer score already running')
+      log('Peer score already running')
+      return
     }
     this._backgroundInterval = setInterval(() => this.background(), this.params.decayInterval)
     this._addressBook.on('change:multiaddrs', this._updateIPs)
+    log('started')
   }
 
   /**
@@ -71,11 +73,13 @@ export class PeerScore {
    */
   stop (): void {
     if (!this._backgroundInterval) {
-      throw new Error('Peer store already stopped')
+      log('Peer score already stopped')
+      return
     }
     clearInterval(this._backgroundInterval)
     delete this._backgroundInterval
     this._addressBook.off('change:multiaddrs', this._updateIPs)
+    log('stopped')
   }
 
   /**
