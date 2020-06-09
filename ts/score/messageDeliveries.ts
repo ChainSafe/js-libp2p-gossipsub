@@ -1,6 +1,5 @@
 import { TimeCacheDuration } from '../constants'
 import Denque from 'denque'
-import PeerId = require('peer-id')
 
 export enum DeliveryRecordStatus {
   /**
@@ -25,7 +24,7 @@ export interface DeliveryRecord {
   status: DeliveryRecordStatus
   firstSeen: number
   validated: number
-  peers: Set<PeerId>
+  peers: Set<string>
 }
 
 interface DeliveryQueueEntry {

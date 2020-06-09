@@ -1,12 +1,11 @@
 import { PeerStats } from './peerStats'
 import { PeerScoreParams } from './peerScoreParams'
-import PeerId = require('peer-id')
 
 export function computeScore (
-  peer: PeerId,
+  peer: string,
   pstats: PeerStats,
   params: PeerScoreParams,
-  peerIPs: Map<string, Set<PeerId>>
+  peerIPs: Map<string, Set<string>>
 ): number {
   let score = 0
 

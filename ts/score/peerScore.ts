@@ -3,7 +3,6 @@ import { PeerScoreParams, validatePeerScoreParams } from './peerScoreParams'
 import { PeerStats, createPeerStats, ensureTopicStats } from './peerStats'
 import { computeScore } from './computeScore'
 import { MessageDeliveries, DeliveryRecordStatus } from './messageDeliveries'
-import PeerId = require('peer-id')
 import Multiaddr = require('multiaddr')
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -12,7 +11,7 @@ import debug = require('debug')
 const log = debug('libp2p:gossipsub:score')
 
 interface AddressBook {
-  getMultiaddrsForPeer(id: PeerId): Multiaddr[]
+  getMultiaddrsForPeer(id: string): Multiaddr[]
   // eslint-disable-next-line @typescript-eslint/ban-types
   on(evt: string, fn: Function): void
   // eslint-disable-next-line @typescript-eslint/ban-types
@@ -27,11 +26,11 @@ export class PeerScore {
   /**
    * Per-peer stats for score calculation
    */
-  peerStats: Map<PeerId, PeerStats>
+  peerStats: Map<string, PeerStats>
   /**
    * IP colocation tracking; maps IP => set of peers.
    */
-  peerIPs: Map<string, Set<PeerId>>
+  peerIPs: Map<string, Set<string>>
   /**
    * Recent message delivery timing/participants
    */
@@ -158,10 +157,10 @@ export class PeerScore {
 
   /**
    * Return the score for a peer
-   * @param {PeerId} id
+   * @param {string} id
    * @returns {Number}
    */
-  score (id: PeerId): number {
+  score (id: string): number {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return 0
@@ -171,11 +170,11 @@ export class PeerScore {
 
   /**
    * Apply a behavioural penalty to a peer
-   * @param {PeerId} id
+   * @param {string} id
    * @param {Number} penalty
    * @returns {void}
    */
-  addPenalty (id: PeerId, penalty: number): void {
+  addPenalty (id: string, penalty: number): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -184,10 +183,10 @@ export class PeerScore {
   }
 
   /**
-   * @param {PeerId} id
+   * @param {string} id
    * @returns {void}
    */
-  addPeer (id: PeerId): void {
+  addPeer (id: string): void {
     // create peer stats (not including topic stats for each topic to be scored)
     // topic stats will be added as needed
     const pstats = createPeerStats({
@@ -202,10 +201,10 @@ export class PeerScore {
   }
 
   /**
-   * @param {PeerId} id
+   * @param {string} id
    * @returns {void}
    */
-  removePeer (id: PeerId): void {
+  removePeer (id: string): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -238,11 +237,11 @@ export class PeerScore {
   }
 
   /**
-   * @param {PeerId} id
+   * @param {string} id
    * @param {String} topic
    * @returns {void}
    */
-  graft (id: PeerId, topic: string): void {
+  graft (id: string, topic: string): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -260,11 +259,11 @@ export class PeerScore {
   }
 
   /**
-   * @param {PeerId} id
-   * @param {String} topic
+   * @param {string} id
+   * @param {string} topic
    * @returns {void}
    */
-  prune (id: PeerId, topic: string): void {
+  prune (id: string, topic: string): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -285,20 +284,20 @@ export class PeerScore {
   }
 
   /**
-   * @param {PeerId} id
+   * @param {string} id
    * @param {Message} message
    * @returns {void}
    */
-  validateMessage (id: PeerId, message: Message): void {
+  validateMessage (id: string, message: Message): void {
     this.deliveryRecords.ensureRecord(this.msgId(message))
   }
 
   /**
-   * @param {PeerId} id
+   * @param {string} id
    * @param {Message} message
    * @returns {void}
    */
-  deliverMessage (id: PeerId, message: Message): void {
+  deliverMessage (id: string, message: Message): void {
     this._markFirstMessageDelivery(id, message)
 
     const drec = this.deliveryRecords.ensureRecord(this.msgId(message))
@@ -308,7 +307,7 @@ export class PeerScore {
     if (drec.status !== DeliveryRecordStatus.unknown) {
       log(
         'unexpected delivery: message from %s was first seen %s ago and has delivery status %d',
-        id.toB58String(), now - drec.firstSeen, DeliveryRecordStatus[drec.status]
+        id, now - drec.firstSeen, DeliveryRecordStatus[drec.status]
       )
       return
     }
@@ -319,25 +318,25 @@ export class PeerScore {
     drec.peers.forEach(p => {
       // this check is to make sure a peer can't send us a message twice and get a double count
       // if it is a first delivery.
-      if (!p.equals(id)) {
+      if (p !== id) {
         this._markDuplicateMessageDelivery(p, message)
       }
     })
   }
 
   /**
-   * @param {PeerId} id
+   * @param {string} id
    * @param {Message} message
    * @returns {void}
    */
-  rejectMessage (id: PeerId, message: Message): void {
+  rejectMessage (id: string, message: Message): void {
     const drec = this.deliveryRecords.ensureRecord(this.msgId(message))
 
     // defensive check that this is the first rejection -- delivery status should be unknown
     if (drec.status !== DeliveryRecordStatus.unknown) {
       log(
         'unexpected rejection: message from %s was first seen %s ago and has delivery status %d',
-        id.toB58String(), Date.now() - drec.firstSeen, DeliveryRecordStatus[drec.status]
+        id, Date.now() - drec.firstSeen, DeliveryRecordStatus[drec.status]
       )
       return
     }
@@ -352,18 +351,18 @@ export class PeerScore {
   }
 
   /**
-   * @param {PeerId} id
+   * @param {string} id
    * @param {Message} message
    * @returns {void}
    */
-  ignoreMessage (id: PeerId, message: Message): void {
+  ignoreMessage (id: string, message: Message): void {
     const drec = this.deliveryRecords.ensureRecord(this.msgId(message))
 
     // defensive check that this is the first ignore -- delivery status should be unknown
     if (drec.status !== DeliveryRecordStatus.unknown) {
       log(
         'unexpected ignore: message from %s was first seen %s ago and has delivery status %d',
-        id.toB58String(), Date.now() - drec.firstSeen, DeliveryRecordStatus[drec.status]
+        id, Date.now() - drec.firstSeen, DeliveryRecordStatus[drec.status]
       )
       return
     }
@@ -373,11 +372,11 @@ export class PeerScore {
   }
 
   /**
-   * @param {PeerId} id
+   * @param {string} id
    * @param {Message} message
    * @returns {void}
    */
-  duplicateMessage (id: PeerId, message: Message): void {
+  duplicateMessage (id: string, message: Message): void {
     const drec = this.deliveryRecords.ensureRecord(this.msgId(message))
 
     if (drec.peers.has(id)) {
@@ -405,11 +404,11 @@ export class PeerScore {
 
   /**
    * Increments the "invalid message deliveries" counter for all scored topics the message is published in.
-   * @param {PeerId} id
+   * @param {string} id
    * @param {Message} message
    * @returns {void}
    */
-  _markInvalidMessageDelivery (id: PeerId, message: Message): void {
+  _markInvalidMessageDelivery (id: string, message: Message): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -428,11 +427,11 @@ export class PeerScore {
   /**
    * Increments the "first message deliveries" counter for all scored topics the message is published in,
    * as well as the "mesh message deliveries" counter, if the peer is in the mesh for the topic.
-   * @param {PeerId} id
+   * @param {string} id
    * @param {Message} message
    * @returns {void}
    */
-  _markFirstMessageDelivery (id: PeerId, message: Message): void {
+  _markFirstMessageDelivery (id: string, message: Message): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -465,12 +464,12 @@ export class PeerScore {
   /**
    * Increments the "mesh message deliveries" counter for messages we've seen before,
    * as long the message was received within the P3 window.
-   * @param {PeerId} id
+   * @param {string} id
    * @param {Message} message
    * @param {number} validatedTime
    * @returns {void}
    */
-  _markDuplicateMessageDelivery (id: PeerId, message: Message, validatedTime = 0): void {
+  _markDuplicateMessageDelivery (id: string, message: Message, validatedTime = 0): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -507,10 +506,10 @@ export class PeerScore {
 
   /**
    * Gets the current IPs for a peer.
-   * @param {PeerId} id
+   * @param {string} id
    * @returns {Array<string>}
    */
-  _getIPs (id: PeerId): string[] {
+  _getIPs (id: string): string[] {
     return this._addressBook.getMultiaddrsForPeer(id)
       .map(ma => {
         return ma.toOptions().host
@@ -519,11 +518,11 @@ export class PeerScore {
 
   /**
    * Called as a callback to addressbook updates
-   * @param {PeerId} id
+   * @param {string} id
    * @param {Array<Multiaddr>} multiaddrs
    * @returns {void}
    */
-  _updateIPs = (id: PeerId, multiaddrs: Multiaddr[]): void => {
+  _updateIPs = (id: string, multiaddrs: Multiaddr[]): void => {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -534,12 +533,12 @@ export class PeerScore {
 
   /**
    * Adds tracking for the new IPs in the list, and removes tracking from the obsolete IPs.
-   * @param {PeerId} id
+   * @param {string} id
    * @param {Array<string>} newIPs
    * @param {Array<string>} oldIPs
    * @returns {void}
    */
-  _setIPs (id: PeerId, newIPs: string[], oldIPs: string[]): void {
+  _setIPs (id: string, newIPs: string[], oldIPs: string[]): void {
     // add the new IPs to the tracking
     // eslint-disable-next-line no-labels
     addNewIPs:
@@ -584,11 +583,11 @@ export class PeerScore {
 
   /**
    * Removes an IP list from the tracking list for a peer.
-   * @param {PeerId} id
+   * @param {string} id
    * @param {Array<string>} ips
    * @returns {void}
    */
-  _removeIPs (id: PeerId, ips: string[]): void {
+  _removeIPs (id: string, ips: string[]): void {
     ips.forEach(ip => {
       const peers = this.peerIPs.get(ip)
       if (!peers) {

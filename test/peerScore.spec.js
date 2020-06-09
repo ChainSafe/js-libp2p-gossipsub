@@ -28,7 +28,7 @@ describe('PeerScore', () => {
       timeInMeshQuantum: 1,
       timeInMeshCap: 3600,
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     // Peer score should start at 0
     const ps = new PeerScore(params, addrBook, utils.msgId)
     ps.addPeer(peerA)
@@ -59,7 +59,7 @@ describe('PeerScore', () => {
       timeInMeshCap: 10,
       invalidMessageDeliveriesDecay: 0.1,
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     // Peer score should start at 0
     const ps = new PeerScore(params, addrBook, utils.msgId)
     ps.addPeer(peerA)
@@ -94,7 +94,7 @@ describe('PeerScore', () => {
       firstMessageDeliveriesCap: 50000,
       timeInMeshWeight: 0
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     // Peer score should start at 0
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
     ps.addPeer(peerA)
@@ -128,7 +128,7 @@ describe('PeerScore', () => {
       firstMessageDeliveriesCap: 50,
       timeInMeshWeight: 0
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     // Peer score should start at 0
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
     ps.addPeer(peerA)
@@ -167,7 +167,7 @@ describe('PeerScore', () => {
       firstMessageDeliveriesCap: 50,
       timeInMeshWeight: 0
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     // Peer score should start at 0
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
     ps.addPeer(peerA)
@@ -223,9 +223,9 @@ describe('PeerScore', () => {
     // peer C delivers outside the delivery window
     // we expect peers A and B to have a score of zero, since all other param weights are zero
     // peer C should have a negative score
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
-    const peerB = await PeerId.create({keyType: 'secp256k1'})
-    const peerC = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
+    const peerB = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
+    const peerC = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     const peers = [peerA, peerB, peerC]
     // Peer score should start at 0
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
@@ -291,7 +291,7 @@ describe('PeerScore', () => {
       firstMessageDeliveriesWeight: 0,
       timeInMeshWeight: 0
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     // Peer score should start at 0
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
     ps.addPeer(peerA)
@@ -350,8 +350,8 @@ describe('PeerScore', () => {
       firstMessageDeliveriesWeight: 0,
       timeInMeshWeight: 0
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
-    const peerB = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
+    const peerB = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     const peers = [peerA, peerB]
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
 
@@ -401,7 +401,7 @@ describe('PeerScore', () => {
       invalidMessageDeliveriesDecay: 0.9,
       timeInMeshWeight: 0
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
@@ -429,7 +429,7 @@ describe('PeerScore', () => {
       invalidMessageDeliveriesDecay: 0.9,
       timeInMeshWeight: 0
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
@@ -465,8 +465,8 @@ describe('PeerScore', () => {
       invalidMessageDeliveriesDecay: 0.9,
       timeInMeshQuantum: 1000
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
-    const peerB = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
+    const peerB = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
     ps.addPeer(peerA)
     ps.addPeer(peerB)
@@ -529,7 +529,7 @@ describe('PeerScore', () => {
       appSpecificScore: () => appScoreValue,
       appSpecificWeight: 0.5
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
@@ -548,10 +548,10 @@ describe('PeerScore', () => {
       IPColocationFactorThreshold: 1,
       IPColocationFactorWeight: -1
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
-    const peerB = await PeerId.create({keyType: 'secp256k1'})
-    const peerC = await PeerId.create({keyType: 'secp256k1'})
-    const peerD = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
+    const peerB = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
+    const peerC = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
+    const peerD = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     const peers = [peerA, peerB, peerC, peerD]
 
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
@@ -592,7 +592,7 @@ describe('PeerScore', () => {
       behaviourPenaltyWeight: -1,
       behaviourPenaltyDecay: 0.99
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
 
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
 
@@ -627,7 +627,7 @@ describe('PeerScore', () => {
       appSpecificWeight: 1,
       retainScore: 800
     })
-    const peerA = await PeerId.create({keyType: 'secp256k1'})
+    const peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
 
     const ps = new PeerScore(params, addrBook, (msg) => utils.msgId(msg.from, msg.seqno))
     ps.addPeer(peerA)

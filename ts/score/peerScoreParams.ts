@@ -1,5 +1,3 @@
-import PeerId = require('peer-id')
-
 // This file defines PeerScoreParams and TopicScoreParams interfaces
 // as well as constructors, default constructors, and validation functions
 // for these interfaces
@@ -19,7 +17,7 @@ export interface PeerScoreParams {
   /**
    * P5: Application-specific peer scoring
    */
-  appSpecificScore: (p: PeerId) => number
+  appSpecificScore: (p: string) => number
   appSpecificWeight: number
 
   /**
