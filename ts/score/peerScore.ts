@@ -4,14 +4,20 @@ import { PeerStats, createPeerStats, ensureTopicStats } from './peerStats'
 import { computeScore } from './computeScore'
 import { MessageDeliveries, DeliveryRecordStatus } from './messageDeliveries'
 import Multiaddr = require('multiaddr')
+import PeerId = require('peer-id')
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import debug = require('debug')
 
 const log = debug('libp2p:gossipsub:score')
 
-interface AddressBook {
-  getMultiaddrsForPeer(id: string): Multiaddr[]
+interface Connection {
+  remoteAddr: Multiaddr
+  remotePeer: PeerId
+}
+
+interface ConnectionManager {
+  getAll(id: string): Connection[]
   // eslint-disable-next-line @typescript-eslint/ban-types
   on(evt: string, fn: Function): void
   // eslint-disable-next-line @typescript-eslint/ban-types
@@ -39,13 +45,13 @@ export class PeerScore {
    * Message ID function
    */
   msgId: (message: Message) => string
-  _addressBook: AddressBook
+  _connectionManager: ConnectionManager
   _backgroundInterval: NodeJS.Timeout
 
-  constructor (params: PeerScoreParams, addressBook: AddressBook, msgId: (message: Message) => string) {
+  constructor (params: PeerScoreParams, connectionManager: ConnectionManager, msgId: (message: Message) => string) {
     validatePeerScoreParams(params)
     this.params = params
-    this._addressBook = addressBook
+    this._connectionManager = connectionManager
     this.peerStats = new Map()
     this.peerIPs = new Map()
     this.deliveryRecords = new MessageDeliveries()
@@ -62,7 +68,7 @@ export class PeerScore {
       return
     }
     this._backgroundInterval = setInterval(() => this.background(), this.params.decayInterval)
-    this._addressBook.on('change:multiaddrs', this._updateIPs)
+    this._connectionManager.on('peer:connect', this._updateIPs)
     log('started')
   }
 
@@ -77,7 +83,7 @@ export class PeerScore {
     }
     clearInterval(this._backgroundInterval)
     delete this._backgroundInterval
-    this._addressBook.off('change:multiaddrs', this._updateIPs)
+    this._connectionManager.off('change:multiaddrs', this._updateIPs)
     log('stopped')
   }
 
@@ -510,25 +516,24 @@ export class PeerScore {
    * @returns {Array<string>}
    */
   _getIPs (id: string): string[] {
-    return this._addressBook.getMultiaddrsForPeer(id)
-      .map(ma => {
-        return ma.toOptions().host
-      })
+    return this._connectionManager.getAll(id)
+      .map(c => c.remoteAddr.toOptions().host)
   }
 
   /**
-   * Called as a callback to addressbook updates
-   * @param {string} id
-   * @param {Array<Multiaddr>} multiaddrs
+   * Called as a callback to ConnectionManager peer:connect events
+   * @param {Connection} connection
    * @returns {void}
    */
-  _updateIPs = (id: string, multiaddrs: Multiaddr[]): void => {
+  _updateIPs = (connection: Connection): void => {
+    const id = connection.remotePeer.toB58String()
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
     }
 
-    this._setIPs(id, multiaddrs.map(ma => ma.toOptions().host), pstats.ips)
+    const updatedIps = this._getIPs(id)
+    this._setIPs(id, updatedIps, pstats.ips)
   }
 
   /**
