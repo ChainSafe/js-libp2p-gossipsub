@@ -16,6 +16,7 @@ const {
   expectSet,
   createMockRegistrar,
   ConnectionPair,
+  mockConnectionManager,
   first
 } = require('./utils')
 
@@ -30,7 +31,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       registrarRecords[0] = {}
       registrarRecords[1] = {}
 
-      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), true)
+      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), mockConnectionManager, true)
       nodeFs = await createFloodsubNode(createMockRegistrar(registrarRecords[1]), true)
     })
 
@@ -67,7 +68,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       registrarRecords[0] = {}
       registrarRecords[1] = {}
 
-      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), true, { fallbackToFloodsub: false })
+      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), mockConnectionManager, true, { fallbackToFloodsub: false })
       nodeFs = await createFloodsubNode(createMockRegistrar(registrarRecords[1]), true)
     })
 
@@ -107,7 +108,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       registrarRecords[0] = {}
       registrarRecords[1] = {}
 
-      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), true)
+      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), mockConnectionManager, true)
       nodeFs = await createFloodsubNode(createMockRegistrar(registrarRecords[1]), true)
 
       const onConnectGs = registrarRecords[0][floodsubMulticodec].onConnect
@@ -178,7 +179,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       registrarRecords[0] = {}
       registrarRecords[1] = {}
 
-      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), true)
+      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), mockConnectionManager, true)
       nodeFs = await createFloodsubNode(createMockRegistrar(registrarRecords[1]), true)
 
       const onConnectGs = registrarRecords[0][floodsubMulticodec].onConnect
@@ -315,7 +316,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       registrarRecords[0] = {}
       registrarRecords[1] = {}
 
-      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), true)
+      nodeGs = await createGossipsub(createMockRegistrar(registrarRecords[0]), mockConnectionManager, true)
       nodeFs = await createFloodsubNode(createMockRegistrar(registrarRecords[1]), true)
 
       const onConnectGs = registrarRecords[0][floodsubMulticodec].onConnect

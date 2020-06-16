@@ -10,14 +10,15 @@ const sinon = require('sinon')
 const { utils } = require('libp2p-pubsub')
 const {
   createGossipsub,
-  mockRegistrar
+  mockRegistrar,
+  mockConnectionManager
 } = require('./utils')
 
 describe('Pubsub', () => {
   let gossipsub
 
   before(async () => {
-    gossipsub = await createGossipsub(mockRegistrar, true)
+    gossipsub = await createGossipsub(mockRegistrar, mockConnectionManager, true)
   })
 
   after(() => gossipsub.stop())

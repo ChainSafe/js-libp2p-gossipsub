@@ -8,7 +8,8 @@ const expect = chai.expect
 
 const {
   createGossipsub,
-  mockRegistrar
+  mockRegistrar,
+  mockConnectionManager
 } = require('./utils')
 
 const shouldNotHappen = (_) => expect.fail()
@@ -20,7 +21,7 @@ describe('emit self', () => {
 
   describe('enabled', () => {
     before(async () => {
-      gossipsub = await createGossipsub(mockRegistrar, true, { emitSelf: true })
+      gossipsub = await createGossipsub(mockRegistrar, mockConnectionManager, true, { emitSelf: true })
       gossipsub.subscribe(topic)
     })
 
@@ -37,7 +38,7 @@ describe('emit self', () => {
 
   describe('disabled', () => {
     before(async () => {
-      gossipsub = await createGossipsub(mockRegistrar, true, { emitSelf: false })
+      gossipsub = await createGossipsub(mockRegistrar, mockConnectionManager, true, { emitSelf: false })
       gossipsub.subscribe(topic)
     })
 
