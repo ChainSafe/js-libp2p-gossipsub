@@ -68,7 +68,6 @@ export class PeerScore {
       return
     }
     this._backgroundInterval = setInterval(() => this.background(), this.params.decayInterval)
-    this._connectionManager.on('peer:connect', this._updateIPs)
     log('started')
   }
 
@@ -83,7 +82,9 @@ export class PeerScore {
     }
     clearInterval(this._backgroundInterval)
     delete this._backgroundInterval
-    this._connectionManager.off('change:multiaddrs', this._updateIPs)
+    this.peerIPs.clear()
+    this.peerStats.clear()
+    this.deliveryRecords.clear()
     log('stopped')
   }
 
@@ -93,6 +94,7 @@ export class PeerScore {
    */
   background (): void {
     this._refreshScores()
+    this._updateIPs()
     this.deliveryRecords.gc()
   }
 
@@ -521,22 +523,6 @@ export class PeerScore {
   }
 
   /**
-   * Called as a callback to ConnectionManager peer:connect events
-   * @param {Connection} connection
-   * @returns {void}
-   */
-  _updateIPs = (connection: Connection): void => {
-    const id = connection.remotePeer.toB58String()
-    const pstats = this.peerStats.get(id)
-    if (!pstats) {
-      return
-    }
-
-    const updatedIps = this._getIPs(id)
-    this._setIPs(id, updatedIps, pstats.ips)
-  }
-
-  /**
    * Adds tracking for the new IPs in the list, and removes tracking from the obsolete IPs.
    * @param {string} id
    * @param {Array<string>} newIPs
@@ -603,6 +589,18 @@ export class PeerScore {
       if (!peers.size) {
         this.peerIPs.delete(ip)
       }
+    })
+  }
+
+  /**
+   * Update all peer IPs to currently open connections
+   * @returns {void}
+   */
+  _updateIPs (): void {
+    this.peerStats.forEach((pstats, id) => {
+      const newIPs = this._getIPs(id)
+      this._setIPs(id, newIPs, pstats.ips)
+      pstats.ips = newIPs
     })
   }
 }
