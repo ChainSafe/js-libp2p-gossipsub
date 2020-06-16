@@ -1,3 +1,8 @@
+import { ERR_INVALID_PEER_SCORE_THRESHOLDS } from './constants'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import errcode = require('err-code')
+
 // This file defines PeerScoreThresholds interface
 // as well as a constructor, default constructor, and validation function
 // for this interface
@@ -51,18 +56,33 @@ export function createPeerScoreThresholds (p: Partial<PeerScoreThresholds> = {})
 
 export function validatePeerScoreThresholds (p: PeerScoreThresholds): void {
   if (p.gossipThreshold > 0) {
-    throw new Error('invalid gossip threshold; it must be <= 0')
+    throw errcode(
+      new Error('invalid gossip threshold; it must be <= 0'),
+      ERR_INVALID_PEER_SCORE_THRESHOLDS
+    )
   }
   if (p.publishThreshold > 0 || p.publishThreshold > p.gossipThreshold) {
-    throw new Error('invalid publish threshold; it must be <= 0 and <= gossip threshold')
+    throw errcode(
+      new Error('invalid publish threshold; it must be <= 0 and <= gossip threshold'),
+      ERR_INVALID_PEER_SCORE_THRESHOLDS
+    )
   }
   if (p.graylistThreshold > 0 || p.graylistThreshold > p.publishThreshold) {
-    throw new Error('invalid graylist threshold; it must be <= 0 and <= publish threshold')
+    throw errcode(
+      new Error('invalid graylist threshold; it must be <= 0 and <= publish threshold'),
+      ERR_INVALID_PEER_SCORE_THRESHOLDS
+    )
   }
   if (p.acceptPXThreshold < 0) {
-    throw new Error('invalid accept PX threshold; it must be >= 0')
+    throw errcode(
+      new Error('invalid accept PX threshold; it must be >= 0'),
+      ERR_INVALID_PEER_SCORE_THRESHOLDS
+    )
   }
   if (p.opportunisticGraftThreshold < 0) {
-    throw new Error('invalid opportunistic grafting threshold; it must be >= 0')
+    throw errcode(
+      new Error('invalid opportunistic grafting threshold; it must be >= 0'),
+      ERR_INVALID_PEER_SCORE_THRESHOLDS
+    )
   }
 }
