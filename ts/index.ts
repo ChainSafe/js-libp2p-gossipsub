@@ -551,24 +551,25 @@ class Gossipsub extends BasicPubsub {
       this.messageCache.put(msgObj)
 
       const tosend = new Set<Peer>()
-      if (this._options.floodPublish) {
-        // flood-publish behavior
-        // send to _all_ peers meeting the publishThreshold
-        this.peers.forEach((peer, id) => {
-          const score = this.score.score(id)
-          if (score >= this._options.scoreThresholds.publishThreshold) {
-            tosend.add(peer)
-          }
-        })
-      } else {
-        // non-flood-publish behavior
-        // send to subscribed floodsub peers
-        // and some mesh peers
-        msgObj.topicIDs.forEach((topic) => {
-          const peersInTopic = this.topics.get(topic)
-          if (!peersInTopic) {
-            return
-          }
+      msgObj.topicIDs.forEach((topic) => {
+        const peersInTopic = this.topics.get(topic)
+        if (!peersInTopic) {
+          return
+        }
+
+        if (this._options.floodPublish) {
+          // flood-publish behavior
+          // send to _all_ peers meeting the publishThreshold
+          peersInTopic.forEach(peer => {
+            const score = this.score.score(peer.id.toB58String())
+            if (score >= this._options.scoreThresholds.publishThreshold) {
+              tosend.add(peer)
+            }
+          })
+        } else {
+          // non-flood-publish behavior
+          // send to subscribed floodsub peers
+          // and some mesh peers above publishThreshold
 
           // floodsub peers
           peersInTopic.forEach((peer) => {
@@ -583,8 +584,10 @@ class Gossipsub extends BasicPubsub {
             // We are not in the mesh for topic, use fanout peers
             meshPeers = this.fanout.get(topic)
             if (!meshPeers) {
-              // If we are not in the fanout, then pick any peers in topic
-              const peers = getGossipPeers(this, topic, constants.GossipsubD)
+              // If we are not in the fanout, then pick peers in topic above the publishThreshold
+              const peers = getGossipPeers(this, topic, constants.GossipsubD, peer => {
+                return this.score.score(peer.id.toB58String()) >= this._options.scoreThresholds.publishThreshold
+              })
 
               if (peers.size > 0) {
                 meshPeers = peers
@@ -600,8 +603,8 @@ class Gossipsub extends BasicPubsub {
           meshPeers!.forEach((peer) => {
             tosend.add(peer)
           })
-        })
-      }
+        }
+      })
       // Publish messages to peers
       tosend.forEach((peer) => {
         if (peer.id.toB58String() === msgObj.from) {
