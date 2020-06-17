@@ -156,6 +156,21 @@ class Gossipsub extends BasicPubsub {
   }
 
   /**
+   * Add a peer to the router
+   * @param {Peer} peer
+   * @param {Array<string>} protocols
+   * @returns {Peer}
+   */
+  _addPeer (peer: Peer, protocols: string[]): Peer {
+    const p = super._addPeer(peer, protocols)
+
+    // Add to peer scoring
+    this.score.addPeer(peer.id.toB58String())
+
+    return p
+  }
+
+  /**
    * Removes a peer from the router
    * @override
    * @param {Peer} peer
@@ -180,6 +195,9 @@ class Gossipsub extends BasicPubsub {
     this.gossip.delete(peer)
     // Remove from control mapping
     this.control.delete(peer)
+
+    // Remove from peer scoring
+    this.score.removePeer(peer.id.toB58String())
 
     return peer
   }
