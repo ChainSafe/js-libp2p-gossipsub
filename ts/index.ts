@@ -157,15 +157,15 @@ class Gossipsub extends BasicPubsub {
 
   /**
    * Add a peer to the router
-   * @param {Peer} peer
+   * @param {PeerId} peerId
    * @param {Array<string>} protocols
    * @returns {Peer}
    */
-  _addPeer (peer: Peer, protocols: string[]): Peer {
-    const p = super._addPeer(peer, protocols)
+  _addPeer (peerId: PeerId, protocols: string[]): Peer {
+    const p = super._addPeer(peerId, protocols)
 
     // Add to peer scoring
-    this.score.addPeer(peer.id.toB58String())
+    this.score.addPeer(peerId.toB58String())
 
     return p
   }
