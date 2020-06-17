@@ -12,17 +12,25 @@ import { Heartbeat } from './heartbeat'
 import { getGossipPeers } from './getGossipPeers'
 import { createGossipRpc } from './utils'
 import { Peer, Registrar } from './peer'
+import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds, ConnectionManager } from './score'
 // @ts-ignore
 import TimeCache = require('time-cache')
 import PeerId = require('peer-id')
 import BasicPubsub = require('./pubsub')
 
-interface GossipOptions {
+interface GossipInputOptions {
   emitSelf: boolean
   gossipIncoming: boolean
   fallbackToFloodsub: boolean
   msgIdFn: (msg: Message) => string
   messageCache: MessageCache
+  scoreParams: Partial<PeerScoreParams>
+  scoreThresholds: Partial<PeerScoreThresholds>
+}
+
+interface GossipOptions extends GossipInputOptions {
+  scoreParams: PeerScoreParams
+  scoreThresholds: PeerScoreThresholds
 }
 
 class Gossipsub extends BasicPubsub {
@@ -33,6 +41,7 @@ class Gossipsub extends BasicPubsub {
   lastpub: Map<string, number>
   gossip: Map<Peer, ControlIHave[]>
   control: Map<Peer, ControlMessage>
+  score: PeerScore
   _options: GossipOptions
 
   public static multicodec: string = constants.GossipsubIDv10
@@ -43,21 +52,31 @@ class Gossipsub extends BasicPubsub {
    * @param {function} registrar.handle
    * @param {function} registrar.register
    * @param {function} registrar.unregister
+   * @param {Object} connectionManager
    * @param {Object} [options]
    * @param {bool} [options.emitSelf] if publish should emit to self, if subscribed, defaults to false
    * @param {bool} [options.gossipIncoming] if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
    * @param {bool} [options.fallbackToFloodsub] if dial should fallback to floodsub, defaults to true
    * @param {function} [options.msgIdFn] override the default message id function
    * @param {Object} [options.messageCache] override the default MessageCache
+   * @param {Object} [options.scoreParams] peer score parameters
+   * @param {Object} [options.scoreThresholds] peer score thresholds
    * @constructor
    */
-  constructor (peerId: PeerId, registrar: Registrar, options: Partial<GossipOptions> = {}) {
+  constructor (
+    peerId: PeerId,
+    registrar: Registrar,
+    connectionManager: ConnectionManager,
+    options: Partial<GossipInputOptions> = {}
+  ) {
     const multicodecs = [constants.GossipsubIDv10]
     const _options = {
       gossipIncoming: true,
       fallbackToFloodsub: true,
-      ...options
-    }
+      ...options,
+      scoreParams: createPeerScoreParams(options.scoreParams),
+      scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
+    } as GossipOptions
 
     // Also wants to get notified of peers connected using floodsub
     if (_options.fallbackToFloodsub) {
@@ -69,7 +88,7 @@ class Gossipsub extends BasicPubsub {
       multicodecs,
       peerId,
       registrar,
-      options: _options as GossipOptions
+      options: _options
     })
 
     /**
@@ -129,6 +148,26 @@ class Gossipsub extends BasicPubsub {
      * A heartbeat timer that maintains the mesh
      */
     this.heartbeat = new Heartbeat(this)
+
+    /**
+     * Peer score tracking
+     */
+    this.score = new PeerScore(this._options.scoreParams, connectionManager, this._msgIdFn)
+  }
+
+  /**
+   * Add a peer to the router
+   * @param {PeerId} peerId
+   * @param {Array<string>} protocols
+   * @returns {Peer}
+   */
+  _addPeer (peerId: PeerId, protocols: string[]): Peer {
+    const p = super._addPeer(peerId, protocols)
+
+    // Add to peer scoring
+    this.score.addPeer(peerId.toB58String())
+
+    return p
   }
 
   /**
@@ -156,6 +195,9 @@ class Gossipsub extends BasicPubsub {
     this.gossip.delete(peer)
     // Remove from control mapping
     this.control.delete(peer)
+
+    // Remove from peer scoring
+    this.score.removePeer(peer.id.toB58String())
 
     return peer
   }
@@ -380,6 +422,7 @@ class Gossipsub extends BasicPubsub {
   async start (): Promise<void> {
     await super.start()
     this.heartbeat.start()
+    this.score.start()
   }
 
   /**
@@ -390,6 +433,7 @@ class Gossipsub extends BasicPubsub {
   async stop (): Promise<void> {
     await super.stop()
     this.heartbeat.stop()
+    this.score.stop()
 
     this.mesh = new Map()
     this.fanout = new Map()

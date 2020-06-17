@@ -16,7 +16,7 @@ interface Connection {
   remotePeer: PeerId
 }
 
-interface ConnectionManager {
+export interface ConnectionManager {
   getAll(id: string): Connection[]
   // eslint-disable-next-line @typescript-eslint/ban-types
   on(evt: string, fn: Function): void

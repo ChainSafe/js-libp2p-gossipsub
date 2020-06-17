@@ -24,9 +24,9 @@ const createPeerId = async () => {
 
 exports.createPeerId = createPeerId
 
-const createGossipsub = async (registrar, shouldStart = false, options) => {
+const createGossipsub = async (registrar, connectionManager, shouldStart = false, options) => {
   const peerId = await createPeerId()
-  const gs = new Gossipsub(peerId, registrar, options)
+  const gs = new Gossipsub(peerId, registrar, connectionManager, options)
 
   if (shouldStart) {
     await gs.start()
@@ -43,7 +43,7 @@ const createGossipsubNodes = async (n, shouldStart, options) => {
   const nodes = await pTimes(n, (index) => {
     registrarRecords[index] = {}
 
-    return createGossipsub(createMockRegistrar(registrarRecords[index]), shouldStart, options)
+    return createGossipsub(createMockRegistrar(registrarRecords[index]), exports.mockConnectionManager, shouldStart, options)
   })
 
   return {
@@ -164,3 +164,11 @@ const ConnectionPair = () => {
 }
 
 exports.ConnectionPair = ConnectionPair
+
+exports.mockConnectionManager = {
+  getAll(id) {
+    return []
+  },
+  on() {},
+  off() {}
+}
