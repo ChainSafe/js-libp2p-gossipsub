@@ -22,6 +22,7 @@ interface GossipInputOptions {
   emitSelf: boolean
   gossipIncoming: boolean
   fallbackToFloodsub: boolean
+  floodPublish: boolean
   msgIdFn: (msg: Message) => string
   messageCache: MessageCache
   scoreParams: Partial<PeerScoreParams>
@@ -57,6 +58,7 @@ class Gossipsub extends BasicPubsub {
    * @param {bool} [options.emitSelf] if publish should emit to self, if subscribed, defaults to false
    * @param {bool} [options.gossipIncoming] if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
    * @param {bool} [options.fallbackToFloodsub] if dial should fallback to floodsub, defaults to true
+   * @param {bool} [options.floodPublish] if self-published messages should be sent to all peers, defaults to true
    * @param {function} [options.msgIdFn] override the default message id function
    * @param {Object} [options.messageCache] override the default MessageCache
    * @param {Object} [options.scoreParams] peer score parameters
@@ -73,6 +75,7 @@ class Gossipsub extends BasicPubsub {
     const _options = {
       gossipIncoming: true,
       fallbackToFloodsub: true,
+      floodPublish: true,
       ...options,
       scoreParams: createPeerScoreParams(options.scoreParams),
       scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
@@ -546,44 +549,59 @@ class Gossipsub extends BasicPubsub {
       this.seenCache.put(msgID)
 
       this.messageCache.put(msgObj)
-      const tosend = new Set<Peer>()
-      msgObj.topicIDs.forEach((topic) => {
-        const peersInTopic = this.topics.get(topic)
-        if (!peersInTopic) {
-          return
-        }
 
-        // floodsub peers
-        peersInTopic.forEach((peer) => {
-          if (peer.protocols.includes(constants.FloodsubID)) {
+      const tosend = new Set<Peer>()
+      if (this._options.floodPublish) {
+        // flood-publish behavior
+        // send to _all_ peers meeting the publishThreshold
+        this.peers.forEach((peer, id) => {
+          const score = this.score.score(id)
+          if (score >= this._options.scoreThresholds.publishThreshold) {
             tosend.add(peer)
           }
         })
-
-        // Gossipsub peers handling
-        let meshPeers = this.mesh.get(topic)
-        if (!meshPeers) {
-          // We are not in the mesh for topic, use fanout peers
-          meshPeers = this.fanout.get(topic)
-          if (!meshPeers) {
-            // If we are not in the fanout, then pick any peers in topic
-            const peers = getGossipPeers(this, topic, constants.GossipsubD)
-
-            if (peers.size > 0) {
-              meshPeers = peers
-              this.fanout.set(topic, peers)
-            } else {
-              meshPeers = new Set()
-            }
+      } else {
+        // non-flood-publish behavior
+        // send to subscribed floodsub peers
+        // and some mesh peers
+        msgObj.topicIDs.forEach((topic) => {
+          const peersInTopic = this.topics.get(topic)
+          if (!peersInTopic) {
+            return
           }
-          // Store the latest publishing time
-          this.lastpub.set(topic, this._now())
-        }
 
-        meshPeers!.forEach((peer) => {
-          tosend.add(peer)
+          // floodsub peers
+          peersInTopic.forEach((peer) => {
+            if (peer.protocols.includes(constants.FloodsubID)) {
+              tosend.add(peer)
+            }
+          })
+
+          // Gossipsub peers handling
+          let meshPeers = this.mesh.get(topic)
+          if (!meshPeers) {
+            // We are not in the mesh for topic, use fanout peers
+            meshPeers = this.fanout.get(topic)
+            if (!meshPeers) {
+              // If we are not in the fanout, then pick any peers in topic
+              const peers = getGossipPeers(this, topic, constants.GossipsubD)
+
+              if (peers.size > 0) {
+                meshPeers = peers
+                this.fanout.set(topic, peers)
+              } else {
+                meshPeers = new Set()
+              }
+            }
+            // Store the latest publishing time
+            this.lastpub.set(topic, this._now())
+          }
+
+          meshPeers!.forEach((peer) => {
+            tosend.add(peer)
+          })
         })
-      })
+      }
       // Publish messages to peers
       tosend.forEach((peer) => {
         if (peer.id.toB58String() === msgObj.from) {
