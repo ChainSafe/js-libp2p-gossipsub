@@ -42,7 +42,9 @@ class Gossipsub extends BasicPubsub {
   lastpub: Map<string, number>
   gossip: Map<Peer, ControlIHave[]>
   control: Map<Peer, ControlMessage>
+  outbound: Map<Peer, boolean>
   score: PeerScore
+  _connectionManager: ConnectionManager
   _options: GossipOptions
 
   public static multicodec: string = constants.GossipsubIDv10
@@ -137,6 +139,13 @@ class Gossipsub extends BasicPubsub {
     this.control = new Map()
 
     /**
+     * Connection direction cache, marks peers with outbound connections
+     *
+     * @type {Map<Peer, boolean>}
+     */
+    this.outbound = new Map()
+
+    /**
      * Use the overriden mesgIdFn or the default one.
      */
     this._msgIdFn = options.msgIdFn || this.defaultMsgIdFn
@@ -151,6 +160,11 @@ class Gossipsub extends BasicPubsub {
      * A heartbeat timer that maintains the mesh
      */
     this.heartbeat = new Heartbeat(this)
+
+    /**
+     * Connection manager
+     */
+    this._connectionManager = connectionManager
 
     /**
      * Peer score tracking
@@ -169,6 +183,18 @@ class Gossipsub extends BasicPubsub {
 
     // Add to peer scoring
     this.score.addPeer(peerId.toB58String())
+
+    // track the connection direction
+    let outbound = false
+    for (const c of this._connectionManager.getAll(peerId)) {
+      if (c.stat.direction === 'outbound') {
+        if (Array.from(c.registry.values()).some(rvalue => protocols.includes(rvalue.protocol))) {
+          outbound = true
+          break
+        }
+      }
+    }
+    this.outbound.set(p, outbound)
 
     return p
   }
@@ -198,6 +224,8 @@ class Gossipsub extends BasicPubsub {
     this.gossip.delete(peer)
     // Remove from control mapping
     this.control.delete(peer)
+    // Remove from outbound tracking
+    this.outbound.delete(peer)
 
     // Remove from peer scoring
     this.score.removePeer(peer.id.toB58String())
@@ -367,20 +395,47 @@ class Gossipsub extends BasicPubsub {
    */
   _handleGraft (peer: Peer, graft: ControlGraft[]): ControlPrune[] | undefined {
     const prune: string[] = []
+    const id = peer.id.toB58String()
+    const score = this.score.score(id)
 
     graft.forEach(({ topicID }) => {
       if (!topicID) {
         return
       }
-      const peers = this.mesh.get(topicID)
-      if (!peers) {
-        prune.push(topicID)
-      } else {
-        this.log('GRAFT: Add mesh link from %s in %s', peer.id.toB58String(), topicID)
-        peers.add(peer)
-        peer.topics.add(topicID)
-        this.mesh.set(topicID, peers)
+      const peersInMesh = this.mesh.get(topicID)
+      if (!peersInMesh) {
+        // spam hardening: ignore GRAFTs for unknown topics
+        return
       }
+
+      // check if peer is already in the mesh; if so do nothing
+      if (peersInMesh.has(peer)) {
+        return
+      }
+
+      // check the score
+      if (score < 0) {
+        // we don't GRAFT peers with negative score
+        this.log(
+          'GRAFT: ignoring peer %s with negative score: score=%d, topic=%s',
+          id, score, topicID
+        )
+        // we do send them PRUNE however, because it's a matter of protocol correctness
+        prune.push(topicID)
+        return
+      }
+
+      // check the number of mesh peers; if it is at (or over) Dhi, we only accept grafts
+      // from peers with outbound connections; this is a defensive check to restrict potential
+      // mesh takeover attacks combined with love bombing
+      if (peersInMesh.size >= constants.GossipsubDhi && !this.outbound.get(peer)) {
+        prune.push(topicID)
+        return
+      }
+
+      this.log('GRAFT: Add mesh link from %s in %s', id, topicID)
+      peersInMesh.add(peer)
+      peer.topics.add(topicID)
     })
 
     if (!prune.length) {
@@ -443,6 +498,7 @@ class Gossipsub extends BasicPubsub {
     this.lastpub = new Map()
     this.gossip = new Map()
     this.control = new Map()
+    this.outbound = new Map()
   }
 
   /**
