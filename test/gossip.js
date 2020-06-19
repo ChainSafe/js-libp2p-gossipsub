@@ -60,7 +60,7 @@ describe('gossip', () => {
     nodeA.log.restore()
   })
 
-  it('should send piggyback gossip into other sent messages', async function () {
+  it('should send piggyback control into other sent messages', async function () {
     this.timeout(10000)
     const nodeA = nodes[0]
     const topic = 'Z'
@@ -79,21 +79,20 @@ describe('gossip', () => {
     const nodeB = nodes.find((n) => n.peerId.toB58String() === peerB.id.toB58String())
 
     // set spy
-    sinon.spy(nodeB, 'log')
+    sinon.spy(nodeA, '_piggybackControl')
 
     // manually add control message to be sent to peerB
-    nodeA.control.set(peerB, { graft: [{ topicID: topic }] })
+    const graft = { graft: [{ topicID: topic }] }
+    nodeA.control.set(peerB, graft)
 
     await nodeA.publish(topic, Buffer.from('hey'))
 
-    await new Promise((resolve) => nodeA.once('gossipsub:heartbeat', resolve))
-    expect(nodeB.log.callCount).to.be.gt(1)
+    expect(nodeA._piggybackControl.callCount).to.be.equal(1)
     // expect control message to be sent alongside published message
-    const call = nodeB.log.getCalls().find((call) => call.args[0] === 'GRAFT: Add mesh link from %s in %s')
-    expect(call).to.not.equal(undefined)
-    expect(call.args[1]).to.equal(nodeA.peerId.toB58String())
+    const call = nodeA._piggybackControl.getCalls()[0]
+    expect(call.args[2].graft).to.deep.equal(graft.graft)
 
     // unset spy
-    nodeB.log.restore()
+    nodeA._piggybackControl.restore()
   })
 })

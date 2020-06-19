@@ -14,10 +14,14 @@ const log = debug('libp2p:gossipsub:score')
 interface Connection {
   remoteAddr: Multiaddr
   remotePeer: PeerId
+  stat: {
+    direction: 'inbound' | 'outbound'
+  }
+  registry: Map<string, {protocol: string}>
 }
 
 export interface ConnectionManager {
-  getAll(id: string): Connection[]
+  getAll(peerId: PeerId): Connection[]
   // eslint-disable-next-line @typescript-eslint/ban-types
   on(evt: string, fn: Function): void
   // eslint-disable-next-line @typescript-eslint/ban-types
@@ -518,7 +522,7 @@ export class PeerScore {
    * @returns {Array<string>}
    */
   _getIPs (id: string): string[] {
-    return this._connectionManager.getAll(id)
+    return this._connectionManager.getAll(PeerId.createFromB58String(id))
       .map(c => c.remoteAddr.toOptions().host)
   }
 
