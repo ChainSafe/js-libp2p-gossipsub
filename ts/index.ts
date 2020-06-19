@@ -8,6 +8,7 @@ import {
   ControlMessage, ControlIHave, ControlGraft, ControlIWant, ControlPrune
 } from './message'
 import * as constants from './constants'
+import { ExtendedValidatorResult } from './constants'
 import { Heartbeat } from './heartbeat'
 import { getGossipPeers } from './getGossipPeers'
 import { createGossipRpc, shuffle, hasGossipProtocol } from './utils'
@@ -280,49 +281,92 @@ class Gossipsub extends BasicPubsub {
    * @param {Peer} peer
    * @param {Message} msg
    */
-  _processRpcMessage (peer: Peer, msg: InMessage): void {
+  async _processRpcMessage (peer: Peer, msg: InMessage): Promise<void> {
     const msgID = this.getMsgId(msg)
 
     // Ignore if we've already seen the message
     if (this.seenCache.has(msgID)) {
+      this.score.duplicateMessage(peer.id.toB58String(), msg as Message)
       return
     }
     this.seenCache.put(msgID)
 
-    super._processRpcMessage(peer, msg)
+    this.score.validateMessage(peer.id.toB58String(), msg as Message)
+    await super._processRpcMessage(peer, msg)
+  }
+
+  /**
+   * Publish a message sent from a peer
+   * @override
+   * @param {Peer} peer
+   * @param {InMessage} msg
+   * @returns {void}
+   */
+  _publishFrom (peer: Peer, msg: InMessage): void {
+    this.score.deliverMessage(peer.id.toB58String(), msg as Message)
     const topics = msg.topicIDs
 
     // If options.gossipIncoming is false, do NOT emit incoming messages to peers
-    if (!this._options.gossipIncoming) {
-      return
-    }
+    if (this._options.gossipIncoming) {
+      // Emit to floodsub peers
+      this.peers.forEach((peer) => {
+        if (peer.protocols.includes(constants.FloodsubID) &&
+          peer.id.toB58String() !== msg.from &&
+          utils.anyMatch(peer.topics, topics) &&
+          peer.isWritable
+        ) {
+          peer.sendMessages(utils.normalizeOutRpcMessages([msg]))
+          this.log('publish msg on topics - floodsub', topics, peer.id.toB58String())
+        }
+      })
 
-    // Emit to floodsub peers
-    this.peers.forEach((peer) => {
-      if (peer.protocols.includes(constants.FloodsubID) &&
-        peer.id.toB58String() !== msg.from &&
-        utils.anyMatch(peer.topics, topics) &&
-        peer.isWritable
-      ) {
-        peer.sendMessages(utils.normalizeOutRpcMessages([msg]))
-        this.log('publish msg on topics - floodsub', topics, peer.id.toB58String())
-      }
-    })
-
-    // Emit to peers in the mesh
-    topics.forEach((topic) => {
-      const meshPeers = this.mesh.get(topic)
-      if (!meshPeers) {
-        return
-      }
-      meshPeers.forEach((peer) => {
-        if (!peer.isWritable || peer.id.toB58String() === msg.from) {
+      // Emit to peers in the mesh
+      topics.forEach((topic) => {
+        const meshPeers = this.mesh.get(topic)
+        if (!meshPeers) {
           return
         }
-        peer.sendMessages(utils.normalizeOutRpcMessages([msg]))
-        this.log('publish msg on topic - meshsub', topic, peer.id.toB58String())
+        meshPeers.forEach((peer) => {
+          if (!peer.isWritable || peer.id.toB58String() === msg.from) {
+            return
+          }
+          peer.sendMessages(utils.normalizeOutRpcMessages([msg]))
+          this.log('publish msg on topic - meshsub', topic, peer.id.toB58String())
+        })
       })
-    })
+    }
+
+    // Emit to self
+    super._publishFrom(peer, msg)
+  }
+
+  /**
+   * Coerse topic validator result to valid/invalid boolean
+   * Provide extended validator support
+   *
+   * @override
+   * @param {string} topic
+   * @param {Peer} peer
+   * @param {Message} message
+   * @param {unknown} result
+   * @returns {boolean}
+   */
+  _processTopicValidatorResult (topic: string, peer: Peer, message: Message, result: unknown): boolean {
+    if (typeof result === 'string') {
+      // assume an extended topic validator result
+      switch (result) {
+        case ExtendedValidatorResult.accept:
+          return true
+        case ExtendedValidatorResult.reject:
+          this.score.rejectMessage(peer.id.toB58String(), message)
+          return false
+        case ExtendedValidatorResult.ignore:
+          this.score.ignoreMessage(peer.id.toB58String(), message)
+          return false
+      }
+    }
+    // assume a basic topic validator result
+    return super._processTopicValidatorResult(topic, peer, message, result)
   }
 
   /**
@@ -593,7 +637,6 @@ class Gossipsub extends BasicPubsub {
   /**
    * Publish messages
    *
-   * Note: this function assumes all messages are well-formed RPC objects
    * @override
    * @param {Array<Message>} msgs
    * @returns {void}

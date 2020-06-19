@@ -206,3 +206,9 @@ export const GossipsubMaxIHaveMessages = 10
 export const GossipsubIWantFollowupTime = 3 * second
 
 export const TimeCacheDuration = 120 * 1000
+
+export const enum ExtendedValidatorResult {
+  accept = 'accept',
+  reject = 'reject',
+  ignore = 'ignore'
+}
