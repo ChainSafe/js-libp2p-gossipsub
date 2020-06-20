@@ -10,7 +10,7 @@ import {
 import * as constants from './constants'
 import { Heartbeat } from './heartbeat'
 import { getGossipPeers } from './getGossipPeers'
-import { createGossipRpc } from './utils'
+import { createGossipRpc, shuffle, hasGossipProtocol } from './utils'
 import { Peer, Registrar } from './peer'
 import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds, ConnectionManager } from './score'
 // @ts-ignore
@@ -777,24 +777,66 @@ class Gossipsub extends BasicPubsub {
   /**
    * Emits gossip to peers in a particular topic
    * @param {String} topic
-   * @param {Set<Peer>} peers - peers to exclude
+   * @param {Set<Peer>} exclude peers to exclude
    * @returns {void}
    */
-  _emitGossip (topic: string, peers: Set<Peer>): void {
+  _emitGossip (topic: string, exclude: Set<Peer>): void {
     const messageIDs = this.messageCache.getGossipIDs(topic)
     if (!messageIDs.length) {
       return
     }
 
-    const gossipSubPeers = getGossipPeers(this, topic, constants.GossipsubD)
-    gossipSubPeers.forEach((peer) => {
-      // skip mesh peers
-      if (!peers.has(peer)) {
-        this._pushGossip(peer, {
-          topicID: topic,
-          messageIDs: messageIDs
-        })
+    // shuffle to emit in random order
+    shuffle(messageIDs)
+
+    // if we are emitting more than GossipsubMaxIHaveLength ids, truncate the list
+    if (messageIDs.length > constants.GossipsubMaxIHaveLength) {
+      // we do the truncation (with shuffling) per peer below
+      this.log('too many messages for gossip; will truncate IHAVE list (%d messages)', messageIDs.length)
+    }
+
+    // Send gossip to GossipFactor peers above threshold with a minimum of D_lazy
+    // First we collect the peers above gossipThreshold that are not in the exclude set
+    // and then randomly select from that set
+    const peersToGossip: Peer[] = []
+    const topicPeers = this.topics.get(topic)
+    if (!topicPeers) {
+      // no topic peers, no gossip
+      return
+    }
+    topicPeers.forEach(p => {
+      if (
+        !exclude.has(p) &&
+        hasGossipProtocol(p.protocols) &&
+        this.score.score(p.id.toB58String()) >= this._options.scoreThresholds.gossipThreshold
+      ) {
+        peersToGossip.push(p)
       }
+    })
+
+    let target = constants.GossipsubDlazy
+    const factor = constants.GossipsubGossipFactor * peersToGossip.length
+    if (factor > target) {
+      target = factor
+    }
+    if (target > peersToGossip.length) {
+      target = peersToGossip.length
+    } else {
+      shuffle(peersToGossip)
+    }
+    // Emit the IHAVE gossip to the selected peers up to the target
+    peersToGossip.slice(0, target).forEach(p => {
+      let peerMessageIDs = messageIDs
+      if (messageIDs.length > constants.GossipsubMaxIHaveLength) {
+        // shuffle and slice message IDs per peer so that we emit a different set for each peer
+        // we have enough reduncancy in the system that this will significantly increase the message
+        // coverage when we do truncate
+        peerMessageIDs = shuffle(peerMessageIDs.slice()).slice(0, constants.GossipsubMaxIHaveLength)
+      }
+      this._pushGossip(p, {
+        topicID: topic,
+        messageIDs: peerMessageIDs
+      })
     })
   }
 

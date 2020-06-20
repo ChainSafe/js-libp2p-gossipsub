@@ -71,10 +71,6 @@ export class Heartbeat {
    * @returns {void}
    */
   _heartbeat (): void {
-    // flush pending control message from retries and gossip
-    // that hasn't been piggybacked since the last heartbeat
-    this.gossipsub._flush()
-
     // cache scores throught the heartbeat
     const scores = new Map<string, number>()
     const getScore = (id: string): number => {
@@ -228,6 +224,8 @@ export class Heartbeat {
         }
       }
 
+      // 2nd arg are mesh peers excluded from gossip. We have already pushed
+      // messages to them, so its redundant to gossip IHAVEs.
       this.gossipsub._emitGossip(topic, peers)
     })
 
@@ -241,32 +239,41 @@ export class Heartbeat {
     })
 
     // maintain our fanout for topics we are publishing but we have not joined
-    this.gossipsub.fanout.forEach((peers, topic) => {
-      // checks whether our peers are still in the topic
-      const topicGossip = this.gossipsub.topics.get(topic)
-      peers.forEach((peer) => {
-        if (topicGossip!.has(peer)) {
-          peers.delete(peer)
+    this.gossipsub.fanout.forEach((fanoutPeers, topic) => {
+      // checks whether our peers are still in the topic and have a score above the publish threshold
+      const topicPeers = this.gossipsub.topics.get(topic)
+      fanoutPeers.forEach(p => {
+        if (
+          !topicPeers!.has(p) ||
+          getScore(p.id.toB58String()) < this.gossipsub._options.scoreThresholds.publishThreshold
+        ) {
+          fanoutPeers.delete(p)
         }
       })
 
       // do we need more peers?
-      if (peers.size < constants.GossipsubD) {
-        const ineed = constants.GossipsubD - peers.size
-        const peersSet = getGossipPeers(this.gossipsub, topic, ineed)
-        peersSet.forEach((peer) => {
-          if (!peers.has(peer)) {
-            return
-          }
-
-          peers.add(peer)
+      if (fanoutPeers.size < constants.GossipsubD) {
+        const ineed = constants.GossipsubD - fanoutPeers.size
+        const peersSet = getGossipPeers(this.gossipsub, topic, ineed, (p: Peer): boolean => {
+          // filter out existing fanout peers and peers with score above the publish threshold
+          return !fanoutPeers.has(p) &&
+            getScore(p.id.toB58String()) >= this.gossipsub._options.scoreThresholds.publishThreshold
+        })
+        peersSet.forEach(p => {
+          fanoutPeers.add(p)
         })
       }
 
-      this.gossipsub._emitGossip(topic, peers)
+      // 2nd arg are fanout peers excluded from gossip.
+      // We have already pushed messages to them, so its redundant to gossip IHAVEs
+      this.gossipsub._emitGossip(topic, fanoutPeers)
     })
+
     // send coalesced GRAFT/PRUNE messages (will piggyback gossip)
     this.gossipsub._sendGraftPrune(tograft, toprune)
+
+    // flush pending gossip that wasn't piggybacked above
+    this.gossipsub._flush()
 
     // advance the message history window
     this.gossipsub.messageCache.shift()

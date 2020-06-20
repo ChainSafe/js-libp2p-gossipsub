@@ -1,5 +1,4 @@
-import { GossipsubIDv10, GossipsubIDv11 } from './constants'
-import { shuffle } from './utils'
+import { shuffle, hasGossipProtocol } from './utils'
 import { Peer } from './peer'
 import Gossipsub = require('./index')
 
@@ -30,7 +29,7 @@ export function getGossipPeers (
   let peers: Peer[] = []
   peersInTopic.forEach((peer) => {
     if (
-      peer.protocols.find(proto => proto === GossipsubIDv10 || proto === GossipsubIDv11) &&
+      hasGossipProtocol(peer.protocols) &&
       filter(peer)
     ) {
       peers.push(peer)
