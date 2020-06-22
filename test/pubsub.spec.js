@@ -138,7 +138,6 @@ describe('Pubsub', () => {
       sinon.stub(gossipsub.peers, 'get').returns({})
       const filteredTopic = 't'
       const peer = new Peer({ id: await PeerId.create() })
-      //gossipsub.peers.set(peer.id.toB58String(), peer)
 
       // Set a trivial topic validator
       gossipsub.topicValidators.set(filteredTopic, (topic, peer, message) => {
