@@ -542,8 +542,8 @@ class Gossipsub extends BasicPubsub {
    * @returns {void}
    */
   _clearBackoff (): void {
-    // we only clear once every 15 ticks to avoid iterating over the maps too much
-    if (this.heartbeatTicks % 15 !== 0) {
+    // we only clear once every GossipsubPruneBackoffTicks ticks to avoid iterating over the maps too much
+    if (this.heartbeatTicks % constants.GossipsubPruneBackoffTicks !== 0) {
       return
     }
 
