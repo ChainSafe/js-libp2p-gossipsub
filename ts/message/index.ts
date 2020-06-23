@@ -104,6 +104,13 @@ export interface ControlGraft {
  */
 export interface ControlPrune {
   topicID?: string
+  peers: PeerInfo[]
+  backoff?: number
+}
+
+export interface PeerInfo {
+  peerID?: Buffer
+  signedPeerRecord?: Buffer
 }
 
 /**

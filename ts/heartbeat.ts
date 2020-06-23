@@ -71,6 +71,8 @@ export class Heartbeat {
    * @returns {void}
    */
   _heartbeat (): void {
+    this.gossipsub.heartbeatTicks++
+
     // cache scores throught the heartbeat
     const scores = new Map<string, number>()
     const getScore = (id: string): number => {
@@ -85,6 +87,9 @@ export class Heartbeat {
     const tograft = new Map<Peer, string[]>()
     const toprune = new Map<Peer, string[]>()
 
+    // clean up expired backoffs
+    this.gossipsub._clearBackoff()
+
     // maintain the mesh for topics we have joined
     this.gossipsub.mesh.forEach((peers, topic) => {
       // prune/graft helper functions (defined per topic)
@@ -96,6 +101,8 @@ export class Heartbeat {
         )
         // update peer score
         this.gossipsub.score.prune(id, topic)
+        // add prune backoff record
+        this.gossipsub._addBackoff(id, topic)
         // remove peer from mesh
         peers.delete(p)
         // add to toprune
@@ -140,10 +147,12 @@ export class Heartbeat {
 
       // do we have enough peers?
       if (peers.size < constants.GossipsubDlo) {
+        const backoff = this.gossipsub.backoff.get(topic)
         const ineed = constants.GossipsubD - peers.size
         const peersSet = getGossipPeers(this.gossipsub, topic, ineed, p => {
-          // filter out mesh peers, peers with negative score
-          return !peers.has(p) && getScore(p.id.toB58String()) >= 0
+          const id = p.id.toB58String()
+          // filter out mesh peers, peers we are backing off, peers with negative score
+          return !peers.has(p) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
         })
 
         peersSet.forEach(graftPeer)
@@ -217,9 +226,11 @@ export class Heartbeat {
         // if it's less than D_out, select some peers with outbound connections and graft them
         if (outbound < constants.GossipsubDout) {
           const ineed = constants.GossipsubDout - outbound
+          const backoff = this.gossipsub.backoff.get(topic)
           getGossipPeers(this.gossipsub, topic, ineed, (p: Peer): boolean => {
-            // filter our current mesh peers and peers with negative score
-            return !peers.has(p) && getScore(p.id.toB58String()) >= 0
+            const id = p.id.toB58String()
+            // filter our current mesh peers, peers we are backing off, peers with negative score
+            return !peers.has(p) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
           }).forEach(graftPeer)
         }
       }
