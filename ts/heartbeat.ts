@@ -235,6 +235,39 @@ export class Heartbeat {
         }
       }
 
+      // should we try to improve the mesh with opportunistic grafting?
+      if (this.gossipsub.heartbeatTicks % constants.GossipsubOpportunisticGraftTicks === 0 && peers.size > 1) {
+        // Opportunistic grafting works as follows: we check the median score of peers in the
+        // mesh; if this score is below the opportunisticGraftThreshold, we select a few peers at
+        // random with score over the median.
+        // The intention is to (slowly) improve an underperforming mesh by introducing good
+        // scoring peers that may have been gossiping at us. This allows us to get out of sticky
+        // situations where we are stuck with poor peers and also recover from churn of good peers.
+
+        // now compute the median peer score in the mesh
+        const peersList = Array.from(peers)
+          .sort((a, b) => getScore(a.id.toB58String()) - getScore(b.id.toB58String()))
+        const medianIndex = peers.size / 2
+        const medianScore = getScore(peersList[medianIndex].id.toB58String())
+
+        // if the median score is below the threshold, select a better peer (if any) and GRAFT
+        if (medianScore < this.gossipsub._options.scoreThresholds.opportunisticGraftThreshold) {
+          const backoff = this.gossipsub.backoff.get(topic)
+          const peersToGraft = getGossipPeers(this.gossipsub, topic, constants.GossipsubOpportunisticGraftPeers, (p: Peer): boolean => {
+            const id = p.id.toB58String()
+            // filter out current mesh peers, peres we are backing off, peers below or at threshold
+            return peers.has(p) && (!backoff || !backoff.has(id)) && getScore(id) > medianScore
+          })
+          peersToGraft.forEach(p => {
+            this.gossipsub.log(
+              'HEARTBEAT: Opportunistically graft peer %s on topic %s',
+              p.id.toB58String(), topic
+            )
+            graftPeer(p)
+          })
+        }
+      }
+
       // 2nd arg are mesh peers excluded from gossip. We have already pushed
       // messages to them, so its redundant to gossip IHAVEs.
       this.gossipsub._emitGossip(topic, peers)
