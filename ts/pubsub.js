@@ -159,19 +159,6 @@ class BasicPubSub extends Pubsub {
     if (msgs.length) {
       msgs.forEach(async message => {
         const msg = utils.normalizeInRpcMessage(message)
-
-        // Ensure the message is valid before processing it
-        try {
-          const isValid = await this.validate(message, peer)
-          if (!isValid) {
-            this.log('Message is invalid, dropping it.')
-            return
-          }
-        } catch (err) {
-          this.log('Error in message validation, dropping it. %O', err)
-          return
-        }
-
         this._processRpcMessage(peer, msg)
       })
     }
@@ -248,17 +235,43 @@ class BasicPubSub extends Pubsub {
    * @param {Peer} peer
    * @param {RPC.Message} msg
    */
-  _processRpcMessage (peer, msg) {
+  async _processRpcMessage (peer, msg) {
     if (this.peerId.toB58String() === msg.from && !this._options.emitSelf) {
       return
     }
+    // Ensure the message is valid before processing it
+    try {
+      const isValid = await this.validate(utils.normalizeOutRpcMessage(msg), peer)
+      if (!isValid) {
+        this.log('Message is invalid, dropping it.')
+        return
+      }
+    } catch (err) {
+      this.log('Error in message validation, dropping it. %O', err)
+      return
+    }
 
-    // Emit to self
-    this._emitMessage(msg.topicIDs, msg)
+    this._publishFrom(peer, msg)
   }
 
-  _emitMessage (topics, message) {
-    topics.forEach((topic) => {
+  /**
+   * Publish a message sent from a peer
+   * @param {Peer} peer
+   * @param {InMessage} msg
+   * @returns {void}
+   */
+  _publishFrom (peer, msg) {
+    // Emit to self
+    this._emitMessage(msg)
+  }
+
+  /**
+   * Emit a message from a peer
+   * @param {Peer} peer
+   * @param {InMessage} message
+   */
+  _emitMessage (message) {
+    message.topicIDs.forEach((topic) => {
       if (this.subscriptions.has(topic)) {
         this.emit(topic, message)
       }
@@ -379,7 +392,7 @@ class BasicPubSub extends Pubsub {
    * @override
    * @param {Array<string>|string} topics
    * @param {Array<any>|any} messages
-   * @returns {void}
+   * @returns {Promise<void>}
    */
   async publish (topics, messages) {
     if (!this.started) {
@@ -393,23 +406,22 @@ class BasicPubSub extends Pubsub {
 
     const from = this.peerId.toB58String()
 
-    const buildMessage = (msg, cb) => {
-      const seqno = utils.randomSeqno()
-      const msgObj = {
+    const buildMessage = data => {
+      return {
         from: from,
-        data: msg,
-        seqno: seqno,
+        data: data,
+        seqno: utils.randomSeqno(),
         topicIDs: topics
       }
-      // Emit to self if I'm interested and emitSelf enabled
-      this._options.emitSelf && this._emitMessages(topics, [msgObj])
-
-      return this._buildMessage(msgObj)
     }
-    const msgObjects = await pMap(messages, buildMessage)
+    const msgObjects = messages.map(buildMessage)
 
+    // Emit to self if I'm interested and emitSelf enabled
+    this._options.emitSelf && msgObjects.forEach(msg => this._emitMessage(msg))
+
+    const signMessage = (msg, cb) => this._buildMessage(msg)
     // send to all the other peers
-    this._publish(utils.normalizeOutRpcMessages(msgObjects))
+    this._publish(await pMap(msgObjects, signMessage))
   }
 
   /**
@@ -434,23 +446,10 @@ class BasicPubSub extends Pubsub {
     return this.defaultMsgIdFn(msg)
   }
 
-  _emitMessages (topics, messages) {
-    topics.forEach((topic) => {
-      if (!this.subscriptions.has(topic)) {
-        return
-      }
-
-      messages.forEach((message) => {
-        this.emit(topic, message)
-      })
-    })
-  }
-
   /**
    * Publish messages
    *
-   * Note: this function assumes all messages are well-formed RPC objects
-   * @param {Array<Message>} msgs
+   * @param {Array<InMessage>} msgs
    * @returns {void}
    */
   _publish (msgs) {
