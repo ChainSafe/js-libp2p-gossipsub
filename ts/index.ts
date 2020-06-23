@@ -43,8 +43,10 @@ class Gossipsub extends BasicPubsub {
   lastpub: Map<string, number>
   gossip: Map<Peer, ControlIHave[]>
   control: Map<Peer, ControlMessage>
+  backoff: Map<string, Map<string, number>>
   outbound: Map<Peer, boolean>
   score: PeerScore
+  heartbeatTicks: number
   _connectionManager: ConnectionManager
   _options: GossipOptions
 
@@ -140,6 +142,11 @@ class Gossipsub extends BasicPubsub {
     this.control = new Map()
 
     /**
+     * Prune backoff map
+     */
+    this.backoff = new Map()
+
+    /**
      * Connection direction cache, marks peers with outbound connections
      *
      * @type {Map<Peer, boolean>}
@@ -161,6 +168,12 @@ class Gossipsub extends BasicPubsub {
      * A heartbeat timer that maintains the mesh
      */
     this.heartbeat = new Heartbeat(this)
+
+    /**
+     * Number of heartbeats since the beginning of time
+     * This allows us to amortize some resource cleanup -- eg: backoff cleanup
+     */
+    this.heartbeatTicks = 0
 
     /**
      * Connection manager
@@ -225,7 +238,7 @@ class Gossipsub extends BasicPubsub {
     this.gossip.delete(peer)
     // Remove from control mapping
     this.control.delete(peer)
-    // Remove from outbound tracking
+    // Remove from backoff mapping
     this.outbound.delete(peer)
 
     // Remove from peer scoring
@@ -441,6 +454,7 @@ class Gossipsub extends BasicPubsub {
     const prune: string[] = []
     const id = peer.id.toB58String()
     const score = this.score.score(id)
+    const now = this._now()
 
     graft.forEach(({ topicID }) => {
       if (!topicID) {
@@ -457,6 +471,24 @@ class Gossipsub extends BasicPubsub {
         return
       }
 
+      // make sure we are not backing off that peer
+      const expire = this.backoff.get(topicID)?.get(id)
+      if (typeof expire === 'number' && now < expire) {
+        this.log('GRAFT: ignoring backed off peer %s', id)
+        // add behavioral penalty
+        this.score.addPenalty(id, 1)
+        // check the flood cutoff -- is the GRAFT coming too fast?
+        const floodCutoff = expire + constants.GossipsubGraftFloodThreshold - constants.GossipsubPruneBackoff
+        if (now < floodCutoff) {
+          // extra penalty
+          this.score.addPenalty(id, 1)
+        }
+        // refresh the backoff
+        this._addBackoff(id, topicID)
+        prune.push(topicID)
+        return
+      }
+
       // check the score
       if (score < 0) {
         // we don't GRAFT peers with negative score
@@ -466,6 +498,8 @@ class Gossipsub extends BasicPubsub {
         )
         // we do send them PRUNE however, because it's a matter of protocol correctness
         prune.push(topicID)
+        // add/refresh backoff so that we don't reGRAFT too early even if the score decays
+        this._addBackoff(id, topicID)
         return
       }
 
@@ -474,6 +508,7 @@ class Gossipsub extends BasicPubsub {
       // mesh takeover attacks combined with love bombing
       if (peersInMesh.size >= constants.GossipsubDhi && !this.outbound.get(peer)) {
         prune.push(topicID)
+        this._addBackoff(id, topicID)
         return
       }
 
@@ -486,13 +521,7 @@ class Gossipsub extends BasicPubsub {
       return
     }
 
-    const buildCtrlPruneMsg = (topic: string) => {
-      return {
-        topicID: topic
-      }
-    }
-
-    return prune.map(buildCtrlPruneMsg)
+    return prune.map(topic => this._makePrune(id, topic))
   }
 
   /**
@@ -502,7 +531,8 @@ class Gossipsub extends BasicPubsub {
    * @returns {void}
    */
   _handlePrune (peer: Peer, prune: ControlPrune[]): void {
-    prune.forEach(({ topicID }) => {
+    const id = peer.id.toB58String()
+    prune.forEach(({ topicID, backoff }) => {
       if (!topicID) {
         return
       }
@@ -511,6 +541,65 @@ class Gossipsub extends BasicPubsub {
         this.log('PRUNE: Remove mesh link to %s in %s', peer.id.toB58String(), topicID)
         peers.delete(peer)
         peer.topics.delete(topicID)
+        // is there a backoff specified by the peer? if so obey it
+        if (typeof backoff === 'number' && backoff > 0) {
+          this._doAddBackoff(id, topicID, backoff * 1000)
+        } else {
+          this._addBackoff(id, topicID)
+        }
+      }
+    })
+  }
+
+  /**
+   * Add standard backoff log for a peer in a topic
+   * @param {string} id
+   * @param {string} topic
+   * @returns {void}
+   */
+  _addBackoff (id: string, topic: string): void {
+    this._doAddBackoff(id, topic, constants.GossipsubPruneBackoff)
+  }
+
+  /**
+   * Add backoff expiry interval for a peer in a topic
+   * @param {string} id
+   * @param {string} topic
+   * @param {number} interval backoff duration in milliseconds
+   * @returns {void}
+   */
+  _doAddBackoff (id: string, topic: string, interval: number): void {
+    let backoff = this.backoff.get(topic)
+    if (!backoff) {
+      backoff = new Map()
+      this.backoff.set(topic, backoff)
+    }
+    const expire = this._now() + interval
+    const existingExpire = backoff.get(id) || 0
+    if (existingExpire < expire) {
+      backoff.set(id, expire)
+    }
+  }
+
+  /**
+   * Clear expired backoff expiries
+   * @returns {void}
+   */
+  _clearBackoff (): void {
+    // we only clear once every GossipsubPruneBackoffTicks ticks to avoid iterating over the maps too much
+    if (this.heartbeatTicks % constants.GossipsubPruneBackoffTicks !== 0) {
+      return
+    }
+
+    const now = this._now()
+    this.backoff.forEach((backoff, topic) => {
+      backoff.forEach((expire, id) => {
+        if (expire < now) {
+          backoff.delete(id)
+        }
+      })
+      if (backoff.size === 0) {
+        this.backoff.delete(topic)
       }
     })
   }
@@ -542,6 +631,7 @@ class Gossipsub extends BasicPubsub {
     this.lastpub = new Map()
     this.gossip = new Map()
     this.control = new Map()
+    this.backoff = new Map()
     this.outbound = new Map()
   }
 
@@ -736,9 +826,9 @@ class Gossipsub extends BasicPubsub {
    * @returns {void}
    */
   _sendPrune (peer: Peer, topic: string): void {
-    const prune = [{
-      topicID: topic
-    }]
+    const prune = [
+      this._makePrune(peer.id.toB58String(), topic)
+    ]
 
     const out = createGossipRpc([], { prune })
     this._sendRpc(peer, out)
@@ -798,12 +888,13 @@ class Gossipsub extends BasicPubsub {
    */
   _sendGraftPrune (tograft: Map<Peer, string[]>, toprune: Map<Peer, string[]>): void {
     for (const [p, topics] of tograft) {
+      const id = p.id.toB58String()
       const graft = topics.map((topicID) => ({ topicID }))
       let prune: ControlPrune[] = []
       // If a peer also has prunes, process them now
-      const pruneMsg = toprune.get(p)
-      if (pruneMsg) {
-        prune = pruneMsg.map((topicID) => ({ topicID }))
+      const pruning = toprune.get(p)
+      if (pruning) {
+        prune = pruning.map((topicID) => this._makePrune(id, topicID))
         toprune.delete(p)
       }
 
@@ -811,7 +902,8 @@ class Gossipsub extends BasicPubsub {
       this._sendRpc(p, outRpc)
     }
     for (const [p, topics] of toprune) {
-      const prune = topics.map((topicID) => ({ topicID }))
+      const id = p.id.toB58String()
+      const prune = topics.map((topicID) => this._makePrune(id, topicID))
       const outRpc = createGossipRpc([], { prune })
       this._sendRpc(p, outRpc)
     }
@@ -919,6 +1011,30 @@ class Gossipsub extends BasicPubsub {
    */
   _now (): number {
     return Date.now()
+  }
+
+  /**
+   * Make a PRUNE control message for a peer in a topic
+   * @param {string} id
+   * @param {string} topic
+   * @returns {ControlPrune}
+   */
+  _makePrune (id: string, topic: string): ControlPrune {
+    if (this.peers.get(id)!.protocols.includes(constants.GossipsubIDv10)) {
+      // Gossipsub v1.0 -- no backoff, the peer won't be able to parse it anyway
+      return {
+        topicID: topic,
+        peers: []
+      }
+    }
+    // backoff is measured in seconds
+    // GossipsubPruneBackoff is measured in milliseconds
+    const backoff = constants.GossipsubPruneBackoff / 1000
+    return {
+      topicID: topic,
+      peers: [],
+      backoff: backoff
+    }
   }
 }
 

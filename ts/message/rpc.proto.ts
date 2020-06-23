@@ -40,5 +40,12 @@ message RPC {
 
   message ControlPrune {
     optional string topicID = 1;
+    repeated PeerInfo peers = 2;
+    optional uint64 backoff = 3;
+  }
+
+  message PeerInfo {
+    optional bytes peerID = 1;
+    optional bytes signedPeerRecord = 2;
   }
 }`

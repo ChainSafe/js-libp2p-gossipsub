@@ -140,6 +140,12 @@ export const GossipsubPrunePeers = 16
 export const GossipsubPruneBackoff = minute
 
 /**
+ * GossipsubPruneBackoffTicks is the number of heartbeat ticks for attempting to prune expired
+ * backoff timers.
+ */
+export const GossipsubPruneBackoffTicks = 15
+
+/**
  * GossipsubConnectors controls the number of active connection attempts for peers obtained through PX.
  */
 export const GossipsubConnectors = 8
