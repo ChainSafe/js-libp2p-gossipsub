@@ -142,7 +142,7 @@ class BasicPubSub extends Pubsub {
    * @param {String} idB58Str
    * @param {Peer} peer
    * @param {RPC} rpc
-   * @returns {void}
+   * @returns {boolean}
    */
   _processRpc (idB58Str, peer, rpc) {
     this.log('rpc from', idB58Str)
@@ -156,12 +156,28 @@ class BasicPubSub extends Pubsub {
       this.emit('pubsub:subscription-change', peer.id, peer.topics, subs)
     }
 
+    if (!this._acceptFrom(idB58Str)) {
+      this.log('received message from unacceptable peer %s', idB58Str)
+      return false
+    }
+
     if (msgs.length) {
       msgs.forEach(async message => {
         const msg = utils.normalizeInRpcMessage(message)
         this._processRpcMessage(peer, msg)
       })
     }
+    return true
+  }
+
+  /**
+   * Whether to accept a message from a peer
+   * Override to create a graylist
+   * @param {string} id
+   * @returns {boolean}
+   */
+  _acceptFrom (id: string): boolean {
+    return true
   }
 
   /**

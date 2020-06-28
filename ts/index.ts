@@ -254,13 +254,16 @@ class Gossipsub extends BasicPubsub {
    * @param {String} idB58Str
    * @param {Peer} peer
    * @param {RPC} rpc
-   * @returns {void}
+   * @returns {boolean}
    */
-  _processRpc (idB58Str: string, peer: Peer, rpc: RPC): void {
-    super._processRpc(idB58Str, peer, rpc)
-    if (rpc.control) {
-      this._processRpcControlMessage(peer, rpc.control)
+  _processRpc (idB58Str: string, peer: Peer, rpc: RPC): boolean {
+    if (super._processRpc(idB58Str, peer, rpc)) {
+      if (rpc.control) {
+        this._processRpcControlMessage(peer, rpc.control)
+      }
+      return true
     }
+    return false
   }
 
   /**
