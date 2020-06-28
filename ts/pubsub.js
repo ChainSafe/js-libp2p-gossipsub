@@ -176,7 +176,7 @@ class BasicPubSub extends Pubsub {
    * @param {string} id
    * @returns {boolean}
    */
-  _acceptFrom (id: string): boolean {
+  _acceptFrom (id: string) {
     return true
   }
 
