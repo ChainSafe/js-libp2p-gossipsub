@@ -1,9 +1,7 @@
 import PeerId from 'peer-id'
 import { Pushable } from 'it-pushable'
 import { Message, SubOpts } from './message'
-
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface Connection {}
+import { Connection } from './interfaces'
 
 export interface Peer {
   id: PeerId
@@ -20,10 +18,4 @@ export interface Peer {
   sendMessages (msgs: Message[]): void
   updateSubscriptions (subOpts: SubOpts[]): void
   close (): void
-}
-
-export interface Registrar {
-  handle (): void
-  register (): void
-  unregister (): void
 }

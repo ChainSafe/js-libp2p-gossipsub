@@ -18,17 +18,13 @@ class BasicPubSub extends Pubsub {
    * @param {Object} props
    * @param {String} props.debugName log namespace
    * @param {string[]} props.multicodecs protocol identifiers to connect
-   * @param {PeerId} props.peerId peer's peerId
-   * @param {Object} props.registrar registrar for libp2p protocols
-   * @param {function} props.registrar.handle
-   * @param {function} props.registrar.register
-   * @param {function} props.registrar.unregister
+   * @param {Libp2p} props.libp2p
    * @param {Object} [props.options]
    * @param {boolean} [props.options.emitSelf] if publish should emit to self, if subscribed, defaults to false
    * @constructor
    */
-  constructor ({ debugName, multicodecs, peerId, registrar, options = {} }) {
-    if (!PeerId.isPeerId(peerId)) {
+  constructor ({ debugName, multicodecs, libp2p, options = {} }) {
+    if (!PeerId.isPeerId(libp2p.peerId)) {
       throw new Error('peerId must be an instance of `peer-id`')
     }
 
@@ -40,8 +36,8 @@ class BasicPubSub extends Pubsub {
     super({
       debugName,
       multicodecs,
-      peerId,
-      registrar,
+      peerId: libp2p.peerId,
+      registrar: libp2p.registrar,
       ..._options
     })
 

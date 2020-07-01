@@ -3,30 +3,13 @@ import { PeerScoreParams, validatePeerScoreParams } from './peerScoreParams'
 import { PeerStats, createPeerStats, ensureTopicStats } from './peerStats'
 import { computeScore } from './computeScore'
 import { MessageDeliveries, DeliveryRecordStatus } from './messageDeliveries'
-import Multiaddr = require('multiaddr')
+import { ConnectionManager } from '../interfaces'
 import PeerId = require('peer-id')
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import debug = require('debug')
 
 const log = debug('libp2p:gossipsub:score')
-
-interface Connection {
-  remoteAddr: Multiaddr
-  remotePeer: PeerId
-  stat: {
-    direction: 'inbound' | 'outbound'
-  }
-  registry: Map<string, {protocol: string}>
-}
-
-export interface ConnectionManager {
-  getAll(peerId: PeerId): Connection[]
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  on(evt: string, fn: Function): void
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  off(evt: string, fn: Function): void
-}
 
 export class PeerScore {
   /**
