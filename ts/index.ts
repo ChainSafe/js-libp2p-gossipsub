@@ -14,7 +14,7 @@ import { getGossipPeers } from './getGossipPeers'
 import { createGossipRpc, shuffle, hasGossipProtocol } from './utils'
 import { Peer } from './peer'
 import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds } from './score'
-import { Libp2p } from './interfaces'
+import { AddrInfo, Libp2p } from './interfaces'
 // @ts-ignore
 import TimeCache = require('time-cache')
 import PeerId = require('peer-id')
@@ -29,6 +29,7 @@ interface GossipInputOptions {
   messageCache: MessageCache
   scoreParams: Partial<PeerScoreParams>
   scoreThresholds: Partial<PeerScoreThresholds>
+  directPeers: AddrInfo[]
 }
 
 interface GossipOptions extends GossipInputOptions {
@@ -38,6 +39,7 @@ interface GossipOptions extends GossipInputOptions {
 
 class Gossipsub extends BasicPubsub {
   peers: Map<string, Peer>
+  direct: Set<string>
   topics: Map<string, Set<Peer>>
   mesh: Map<string, Set<Peer>>
   fanout: Map<string, Set<Peer>>
@@ -64,6 +66,7 @@ class Gossipsub extends BasicPubsub {
    * @param {Object} [options.messageCache] override the default MessageCache
    * @param {Object} [options.scoreParams] peer score parameters
    * @param {Object} [options.scoreThresholds] peer score thresholds
+   * @param {AddrInfo[]} [options.directPeers] peers with which we will maintain direct connections
    * @constructor
    */
   constructor (
@@ -75,6 +78,7 @@ class Gossipsub extends BasicPubsub {
       gossipIncoming: true,
       fallbackToFloodsub: true,
       floodPublish: true,
+      directPeers: [],
       ...options,
       scoreParams: createPeerScoreParams(options.scoreParams),
       scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
@@ -90,6 +94,17 @@ class Gossipsub extends BasicPubsub {
       multicodecs,
       libp2p,
       options: _options
+    })
+
+    /**
+     * Direct peers
+     * @type {Set<string>}
+     */
+    this.direct = new Set(_options.directPeers.map(p => p.id.toB58String()))
+
+    // set direct peer addresses in the address book
+    _options.directPeers.forEach(p => {
+      p.addrs.forEach(ma => libp2p.peerStore.addressBook.add(p.id, ma))
     })
 
     /**
@@ -350,6 +365,16 @@ class Gossipsub extends BasicPubsub {
   }
 
   /**
+   * Whether to accept a message from a peer
+   * @override
+   * @param {string} id
+   * @returns {boolean}
+   */
+  _acceptFrom (id: string): boolean {
+    return this.direct.has(id) || this.score.score(id) >= this._options.scoreThresholds.graylistThreshold
+  }
+
+  /**
    * Coerse topic validator result to valid/invalid boolean
    * Provide extended validator support
    *
@@ -464,6 +489,14 @@ class Gossipsub extends BasicPubsub {
 
       // check if peer is already in the mesh; if so do nothing
       if (peersInMesh.has(peer)) {
+        return
+      }
+
+      // we don't GRAFT to/from direct peers; complain loudly if this happens
+      if (this.direct.has(id)) {
+        this.log('GRAFT: ignoring request from direct peer %s', id)
+        // this is possibly a bug from a non-reciprical configuration; send a PRUNE
+        prune.push(topicID)
         return
       }
 
@@ -601,6 +634,31 @@ class Gossipsub extends BasicPubsub {
   }
 
   /**
+   * Maybe reconnect to direct peers
+   * @returns {void}
+   */
+  _directConnect (): void {
+    // we only do this every few ticks to allow pending connections to complete and account for
+    // restarts/downtime
+    if (this.heartbeatTicks % constants.GossipsubDirectConnectTicks !== 0) {
+      return
+    }
+
+    const toconnect: string[] = []
+    this.direct.forEach(id => {
+      const peer = this.peers.get(id)
+      if (!peer || !peer.isConnected) {
+        toconnect.push(id)
+      }
+    })
+    if (toconnect.length) {
+      toconnect.forEach(id => {
+        this._connect(id)
+      })
+    }
+  }
+
+  /**
    * Mounts the gossipsub protocol onto the libp2p node and sends our
    * our subscriptions to every peer connected
    * @override
@@ -610,6 +668,12 @@ class Gossipsub extends BasicPubsub {
     await super.start()
     this.heartbeat.start()
     this.score.start()
+    // connect to direct peers
+    this._directPeerInitial = setTimeout(() => {
+      this.direct.forEach(id => {
+        this._connect(id)
+      })
+    }, constants.GossipsubDirectConnectInitialDelay)
   }
 
   /**
@@ -629,6 +693,16 @@ class Gossipsub extends BasicPubsub {
     this.control = new Map()
     this.backoff = new Map()
     this.outbound = new Map()
+    clearTimeout(this._directPeerInitial)
+  }
+
+  /**
+   * Connect to a peer using the gossipsub protocol
+   * @param {string} id
+   * @returns {void}
+   */
+  _connect (id: string): void {
+    this._libp2p.dialProtocol(id, this.multicodecs)
   }
 
   /**
@@ -669,14 +743,32 @@ class Gossipsub extends BasicPubsub {
     this.log('JOIN %s', topics)
 
     ;(topics as string[]).forEach((topic) => {
-      // Send GRAFT to mesh peers
       const fanoutPeers = this.fanout.get(topic)
       if (fanoutPeers) {
+        // these peers have a score above the publish threshold, which may be negative
+        // so drop the ones with a negative score
+        fanoutPeers.forEach(p => {
+          if (this.score.score(p.id.toB58String()) < 0) {
+            fanoutPeers.delete(p)
+          }
+        })
+        if (fanoutPeers.size < constants.GossipsubD) {
+          // we need more peers; eager, as this would get fixed in the next heartbeat
+          getGossipPeers(this, topic, constants.GossipsubD - fanoutPeers.size, (p: Peer): boolean => {
+            const id = p.id.toB58String()
+            // filter our current peers, direct peers, and peers with negative scores
+            return !fanoutPeers.has(p) && !this.direct.has(id) && this.score.score(id) >= 0
+          }).forEach(p => fanoutPeers.add(p))
+        }
         this.mesh.set(topic, fanoutPeers)
         this.fanout.delete(topic)
         this.lastpub.delete(topic)
       } else {
-        const peers = getGossipPeers(this, topic, constants.GossipsubD)
+        const peers = getGossipPeers(this, topic, constants.GossipsubD, (p: Peer): boolean => {
+          const id = p.id.toB58String()
+          // filter direct peers and peers with negative score
+          return !this.direct.has(id) && this.score.score(id) >= 0
+        })
         this.mesh.set(topic, peers)
       }
       this.mesh.get(topic)!.forEach((peer) => {
@@ -744,17 +836,25 @@ class Gossipsub extends BasicPubsub {
 
         if (this._options.floodPublish) {
           // flood-publish behavior
-          // send to _all_ peers meeting the publishThreshold
+          // send to direct peers and _all_ peers meeting the publishThreshold
           peersInTopic.forEach(peer => {
-            const score = this.score.score(peer.id.toB58String())
-            if (score >= this._options.scoreThresholds.publishThreshold) {
+            const id = peer.id.toB58String()
+            if (this.direct.has(id) || this.score.score(id) >= this._options.scoreThresholds.publishThreshold) {
               tosend.add(peer)
             }
           })
         } else {
           // non-flood-publish behavior
-          // send to subscribed floodsub peers
+          // send to direct peers, subscribed floodsub peers
           // and some mesh peers above publishThreshold
+
+          // direct peers
+          this.direct.forEach(id => {
+            const peer = this.peers.get(id)
+            if (peer) {
+              tosend.add(peer)
+            }
+          })
 
           // floodsub peers
           peersInTopic.forEach((peer) => {
@@ -929,6 +1029,7 @@ class Gossipsub extends BasicPubsub {
     // Send gossip to GossipFactor peers above threshold with a minimum of D_lazy
     // First we collect the peers above gossipThreshold that are not in the exclude set
     // and then randomly select from that set
+    // We also exclude direct peers, as there is no reason to emit gossip to them
     const peersToGossip: Peer[] = []
     const topicPeers = this.topics.get(topic)
     if (!topicPeers) {
@@ -936,10 +1037,12 @@ class Gossipsub extends BasicPubsub {
       return
     }
     topicPeers.forEach(p => {
+      const id = p.id.toB58String()
       if (
         !exclude.has(p) &&
+        !this.direct.has(id) &&
         hasGossipProtocol(p.protocols) &&
-        this.score.score(p.id.toB58String()) >= this._options.scoreThresholds.gossipThreshold
+        this.score.score(id) >= this._options.scoreThresholds.gossipThreshold
       ) {
         peersToGossip.push(p)
       }
