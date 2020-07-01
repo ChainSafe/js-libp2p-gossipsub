@@ -5,18 +5,20 @@ const { expect } = require('chai')
 
 const Gossipsub = require('../src')
 const { GossipsubHeartbeatInterval } = require('../src/constants')
-const { createPeerId, mockRegistrar, mockConnectionManager } = require('./utils')
+const {
+  createPeer,
+  stopNode
+} = require('./utils')
 
 describe('heartbeat', () => {
   let gossipsub
 
   before(async () => {
-    const peerId = await createPeerId()
-    gossipsub = new Gossipsub(peerId, mockRegistrar, mockConnectionManager, { emitSelf: true })
+    gossipsub = new Gossipsub(await createPeer(), { emitSelf: true })
     await gossipsub.start()
   })
 
-  after(() => gossipsub.stop())
+  after(() => stopNode(gossipsub))
 
   it('should occur with regularity defined by a constant', async function () {
     this.timeout(3000)

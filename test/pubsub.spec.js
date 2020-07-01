@@ -11,20 +11,22 @@ const { utils } = require('libp2p-pubsub')
 const Peer = require('libp2p-pubsub/src/peer')
 const { signMessage } = require('libp2p-pubsub/src/message/sign')
 const PeerId = require('peer-id')
+
+const Gossipsub = require('../src')
 const {
-  createGossipsub,
-  mockRegistrar,
-  mockConnectionManager
+  createPeer,
+  stopNode
 } = require('./utils')
 
 describe('Pubsub', () => {
   let gossipsub
 
   before(async () => {
-    gossipsub = await createGossipsub(mockRegistrar, mockConnectionManager, true)
+    gossipsub = new Gossipsub(await createPeer())
+    await gossipsub.start()
   })
 
-  after(() => gossipsub.stop())
+  after(() => stopNode(gossipsub))
 
   afterEach(() => {
     sinon.restore()

@@ -8,15 +8,14 @@ chai.use(require('chai-spies'))
 const expect = chai.expect
 
 const { multicodec } = require('../src')
+const Gossipsub = require('../src')
 
 const {
-  createGossipsub,
-  createGossipsubNodes,
-  createGossipsubConnectedNodes,
-  mockRegistrar,
-  mockConnectionManager,
+  createPeer,
+  createGossipsubs,
+  createConnectedGossipsubs,
   expectSet,
-  ConnectionPair,
+  stopNode,
   first
 } = require('./utils')
 
@@ -27,10 +26,10 @@ describe('1 node', () => {
     let gossipsub
 
     before(async () => {
-      gossipsub = await createGossipsub(mockRegistrar, mockConnectionManager)
+      gossipsub = new Gossipsub(await createPeer())
     })
 
-    after(() => gossipsub.stop())
+    after(() => stopNode(gossipsub))
 
     it('should mount the pubsub protocol', () => {
       expect(gossipsub.peers.size).to.be.eql(0)
@@ -43,6 +42,7 @@ describe('1 node', () => {
     })
 
     it('should start a gossipsub successfully', async () => {
+      await gossipsub._libp2p.start()
       await gossipsub.start()
       expect(gossipsub.started).to.equal(true)
     })
@@ -51,26 +51,18 @@ describe('1 node', () => {
 
 describe('2 nodes', () => {
   describe('basics', () => {
-    let nodes, registrarRecords
+    let nodes
 
     // Create pubsub nodes
     before(async () => {
-      ({
-        nodes,
-        registrarRecords
-      } = await createGossipsubNodes(2, true))
+      nodes = await createGossipsubs({ number: 2 })
     })
 
-    after(() => Promise.all(nodes.map((n) => n.stop())))
+    after(() => Promise.all(nodes.map(stopNode)))
 
-    it('Dial from nodeA to nodeB happened with pubsub', () => {
-      const onConnect0 = registrarRecords[0][multicodec].onConnect
-      const onConnect1 = registrarRecords[1][multicodec].onConnect
-
-      // Notice peers of connection
-      const [d0, d1] = ConnectionPair()
-      onConnect0(nodes[1].peerId, d0)
-      onConnect1(nodes[0].peerId, d1)
+    it('Dial from nodeA to nodeB happened with pubsub', async () => {
+      await nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, multicodec)
+      await new Promise((resolve) => nodes[0].once('gossipsub:heartbeat', resolve))
 
       expect(nodes[0].peers.size).to.be.eql(1)
       expect(nodes[1].peers.size).to.be.eql(1)
@@ -82,10 +74,10 @@ describe('2 nodes', () => {
 
     // Create pubsub nodes
     before(async () => {
-      nodes = await createGossipsubConnectedNodes(2, multicodec)
+      nodes = await createConnectedGossipsubs({ number: 2 })
     })
 
-    after(() => Promise.all(nodes.map((n) => n.stop())))
+    after(() => Promise.all(nodes.map(stopNode)))
 
     it('Subscribe to a topic', async () => {
       const topic = 'Z'
@@ -128,7 +120,7 @@ describe('2 nodes', () => {
 
     // Create pubsub nodes
     beforeEach(async () => {
-      nodes = await createGossipsubConnectedNodes(2, multicodec)
+      nodes = await createConnectedGossipsubs({ number: 2 })
     })
 
     // Create subscriptions
@@ -146,7 +138,7 @@ describe('2 nodes', () => {
       ])
     })
 
-    afterEach(() => Promise.all(nodes.map((n) => n.stop())))
+    afterEach(() => Promise.all(nodes.map(stopNode)))
 
     it('Publish to a topic - nodeA', async () => {
       const promise = new Promise((resolve) => nodes[1].once(topic, resolve))
@@ -235,7 +227,7 @@ describe('2 nodes', () => {
 
     // Create pubsub nodes
     beforeEach(async () => {
-      nodes = await createGossipsubConnectedNodes(2, multicodec)
+      nodes = await createConnectedGossipsubs({ number: 2 })
     })
 
     // Create subscriptions
@@ -251,7 +243,7 @@ describe('2 nodes', () => {
       ])
     })
 
-    afterEach(() => Promise.all(nodes.map((n) => n.stop())))
+    afterEach(() => Promise.all(nodes.map(stopNode)))
 
     it('Unsubscribe from a topic', async () => {
       nodes[0].unsubscribe(topic)
@@ -294,14 +286,11 @@ describe('2 nodes', () => {
   })
 
   describe('nodes send state on connection', () => {
-    let nodes, registrarRecords
+    let nodes
 
     // Create pubsub nodes
     before(async () => {
-      ({
-        nodes,
-        registrarRecords
-      } = await createGossipsubNodes(2, true))
+      nodes = await createGossipsubs({ number: 2 })
     })
 
     // Make subscriptions prior to new nodes
@@ -315,40 +304,13 @@ describe('2 nodes', () => {
       expectSet(nodes[1].subscriptions, ['Zb'])
     })
 
-    after(() => Promise.all(nodes.map((n) => n.stop())))
+    after(() => Promise.all(nodes.map(stopNode)))
 
     it('existing subscriptions are sent upon peer connection', async function () {
       this.timeout(5000)
 
-      const dial = async () => {
-        // Connect nodes
-        const onConnect0 = registrarRecords[0][multicodec].onConnect
-        const onConnect1 = registrarRecords[1][multicodec].onConnect
-        const handle0 = registrarRecords[0][multicodec].handler
-        const handle1 = registrarRecords[1][multicodec].handler
-
-        // Notice peers of connection
-        const [d0, d1] = ConnectionPair()
-        await onConnect0(nodes[1].peerId, d0)
-        await handle1({
-          protocol: multicodec,
-          stream: d1.stream,
-          connection: {
-            remotePeer: nodes[0].peerId
-          }
-        })
-        await onConnect1(nodes[0].peerId, d1)
-        await handle0({
-          protocol: multicodec,
-          stream: d0.stream,
-          connection: {
-            remotePeer: nodes[1].peerId
-          }
-        })
-      }
-
       await Promise.all([
-        dial(),
+        nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, multicodec),
         new Promise((resolve) => nodes[0].once('pubsub:subscription-change', resolve)),
         new Promise((resolve) => nodes[1].once('pubsub:subscription-change', resolve))
       ])
@@ -370,11 +332,11 @@ describe('2 nodes', () => {
 
     // Create pubsub nodes
     before(async () => {
-      nodes = await createGossipsubConnectedNodes(2, multicodec)
+      nodes = await createConnectedGossipsubs({ number: 2 })
     })
 
     it('nodes don\'t have peers after stopped', async () => {
-      await Promise.all(nodes.map((n) => n.stop()))
+      await Promise.all(nodes.map(stopNode))
       expect(nodes[0].peers.size).to.equal(0)
       expect(nodes[1].peers.size).to.equal(0)
     })

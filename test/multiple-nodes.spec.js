@@ -9,9 +9,9 @@ const promisify = require('promisify-es6')
 
 const { GossipsubIDv10: multicodec } = require('../src/constants')
 const {
-  createGossipsubNodes,
+  createGossipsubs,
   expectSet,
-  ConnectionPair
+  stopNode,
 } = require('./utils')
 
 describe('multiple nodes (more than 2)', () => {
@@ -21,66 +21,24 @@ describe('multiple nodes (more than 2)', () => {
       // ◉────◉────◉
       // a    b    c
       describe('subscribe', () => {
-        let a, b, c, nodes, registrarRecords
+        let a, b, c, nodes
         const topic = 'Z'
 
         // Create pubsub nodes
         before(async () => {
-          ({
-            nodes,
-            registrarRecords
-          } = await createGossipsubNodes(3, true))
+          nodes = await createGossipsubs({ number: 3 })
 
           a = nodes[0]
           b = nodes[1]
           c = nodes[2]
 
-          const onConnectA = registrarRecords[0][multicodec].onConnect
-          const onConnectB = registrarRecords[1][multicodec].onConnect
-          const onConnectC = registrarRecords[2][multicodec].onConnect
-          const handleA = registrarRecords[0][multicodec].handler
-          const handleB = registrarRecords[1][multicodec].handler
-          const handleC = registrarRecords[2][multicodec].handler
-
-          // Notice peers of connection
-          const [d0, d1] = ConnectionPair()
-          await onConnectA(b.peerId, d0)
-          await handleB({
-            protocol: multicodec,
-            stream: d1.stream,
-            connection: {
-              remotePeer: a.peerId
-            }
-          })
-          await onConnectB(a.peerId, d1)
-          await handleA({
-            protocol: multicodec,
-            stream: d0.stream,
-            connection: {
-              remotePeer: b.peerId
-            }
-          })
-
-          const [d2, d3] = ConnectionPair()
-          await onConnectB(c.peerId, d2)
-          await handleC({
-            protocol: multicodec,
-            stream: d3.stream,
-            connection: {
-              remotePeer: b.peerId
-            }
-          })
-          await onConnectC(b.peerId, d3)
-          await handleB({
-            protocol: multicodec,
-            stream: d2.stream,
-            connection: {
-              remotePeer: c.peerId
-            }
-          })
+          await Promise.all([
+            a._libp2p.dialProtocol(b._libp2p.peerId, a.multicodecs),
+            b._libp2p.dialProtocol(c._libp2p.peerId, b.multicodecs)
+          ])
         })
 
-        after(() => Promise.all(nodes.map((n) => n.stop())))
+        after(() => Promise.all(nodes.map(stopNode)))
 
         it('subscribe to the topic on all nodes', async () => {
           a.subscribe(topic)
@@ -117,63 +75,21 @@ describe('multiple nodes (more than 2)', () => {
       })
 
       describe('publish', () => {
-        let a, b, c, nodes, registrarRecords
+        let a, b, c, nodes
         const topic = 'Z'
 
         // Create pubsub nodes
         before(async () => {
-          ({
-            nodes,
-            registrarRecords
-          } = await createGossipsubNodes(3, true))
+          nodes = await createGossipsubs({ number: 3 })
 
           a = nodes[0]
           b = nodes[1]
           c = nodes[2]
 
-          const onConnectA = registrarRecords[0][multicodec].onConnect
-          const onConnectB = registrarRecords[1][multicodec].onConnect
-          const onConnectC = registrarRecords[2][multicodec].onConnect
-          const handleA = registrarRecords[0][multicodec].handler
-          const handleB = registrarRecords[1][multicodec].handler
-          const handleC = registrarRecords[2][multicodec].handler
-
-          // Notice peers of connection
-          const [d0, d1] = ConnectionPair()
-          await onConnectA(b.peerId, d0)
-          await handleB({
-            protocol: multicodec,
-            stream: d1.stream,
-            connection: {
-              remotePeer: a.peerId
-            }
-          })
-          await onConnectB(a.peerId, d1)
-          await handleA({
-            protocol: multicodec,
-            stream: d0.stream,
-            connection: {
-              remotePeer: b.peerId
-            }
-          })
-
-          const [d2, d3] = ConnectionPair()
-          await onConnectB(c.peerId, d2)
-          await handleC({
-            protocol: multicodec,
-            stream: d3.stream,
-            connection: {
-              remotePeer: b.peerId
-            }
-          })
-          await onConnectC(b.peerId, d3)
-          await handleB({
-            protocol: multicodec,
-            stream: d2.stream,
-            connection: {
-              remotePeer: c.peerId
-            }
-          })
+          await Promise.all([
+            a._libp2p.dialProtocol(b._libp2p.peerId, a.multicodecs),
+            b._libp2p.dialProtocol(c._libp2p.peerId, b.multicodecs)
+          ])
 
           a.subscribe(topic)
           b.subscribe(topic)
@@ -186,7 +102,7 @@ describe('multiple nodes (more than 2)', () => {
           ])
         })
 
-        after(() => Promise.all(nodes.map((n) => n.stop())))
+        after(() => Promise.all(nodes.map(stopNode)))
 
         it('publish on node a', async () => {
           let msgB = new Promise((resolve) => b.once('Z', resolve))
@@ -243,63 +159,21 @@ describe('multiple nodes (more than 2)', () => {
       //   ◉─┘ └─◉
       //   a     c
 
-      let a, b, c, nodes, registrarRecords
+      let a, b, c, nodes
       const topic = 'Z'
 
       // Create pubsub nodes
       before(async () => {
-        ({
-          nodes,
-          registrarRecords
-        } = await createGossipsubNodes(3, true))
+        nodes = await createGossipsubs({ number: 3 })
 
         a = nodes[0]
         b = nodes[1]
         c = nodes[2]
 
-        const onConnectA = registrarRecords[0][multicodec].onConnect
-        const onConnectB = registrarRecords[1][multicodec].onConnect
-        const onConnectC = registrarRecords[2][multicodec].onConnect
-        const handleA = registrarRecords[0][multicodec].handler
-        const handleB = registrarRecords[1][multicodec].handler
-        const handleC = registrarRecords[2][multicodec].handler
-
-        // Notice peers of connection
-        const [d0, d1] = ConnectionPair()
-        await onConnectA(b.peerId, d0)
-        await handleB({
-          protocol: multicodec,
-          stream: d1.stream,
-          connection: {
-            remotePeer: a.peerId
-          }
-        })
-        await onConnectB(a.peerId, d1)
-        await handleA({
-          protocol: multicodec,
-          stream: d0.stream,
-          connection: {
-            remotePeer: b.peerId
-          }
-        })
-
-        const [d2, d3] = ConnectionPair()
-        await onConnectB(c.peerId, d2)
-        await handleC({
-          protocol: multicodec,
-          stream: d3.stream,
-          connection: {
-            remotePeer: b.peerId
-          }
-        })
-        await onConnectC(b.peerId, d3)
-        await handleB({
-          protocol: multicodec,
-          stream: d2.stream,
-          connection: {
-            remotePeer: c.peerId
-          }
-        })
+        await Promise.all([
+          a._libp2p.dialProtocol(b._libp2p.peerId, a.multicodecs),
+          b._libp2p.dialProtocol(c._libp2p.peerId, b.multicodecs)
+        ])
 
         a.subscribe(topic)
         b.subscribe(topic)
@@ -312,7 +186,7 @@ describe('multiple nodes (more than 2)', () => {
         ])
       })
 
-      after(() => Promise.all(nodes.map((n) => n.stop())))
+      after(() => Promise.all(nodes.map(stopNode)))
 
       it('publish on node b', async () => {
         let msgA = new Promise((resolve) => a.once('Z', resolve))
@@ -335,15 +209,12 @@ describe('multiple nodes (more than 2)', () => {
       //   │b     d│
       // ◉─┘       └─◉
       // a           e
-      let a, b, c, d, e, nodes, registrarRecords
+      let a, b, c, d, e, nodes
       const topic = 'Z'
 
       // Create pubsub nodes
       before(async () => {
-        ({
-          nodes,
-          registrarRecords
-        } = await createGossipsubNodes(5, true))
+        nodes = await createGossipsubs({ number: 5 })
 
         a = nodes[0]
         b = nodes[1]
@@ -351,96 +222,21 @@ describe('multiple nodes (more than 2)', () => {
         d = nodes[3]
         e = nodes[4]
 
-        const onConnectA = registrarRecords[0][multicodec].onConnect
-        const onConnectB = registrarRecords[1][multicodec].onConnect
-        const onConnectC = registrarRecords[2][multicodec].onConnect
-        const onConnectD = registrarRecords[3][multicodec].onConnect
-        const onConnectE = registrarRecords[4][multicodec].onConnect
-
-        const handleA = registrarRecords[0][multicodec].handler
-        const handleB = registrarRecords[1][multicodec].handler
-        const handleC = registrarRecords[2][multicodec].handler
-        const handleD = registrarRecords[3][multicodec].handler
-        const handleE = registrarRecords[4][multicodec].handler
-
-        // Notice peers of connection
-        const [d0, d1] = ConnectionPair()
-        await onConnectA(b.peerId, d0)
-        await handleB({
-          protocol: multicodec,
-          stream: d1.stream,
-          connection: {
-            remotePeer: a.peerId
-          }
-        })
-        await onConnectB(a.peerId, d1)
-        await handleA({
-          protocol: multicodec,
-          stream: d0.stream,
-          connection: {
-            remotePeer: b.peerId
-          }
-        })
-
-        const [d2, d3] = ConnectionPair()
-        await onConnectB(c.peerId, d2)
-        await handleC({
-          protocol: multicodec,
-          stream: d3.stream,
-          connection: {
-            remotePeer: b.peerId
-          }
-        })
-        await onConnectC(b.peerId, d3)
-        await handleB({
-          protocol: multicodec,
-          stream: d2.stream,
-          connection: {
-            remotePeer: c.peerId
-          }
-        })
-
-        const [d4, d5] = ConnectionPair()
-        await onConnectC(d.peerId, d4)
-        await handleD({
-          protocol: multicodec,
-          stream: d5.stream,
-          connection: {
-            remotePeer: c.peerId
-          }
-        })
-        await onConnectD(c.peerId, d5)
-        await handleC({
-          protocol: multicodec,
-          stream: d4.stream,
-          connection: {
-            remotePeer: d.peerId
-          }
-        })
-
-        const [d6, d7] = ConnectionPair()
-        await onConnectD(e.peerId, d6)
-        await handleE({
-          protocol: multicodec,
-          stream: d7.stream,
-          connection: {
-            remotePeer: d.peerId
-          }
-        })
-        await onConnectE(d.peerId, d7)
-        await handleD({
-          protocol: multicodec,
-          stream: d6.stream,
-          connection: {
-            remotePeer: e.peerId
-          }
-        })
+        await Promise.all([
+          a._libp2p.dialProtocol(b._libp2p.peerId, a.multicodecs),
+          b._libp2p.dialProtocol(c._libp2p.peerId, b.multicodecs),
+          c._libp2p.dialProtocol(d._libp2p.peerId, c.multicodecs),
+          d._libp2p.dialProtocol(e._libp2p.peerId, d.multicodecs),
+        ])
 
         a.subscribe(topic)
         b.subscribe(topic)
         c.subscribe(topic)
         d.subscribe(topic)
         e.subscribe(topic)
+
+        // give time for subscription propagation
+        await new Promise((resolve) => setTimeout(resolve, 30))
 
         await Promise.all([
           promisify(a.once.bind(a))('gossipsub:heartbeat'),
@@ -451,7 +247,7 @@ describe('multiple nodes (more than 2)', () => {
         ])
       })
 
-      after(() => Promise.all(nodes.map((n) => n.stop())))
+      after(() => Promise.all(nodes.map(stopNode)))
 
       it('publishes from c', async () => {
         let msgA = new Promise((resolve) => a.once('Z', resolve))
