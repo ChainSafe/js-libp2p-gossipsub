@@ -87,6 +87,8 @@ export class Heartbeat {
     const tograft = new Map<string, string[]>()
     // peer id => topic[]
     const toprune = new Map<string, string[]>()
+    // peer id => don't px
+    const noPX = new Map<string, boolean>()
 
     // clean up expired backoffs
     this.gossipsub._clearBackoff()
@@ -141,7 +143,7 @@ export class Heartbeat {
         }
       }
 
-      // drop all peers with negative score
+      // drop all peers with negative score, without PX
       peers.forEach(id => {
         const score = getScore(id)
         if (score < 0) {
@@ -150,6 +152,7 @@ export class Heartbeat {
             id, score, topic
           )
           prunePeer(id)
+          noPX.set(id, true)
         }
       })
 
@@ -320,7 +323,7 @@ export class Heartbeat {
     })
 
     // send coalesced GRAFT/PRUNE messages (will piggyback gossip)
-    this.gossipsub._sendGraftPrune(tograft, toprune)
+    this.gossipsub._sendGraftPrune(tograft, toprune, noPX)
 
     // flush pending gossip that wasn't piggybacked above
     this.gossipsub._flush()
