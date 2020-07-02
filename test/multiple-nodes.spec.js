@@ -106,7 +106,8 @@ describe('multiple nodes (more than 2)', () => {
 
         after(() => Promise.all(nodes.map(stopNode)))
 
-        it('publish on node a', async () => {
+        it('publish on node a', async function () {
+          this.timeout(10000)
           let msgB = new Promise((resolve) => b.once('Z', resolve))
           let msgC = new Promise((resolve) => c.once('Z', resolve))
 
@@ -118,7 +119,8 @@ describe('multiple nodes (more than 2)', () => {
           expect(msgC.data.toString()).to.equal('hey')
         })
 
-        it('publish array on node a', async () => {
+        it('publish array on node a', async function () {
+          this.timeout(10000)
           let msgB = new Promise((resolve) => {
             const output = []
             b.on('Z', (msg) => {
@@ -190,7 +192,8 @@ describe('multiple nodes (more than 2)', () => {
 
       after(() => Promise.all(nodes.map(stopNode)))
 
-      it('publish on node b', async () => {
+      it('publish on node b', async function () {
+        this.timeout(10000)
         let msgA = new Promise((resolve) => a.once('Z', resolve))
         let msgC = new Promise((resolve) => c.once('Z', resolve))
 
@@ -251,7 +254,8 @@ describe('multiple nodes (more than 2)', () => {
 
       after(() => Promise.all(nodes.map(stopNode)))
 
-      it('publishes from c', async () => {
+      it('publishes from c', async function () {
+        this.timeout(10000)
         let msgA = new Promise((resolve) => a.once('Z', resolve))
         let msgB = new Promise((resolve) => b.once('Z', resolve))
         let msgD = new Promise((resolve) => d.once('Z', resolve))
