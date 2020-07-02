@@ -12,8 +12,9 @@ import { ExtendedValidatorResult } from './constants'
 import { Heartbeat } from './heartbeat'
 import { getGossipPeers } from './getGossipPeers'
 import { createGossipRpc, shuffle, hasGossipProtocol } from './utils'
-import { Peer, Registrar } from './peer'
-import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds, ConnectionManager } from './score'
+import { Peer } from './peer'
+import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds } from './score'
+import { Libp2p } from './interfaces'
 // @ts-ignore
 import TimeCache = require('time-cache')
 import PeerId = require('peer-id')
@@ -47,18 +48,13 @@ class Gossipsub extends BasicPubsub {
   outbound: Map<Peer, boolean>
   score: PeerScore
   heartbeatTicks: number
-  _connectionManager: ConnectionManager
+  _libp2p: Libp2p
   _options: GossipOptions
 
   public static multicodec: string = constants.GossipsubIDv10
 
   /**
-   * @param {PeerId} peerId instance of the peer's PeerId
-   * @param {Object} registrar
-   * @param {function} registrar.handle
-   * @param {function} registrar.register
-   * @param {function} registrar.unregister
-   * @param {Object} connectionManager
+   * @param {Libp2p} libp2p
    * @param {Object} [options]
    * @param {bool} [options.emitSelf] if publish should emit to self, if subscribed, defaults to false
    * @param {bool} [options.gossipIncoming] if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
@@ -71,9 +67,7 @@ class Gossipsub extends BasicPubsub {
    * @constructor
    */
   constructor (
-    peerId: PeerId,
-    registrar: Registrar,
-    connectionManager: ConnectionManager,
+    libp2p: Libp2p,
     options: Partial<GossipInputOptions> = {}
   ) {
     const multicodecs = [constants.GossipsubIDv10]
@@ -94,8 +88,7 @@ class Gossipsub extends BasicPubsub {
     super({
       debugName: 'libp2p:gossipsub',
       multicodecs,
-      peerId,
-      registrar,
+      libp2p,
       options: _options
     })
 
@@ -176,14 +169,14 @@ class Gossipsub extends BasicPubsub {
     this.heartbeatTicks = 0
 
     /**
-     * Connection manager
+     * libp2p
      */
-    this._connectionManager = connectionManager
+    this._libp2p = libp2p
 
     /**
      * Peer score tracking
      */
-    this.score = new PeerScore(this._options.scoreParams, connectionManager, this._msgIdFn)
+    this.score = new PeerScore(this._options.scoreParams, libp2p.connectionManager, this._msgIdFn)
   }
 
   /**
@@ -200,7 +193,7 @@ class Gossipsub extends BasicPubsub {
 
     // track the connection direction
     let outbound = false
-    for (const c of this._connectionManager.getAll(peerId)) {
+    for (const c of this._libp2p.connectionManager.getAll(peerId)) {
       if (c.stat.direction === 'outbound') {
         if (Array.from(c.registry.values()).some(rvalue => protocols.includes(rvalue.protocol))) {
           outbound = true

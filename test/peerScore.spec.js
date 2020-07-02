@@ -1,6 +1,7 @@
 const { expect } = require('chai')
 const PeerId = require('peer-id')
 const { utils } = require('libp2p-pubsub')
+const delay = require('delay')
 const { PeerScore, createPeerScoreParams, createTopicScoreParams } = require('../src/score')
 
 const connectionManager = new Map()
@@ -39,7 +40,7 @@ describe('PeerScore', () => {
     // The time in mesh depends on how long the peer has been grafted
     ps.graft(peerA, mytopic)
     const elapsed = tparams.timeInMeshQuantum * 100
-    await new Promise(resolve => setTimeout(resolve, elapsed))
+    await delay(elapsed + 10)
 
     ps._refreshScores()
     aScore = ps.score(peerA)
@@ -70,7 +71,7 @@ describe('PeerScore', () => {
     // The time in mesh depends on how long the peer has been grafted
     ps.graft(peerA, mytopic)
     const elapsed = tparams.timeInMeshQuantum * 40
-    await new Promise(resolve => setTimeout(resolve, elapsed))
+    await delay(elapsed)
 
     ps._refreshScores()
     aScore = ps.score(peerA)
@@ -244,7 +245,7 @@ describe('PeerScore', () => {
       ).to.equal(0)
     })
     // wait for the activation time to kick in
-    await new Promise(resolve => setTimeout(resolve, tparams.meshMessageDeliveriesActivation))
+    await delay(tparams.meshMessageDeliveriesActivation)
 
     // deliver a bunch of messages from peers
     const nMessages = 100
@@ -257,7 +258,7 @@ describe('PeerScore', () => {
       ps.duplicateMessage(peerB, msg)
 
       // deliver duplicate from peer C after the window
-      await new Promise(resolve => setTimeout(resolve, tparams.meshMessageDeliveriesWindow + 5))
+      await delay(tparams.meshMessageDeliveriesWindow + 5)
       ps.duplicateMessage(peerC, msg)
     }
     ps._refreshScores()
@@ -298,7 +299,7 @@ describe('PeerScore', () => {
     ps.graft(peerA, mytopic)
 
     // wait for the activation time to kick in
-    await new Promise(resolve => setTimeout(resolve, tparams.meshMessageDeliveriesActivation + 10))
+    await delay(tparams.meshMessageDeliveriesActivation + 10)
 
     // deliver a bunch of messages from peer A
     const nMessages = 40
@@ -361,7 +362,7 @@ describe('PeerScore', () => {
     })
 
     // wait for the activation time to kick in
-    await new Promise(resolve => setTimeout(resolve, tparams.meshMessageDeliveriesActivation + 10))
+    await delay(tparams.meshMessageDeliveriesActivation + 10)
 
     // deliver a bunch of messages from peer A. peer B does nothing
     const nMessages = 100
@@ -488,7 +489,7 @@ describe('PeerScore', () => {
 
     // now clear the delivery record
     ps.deliveryRecords.queue.peekFront().expire = Date.now()
-    await new Promise(resolve => setTimeout(resolve, 5))
+    await delay(5)
     ps.deliveryRecords.gc()
 
     // insert a new record in the message deliveries
@@ -506,7 +507,7 @@ describe('PeerScore', () => {
 
     // now clear the delivery record again
     ps.deliveryRecords.queue.peekFront().expire = Date.now()
-    await new Promise(resolve => setTimeout(resolve, 5))
+    await delay(5)
     ps.deliveryRecords.gc()
 
     // insert a new record in the message deliveries
@@ -642,14 +643,14 @@ describe('PeerScore', () => {
     // disconnect & wait half of the retainScoreTime
     // should still have negative score
     ps.removePeer(peerA)
-    const delay = params.retainScore / 2
-    await new Promise(resolve => setTimeout(resolve, delay))
+    const _delay = params.retainScore / 2
+    await delay(_delay)
     ps._refreshScores()
     aScore = ps.score(peerA)
     expect(aScore).to.equal(expected)
 
     // wait remaining time (plus a little slop) and the score should reset to 0
-    await new Promise(resolve => setTimeout(resolve, delay + 5))
+    await delay(_delay + 5)
     ps._refreshScores()
     aScore = ps.score(peerA)
     expect(aScore).to.equal(0)

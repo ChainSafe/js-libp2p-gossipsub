@@ -6,10 +6,11 @@ chai.use(require('dirty-chai'))
 chai.use(require('chai-spies'))
 const expect = chai.expect
 
+const Gossipsub = require('../src')
 const {
-  createGossipsub,
-  mockRegistrar,
-  mockConnectionManager
+  createPeer,
+  startNode,
+  stopNode
 } = require('./utils')
 
 const shouldNotHappen = (_) => expect.fail()
@@ -21,15 +22,15 @@ describe('emit self', () => {
 
   describe('enabled', () => {
     before(async () => {
-      gossipsub = await createGossipsub(mockRegistrar, mockConnectionManager, true, { emitSelf: true })
-      gossipsub.subscribe(topic)
+      gossipsub = new Gossipsub(await createPeer({ started: false }), { emitSelf: true })
+      await startNode(gossipsub)
     })
 
-    after(() => gossipsub.stop())
+    after(() => stopNode(gossipsub))
 
     it('should emit to self on publish', async () => {
+      gossipsub.subscribe(topic)
       const promise = new Promise((resolve) => gossipsub.once(topic, resolve))
-
       gossipsub.publish(topic, Buffer.from('hey'))
 
       await promise
@@ -38,13 +39,14 @@ describe('emit self', () => {
 
   describe('disabled', () => {
     before(async () => {
-      gossipsub = await createGossipsub(mockRegistrar, mockConnectionManager, true, { emitSelf: false })
-      gossipsub.subscribe(topic)
+      gossipsub = new Gossipsub(await createPeer({ started: false }, { emitSelf: false }))
+      await startNode(gossipsub)
     })
 
-    after(() => gossipsub.stop())
+    after(() => stopNode(gossipsub))
 
-    it('should emit to self on publish', async () => {
+    it('should not emit to self on publish', async () => {
+      gossipsub.subscribe(topic)
       gossipsub.once(topic, (m) => shouldNotHappen)
 
       gossipsub.publish(topic, Buffer.from('hey'))

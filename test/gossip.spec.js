@@ -4,64 +4,62 @@
 const { Buffer } = require('buffer')
 const { expect } = require('chai')
 const sinon = require('sinon')
+const delay = require('delay')
 
-const { GossipsubIDv10: multicodec, GossipsubDhi } = require('../src/constants')
+const { GossipsubDhi } = require('../src/constants')
 const {
   first,
-  createGossipsubNodes,
-  connectGossipsubNodes
+  createGossipsubs,
+  connectGossipsubs,
+  stopNode
 } = require('./utils')
 
 describe('gossip', () => {
-  let nodes, registrarRecords
+  let nodes
 
   // Create pubsub nodes
   beforeEach(async () => {
-    ({
-      nodes,
-      registrarRecords
-    } = await createGossipsubNodes(GossipsubDhi + 2, true))
+    nodes = await createGossipsubs({ number: GossipsubDhi + 2, options: { scoreParams: { IPColocationFactorThreshold: GossipsubDhi + 3 } } })
   })
 
-  afterEach(() => Promise.all(nodes.map((n) => n.stop())))
+  afterEach(() => Promise.all(nodes.map(stopNode)))
 
   it('should send gossip to non-mesh peers in topic', async function () {
-    this.timeout(10000)
+    this.timeout(10e4)
     const nodeA = nodes[0]
     const topic = 'Z'
     // add subscriptions to each node
     nodes.forEach((n) => n.subscribe(topic))
 
-    await connectGossipsubNodes(nodes, registrarRecords, multicodec)
-
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await connectGossipsubs(nodes)
+    // await subscription propagation
+    await delay(50)
 
     // await mesh rebalancing
     await Promise.all(nodes.map((n) => new Promise((resolve) => n.once('gossipsub:heartbeat', resolve))))
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await delay(500)
     // set spy
-    sinon.spy(nodeA, 'log')
+    sinon.spy(nodeA, '_pushGossip')
 
     await nodeA.publish(topic, Buffer.from('hey'))
 
     await new Promise((resolve) => nodeA.once('gossipsub:heartbeat', resolve))
 
-    expect(nodeA.log.callCount).to.be.gt(1)
-    nodeA.log.getCalls()
-      .filter((call) => call.args[0] === 'Add gossip to %s')
-      .map((call) => call.args[1])
-      .forEach((peerId) => {
+    nodeA._pushGossip.getCalls()
+      .map((call) => call.args[0])
+      .forEach((peer) => {
+        const peerId = peer.id.toB58String()
         nodeA.mesh.get(topic).forEach((meshPeer) => {
           expect(meshPeer.id.toB58String()).to.not.equal(peerId)
         })
       })
 
     // unset spy
-    nodeA.log.restore()
+    nodeA._pushGossip.restore()
   })
 
   it('should send piggyback control into other sent messages', async function () {
-    this.timeout(10000)
+    this.timeout(10e4)
     const nodeA = nodes[0]
     const topic = 'Z'
 
@@ -69,11 +67,11 @@ describe('gossip', () => {
     nodes.forEach((n) => n.subscribe(topic))
 
     // every node connected to every other
-    await connectGossipsubNodes(nodes, registrarRecords, multicodec)
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await connectGossipsubs(nodes)
+    await delay(500)
     // await mesh rebalancing
     await Promise.all(nodes.map((n) => new Promise((resolve) => n.once('gossipsub:heartbeat', resolve))))
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await delay(500)
 
     const peerB = first(nodeA.mesh.get(topic))
     const nodeB = nodes.find((n) => n.peerId.toB58String() === peerB.id.toB58String())

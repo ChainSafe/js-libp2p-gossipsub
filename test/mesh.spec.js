@@ -2,25 +2,27 @@
 /* eslint-env mocha */
 
 const { expect } = require('chai')
+const delay = require('delay')
 
 const { GossipsubDhi, GossipsubIDv10: multicodec } = require('../src/constants')
 const {
-  createGossipsubNodes,
-  ConnectionPair
+  createGossipsubs,
+  connectGossipsubs,
+  stopNode
 } = require('./utils')
 
 describe('mesh overlay', () => {
-  let nodes, registrarRecords
+  let nodes
 
   // Create pubsub nodes
   beforeEach(async () => {
-    ({
-      nodes,
-      registrarRecords
-    } = await createGossipsubNodes(GossipsubDhi + 2, true))
+    nodes = await createGossipsubs({
+      number: GossipsubDhi + 2,
+      options: { scoreParams: { IPColocationFactorThreshold: GossipsubDhi + 3 } }
+    })
   })
 
-  afterEach(() => Promise.all(nodes.map((n) => n.stop())))
+  afterEach(() => Promise.all(nodes.map(stopNode)))
 
   it('should add mesh peers below threshold', async function () {
     this.timeout(10e3)
@@ -34,34 +36,9 @@ describe('mesh overlay', () => {
 
     // connect N (< GossipsubD) nodes to node0
     const N = 4
-    const onConnect0 = registrarRecords[0][multicodec].onConnect
-    const handle0 = registrarRecords[0][multicodec].handler
+    await connectGossipsubs(nodes.slice(0, N + 1))
 
-    for (let i = nodes.length; i > nodes.length - N; i--) {
-      const n = i - 1
-      const onConnectN = registrarRecords[n][multicodec].onConnect
-      const handleN = registrarRecords[n][multicodec].handler
-
-      // Notice peers of connection
-      const [d0, d1] = ConnectionPair()
-      await onConnect0(nodes[n].peerId, d0)
-      await handleN({
-        protocol: multicodec,
-        stream: d1.stream,
-        connection: {
-          remotePeer: nodes[0].peerId
-        }
-      })
-      await onConnectN(nodes[0].peerId, d1)
-      await handle0({
-        protocol: multicodec,
-        stream: d0.stream,
-        connection: {
-          remotePeer: nodes[n].peerId
-        }
-      })
-    }
-
+    await delay(50)
     // await mesh rebalancing
     await new Promise((resolve) => node0.once('gossipsub:heartbeat', resolve))
 
@@ -69,7 +46,7 @@ describe('mesh overlay', () => {
   })
 
   it('should remove mesh peers once above threshold', async function () {
-    this.timeout(10e3)
+    this.timeout(10e4)
     // test against node0
     const node0 = nodes[0]
     const topic = 'Z'
@@ -77,19 +54,9 @@ describe('mesh overlay', () => {
     // add subscriptions to each node
     nodes.forEach((node) => node.subscribe(topic))
 
-    const onConnect0 = registrarRecords[0][multicodec].onConnect
+    await connectGossipsubs(nodes)
 
-    // connect all nodes to node0
-    for (let i = 1; i < nodes.length; i++) {
-      const onConnectN = registrarRecords[i][multicodec].onConnect
-
-      // Notice peers of connection
-      const [d0, d1] = ConnectionPair()
-      onConnect0(nodes[i].peerId, d0)
-      onConnectN(nodes[0].peerId, d1)
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await delay(500)
     // await mesh rebalancing
     await new Promise((resolve) => node0.once('gossipsub:heartbeat', resolve))
     expect(node0.mesh.get(topic).size).to.be.lte(GossipsubDhi)
