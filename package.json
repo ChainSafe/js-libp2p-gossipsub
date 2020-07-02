@@ -57,6 +57,7 @@
     "benchmark": "^2.1.4",
     "chai": "^4.2.0",
     "chai-spies": "^1.0.0",
+    "delay": "^4.3.0",
     "detect-node": "^2.0.4",
     "dirty-chai": "^2.0.1",
     "eslint": "^7.1.0",
