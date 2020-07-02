@@ -16,6 +16,7 @@ const PeerId = require('peer-id')
 const Gossipsub = require('../src')
 const {
   createPeer,
+  startNode,
   stopNode
 } = require('./utils')
 
@@ -23,8 +24,8 @@ describe('Pubsub', () => {
   let gossipsub
 
   before(async () => {
-    gossipsub = new Gossipsub(await createPeer())
-    await gossipsub.start()
+    gossipsub = new Gossipsub(await createPeer({ started: false }))
+    await startNode(gossipsub)
   })
 
   after(() => stopNode(gossipsub))

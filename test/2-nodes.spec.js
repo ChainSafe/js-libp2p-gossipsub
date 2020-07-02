@@ -16,6 +16,7 @@ const {
   createGossipsubs,
   createConnectedGossipsubs,
   expectSet,
+  startNode,
   stopNode,
   first
 } = require('./utils')
@@ -27,7 +28,7 @@ describe('1 node', () => {
     let gossipsub
 
     before(async () => {
-      gossipsub = new Gossipsub(await createPeer())
+      gossipsub = new Gossipsub(await createPeer({ started: false }))
     })
 
     after(() => stopNode(gossipsub))
@@ -43,8 +44,7 @@ describe('1 node', () => {
     })
 
     it('should start a gossipsub successfully', async () => {
-      await gossipsub._libp2p.start()
-      await gossipsub.start()
+      await startNode(gossipsub)
       expect(gossipsub.started).to.equal(true)
     })
   })

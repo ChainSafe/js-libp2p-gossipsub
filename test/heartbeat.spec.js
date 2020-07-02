@@ -7,6 +7,7 @@ const Gossipsub = require('../src')
 const { GossipsubHeartbeatInterval } = require('../src/constants')
 const {
   createPeer,
+  startNode,
   stopNode
 } = require('./utils')
 
@@ -14,8 +15,8 @@ describe('heartbeat', () => {
   let gossipsub
 
   before(async () => {
-    gossipsub = new Gossipsub(await createPeer(), { emitSelf: true })
-    await gossipsub.start()
+    gossipsub = new Gossipsub(await createPeer({ started: false }), { emitSelf: true })
+    await startNode(gossipsub)
   })
 
   after(() => stopNode(gossipsub))

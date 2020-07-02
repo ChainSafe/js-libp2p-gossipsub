@@ -59,11 +59,11 @@ function getListenAddress (peerId) {
  * Create libp2p node, selectively determining the listen address based on the operating environment
  * If no peerId is given, default to the first peer in the fixtures peer list
  */
-async function createPeer ({ peerId, config = {} } = {}) {
+async function createPeer ({ peerId, started = true, config = {} } = {}) {
   if (!peerId) {
     peerId = await PeerId.createFromJSON(Peers[0])
   }
-  return await Libp2p.create({
+  const libp2p = await Libp2p.create({
     peerId: peerId,
     addresses: {
       listen: [getListenAddress(peerId)]
@@ -71,6 +71,12 @@ async function createPeer ({ peerId, config = {} } = {}) {
     ...defaultConfig,
     ...config
   })
+
+  if (started) {
+    await libp2p.start()
+  }
+
+  return libp2p
 }
 
 function addPeersToAddressBook(peers) {
@@ -97,7 +103,7 @@ async function createPeers ({ number = 1, started = true, seedAddressBook = true
     Array.from({ length: number }, (_, i) => Peers[i] ? PeerId.createFromJSON(Peers[i]) : PeerId.create())
   )
   const peers = await Promise.all(
-    Array.from({ length: number }, (_, i) => createPeer({ peerId: peerIds[i], config: config }))
+    Array.from({ length: number }, (_, i) => createPeer({ peerId: peerIds[i], started: false, config: config }))
   )
 
   if (started) {

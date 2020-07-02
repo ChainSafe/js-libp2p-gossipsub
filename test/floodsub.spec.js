@@ -29,7 +29,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
     beforeEach(async () => {
       nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
-      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create() }))
+      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
       await Promise.all([
         startNode(nodeGs),
@@ -59,7 +59,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
     before(async () => {
       nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: false })
-      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create() }))
+      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
       await Promise.all([
         startNode(nodeGs),
@@ -92,7 +92,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
     before(async () => {
       nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
-      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create() }))
+      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
       await Promise.all([
         startNode(nodeGs),
@@ -142,7 +142,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
     beforeEach(async () => {
       nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
-      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create() }))
+      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
       await Promise.all([
         startNode(nodeGs),
@@ -260,7 +260,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
     beforeEach(async () => {
       nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
-      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create() }))
+      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
       await Promise.all([
         startNode(nodeGs),
