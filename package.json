@@ -43,7 +43,7 @@
     "denque": "^1.4.1",
     "err-code": "^2.0.0",
     "it-pipe": "^1.0.1",
-    "libp2p": "https://github.com/libp2p/js-libp2p#0.29.x",
+    "libp2p": "https://github.com/libp2p/js-libp2p#feat/certified-addressbook",
     "libp2p-pubsub": "https://github.com/libp2p/js-libp2p-pubsub#v0.6.x",
     "peer-id": "~0.13.12",
     "protons": "^1.0.1",
