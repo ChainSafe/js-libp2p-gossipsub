@@ -39,7 +39,7 @@ describe('PeerScore', () => {
     // The time in mesh depends on how long the peer has been grafted
     ps.graft(peerA, mytopic)
     const elapsed = tparams.timeInMeshQuantum * 100
-    await new Promise(resolve => setTimeout(resolve, elapsed))
+    await new Promise(resolve => setTimeout(resolve, elapsed + 10))
 
     ps._refreshScores()
     aScore = ps.score(peerA)
