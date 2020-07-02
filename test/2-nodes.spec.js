@@ -6,6 +6,7 @@ const chai = require('chai')
 chai.use(require('dirty-chai'))
 chai.use(require('chai-spies'))
 const expect = chai.expect
+const delay = require('delay')
 
 const { multicodec } = require('../src')
 const Gossipsub = require('../src')
@@ -62,7 +63,7 @@ describe('2 nodes', () => {
 
     it('Dial from nodeA to nodeB happened with pubsub', async () => {
       await nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, multicodec)
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await delay(10)
       await Promise.all([
         new Promise((resolve) => nodes[0].once('gossipsub:heartbeat', resolve)),
         new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))

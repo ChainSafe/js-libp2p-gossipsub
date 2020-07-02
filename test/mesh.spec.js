@@ -2,6 +2,7 @@
 /* eslint-env mocha */
 
 const { expect } = require('chai')
+const delay = require('delay')
 
 const { GossipsubDhi, GossipsubIDv10: multicodec } = require('../src/constants')
 const {
@@ -37,7 +38,7 @@ describe('mesh overlay', () => {
     const N = 4
     await connectGossipsubs(nodes.slice(0, N + 1))
 
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    await delay(50)
     // await mesh rebalancing
     await new Promise((resolve) => node0.once('gossipsub:heartbeat', resolve))
 
@@ -55,7 +56,7 @@ describe('mesh overlay', () => {
 
     await connectGossipsubs(nodes)
 
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await delay(500)
     // await mesh rebalancing
     await new Promise((resolve) => node0.once('gossipsub:heartbeat', resolve))
     expect(node0.mesh.get(topic).size).to.be.lte(GossipsubDhi)
