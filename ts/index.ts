@@ -46,6 +46,8 @@ class Gossipsub extends BasicPubsub {
   lastpub: Map<string, number>
   gossip: Map<Peer, ControlIHave[]>
   control: Map<Peer, ControlMessage>
+  peerhave:Map<string, number>
+  iasked:Map<string, number>
   backoff: Map<string, Map<string, number>>
   outbound: Map<Peer, boolean>
   score: PeerScore
@@ -148,6 +150,18 @@ class Gossipsub extends BasicPubsub {
      * @type {Map<Peer, ControlMessage object>}
      */
     this.control = new Map()
+
+    /**
+     * Number of IHAVEs received from peer in the last heartbeat
+     * @type {Map<string, number>}
+     */
+    this.peerhave = new Map()
+
+    /**
+     * Number of messages we have asked from peer in the last heartbeat
+     * @type {Map<string, number>}
+     */
+    this.iasked = new Map()
 
     /**
      * Prune backoff map
@@ -410,6 +424,37 @@ class Gossipsub extends BasicPubsub {
    * @returns {ControlIWant}
    */
   _handleIHave (peer: Peer, ihave: ControlIHave[]): ControlIWant | undefined {
+    // we ignore IHAVE gossip from any peer whose score is below the gossips threshold
+    const id = peer.id.toB58String()
+    const score = this.score.score(id)
+    if (score < this._options.scoreThresholds.gossipThreshold) {
+      this.log(
+        'IHAVE: ignoring peer %s with score below threshold [ score = %d ]',
+        id, score
+      )
+      return
+    }
+
+    // IHAVE flood protection
+    const peerhave = (this.peerhave.get(id) || 0) + 1
+    this.peerhave.set(id, peerhave)
+    if (peerhave > constants.GossipsubMaxIHaveMessages) {
+      this.log(
+        'IHAVE: peer %s has advertised too many times (%d) within this heartbeat interval; ignoring',
+        id, peerhave
+      )
+      return
+    }
+
+    const iasked = this.iasked.get(id) || 0
+    if (iasked >= constants.GossipsubMaxIHaveLength) {
+      this.log(
+        'IHAVE: peer %s has already advertised too many messages (%d); ignoring',
+        id, iasked
+      )
+      return
+    }
+
     const iwant = new Set<string>()
 
     ihave.forEach(({ topicID, messageIDs }) => {
@@ -429,10 +474,26 @@ class Gossipsub extends BasicPubsub {
       return
     }
 
-    this.log('IHAVE: Asking for %d messages from %s', iwant.size, peer.id.toB58String())
+    let iask = iwant.size
+    if (iask + iasked > constants.GossipsubMaxIHaveLength) {
+      iask = constants.GossipsubMaxIHaveLength - iasked
+    }
+
+    this.log(
+      'IHAVE: Asking for %d out of %d messages from %s',
+      iask, iwant.size, id
+    )
+
+    let iwantList = Array.from(iwant)
+    // ask in random order
+    shuffle(iwantList)
+
+    // truncate to the messages we are actually asking for and update the iasked counter
+    iwantList = iwantList.slice(0, iask)
+    this.iasked.set(id, iasked + iask)
 
     return {
-      messageIDs: Array.from(iwant)
+      messageIDs: iwantList
     }
   }
 
@@ -691,6 +752,8 @@ class Gossipsub extends BasicPubsub {
     this.lastpub = new Map()
     this.gossip = new Map()
     this.control = new Map()
+    this.peerhave = new Map()
+    this.iasked = new Map()
     this.backoff = new Map()
     this.outbound = new Map()
     clearTimeout(this._directPeerInitial)
