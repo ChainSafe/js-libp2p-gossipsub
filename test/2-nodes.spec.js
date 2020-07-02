@@ -62,7 +62,10 @@ describe('2 nodes', () => {
 
     it('Dial from nodeA to nodeB happened with pubsub', async () => {
       await nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, multicodec)
-      await new Promise((resolve) => nodes[0].once('gossipsub:heartbeat', resolve))
+      await Promise.all([
+        new Promise((resolve) => nodes[0].once('gossipsub:heartbeat', resolve)),
+        new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
+      ])
 
       expect(nodes[0].peers.size).to.be.eql(1)
       expect(nodes[1].peers.size).to.be.eql(1)

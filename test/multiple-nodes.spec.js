@@ -49,6 +49,8 @@ describe('multiple nodes (more than 2)', () => {
           expectSet(b.subscriptions, [topic])
           expectSet(c.subscriptions, [topic])
 
+          await new Promise((resolve) => setTimeout(resolve, 30))
+
           await Promise.all([
             promisify(a.once.bind(a))('gossipsub:heartbeat'),
             promisify(b.once.bind(b))('gossipsub:heartbeat'),
