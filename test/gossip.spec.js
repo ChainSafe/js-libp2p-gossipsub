@@ -24,7 +24,7 @@ describe('gossip', () => {
   afterEach(() => Promise.all(nodes.map(stopNode)))
 
   it('should send gossip to non-mesh peers in topic', async function () {
-    this.timeout(10000)
+    this.timeout(10e4)
     const nodeA = nodes[0]
     const topic = 'Z'
     // add subscriptions to each node
@@ -58,7 +58,7 @@ describe('gossip', () => {
   })
 
   it('should send piggyback control into other sent messages', async function () {
-    this.timeout(10000)
+    this.timeout(10e4)
     const nodeA = nodes[0]
     const topic = 'Z'
 

@@ -45,7 +45,7 @@ describe('mesh overlay', () => {
   })
 
   it('should remove mesh peers once above threshold', async function () {
-    this.timeout(10e3)
+    this.timeout(10e4)
     // test against node0
     const node0 = nodes[0]
     const topic = 'Z'
