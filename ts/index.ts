@@ -765,7 +765,8 @@ class Gossipsub extends BasicPubsub {
 
           // floodsub peers
           peersInTopic.forEach((peer) => {
-            if (peer.protocols.includes(constants.FloodsubID)) {
+            const score = this.score.score(peer.id.toB58String())
+            if (peer.protocols.includes(constants.FloodsubID) && score >= this._options.scoreThresholds.publishThreshold) {
               tosend.add(peer)
             }
           })
