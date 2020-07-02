@@ -90,6 +90,9 @@ export class Heartbeat {
     // clean up expired backoffs
     this.gossipsub._clearBackoff()
 
+    // ensure direct peers are connected
+    this.gossipsub._directConnect()
+
     // maintain the mesh for topics we have joined
     this.gossipsub.mesh.forEach((peers, topic) => {
       // prune/graft helper functions (defined per topic)
@@ -151,8 +154,8 @@ export class Heartbeat {
         const ineed = constants.GossipsubD - peers.size
         const peersSet = getGossipPeers(this.gossipsub, topic, ineed, p => {
           const id = p.id.toB58String()
-          // filter out mesh peers, peers we are backing off, peers with negative score
-          return !peers.has(p) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
+          // filter out mesh peers, direct peers, peers we are backing off, peers with negative score
+          return !peers.has(p) && !this.gossipsub.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
         })
 
         peersSet.forEach(graftPeer)
@@ -229,8 +232,8 @@ export class Heartbeat {
           const backoff = this.gossipsub.backoff.get(topic)
           getGossipPeers(this.gossipsub, topic, ineed, (p: Peer): boolean => {
             const id = p.id.toB58String()
-            // filter our current mesh peers, peers we are backing off, peers with negative score
-            return !peers.has(p) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
+            // filter our current mesh peers, direct peers, peers we are backing off, peers with negative score
+            return !peers.has(p) && !this.gossipsub.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
           }).forEach(graftPeer)
         }
       }
@@ -255,8 +258,8 @@ export class Heartbeat {
           const backoff = this.gossipsub.backoff.get(topic)
           const peersToGraft = getGossipPeers(this.gossipsub, topic, constants.GossipsubOpportunisticGraftPeers, (p: Peer): boolean => {
             const id = p.id.toB58String()
-            // filter out current mesh peers, peres we are backing off, peers below or at threshold
-            return peers.has(p) && (!backoff || !backoff.has(id)) && getScore(id) > medianScore
+            // filter out current mesh peers, direct peers, peers we are backing off, peers below or at threshold
+            return peers.has(p) && !this.gossipsub.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) > medianScore
           })
           peersToGraft.forEach(p => {
             this.gossipsub.log(
@@ -299,9 +302,11 @@ export class Heartbeat {
       if (fanoutPeers.size < constants.GossipsubD) {
         const ineed = constants.GossipsubD - fanoutPeers.size
         const peersSet = getGossipPeers(this.gossipsub, topic, ineed, (p: Peer): boolean => {
-          // filter out existing fanout peers and peers with score above the publish threshold
+          const id = p.id.toB58String()
+          // filter out existing fanout peers, direct peers, and peers with score above the publish threshold
           return !fanoutPeers.has(p) &&
-            getScore(p.id.toB58String()) >= this.gossipsub._options.scoreThresholds.publishThreshold
+            !this.gossipsub.direct.has(id) &&
+            getScore(id) >= this.gossipsub._options.scoreThresholds.publishThreshold
         })
         peersSet.forEach(p => {
           fanoutPeers.add(p)
