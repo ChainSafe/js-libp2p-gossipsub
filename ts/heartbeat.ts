@@ -90,6 +90,10 @@ export class Heartbeat {
     // clean up expired backoffs
     this.gossipsub._clearBackoff()
 
+    // clean up peerhave/iasked counters
+    this.gossipsub.peerhave.clear()
+    this.gossipsub.iasked.clear()
+
     // ensure direct peers are connected
     this.gossipsub._directConnect()
 
