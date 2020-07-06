@@ -94,6 +94,9 @@ export class Heartbeat {
     this.gossipsub.peerhave.clear()
     this.gossipsub.iasked.clear()
 
+    // apply IWANT request penalties
+    this.gossipsub._applyIwantPenalties()
+
     // ensure direct peers are connected
     this.gossipsub._directConnect()
 
