@@ -4,7 +4,7 @@
 const { expect } = require('chai')
 const delay = require('delay')
 
-const { GossipsubDhi, GossipsubIDv10: multicodec } = require('../src/constants')
+const { GossipsubDhi, GossipsubIDv11: multicodec } = require('../src/constants')
 const {
   createGossipsubs,
   connectGossipsubs,

@@ -8,7 +8,7 @@ const expect = chai.expect
 const promisify = require('promisify-es6')
 const delay = require('delay')
 
-const { GossipsubIDv10: multicodec } = require('../src/constants')
+const { GossipsubIDv11: multicodec } = require('../src/constants')
 const {
   createGossipsubs,
   expectSet,
