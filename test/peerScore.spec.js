@@ -2,19 +2,12 @@ const { expect } = require('chai')
 const PeerId = require('peer-id')
 const { utils } = require('libp2p-pubsub')
 const delay = require('delay')
+
 const { PeerScore, createPeerScoreParams, createTopicScoreParams } = require('../src/score')
+const { makeTestMessage } = require('./utils')
 
 const connectionManager = new Map()
 connectionManager.getAll = () => ([])
-
-const makeTestMessage = (i, topicIDs = []) => {
-  return {
-    seqno: Buffer.alloc(8, i),
-    data: Buffer.from([i]),
-    from: "test",
-    topicIDs
-  }
-}
 
 describe('PeerScore', () => {
   it('should score based on time in mesh', async () => {

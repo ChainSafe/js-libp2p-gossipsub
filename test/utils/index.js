@@ -40,7 +40,8 @@ exports.createFloodsubNode = createFloodsubNode
 
 for (const [k, v] of Object.entries({
   ...require('./createPeer'),
-  ...require('./createGossipsub')
+  ...require('./createGossipsub'),
+  ...require('./makeTestMessage')
 })) {
   exports[k] = v
 }

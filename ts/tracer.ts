@@ -29,7 +29,7 @@ export class IWantTracer {
    */
   addPromise (p: string, msgIds: string[]): void {
     // pick msgId randomly from the list
-    const ix = Math.random() * msgIds.length
+    const ix = Math.floor(Math.random() * msgIds.length)
     const msgId = msgIds[ix]
 
     let peers = this.promises.get(msgId)
