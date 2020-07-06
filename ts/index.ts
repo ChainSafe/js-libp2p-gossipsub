@@ -75,7 +75,7 @@ class Gossipsub extends BasicPubsub {
     libp2p: Libp2p,
     options: Partial<GossipInputOptions> = {}
   ) {
-    const multicodecs = [constants.GossipsubIDv11]
+    const multicodecs = [constants.GossipsubIDv11, constants.GossipsubIDv10]
     const _options = {
       gossipIncoming: true,
       fallbackToFloodsub: true,
