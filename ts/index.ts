@@ -55,7 +55,7 @@ class Gossipsub extends BasicPubsub {
   _libp2p: Libp2p
   _options: GossipOptions
 
-  public static multicodec: string = constants.GossipsubIDv10
+  public static multicodec: string = constants.GossipsubIDv11
 
   /**
    * @param {Libp2p} libp2p
@@ -75,7 +75,7 @@ class Gossipsub extends BasicPubsub {
     libp2p: Libp2p,
     options: Partial<GossipInputOptions> = {}
   ) {
-    const multicodecs = [constants.GossipsubIDv10]
+    const multicodecs = [constants.GossipsubIDv11]
     const _options = {
       gossipIncoming: true,
       fallbackToFloodsub: true,

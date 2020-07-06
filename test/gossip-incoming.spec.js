@@ -8,7 +8,7 @@ chai.use(require('chai-spies'))
 const expect = chai.expect
 const delay = require('delay')
 
-const { GossipsubIDv10: multicodec } = require('../src/constants')
+const { GossipsubIDv11: multicodec } = require('../src/constants')
 const {
   createConnectedGossipsubs,
   stopNode
