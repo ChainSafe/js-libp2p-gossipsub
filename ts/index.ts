@@ -14,6 +14,7 @@ import { getGossipPeers } from './getGossipPeers'
 import { createGossipRpc, shuffle, hasGossipProtocol } from './utils'
 import { Peer } from './peer'
 import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds } from './score'
+import { IWantTracer } from './tracer'
 import { AddrInfo, Libp2p } from './interfaces'
 // @ts-ignore
 import TimeCache = require('time-cache')
@@ -52,6 +53,7 @@ class Gossipsub extends BasicPubsub {
   outbound: Map<Peer, boolean>
   score: PeerScore
   heartbeatTicks: number
+  gossipTracer: IWantTracer
   _libp2p: Libp2p
   _options: GossipOptions
 
@@ -198,6 +200,11 @@ class Gossipsub extends BasicPubsub {
     this.heartbeatTicks = 0
 
     /**
+     * Tracks IHAVE/IWANT promises broken by peers
+     */
+    this.gossipTracer = new IWantTracer(this._msgIdFn)
+
+    /**
      * libp2p
      */
     this._libp2p = libp2p
@@ -341,7 +348,9 @@ class Gossipsub extends BasicPubsub {
    * @returns {void}
    */
   _publishFrom (peer: Peer, msg: InMessage): void {
-    this.score.deliverMessage(peer.id.toB58String(), msg as Message)
+    const id = peer.id.toB58String()
+    this.score.deliverMessage(id, msg as Message)
+    this.gossipTracer.deliverMessage(id, msg as Message)
     const topics = msg.topicIDs
 
     // If options.gossipIncoming is false, do NOT emit incoming messages to peers
@@ -401,15 +410,18 @@ class Gossipsub extends BasicPubsub {
    */
   _processTopicValidatorResult (topic: string, peer: Peer, message: Message, result: unknown): boolean {
     if (typeof result === 'string') {
+      const id = peer.id.toB58String()
       // assume an extended topic validator result
       switch (result) {
         case ExtendedValidatorResult.accept:
           return true
         case ExtendedValidatorResult.reject:
-          this.score.rejectMessage(peer.id.toB58String(), message)
+          this.score.rejectMessage(id, message)
+          this.gossipTracer.rejectMessage(id, message)
           return false
         case ExtendedValidatorResult.ignore:
-          this.score.ignoreMessage(peer.id.toB58String(), message)
+          this.score.ignoreMessage(id, message)
+          this.gossipTracer.rejectMessage(id, message)
           return false
       }
     }
@@ -491,6 +503,8 @@ class Gossipsub extends BasicPubsub {
     // truncate to the messages we are actually asking for and update the iasked counter
     iwantList = iwantList.slice(0, iask)
     this.iasked.set(id, iasked + iask)
+
+    this.gossipTracer.addPromise(id, iwantList)
 
     return {
       messageIDs: iwantList
@@ -672,6 +686,17 @@ class Gossipsub extends BasicPubsub {
   }
 
   /**
+   * Apply penalties from broken IHAVE/IWANT promises
+   * @returns {void}
+   */
+  _applyIwantPenalties (): void {
+    this.gossipTracer.getBrokenPromises().forEach((count, p) => {
+      this.log('peer %s didn\'t follow up in %d IWANT requests; adding penalty', p, count)
+      this.score.addPenalty(p, count)
+    })
+  }
+
+  /**
    * Clear expired backoff expiries
    * @returns {void}
    */
@@ -756,6 +781,7 @@ class Gossipsub extends BasicPubsub {
     this.iasked = new Map()
     this.backoff = new Map()
     this.outbound = new Map()
+    this.gossipTracer.clear()
     clearTimeout(this._directPeerInitial)
   }
 
