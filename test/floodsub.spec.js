@@ -250,7 +250,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       expect(msg.from).to.be.eql(nodeFs.peerId.toB58String())
     })
 
-    it('Publish 10 msg to a topic', (done) => {
+    it.skip('Publish 10 msg to a topic', (done) => {
       let counter = 0
 
       const shouldNotHappen = (msg) => {
@@ -276,7 +276,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       times(10, (index) => nodeGs.publish(topic, Buffer.from('banana ' + index)))
     })
 
-    it('Publish 10 msg to a topic as array', (done) => {
+    it.skip('Publish 10 msg to a topic as array', (done) => {
       let counter = 0
 
       const shouldNotHappen = () => {
