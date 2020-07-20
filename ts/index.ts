@@ -12,7 +12,7 @@ import { ExtendedValidatorResult } from './constants'
 import { Heartbeat } from './heartbeat'
 import { getGossipPeers } from './getGossipPeers'
 import { createGossipRpc, shuffle, hasGossipProtocol } from './utils'
-import { Peer } from './peer'
+import { PeerStreams } from './peerStreams'
 import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds } from './score'
 import { IWantTracer } from './tracer'
 import { AddrInfo, Libp2p } from './interfaces'
@@ -39,18 +39,18 @@ interface GossipOptions extends GossipInputOptions {
 }
 
 class Gossipsub extends BasicPubsub {
-  peers: Map<string, Peer>
+  peers: Map<string, PeerStreams>
   direct: Set<string>
-  topics: Map<string, Set<Peer>>
-  mesh: Map<string, Set<Peer>>
-  fanout: Map<string, Set<Peer>>
+  topics: Map<string, Set<string>>
+  mesh: Map<string, Set<PeerStreams>>
+  fanout: Map<string, Set<PeerStreams>>
   lastpub: Map<string, number>
-  gossip: Map<Peer, ControlIHave[]>
-  control: Map<Peer, ControlMessage>
+  gossip: Map<PeerStreams, ControlIHave[]>
+  control: Map<PeerStreams, ControlMessage>
   peerhave:Map<string, number>
   iasked:Map<string, number>
   backoff: Map<string, Map<string, number>>
-  outbound: Map<Peer, boolean>
+  outbound: Map<PeerStreams, boolean>
   score: PeerScore
   heartbeatTicks: number
   gossipTracer: IWantTracer
@@ -121,14 +121,14 @@ class Gossipsub extends BasicPubsub {
     /**
      * Map of topic meshes
      *
-     * @type {Map<string, Set<Peer>>}
+     * @type {Map<string, Set<PeerStreams>>}
      */
     this.mesh = new Map()
 
     /**
      * Map of topics to set of peers. These mesh peers are the ones to which we are publishing without a topic membership
      *
-     * @type {Map<string, Set<Peer>>}
+     * @type {Map<string, Set<PeerStreams>>}
      */
     this.fanout = new Map()
 
@@ -142,14 +142,14 @@ class Gossipsub extends BasicPubsub {
     /**
      * Map of pending messages to gossip
      *
-     * @type {Map<Peer, Array<ControlIHave object>> }
+     * @type {Map<PeerStreams, Array<ControlIHave object>> }
      */
     this.gossip = new Map()
 
     /**
      * Map of control messages
      *
-     * @type {Map<Peer, ControlMessage object>}
+     * @type {Map<PeerStreams, ControlMessage object>}
      */
     this.control = new Map()
 
@@ -173,7 +173,7 @@ class Gossipsub extends BasicPubsub {
     /**
      * Connection direction cache, marks peers with outbound connections
      *
-     * @type {Map<Peer, boolean>}
+     * @type {Map<PeerStreams, boolean>}
      */
     this.outbound = new Map()
 
@@ -218,11 +218,11 @@ class Gossipsub extends BasicPubsub {
   /**
    * Add a peer to the router
    * @param {PeerId} peerId
-   * @param {Array<string>} protocols
-   * @returns {Peer}
+   * @param {string} protocol
+   * @returns {PeerStreams}
    */
-  _addPeer (peerId: PeerId, protocols: string[]): Peer {
-    const p = super._addPeer(peerId, protocols)
+  _addPeer (peerId: PeerId, protocol: string): PeerStreams {
+    const p = super._addPeer(peerId, protocol)
 
     // Add to peer scoring
     this.score.addPeer(peerId.toB58String())
@@ -231,7 +231,7 @@ class Gossipsub extends BasicPubsub {
     let outbound = false
     for (const c of this._libp2p.connectionManager.getAll(peerId)) {
       if (c.stat.direction === 'outbound') {
-        if (Array.from(c.registry.values()).some(rvalue => protocols.includes(rvalue.protocol))) {
+        if (Array.from(c.registry.values()).some(rvalue => protocol === rvalue.protocol)) {
           outbound = true
           break
         }
@@ -245,35 +245,35 @@ class Gossipsub extends BasicPubsub {
   /**
    * Removes a peer from the router
    * @override
-   * @param {Peer} peer
+   * @param {PeerId} peer
    * @returns {Peer}
    */
-  _removePeer (peer: Peer): Peer {
-    super._removePeer(peer)
+  _removePeer (peerId: PeerId): PeerStreams {
+    const peerStreams = super._removePeer(peerId)
 
     // Remove this peer from the mesh
     // eslint-disable-next-line no-unused-vars
     for (const peers of this.mesh.values()) {
-      peers.delete(peer)
+      peers.delete(peerStreams)
     }
 
     // Remove this peer from the fanout
     // eslint-disable-next-line no-unused-vars
     for (const peers of this.fanout.values()) {
-      peers.delete(peer)
+      peers.delete(peerStreams)
     }
 
     // Remove from gossip mapping
-    this.gossip.delete(peer)
+    this.gossip.delete(peerStreams)
     // Remove from control mapping
-    this.control.delete(peer)
+    this.control.delete(peerStreams)
     // Remove from backoff mapping
-    this.outbound.delete(peer)
+    this.outbound.delete(peerStreams)
 
     // Remove from peer scoring
-    this.score.removePeer(peer.id.toB58String())
+    this.score.removePeer(peerId.toB58String())
 
-    return peer
+    return peerStreams
   }
 
   /**
@@ -281,14 +281,14 @@ class Gossipsub extends BasicPubsub {
    *
    * @override
    * @param {String} idB58Str
-   * @param {Peer} peer
+   * @param {PeerStreams} peerStreams
    * @param {RPC} rpc
    * @returns {boolean}
    */
-  _processRpc (idB58Str: string, peer: Peer, rpc: RPC): boolean {
-    if (super._processRpc(idB58Str, peer, rpc)) {
+  _processRpc (idB58Str: string, peerStreams: PeerStreams, rpc: RPC): boolean {
+    if (super._processRpc(idB58Str, peerStreams, rpc)) {
       if (rpc.control) {
-        this._processRpcControlMessage(peer, rpc.control)
+        this._processRpcControlMessage(peerStreams, rpc.control)
       }
       return true
     }
@@ -297,73 +297,77 @@ class Gossipsub extends BasicPubsub {
 
   /**
    * Handles an rpc control message from a peer
-   * @param {Peer} peer
+   * @param {PeerStreams} peerStreams
    * @param {ControlMessage} controlMsg
    * @returns {void}
    */
-  _processRpcControlMessage (peer: Peer, controlMsg: ControlMessage): void {
+  _processRpcControlMessage (peerStreams: PeerStreams, controlMsg: ControlMessage): void {
     if (!controlMsg) {
       return
     }
 
-    const iwant = this._handleIHave(peer, controlMsg.ihave)
-    const ihave = this._handleIWant(peer, controlMsg.iwant)
-    const prune = this._handleGraft(peer, controlMsg.graft)
-    this._handlePrune(peer, controlMsg.prune)
+    const iwant = this._handleIHave(peerStreams, controlMsg.ihave)
+    const ihave = this._handleIWant(peerStreams, controlMsg.iwant)
+    const prune = this._handleGraft(peerStreams, controlMsg.graft)
+    this._handlePrune(peerStreams, controlMsg.prune)
 
     if (!iwant || !ihave || !prune) {
       return
     }
 
     const outRpc = createGossipRpc(ihave, { iwant: [iwant], prune })
-    this._sendRpc(peer, outRpc)
+    this._sendRpc(peerStreams, outRpc)
   }
 
   /**
    * Process incoming message,
    * emitting locally and forwarding on to relevant floodsub and gossipsub peers
    * @override
-   * @param {Peer} peer
-   * @param {Message} msg
+   * @param {InMessage} msg
    */
-  async _processRpcMessage (peer: Peer, msg: InMessage): Promise<void> {
+  async _processRpcMessage (msg: InMessage): Promise<void> {
     const msgID = this.getMsgId(msg)
 
     // Ignore if we've already seen the message
     if (this.seenCache.has(msgID)) {
-      this.score.duplicateMessage(peer.id.toB58String(), msg as Message)
+      this.score.duplicateMessage(msg)
       return
     }
     this.seenCache.put(msgID)
 
-    this.score.validateMessage(peer.id.toB58String(), msg as Message)
-    await super._processRpcMessage(peer, msg)
+    this.score.validateMessage(msg)
+    await super._processRpcMessage(msg)
   }
 
   /**
    * Publish a message sent from a peer
    * @override
-   * @param {Peer} peer
    * @param {InMessage} msg
    * @returns {void}
    */
-  _publishFrom (peer: Peer, msg: InMessage): void {
-    const id = peer.id.toB58String()
-    this.score.deliverMessage(id, msg as Message)
-    this.gossipTracer.deliverMessage(id, msg as Message)
+  _publishFrom (msg: InMessage): void {
+    this.score.deliverMessage(msg)
+    this.gossipTracer.deliverMessage(msg)
     const topics = msg.topicIDs
+    const rpc = createGossipRpc([
+      utils.normalizeOutRpcMessage(msg)
+    ])
 
     // If options.gossipIncoming is false, do NOT emit incoming messages to peers
     if (this._options.gossipIncoming) {
       // Emit to floodsub peers
       this.peers.forEach((peer) => {
-        if (peer.protocols.includes(constants.FloodsubID) &&
-          peer.id.toB58String() !== msg.from &&
-          utils.anyMatch(peer.topics, topics) &&
+        const id = peer.id.toB58String()
+        if (peer.protocol === constants.FloodsubID &&
+          id !== msg.from &&
+          topics.some(topic => {
+            const t = this.topics.get(topic)
+            return t && t.has(id)
+          }) &&
           peer.isWritable
         ) {
-          peer.sendMessages(utils.normalizeOutRpcMessages([msg]))
-          this.log('publish msg on topics - floodsub', topics, peer.id.toB58String())
+          this._sendRpc(peer, rpc)
+          this.log('publish msg on topics - floodsub', topics, id)
         }
       })
 
@@ -377,14 +381,14 @@ class Gossipsub extends BasicPubsub {
           if (!peer.isWritable || peer.id.toB58String() === msg.from) {
             return
           }
-          peer.sendMessages(utils.normalizeOutRpcMessages([msg]))
+          this._sendRpc(peer, rpc)
           this.log('publish msg on topic - meshsub', topic, peer.id.toB58String())
         })
       })
     }
 
     // Emit to self
-    super._publishFrom(peer, msg)
+    super._publishFrom(msg)
   }
 
   /**
@@ -398,46 +402,38 @@ class Gossipsub extends BasicPubsub {
   }
 
   /**
-   * Coerse topic validator result to valid/invalid boolean
-   * Provide extended validator support
-   *
+   * Validate incoming message
    * @override
-   * @param {string} topic
-   * @param {Peer} peer
-   * @param {Message} message
-   * @param {unknown} result
-   * @returns {boolean}
+   * @param {InMessage} message
+   * @returns {Promise<void>}
    */
-  _processTopicValidatorResult (topic: string, peer: Peer, message: Message, result: unknown): boolean {
-    if (typeof result === 'string') {
-      const id = peer.id.toB58String()
-      // assume an extended topic validator result
-      switch (result) {
-        case ExtendedValidatorResult.accept:
-          return true
+  async validate (message: InMessage): Promise<void> {
+    try {
+      await super.validate(message)
+    } catch (e) {
+      switch (e.code) {
         case ExtendedValidatorResult.reject:
-          this.score.rejectMessage(id, message)
-          this.gossipTracer.rejectMessage(id, message)
-          return false
+          this.score.rejectMessage(message)
+          this.gossipTracer.rejectMessage(message)
+          break
         case ExtendedValidatorResult.ignore:
-          this.score.ignoreMessage(id, message)
-          this.gossipTracer.rejectMessage(id, message)
-          return false
+          this.score.ignoreMessage(message)
+          this.gossipTracer.rejectMessage(message)
+          break
       }
+      throw e
     }
-    // assume a basic topic validator result
-    return super._processTopicValidatorResult(topic, peer, message, result)
   }
 
   /**
    * Handles IHAVE messages
-   * @param {Peer} peer
+   * @param {PeerStreams} peerStreams
    * @param {Array<ControlIHave>} ihave
    * @returns {ControlIWant}
    */
-  _handleIHave (peer: Peer, ihave: ControlIHave[]): ControlIWant | undefined {
+  _handleIHave (peerStreams: PeerStreams, ihave: ControlIHave[]): ControlIWant | undefined {
     // we ignore IHAVE gossip from any peer whose score is below the gossips threshold
-    const id = peer.id.toB58String()
+    const id = peerStreams.id.toB58String()
     const score = this.score.score(id)
     if (score < this._options.scoreThresholds.gossipThreshold) {
       this.log(
@@ -514,11 +510,11 @@ class Gossipsub extends BasicPubsub {
   /**
    * Handles IWANT messages
    * Returns messages to send back to peer
-   * @param {Peer} peer
+   * @param {PeerStreams} peerStreams
    * @param {Array<ControlIWant>} iwant
    * @returns {Array<Message>}
    */
-  _handleIWant (peer: Peer, iwant: ControlIWant[]): Message[] | undefined {
+  _handleIWant (peerStreams: PeerStreams, iwant: ControlIWant[]): Message[] | undefined {
     // @type {Map<string, Message>}
     const ihave = new Map<string, Message>()
 
@@ -535,20 +531,20 @@ class Gossipsub extends BasicPubsub {
       return
     }
 
-    this.log('IWANT: Sending %d messages to %s', ihave.size, peer.id.toB58String())
+    this.log('IWANT: Sending %d messages to %s', ihave.size, peerStreams.id.toB58String())
 
     return Array.from(ihave.values())
   }
 
   /**
    * Handles Graft messages
-   * @param {Peer} peer
+   * @param {PeerStreams} peerStreams
    * @param {Array<ControlGraft>} graft
    * @return {Array<ControlPrune>}
    */
-  _handleGraft (peer: Peer, graft: ControlGraft[]): ControlPrune[] | undefined {
+  _handleGraft (peerStreams: PeerStreams, graft: ControlGraft[]): ControlPrune[] | undefined {
     const prune: string[] = []
-    const id = peer.id.toB58String()
+    const id = peerStreams.id.toB58String()
     const score = this.score.score(id)
     const now = this._now()
 
@@ -557,13 +553,14 @@ class Gossipsub extends BasicPubsub {
         return
       }
       const peersInMesh = this.mesh.get(topicID)
-      if (!peersInMesh) {
+      const peersInTopic = this.topics.get(topicID)
+      if (!peersInMesh || !peersInTopic) {
         // spam hardening: ignore GRAFTs for unknown topics
         return
       }
 
       // check if peer is already in the mesh; if so do nothing
-      if (peersInMesh.has(peer)) {
+      if (peersInMesh.has(peerStreams)) {
         return
       }
 
@@ -610,15 +607,15 @@ class Gossipsub extends BasicPubsub {
       // check the number of mesh peers; if it is at (or over) Dhi, we only accept grafts
       // from peers with outbound connections; this is a defensive check to restrict potential
       // mesh takeover attacks combined with love bombing
-      if (peersInMesh.size >= constants.GossipsubDhi && !this.outbound.get(peer)) {
+      if (peersInMesh.size >= constants.GossipsubDhi && !this.outbound.get(peerStreams)) {
         prune.push(topicID)
         this._addBackoff(id, topicID)
         return
       }
 
       this.log('GRAFT: Add mesh link from %s in %s', id, topicID)
-      peersInMesh.add(peer)
-      peer.topics.add(topicID)
+      peersInMesh.add(peerStreams)
+      peersInTopic.add(id)
     })
 
     if (!prune.length) {
@@ -630,27 +627,29 @@ class Gossipsub extends BasicPubsub {
 
   /**
    * Handles Prune messages
-   * @param {Peer} peer
+   * @param {PeerStreams} peerStreams
    * @param {Array<ControlPrune>} prune
    * @returns {void}
    */
-  _handlePrune (peer: Peer, prune: ControlPrune[]): void {
-    const id = peer.id.toB58String()
+  _handlePrune (peerStreams: PeerStreams, prune: ControlPrune[]): void {
+    const id = peerStreams.id.toB58String()
     prune.forEach(({ topicID, backoff }) => {
       if (!topicID) {
         return
       }
-      const peers = this.mesh.get(topicID)
-      if (peers) {
-        this.log('PRUNE: Remove mesh link to %s in %s', peer.id.toB58String(), topicID)
-        peers.delete(peer)
-        peer.topics.delete(topicID)
-        // is there a backoff specified by the peer? if so obey it
-        if (typeof backoff === 'number' && backoff > 0) {
-          this._doAddBackoff(id, topicID, backoff * 1000)
-        } else {
-          this._addBackoff(id, topicID)
-        }
+      const peersInMesh = this.mesh.get(topicID)
+      const peersInTopic = this.topics.get(topicID)
+      if (!peersInMesh || !peersInTopic) {
+        return
+      }
+      this.log('PRUNE: Remove mesh link to %s in %s', id, topicID)
+      peersInMesh.delete(peerStreams)
+      peersInTopic.delete(id)
+      // is there a backoff specified by the peer? if so obey it
+      if (typeof backoff === 'number' && backoff > 0) {
+        this._doAddBackoff(id, topicID, backoff * 1000)
+      } else {
+        this._addBackoff(id, topicID)
       }
     })
   }
@@ -733,7 +732,7 @@ class Gossipsub extends BasicPubsub {
     const toconnect: string[] = []
     this.direct.forEach(id => {
       const peer = this.peers.get(id)
-      if (!peer || !peer.isConnected) {
+      if (!peer || !peer.isWritable) {
         toconnect.push(id)
       }
     })
@@ -843,7 +842,7 @@ class Gossipsub extends BasicPubsub {
         })
         if (fanoutPeers.size < constants.GossipsubD) {
           // we need more peers; eager, as this would get fixed in the next heartbeat
-          getGossipPeers(this, topic, constants.GossipsubD - fanoutPeers.size, (p: Peer): boolean => {
+          getGossipPeers(this, topic, constants.GossipsubD - fanoutPeers.size, (p: PeerStreams): boolean => {
             const id = p.id.toB58String()
             // filter our current peers, direct peers, and peers with negative scores
             return !fanoutPeers.has(p) && !this.direct.has(id) && this.score.score(id) >= 0
@@ -853,7 +852,7 @@ class Gossipsub extends BasicPubsub {
         this.fanout.delete(topic)
         this.lastpub.delete(topic)
       } else {
-        const peers = getGossipPeers(this, topic, constants.GossipsubD, (p: Peer): boolean => {
+        const peers = getGossipPeers(this, topic, constants.GossipsubD, (p: PeerStreams): boolean => {
           const id = p.id.toB58String()
           // filter direct peers and peers with negative score
           return !this.direct.has(id) && this.score.score(id) >= 0
@@ -905,148 +904,155 @@ class Gossipsub extends BasicPubsub {
    * Publish messages
    *
    * @override
-   * @param {Array<Message>} msgs
+   * @param {InMessage} msg
    * @returns {void}
    */
-  _publish (msgs: InMessage[]): void {
-    msgs.forEach((msgObj) => {
-      const msgID = this.getMsgId(msgObj)
-      // put in seen cache
-      this.seenCache.put(msgID)
+  async _publish (msg: InMessage): Promise<void> {
+    const msgID = this.getMsgId(msg)
+    // put in seen cache
+    this.seenCache.put(msgID)
 
-      this.messageCache.put(msgObj)
+    this.messageCache.put(msg)
 
-      const tosend = new Set<Peer>()
-      msgObj.topicIDs.forEach((topic) => {
-        const peersInTopic = this.topics.get(topic)
-        if (!peersInTopic) {
-          return
-        }
+    const tosend = new Set<PeerStreams>()
+    msg.topicIDs.forEach((topic) => {
+      const peersInTopic = this.topics.get(topic)
+      if (!peersInTopic) {
+        return
+      }
 
-        if (this._options.floodPublish) {
-          // flood-publish behavior
-          // send to direct peers and _all_ peers meeting the publishThreshold
-          peersInTopic.forEach(peer => {
-            const id = peer.id.toB58String()
-            if (this.direct.has(id) || this.score.score(id) >= this._options.scoreThresholds.publishThreshold) {
-              tosend.add(peer)
+      if (this._options.floodPublish) {
+        // flood-publish behavior
+        // send to direct peers and _all_ peers meeting the publishThreshold
+        peersInTopic.forEach(id => {
+          if (this.direct.has(id) || this.score.score(id) >= this._options.scoreThresholds.publishThreshold) {
+            const peerStreams = this.peers.get(id)
+            if (peerStreams) {
+              tosend.add(peerStreams)
             }
-          })
-        } else {
-          // non-flood-publish behavior
-          // send to direct peers, subscribed floodsub peers
-          // and some mesh peers above publishThreshold
-
-          // direct peers
-          this.direct.forEach(id => {
-            const peer = this.peers.get(id)
-            if (peer) {
-              tosend.add(peer)
-            }
-          })
-
-          // floodsub peers
-          peersInTopic.forEach((peer) => {
-            const score = this.score.score(peer.id.toB58String())
-            if (peer.protocols.includes(constants.FloodsubID) && score >= this._options.scoreThresholds.publishThreshold) {
-              tosend.add(peer)
-            }
-          })
-
-          // Gossipsub peers handling
-          let meshPeers = this.mesh.get(topic)
-          if (!meshPeers) {
-            // We are not in the mesh for topic, use fanout peers
-            meshPeers = this.fanout.get(topic)
-            if (!meshPeers) {
-              // If we are not in the fanout, then pick peers in topic above the publishThreshold
-              const peers = getGossipPeers(this, topic, constants.GossipsubD, peer => {
-                return this.score.score(peer.id.toB58String()) >= this._options.scoreThresholds.publishThreshold
-              })
-
-              if (peers.size > 0) {
-                meshPeers = peers
-                this.fanout.set(topic, peers)
-              } else {
-                meshPeers = new Set()
-              }
-            }
-            // Store the latest publishing time
-            this.lastpub.set(topic, this._now())
           }
+        })
+      } else {
+        // non-flood-publish behavior
+        // send to direct peers, subscribed floodsub peers
+        // and some mesh peers above publishThreshold
 
-          meshPeers!.forEach((peer) => {
+        // direct peers
+        this.direct.forEach(id => {
+          const peer = this.peers.get(id)
+          if (peer) {
             tosend.add(peer)
-          })
+          }
+        })
+
+        // floodsub peers
+        peersInTopic.forEach((id) => {
+          const score = this.score.score(id)
+          const peerStreams = this.peers.get(id)
+          if (!peerStreams) {
+            return
+          }
+          if (peerStreams.protocol === constants.FloodsubID && score >= this._options.scoreThresholds.publishThreshold) {
+            tosend.add(peerStreams)
+          }
+        })
+
+        // Gossipsub peers handling
+        let meshPeers = this.mesh.get(topic)
+        if (!meshPeers) {
+          // We are not in the mesh for topic, use fanout peers
+          meshPeers = this.fanout.get(topic)
+          if (!meshPeers) {
+            // If we are not in the fanout, then pick peers in topic above the publishThreshold
+            const peers = getGossipPeers(this, topic, constants.GossipsubD, peer => {
+              return this.score.score(peer.id.toB58String()) >= this._options.scoreThresholds.publishThreshold
+            })
+
+            if (peers.size > 0) {
+              meshPeers = peers
+              this.fanout.set(topic, peers)
+            } else {
+              meshPeers = new Set()
+            }
+          }
+          // Store the latest publishing time
+          this.lastpub.set(topic, this._now())
         }
-      })
-      // Publish messages to peers
-      tosend.forEach((peer) => {
-        if (peer.id.toB58String() === msgObj.from) {
-          return
-        }
-        this._sendRpc(peer, createGossipRpc([utils.normalizeOutRpcMessage(msgObj)]))
-      })
+
+        meshPeers!.forEach((peer) => {
+          tosend.add(peer)
+        })
+      }
+    })
+    // Publish messages to peers
+    const rpc = createGossipRpc([
+      await this._buildMessage(msg)
+    ])
+    tosend.forEach((peer) => {
+      if (peer.id.toB58String() === msg.from) {
+        return
+      }
+      this._sendRpc(peer, rpc)
     })
   }
 
   /**
    * Sends a GRAFT message to a peer
-   * @param {Peer} peer
+   * @param {PeerStreams} peerStreams
    * @param {String} topic
    * @returns {void}
    */
-  _sendGraft (peer: Peer, topic: string): void {
+  _sendGraft (peerStreams: PeerStreams, topic: string): void {
     const graft = [{
       topicID: topic
     }]
 
     const out = createGossipRpc([], { graft })
-    this._sendRpc(peer, out)
+    this._sendRpc(peerStreams, out)
   }
 
   /**
    * Sends a PRUNE message to a peer
-   * @param {Peer} peer
+   * @param {PeerStreams} peerStreams
    * @param {String} topic
    * @returns {void}
    */
-  _sendPrune (peer: Peer, topic: string): void {
+  _sendPrune (peerStreams: PeerStreams, topic: string): void {
     const prune = [
-      this._makePrune(peer.id.toB58String(), topic)
+      this._makePrune(peerStreams.id.toB58String(), topic)
     ]
 
     const out = createGossipRpc([], { prune })
-    this._sendRpc(peer, out)
+    this._sendRpc(peerStreams, out)
   }
 
-  _sendRpc (peer: Peer, outRpc: RPC): void {
-    if (!peer || !peer.isWritable) {
+  _sendRpc (peerStreams: PeerStreams, outRpc: RPC): void {
+    if (!peerStreams || !peerStreams.isWritable) {
       return
     }
 
     // piggyback control message retries
-    const ctrl = this.control.get(peer)
+    const ctrl = this.control.get(peerStreams)
     if (ctrl) {
-      this._piggybackControl(peer, outRpc, ctrl)
-      this.control.delete(peer)
+      this._piggybackControl(peerStreams, outRpc, ctrl)
+      this.control.delete(peerStreams)
     }
 
     // piggyback gossip
-    const ihave = this.gossip.get(peer)
+    const ihave = this.gossip.get(peerStreams)
     if (ihave) {
-      this._piggybackGossip(peer, outRpc, ihave)
-      this.gossip.delete(peer)
+      this._piggybackGossip(peerStreams, outRpc, ihave)
+      this.gossip.delete(peerStreams)
     }
 
-    peer.write(RPCCodec.encode(outRpc))
+    peerStreams.write(RPCCodec.encode(outRpc))
   }
 
-  _piggybackControl (peer: Peer, outRpc: RPC, ctrl: ControlMessage): void {
+  _piggybackControl (peerStreams: PeerStreams, outRpc: RPC, ctrl: ControlMessage): void {
     const tograft = (ctrl.graft || [])
-      .filter(({ topicID }) => (topicID && this.mesh.get(topicID) || new Set()).has(peer))
+      .filter(({ topicID }) => (topicID && this.mesh.get(topicID) || new Set()).has(peerStreams))
     const toprune = (ctrl.prune || [])
-      .filter(({ topicID }) => !(topicID && this.mesh.get(topicID) || new Set()).has(peer))
+      .filter(({ topicID }) => !(topicID && this.mesh.get(topicID) || new Set()).has(peerStreams))
 
     if (!tograft.length && !toprune.length) {
       return
@@ -1060,7 +1066,7 @@ class Gossipsub extends BasicPubsub {
     }
   }
 
-  _piggybackGossip (peer: Peer, outRpc: RPC, ihave: ControlIHave[]): void {
+  _piggybackGossip (peerStreams: PeerStreams, outRpc: RPC, ihave: ControlIHave[]): void {
     if (!outRpc.control) {
       outRpc.control = { ihave: [], iwant: [], graft: [], prune: [] }
     }
@@ -1069,10 +1075,10 @@ class Gossipsub extends BasicPubsub {
 
   /**
    * Send graft and prune messages
-   * @param {Map<Peer, Array<String>>} tograft
-   * @param {Map<Peer, Array<String>>} toprune
+   * @param {Map<PeerStreams, Array<String>>} tograft
+   * @param {Map<PeerStreams, Array<String>>} toprune
    */
-  _sendGraftPrune (tograft: Map<Peer, string[]>, toprune: Map<Peer, string[]>): void {
+  _sendGraftPrune (tograft: Map<PeerStreams, string[]>, toprune: Map<PeerStreams, string[]>): void {
     for (const [p, topics] of tograft) {
       const id = p.id.toB58String()
       const graft = topics.map((topicID) => ({ topicID }))
@@ -1098,10 +1104,10 @@ class Gossipsub extends BasicPubsub {
   /**
    * Emits gossip to peers in a particular topic
    * @param {String} topic
-   * @param {Set<Peer>} exclude peers to exclude
+   * @param {Set<PeerStreams>} exclude peers to exclude
    * @returns {void}
    */
-  _emitGossip (topic: string, exclude: Set<Peer>): void {
+  _emitGossip (topic: string, exclude: Set<PeerStreams>): void {
     const messageIDs = this.messageCache.getGossipIDs(topic)
     if (!messageIDs.length) {
       return
@@ -1120,21 +1126,24 @@ class Gossipsub extends BasicPubsub {
     // First we collect the peers above gossipThreshold that are not in the exclude set
     // and then randomly select from that set
     // We also exclude direct peers, as there is no reason to emit gossip to them
-    const peersToGossip: Peer[] = []
+    const peersToGossip: PeerStreams[] = []
     const topicPeers = this.topics.get(topic)
     if (!topicPeers) {
       // no topic peers, no gossip
       return
     }
-    topicPeers.forEach(p => {
-      const id = p.id.toB58String()
+    topicPeers.forEach(id => {
+      const peerStreams = this.peers.get(id)
+      if (!peerStreams) {
+        return
+      }
       if (
-        !exclude.has(p) &&
+        !exclude.has(peerStreams) &&
         !this.direct.has(id) &&
-        hasGossipProtocol(p.protocols) &&
+        hasGossipProtocol(peerStreams.protocol) &&
         this.score.score(id) >= this._options.scoreThresholds.gossipThreshold
       ) {
-        peersToGossip.push(p)
+        peersToGossip.push(peerStreams)
       }
     })
 
@@ -1184,14 +1193,14 @@ class Gossipsub extends BasicPubsub {
 
   /**
    * Adds new IHAVE messages to pending gossip
-   * @param {Peer} peer
+   * @param {PeerStreams} peerStreams
    * @param {Array<ControlIHave>} controlIHaveMsgs
    * @returns {void}
    */
-  _pushGossip (peer: Peer, controlIHaveMsgs: ControlIHave): void {
-    this.log('Add gossip to %s', peer.id.toB58String())
-    const gossip = this.gossip.get(peer) || []
-    this.gossip.set(peer, gossip.concat(controlIHaveMsgs))
+  _pushGossip (peerStreams: PeerStreams, controlIHaveMsgs: ControlIHave): void {
+    this.log('Add gossip to %s', peerStreams.id.toB58String())
+    const gossip = this.gossip.get(peerStreams) || []
+    this.gossip.set(peerStreams, gossip.concat(controlIHaveMsgs))
   }
 
   /**
@@ -1209,7 +1218,7 @@ class Gossipsub extends BasicPubsub {
    * @returns {ControlPrune}
    */
   _makePrune (id: string, topic: string): ControlPrune {
-    if (this.peers.get(id)!.protocols.includes(constants.GossipsubIDv10)) {
+    if (this.peers.get(id)!.protocol === constants.GossipsubIDv10) {
       // Gossipsub v1.0 -- no backoff, the peer won't be able to parse it anyway
       return {
         topicID: topic,

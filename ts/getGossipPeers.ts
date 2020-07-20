@@ -1,5 +1,5 @@
 import { shuffle, hasGossipProtocol } from './utils'
-import { Peer } from './peer'
+import { PeerStreams } from './peerStreams'
 import Gossipsub = require('./index')
 
 /**
@@ -17,8 +17,8 @@ export function getGossipPeers (
   router: Gossipsub,
   topic: string,
   count: number,
-  filter: (peer: Peer) => boolean = () => true
-): Set<Peer> {
+  filter: (peerStreams: PeerStreams) => boolean = () => true
+): Set<PeerStreams> {
   const peersInTopic = router.topics.get(topic)
   if (!peersInTopic) {
     return new Set()
@@ -26,13 +26,17 @@ export function getGossipPeers (
 
   // Adds all peers using our protocol
   // that also pass the filter function
-  let peers: Peer[] = []
-  peersInTopic.forEach((peer) => {
+  let peers: PeerStreams[] = []
+  peersInTopic.forEach((id) => {
+    const peerStreams = router.peers.get(id)
+    if (!peerStreams) {
+      return
+    }
     if (
-      hasGossipProtocol(peer.protocols) &&
-      filter(peer)
+      hasGossipProtocol(peerStreams.protocol) &&
+      filter(peerStreams)
     ) {
-      peers.push(peer)
+      peers.push(peerStreams)
     }
   })
 

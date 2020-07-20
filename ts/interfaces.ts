@@ -2,7 +2,7 @@ import PeerId = require('peer-id')
 import Multiaddr = require('multiaddr')
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-interface Stream<T=any, U=any, V=any> {
+export interface Stream<T=any, U=any, V=any> {
   sink(source: T): Promise<U>
   source(): AsyncIterator<V>
 }

@@ -70,6 +70,10 @@ export type InMessage = Overwrite<Message, {
   /**
    * Base58-encoded peer id
    */
+  receivedFrom: string
+  /**
+   * Base58-encoded peer id
+   */
   from?: string
 }>
 

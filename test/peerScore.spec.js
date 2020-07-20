@@ -98,8 +98,9 @@ describe('PeerScore', () => {
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
-      ps.validateMessage(peerA, msg)
-      ps.deliverMessage(peerA, msg)
+      msg.receivedFrom = peerA
+      ps.validateMessage(msg)
+      ps.deliverMessage(msg)
     }
 
     ps._refreshScores()
@@ -137,8 +138,9 @@ describe('PeerScore', () => {
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
-      ps.validateMessage(peerA, msg)
-      ps.deliverMessage(peerA, msg)
+      msg.receivedFrom = peerA
+      ps.validateMessage(msg)
+      ps.deliverMessage(msg)
     }
 
     ps._refreshScores()
@@ -176,8 +178,9 @@ describe('PeerScore', () => {
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
-      ps.validateMessage(peerA, msg)
-      ps.deliverMessage(peerA, msg)
+      msg.receivedFrom = peerA
+      ps.validateMessage(msg)
+      ps.deliverMessage(msg)
     }
 
     ps._refreshScores()
@@ -244,15 +247,17 @@ describe('PeerScore', () => {
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
+      msg.receivedFrom = peerA
+      ps.validateMessage(msg)
+      ps.deliverMessage(msg)
 
-      ps.validateMessage(peerA, msg)
-      ps.deliverMessage(peerA, msg)
-
-      ps.duplicateMessage(peerB, msg)
+      msg.receivedFrom = peerB
+      ps.duplicateMessage(msg)
 
       // deliver duplicate from peer C after the window
       await delay(tparams.meshMessageDeliveriesWindow + 5)
-      ps.duplicateMessage(peerC, msg)
+      msg.receivedFrom = peerC
+      ps.duplicateMessage(msg)
     }
     ps._refreshScores()
     const aScore = ps.score(peerA)
@@ -298,8 +303,9 @@ describe('PeerScore', () => {
     const nMessages = 40
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
-      ps.validateMessage(peerA, msg)
-      ps.deliverMessage(peerA, msg)
+      msg.receivedFrom = peerA
+      ps.validateMessage(msg)
+      ps.deliverMessage(msg)
     }
     ps._refreshScores()
     let aScore = ps.score(peerA)
@@ -361,8 +367,9 @@ describe('PeerScore', () => {
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
-      ps.validateMessage(peerA, msg)
-      ps.deliverMessage(peerA, msg)
+      msg.receivedFrom = peerA
+      ps.validateMessage(msg)
+      ps.deliverMessage(msg)
     }
     // peers A and B should both have zero scores, since the failure penalty hasn't been applied yet
     ps._refreshScores()
@@ -404,7 +411,8 @@ describe('PeerScore', () => {
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
-      ps.rejectMessage(peerA, msg)
+      msg.receivedFrom = peerA
+      ps.rejectMessage(msg)
     }
     ps._refreshScores()
     let aScore = ps.score(peerA)
@@ -432,7 +440,8 @@ describe('PeerScore', () => {
     const nMessages = 100
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
-      ps.rejectMessage(peerA, msg)
+      msg.receivedFrom = peerA
+      ps.rejectMessage(msg)
     }
     ps._refreshScores()
     let aScore = ps.score(peerA)
@@ -466,13 +475,15 @@ describe('PeerScore', () => {
     ps.addPeer(peerB)
 
     const msg = makeTestMessage(0, [mytopic])
+    msg.receivedFrom = peerA
 
     // insert a record
-    ps.validateMessage(peerA, msg)
+    ps.validateMessage(msg)
 
     // this should have no effect in the score, and subsequent duplicate messages should have no effect either
-    ps.ignoreMessage(peerA, msg)
-    ps.duplicateMessage(peerB, msg)
+    ps.ignoreMessage(msg)
+    msg.receivedFrom = peerB
+    ps.duplicateMessage(msg)
 
     let aScore = ps.score(peerA)
     let bScore = ps.score(peerB)
@@ -486,11 +497,13 @@ describe('PeerScore', () => {
     ps.deliveryRecords.gc()
 
     // insert a new record in the message deliveries
-    ps.validateMessage(peerA, msg)
+    msg.receivedFrom = peerA
+    ps.validateMessage(msg)
 
     // and reject the message to make sure duplicates are also penalized
-    ps.rejectMessage(peerA, msg)
-    ps.duplicateMessage(peerB, msg)
+    ps.rejectMessage(msg)
+    msg.receivedFrom = peerB
+    ps.duplicateMessage(msg)
 
     aScore = ps.score(peerA)
     bScore = ps.score(peerB)
@@ -504,11 +517,14 @@ describe('PeerScore', () => {
     ps.deliveryRecords.gc()
 
     // insert a new record in the message deliveries
-    ps.validateMessage(peerA, msg)
+    msg.receivedFrom = peerA
+    ps.validateMessage(msg)
 
     // and reject the message after a duplicate has arrived
-    ps.duplicateMessage(peerB, msg)
-    ps.rejectMessage(peerA, msg)
+    msg.receivedFrom = peerB
+    ps.duplicateMessage(msg)
+    msg.receivedFrom = peerA
+    ps.rejectMessage(msg)
 
     aScore = ps.score(peerA)
     bScore = ps.score(peerB)

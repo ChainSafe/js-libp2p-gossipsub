@@ -42,10 +42,8 @@
     "debug": "^4.1.1",
     "denque": "^1.4.1",
     "err-code": "^2.0.0",
-    "it-length-prefixed": "^3.0.0",
     "it-pipe": "^1.0.1",
-    "libp2p-pubsub": "~0.5.3",
-    "p-map": "^4.0.0",
+    "libp2p-pubsub": "https://github.com/libp2p/js-libp2p-pubsub#v0.6.x",
     "peer-id": "~0.13.12",
     "protons": "^1.0.1",
     "time-cache": "^0.3.0"

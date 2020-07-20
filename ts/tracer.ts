@@ -1,4 +1,4 @@
-import { Message } from './message'
+import { InMessage } from './message'
 import { GossipsubIWantFollowupTime } from './constants'
 
 /**
@@ -10,13 +10,13 @@ import { GossipsubIWantFollowupTime } from './constants'
  * These 'promises' are merely expectations of a peer's behavior.
  */
 export class IWantTracer {
-  getMsgId: (msg: Message) => string
+  getMsgId: (msg: InMessage) => string
   /**
    * Promises to deliver a message
    * Map per message id, per peer, promise expiration time
    */
   promises: Map<string, Map<string, number>>
-  constructor (getMsgId: (msg: Message) => string) {
+  constructor (getMsgId: (msg: InMessage) => string) {
     this.getMsgId = getMsgId
     this.promises = new Map()
   }
@@ -72,11 +72,10 @@ export class IWantTracer {
 
   /**
    * Someone delivered a message, stop tracking promises for it
-   * @param {string} p peer id
-   * @param {Message} msg
+   * @param {InMessage} msg
    * @returns {void}
    */
-  deliverMessage (p: string, msg: Message): void {
+  deliverMessage (msg: InMessage): void {
     const msgId = this.getMsgId(msg)
     this.promises.delete(msgId)
   }
@@ -84,11 +83,10 @@ export class IWantTracer {
   /**
    * A message got rejected, so we can stop tracking promises and let the score penalty apply from invalid message delivery,
    * unless its an obviously invalid message.
-   * @param {string} p peer id
-   * @param {Message} msg
+   * @param {InMessage} msg
    * @returns {void}
    */
-  rejectMessage (p: string, msg: Message): void {
+  rejectMessage (msg: InMessage): void {
     const msgId = this.getMsgId(msg)
     this.promises.delete(msgId)
   }

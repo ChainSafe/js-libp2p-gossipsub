@@ -5,8 +5,6 @@ const { Buffer } = require('buffer')
 const PeerId = require('peer-id')
 
 const pipe = require('it-pipe')
-const lp = require('it-length-prefixed')
-const pMap = require('p-map')
 
 const Pubsub = require('libp2p-pubsub')
 
@@ -83,11 +81,11 @@ class BasicPubSub extends Pubsub {
   async _onPeerConnected (peerId, conn) {
     await super._onPeerConnected(peerId, conn)
     const idB58Str = peerId.toB58String()
-    const peer = this.peers.get(idB58Str)
+    const peerStreams = this.peers.get(idB58Str)
 
-    if (peer && peer.isWritable) {
+    if (peerStreams && peerStreams.isWritable) {
       // Immediately send my own subscriptions to the newly established conn
-      peer.sendSubscriptions(this.subscriptions)
+      this._sendSubscriptions(peerStreams, Array.from(this.subscriptions), true)
     }
   }
 
@@ -96,27 +94,26 @@ class BasicPubSub extends Pubsub {
    * responsible for processing each RPC message received by other peers.
    * @override
    * @param {string} idB58Str peer id string in base58
-   * @param {Connection} conn connection
-   * @param {Peer} peer PubSub peer
+   * @param {Stream} stream inbound stream
+   * @param {PeerStreams} peerStreams PubSub peer
    * @returns {void}
    *
    */
-  async _processMessages (idB58Str, conn, peer) {
+  async _processMessages (idB58Str, stream, peerStreams) {
     try {
       await pipe(
-        conn,
-        lp.decode(),
+        stream,
         async (source) => {
           for await (const data of source) {
             const rpcMsgBuf = Buffer.isBuffer(data) ? data : data.slice()
             const rpcMsg = this._decodeRpc(rpcMsgBuf)
 
-            this._processRpc(idB58Str, peer, rpcMsg)
+            this._processRpc(idB58Str, peerStreams, rpcMsg)
           }
         }
       )
     } catch (err) {
-      this._onPeerDisconnected(peer.id, err)
+      this._onPeerDisconnected(peerStreams.id, err)
     }
   }
 
@@ -133,23 +130,34 @@ class BasicPubSub extends Pubsub {
   }
 
   /**
+   * Encode an RPC object into a buffer
+   *
+   * Override to use an extended protocol-specific protobuf encoder
+   *
+   * @param {RPC} rpc
+   * @returns {Buffer}
+   */
+  _encodeRpc (rpc) {
+    return RPCCodec.encode(rpc)
+  }
+
+  /**
    * Handles an rpc request from a peer
    *
    * @param {String} idB58Str
-   * @param {Peer} peer
+   * @param {PeerStreams} peerStreams
    * @param {RPC} rpc
    * @returns {boolean}
    */
-  _processRpc (idB58Str, peer, rpc) {
+  _processRpc (idB58Str, peerStreams, rpc) {
     this.log('rpc from', idB58Str)
     const subs = rpc.subscriptions
     const msgs = rpc.msgs
 
     if (subs.length) {
       // update peer subscriptions
-      peer.updateSubscriptions(subs)
-      subs.forEach((subOpt) => this._processRpcSubOpt(peer, subOpt))
-      this.emit('pubsub:subscription-change', peer.id, peer.topics, subs)
+      subs.forEach((subOpt) => this._processRpcSubOpt(idB58Str, subOpt))
+      this.emit('pubsub:subscription-change', peerStreams.id, subs)
     }
 
     if (!this._acceptFrom(idB58Str)) {
@@ -159,8 +167,8 @@ class BasicPubSub extends Pubsub {
 
     if (msgs.length) {
       msgs.forEach(async message => {
-        const msg = utils.normalizeInRpcMessage(message)
-        this._processRpcMessage(peer, msg)
+        const msg = utils.normalizeInRpcMessage(message, PeerId.createFromB58String(idB58Str))
+        this._processRpcMessage(msg)
       })
     }
     return true
@@ -178,52 +186,27 @@ class BasicPubSub extends Pubsub {
 
   /**
    * Validates the given message.
-   * @param {RPC.Message} message
-   * @param {Peer} [peer]
-   * @returns {Promise<Boolean>}
+   * @param {InMessage} message
+   * @returns {Promise<void>}
    */
-  async validate (message, peer) {
-    const isValid = await super.validate(message, peer)
-    if (!isValid) {
-      return false
-    }
-    // only run topic validators if the peer is passed as an arg
-    if (!peer) {
-      return true
-    }
-    return message.topicIDs.every(topic => {
+  async validate (message) {
+    await super.validate(message)
+    for (const topic of message.topicIDs) {
       const validatorFn = this.topicValidators.get(topic)
       if (!validatorFn) {
-        return true
+        continue
       }
-      return this._processTopicValidatorResult(topic, peer, message, validatorFn(topic, peer, message))
-    })
-  }
-
-  /**
-   * Coerces topic validator result to determine message validity
-   *
-   * Defaults to true if truthy
-   *
-   * Override this method to provide custom topic validator result processing (eg: scoring)
-   *
-   * @param {String} topic
-   * @param {Peer} peer
-   * @param {RPC.Message} message
-   * @param {unknown} result
-   * @returns {Boolean}
-   */
-  _processTopicValidatorResult (topic, peer, message, result) {
-    return Boolean(result)
+      await validatorFn(topic, message)
+    }
   }
 
   /**
    * Handles an subscription change from a peer
    *
-   * @param {Peer} peer
+   * @param {string} id
    * @param {RPC.SubOpt} subOpt
    */
-  _processRpcSubOpt (peer, subOpt) {
+  _processRpcSubOpt (id, subOpt) {
     const t = subOpt.topicID
 
     let topicSet = this.topics.get(t)
@@ -234,45 +217,39 @@ class BasicPubSub extends Pubsub {
 
     if (subOpt.subscribe) {
       // subscribe peer to new topic
-      topicSet.add(peer)
+      topicSet.add(id)
     } else {
       // unsubscribe from existing topic
-      topicSet.delete(peer)
+      topicSet.delete(id)
     }
   }
 
   /**
    * Handles an message from a peer
    *
-   * @param {Peer} peer
-   * @param {RPC.Message} msg
+   * @param {InMessage} msg
    */
-  async _processRpcMessage (peer, msg) {
+  async _processRpcMessage (msg) {
     if (this.peerId.toB58String() === msg.from && !this._options.emitSelf) {
       return
     }
     // Ensure the message is valid before processing it
     try {
-      const isValid = await this.validate(utils.normalizeOutRpcMessage(msg), peer)
-      if (!isValid) {
-        this.log('Message is invalid, dropping it.')
-        return
-      }
+      await this.validate(msg)
     } catch (err) {
-      this.log('Error in message validation, dropping it. %O', err)
+      this.log('Message is invalid, dropping it. %O', err)
       return
     }
 
-    this._publishFrom(peer, msg)
+    this._publishFrom(msg)
   }
 
   /**
    * Publish a message sent from a peer
-   * @param {Peer} peer
    * @param {InMessage} msg
    * @returns {void}
    */
-  _publishFrom (peer, msg) {
+  _publishFrom (msg) {
     // Emit to self
     this._emitMessage(msg)
   }
@@ -334,20 +311,7 @@ class BasicPubSub extends Pubsub {
     })
 
     // Broadcast SUBSCRIBE to all peers
-    this.peers.forEach((peer) => sendSubscriptionsOnceReady(peer))
-
-    // make sure that the protocol is already mounted
-    function sendSubscriptionsOnceReady (peer) {
-      if (peer && peer.isWritable) {
-        return peer.sendSubscriptions(topics)
-      }
-      const onConnection = () => {
-        peer.removeListener('connection', onConnection)
-        sendSubscriptionsOnceReady(peer)
-      }
-      peer.on('connection', onConnection)
-      peer.once('close', () => peer.removeListener('connection', onConnection))
-    }
+    this.peers.forEach((peer) => this._sendSubscriptions(peer, topics, true))
   }
 
   /**
@@ -383,57 +347,39 @@ class BasicPubSub extends Pubsub {
     })
 
     // Broadcast UNSUBSCRIBE to all peers ready
-    this.peers.forEach((peer) => sendUnsubscriptionsOnceReady(peer))
-
-    // make sure that the protocol is already mounted
-    function sendUnsubscriptionsOnceReady (peer) {
-      if (peer && peer.isWritable) {
-        return peer.sendUnsubscriptions(topics)
-      }
-      const onConnection = () => {
-        peer.removeListener('connection', onConnection)
-        sendUnsubscriptionsOnceReady(peer)
-      }
-      peer.on('connection', onConnection)
-      peer.once('close', () => peer.removeListener('connection', onConnection))
-    }
+    this.peers.forEach((peer) => this._sendSubscriptions(peer, topics, false))
   }
 
   /**
    * Publishes messages to all subscribed peers
    * @override
    * @param {Array<string>|string} topics
-   * @param {Array<any>|any} messages
+   * @param {Buffer} message
    * @returns {Promise<void>}
    */
-  async publish (topics, messages) {
+  async publish (topics, message) {
     if (!this.started) {
       throw new Error('Pubsub has not started')
     }
-
-    this.log('publish', topics, messages)
-
     topics = utils.ensureArray(topics)
-    messages = utils.ensureArray(messages)
+
+    this.log('publish', topics, message)
 
     const from = this.peerId.toB58String()
 
-    const buildMessage = data => {
-      return {
-        from: from,
-        data: data,
-        seqno: utils.randomSeqno(),
-        topicIDs: topics
-      }
+    const msgObject = {
+      receivedFrom: from,
+      from: from,
+      data: message,
+      seqno: utils.randomSeqno(),
+      topicIDs: topics
     }
-    const msgObjects = messages.map(buildMessage)
 
     // Emit to self if I'm interested and emitSelf enabled
-    this._options.emitSelf && msgObjects.forEach(msg => this._emitMessage(msg))
+    this._options.emitSelf && this._emitMessage(msgObject)
 
-    const signMessage = (msg, cb) => this._buildMessage(msg)
     // send to all the other peers
-    this._publish(await pMap(msgObjects, signMessage))
+    await this._publish(msgObject)
   }
 
   /**
@@ -459,13 +405,39 @@ class BasicPubSub extends Pubsub {
   }
 
   /**
-   * Publish messages
+   * Publish message
    *
-   * @param {Array<InMessage>} msgs
+   * @param {InMessage} msg
+   * @returns {Promise<void>}
+   */
+  async _publish (msg) {
+    throw errcode(new Error('_publish must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
+  }
+
+  /**
+   * Send an rpc object to a peer
+   * @param {PeerStreams} peerStreams
+   * @param {RPC} rpc
    * @returns {void}
    */
-  _publish (msgs) {
-    throw errcode(new Error('_publish must be implemented by the subclass'), 'ERR_NOT_IMPLEMENTED')
+  _sendRpc (peerStreams, rpc) {
+    if (!peerStreams || !peerStreams.isWritable) {
+      return
+    }
+    peerStreams.write(this._encodeRpc(rpc))
+  }
+
+  /**
+   * Send subscroptions to a peer
+   * @param {PeerStreams} peerStreams
+   * @param {string[]} topics
+   * @param {boolean} subscribe set to false for unsubscriptions
+   * @returns {void}
+   */
+  _sendSubscriptions (peerStreams, topics, subscribe) {
+    return this._sendRpc(peerStreams, {
+      subscriptions: topics.map(t => ({ topicID: t, subscribe: subscribe }))
+    })
   }
 }
 

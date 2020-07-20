@@ -1,4 +1,4 @@
-import { Message } from '../message'
+import { InMessage } from '../message'
 import { PeerScoreParams, validatePeerScoreParams } from './peerScoreParams'
 import { PeerStats, createPeerStats, ensureTopicStats } from './peerStats'
 import { computeScore } from './computeScore'
@@ -31,11 +31,11 @@ export class PeerScore {
   /**
    * Message ID function
    */
-  msgId: (message: Message) => string
+  msgId: (message: InMessage) => string
   _connectionManager: ConnectionManager
   _backgroundInterval: NodeJS.Timeout
 
-  constructor (params: PeerScoreParams, connectionManager: ConnectionManager, msgId: (message: Message) => string) {
+  constructor (params: PeerScoreParams, connectionManager: ConnectionManager, msgId: (message: InMessage) => string) {
     validatePeerScoreParams(params)
     this.params = params
     this._connectionManager = connectionManager
@@ -279,20 +279,19 @@ export class PeerScore {
   }
 
   /**
-   * @param {string} id
-   * @param {Message} message
+   * @param {InMessage} message
    * @returns {void}
    */
-  validateMessage (id: string, message: Message): void {
+  validateMessage (message: InMessage): void {
     this.deliveryRecords.ensureRecord(this.msgId(message))
   }
 
   /**
-   * @param {string} id
-   * @param {Message} message
+   * @param {InMessage} message
    * @returns {void}
    */
-  deliverMessage (id: string, message: Message): void {
+  deliverMessage (message: InMessage): void {
+    const id = message.receivedFrom
     this._markFirstMessageDelivery(id, message)
 
     const drec = this.deliveryRecords.ensureRecord(this.msgId(message))
@@ -320,11 +319,11 @@ export class PeerScore {
   }
 
   /**
-   * @param {string} id
-   * @param {Message} message
+   * @param {InMessage} message
    * @returns {void}
    */
-  rejectMessage (id: string, message: Message): void {
+  rejectMessage (message: InMessage): void {
+    const id = message.receivedFrom
     const drec = this.deliveryRecords.ensureRecord(this.msgId(message))
 
     // defensive check that this is the first rejection -- delivery status should be unknown
@@ -346,11 +345,11 @@ export class PeerScore {
   }
 
   /**
-   * @param {string} id
-   * @param {Message} message
+   * @param {InMessage} message
    * @returns {void}
    */
-  ignoreMessage (id: string, message: Message): void {
+  ignoreMessage (message: InMessage): void {
+    const id = message.receivedFrom
     const drec = this.deliveryRecords.ensureRecord(this.msgId(message))
 
     // defensive check that this is the first ignore -- delivery status should be unknown
@@ -367,11 +366,11 @@ export class PeerScore {
   }
 
   /**
-   * @param {string} id
-   * @param {Message} message
+   * @param {InMessage} message
    * @returns {void}
    */
-  duplicateMessage (id: string, message: Message): void {
+  duplicateMessage (message: InMessage): void {
+    const id = message.receivedFrom
     const drec = this.deliveryRecords.ensureRecord(this.msgId(message))
 
     if (drec.peers.has(id)) {
@@ -400,10 +399,10 @@ export class PeerScore {
   /**
    * Increments the "invalid message deliveries" counter for all scored topics the message is published in.
    * @param {string} id
-   * @param {Message} message
+   * @param {InMessage} message
    * @returns {void}
    */
-  _markInvalidMessageDelivery (id: string, message: Message): void {
+  _markInvalidMessageDelivery (id: string, message: InMessage): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -423,10 +422,10 @@ export class PeerScore {
    * Increments the "first message deliveries" counter for all scored topics the message is published in,
    * as well as the "mesh message deliveries" counter, if the peer is in the mesh for the topic.
    * @param {string} id
-   * @param {Message} message
+   * @param {InMessage} message
    * @returns {void}
    */
-  _markFirstMessageDelivery (id: string, message: Message): void {
+  _markFirstMessageDelivery (id: string, message: InMessage): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -460,11 +459,11 @@ export class PeerScore {
    * Increments the "mesh message deliveries" counter for messages we've seen before,
    * as long the message was received within the P3 window.
    * @param {string} id
-   * @param {Message} message
+   * @param {InMessage} message
    * @param {number} validatedTime
    * @returns {void}
    */
-  _markDuplicateMessageDelivery (id: string, message: Message, validatedTime = 0): void {
+  _markDuplicateMessageDelivery (id: string, message: InMessage, validatedTime = 0): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
