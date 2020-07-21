@@ -70,6 +70,13 @@ export class Heartbeat {
    * @returns {void}
    */
   _heartbeat (): void {
+    const {
+      D,
+      Dlo,
+      Dhi,
+      Dscore,
+      Dout
+    } = this.gossipsub._options
     this.gossipsub.heartbeatTicks++
 
     // cache scores throught the heartbeat
@@ -154,9 +161,9 @@ export class Heartbeat {
       })
 
       // do we have enough peers?
-      if (peers.size < constants.GossipsubDlo) {
+      if (peers.size < Dlo) {
         const backoff = this.gossipsub.backoff.get(topic)
-        const ineed = constants.GossipsubD - peers.size
+        const ineed = D - peers.size
         const peersSet = getGossipPeers(this.gossipsub, topic, ineed, id => {
           // filter out mesh peers, direct peers, peers we are backing off, peers with negative score
           return !peers.has(id) && !this.gossipsub.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
@@ -166,26 +173,26 @@ export class Heartbeat {
       }
 
       // do we have to many peers?
-      if (peers.size > constants.GossipsubDhi) {
+      if (peers.size > Dhi) {
         let peersArray = Array.from(peers)
         // sort by score
         peersArray.sort((a, b) => getScore(b) - getScore(a))
         // We keep the first D_score peers by score and the remaining up to D randomly
         // under the constraint that we keep D_out peers in the mesh (if we have that many)
-        peersArray = peersArray.slice(0, constants.GossipsubDscore).concat(
-          shuffle(peersArray.slice(constants.GossipsubDscore))
+        peersArray = peersArray.slice(0, Dscore).concat(
+          shuffle(peersArray.slice(Dscore))
         )
 
         // count the outbound peers we are keeping
         let outbound = 0
-        peersArray.slice(0, constants.GossipsubD).forEach(p => {
+        peersArray.slice(0, D).forEach(p => {
           if (this.gossipsub.outbound.get(p)) {
             outbound++
           }
         })
 
         // if it's less than D_out, bubble up some outbound peers from the random selection
-        if (outbound < constants.GossipsubDout) {
+        if (outbound < Dout) {
           const rotate = (i: number): void => {
             // rotate the peersArray to the right and put the ith peer in the front
             const p = peersArray[i]
@@ -198,7 +205,7 @@ export class Heartbeat {
           // first bubble up all outbound peers already in the selection to the front
           if (outbound > 0) {
             let ihave = outbound
-            for (let i = 1; i < constants.GossipsubD && ihave > 0; i++) {
+            for (let i = 1; i < D && ihave > 0; i++) {
               if (this.gossipsub.outbound.get(peersArray[i])) {
                 rotate(i)
                 ihave--
@@ -207,8 +214,8 @@ export class Heartbeat {
           }
 
           // now bubble up enough outbound peers outside the selection to the front
-          let ineed = constants.GossipsubD - outbound
-          for (let i = constants.GossipsubD; i < peersArray.length && ineed > 0; i++) {
+          let ineed = D - outbound
+          for (let i = D; i < peersArray.length && ineed > 0; i++) {
             if (this.gossipsub.outbound.get(peersArray[i])) {
               rotate(i)
               ineed--
@@ -217,11 +224,11 @@ export class Heartbeat {
         }
 
         // prune the excess peers
-        peersArray.slice(0, constants.GossipsubD).forEach(prunePeer)
+        peersArray.slice(0, D).forEach(prunePeer)
       }
 
       // do we have enough outbound peers?
-      if (peers.size >= constants.GossipsubDlo) {
+      if (peers.size >= Dlo) {
         // count the outbound peers we have
         let outbound = 0
         peers.forEach(p => {
@@ -231,8 +238,8 @@ export class Heartbeat {
         })
 
         // if it's less than D_out, select some peers with outbound connections and graft them
-        if (outbound < constants.GossipsubDout) {
-          const ineed = constants.GossipsubDout - outbound
+        if (outbound < Dout) {
+          const ineed = Dout - outbound
           const backoff = this.gossipsub.backoff.get(topic)
           getGossipPeers(this.gossipsub, topic, ineed, (id: string): boolean => {
             // filter our current mesh peers, direct peers, peers we are backing off, peers with negative score
@@ -301,8 +308,8 @@ export class Heartbeat {
       })
 
       // do we need more peers?
-      if (fanoutPeers.size < constants.GossipsubD) {
-        const ineed = constants.GossipsubD - fanoutPeers.size
+      if (fanoutPeers.size < D) {
+        const ineed = D - fanoutPeers.size
         const peersSet = getGossipPeers(this.gossipsub, topic, ineed, (id: string): boolean => {
           // filter out existing fanout peers, direct peers, and peers with score above the publish threshold
           return !fanoutPeers.has(id) &&

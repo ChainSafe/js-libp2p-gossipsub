@@ -31,6 +31,30 @@ interface GossipInputOptions {
   scoreParams: Partial<PeerScoreParams>
   scoreThresholds: Partial<PeerScoreThresholds>
   directPeers: AddrInfo[]
+  /**
+   * D sets the optimal degree for a Gossipsub topic mesh.
+   */
+  D: number
+  /**
+   * Dlo sets the lower bound on the number of peers we keep in a Gossipsub topic mesh.
+   */
+  Dlo: number
+  /**
+   * Dhi sets the upper bound on the number of peers we keep in a Gossipsub topic mesh.
+   */
+  Dhi: number
+  /**
+   * Dscore affects how peers are selected when pruning a mesh due to over subscription.
+   */
+  Dscore: number
+  /**
+   * Dout sets the quota for the number of outbound connections to maintain in a topic mesh.
+   */
+  Dout: number
+  /**
+   * Dlazy affects how many peers we will emit gossip to at each heartbeat.
+   */
+  Dlazy: number
 }
 
 interface GossipOptions extends GossipInputOptions {
@@ -83,6 +107,12 @@ class Gossipsub extends BasicPubsub {
       fallbackToFloodsub: true,
       floodPublish: true,
       directPeers: [],
+      D: constants.GossipsubD,
+      Dlo: constants.GossipsubDlo,
+      Dhi: constants.GossipsubDhi,
+      Dscore: constants.GossipsubDscore,
+      Dout: constants.GossipsubDout,
+      Dlazy: constants.GossipsubDlazy,
       ...options,
       scoreParams: createPeerScoreParams(options.scoreParams),
       scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
@@ -611,7 +641,7 @@ class Gossipsub extends BasicPubsub {
       // check the number of mesh peers; if it is at (or over) Dhi, we only accept grafts
       // from peers with outbound connections; this is a defensive check to restrict potential
       // mesh takeover attacks combined with love bombing
-      if (peersInMesh.size >= constants.GossipsubDhi && !this.outbound.get(id)) {
+      if (peersInMesh.size >= this._options.Dhi && !this.outbound.get(id)) {
         prune.push(topicID)
         this._addBackoff(id, topicID)
         return
@@ -843,9 +873,9 @@ class Gossipsub extends BasicPubsub {
             fanoutPeers.delete(id)
           }
         })
-        if (fanoutPeers.size < constants.GossipsubD) {
+        if (fanoutPeers.size < this._options.D) {
           // we need more peers; eager, as this would get fixed in the next heartbeat
-          getGossipPeers(this, topic, constants.GossipsubD - fanoutPeers.size, (id: string): boolean => {
+          getGossipPeers(this, topic, this._options.D - fanoutPeers.size, (id: string): boolean => {
             // filter our current peers, direct peers, and peers with negative scores
             return !fanoutPeers.has(id) && !this.direct.has(id) && this.score.score(id) >= 0
           }).forEach(id => fanoutPeers.add(id))
@@ -854,7 +884,7 @@ class Gossipsub extends BasicPubsub {
         this.fanout.delete(topic)
         this.lastpub.delete(topic)
       } else {
-        const peers = getGossipPeers(this, topic, constants.GossipsubD, (id: string): boolean => {
+        const peers = getGossipPeers(this, topic, this._options.D, (id: string): boolean => {
           // filter direct peers and peers with negative score
           return !this.direct.has(id) && this.score.score(id) >= 0
         })
@@ -959,7 +989,7 @@ class Gossipsub extends BasicPubsub {
           meshPeers = this.fanout.get(topic)
           if (!meshPeers) {
             // If we are not in the fanout, then pick peers in topic above the publishThreshold
-            const peers = getGossipPeers(this, topic, constants.GossipsubD, id => {
+            const peers = getGossipPeers(this, topic, this._options.D, id => {
               return this.score.score(id) >= this._options.scoreThresholds.publishThreshold
             })
 
@@ -1144,7 +1174,7 @@ class Gossipsub extends BasicPubsub {
       }
     })
 
-    let target = constants.GossipsubDlazy
+    let target = this._options.Dlazy
     const factor = constants.GossipsubGossipFactor * peersToGossip.length
     if (factor > target) {
       target = factor
