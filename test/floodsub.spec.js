@@ -127,7 +127,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       expect(nodeGs.peers.size).to.equal(1)
       expect(nodeFs.peers.size).to.equal(1)
       expectSet(nodeGs.topics.get(topic), [nodeFs.peerId.toB58String()])
-      expectSet(first(nodeFs.peers).topics, [topic])
+      expectSet(nodeFs.topics.get(topic), [nodeGs.peerId.toB58String()])
 
       expect(changedPeerId.toB58String()).to.equal(first(nodeGs.peers).id.toB58String())
       expect(changedSubs).to.be.eql([{ topicID: topic, subscribe: true }])
@@ -292,14 +292,13 @@ describe('gossipsub fallbacks to floodsub', () => {
       nodeGs.unsubscribe(topic)
       expect(nodeGs.subscriptions.size).to.equal(0)
 
-      const [changedPeerId, changedTopics, changedSubs] = await new Promise((resolve) => {
+      const [changedPeerId, changedSubs] = await new Promise((resolve) => {
         nodeFs.once('floodsub:subscription-change', (...args) => resolve(args))
       })
 
       expect(nodeFs.peers.size).to.equal(1)
-      expectSet(first(nodeFs.peers).topics, [])
+      expectSet(nodeFs.topics.get(topic), [])
       expect(changedPeerId.toB58String()).to.equal(first(nodeFs.peers).id.toB58String())
-      expectSet(changedTopics, [])
       expect(changedSubs).to.be.eql([{ topicID: topic, subscribe: false }])
     })
 
