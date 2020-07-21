@@ -177,6 +177,7 @@ class BasicPubSub extends Pubsub {
   /**
    * Whether to accept a message from a peer
    * Override to create a graylist
+   * @override
    * @param {string} id
    * @returns {boolean}
    */
