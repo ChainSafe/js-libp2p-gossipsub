@@ -94,7 +94,7 @@ class BasicPubSub extends Pubsub {
    * responsible for processing each RPC message received by other peers.
    * @override
    * @param {string} idB58Str peer id string in base58
-   * @param {Stream} stream inbound stream
+   * @param {DuplexIterableStream} stream inbound stream
    * @param {PeerStreams} peerStreams PubSub peer
    * @returns {void}
    *
