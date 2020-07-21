@@ -12,8 +12,11 @@ const Gossipsub = require('../../src')
 
 exports.first = (map) => map.values().next().value
 
-exports.expectSet = (set, subs) => {
-  expect(Array.from(set.values())).to.eql(subs)
+exports.expectSet = (set, list) => {
+  expect(set.size).to.eql(list.length)
+  list.forEach(item => {
+    expect(set.has(item)).to.eql(true)
+  })
 }
 
 const createPeerId = async () => {
