@@ -47,10 +47,9 @@ describe('gossip', () => {
 
     nodeA._pushGossip.getCalls()
       .map((call) => call.args[0])
-      .forEach((peer) => {
-        const peerId = peer.id.toB58String()
-        nodeA.mesh.get(topic).forEach((meshPeer) => {
-          expect(meshPeer.id.toB58String()).to.not.equal(peerId)
+      .forEach((peerId) => {
+        nodeA.mesh.get(topic).forEach((meshPeerId) => {
+          expect(meshPeerId).to.not.equal(peerId)
         })
       })
 
@@ -74,7 +73,7 @@ describe('gossip', () => {
     await delay(500)
 
     const peerB = first(nodeA.mesh.get(topic))
-    const nodeB = nodes.find((n) => n.peerId.toB58String() === peerB.id.toB58String())
+    const nodeB = nodes.find((n) => n.peerId.toB58String() === peerB)
 
     // set spy
     sinon.spy(nodeA, '_piggybackControl')

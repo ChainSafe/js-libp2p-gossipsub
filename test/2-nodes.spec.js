@@ -113,8 +113,8 @@ describe('2 nodes', () => {
         new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
       ])
 
-      expect(first(nodes[0].mesh.get(topic)).id.toB58String()).to.equal(first(nodes[0].peers).id.toB58String())
-      expect(first(nodes[1].mesh.get(topic)).id.toB58String()).to.equal(first(nodes[1].peers).id.toB58String())
+      expect(first(nodes[0].mesh.get(topic))).to.equal(first(nodes[0].peers).id.toB58String())
+      expect(first(nodes[1].mesh.get(topic))).to.equal(first(nodes[1].peers).id.toB58String())
     })
   })
 
