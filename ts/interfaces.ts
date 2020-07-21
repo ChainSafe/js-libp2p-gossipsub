@@ -2,7 +2,7 @@ import PeerId = require('peer-id')
 import Multiaddr = require('multiaddr')
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-interface Stream<T=any, U=any, V=any> {
+export interface DuplexIterableStream<T=any, U=any, V=any> {
   sink(source: T): Promise<U>
   source(): AsyncIterator<V>
 }
@@ -63,7 +63,7 @@ export interface PeerStore {
 export interface Libp2p {
   peerId: PeerId
   // eslint-disable-next-line @typescript-eslint/ban-types
-  dialProtocol(peer: PeerId | Multiaddr | string, protocols: string | string[], options?: object): Promise<{stream: Stream, protocol: string}>
+  dialProtocol(peer: PeerId | Multiaddr | string, protocols: string | string[], options?: object): Promise<{stream: DuplexIterableStream, protocol: string}>
   connectionManager: ConnectionManager
   registrar: Registrar
   peerStore: PeerStore

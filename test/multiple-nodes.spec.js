@@ -66,10 +66,9 @@ describe('multiple nodes (more than 2)', () => {
           const bPeerId = b.peerId.toB58String()
           const cPeerId = c.peerId.toB58String()
 
-          expectSet(a.peers.get(bPeerId).topics, [topic])
-          expectSet(b.peers.get(aPeerId).topics, [topic])
-          expectSet(b.peers.get(cPeerId).topics, [topic])
-          expectSet(c.peers.get(bPeerId).topics, [topic])
+          expectSet(a.topics.get(topic), [bPeerId])
+          expectSet(b.topics.get(topic), [cPeerId, aPeerId])
+          expectSet(c.topics.get(topic), [bPeerId])
 
           expect(a.mesh.get(topic).size).to.equal(1)
           expect(b.mesh.get(topic).size).to.equal(2)
@@ -118,41 +117,6 @@ describe('multiple nodes (more than 2)', () => {
 
           expect(msgB.data.toString()).to.equal('hey')
           expect(msgC.data.toString()).to.equal('hey')
-        })
-
-        it('publish array on node a', async function () {
-          this.timeout(10000)
-          let msgB = new Promise((resolve) => {
-            const output = []
-            b.on('Z', (msg) => {
-              output.push(msg)
-              if (output.length === 2) {
-                b.removeAllListeners('Z')
-                resolve(output)
-              }
-            })
-          })
-          let msgC = new Promise((resolve) => {
-            const output = []
-            c.on('Z', (msg) => {
-              output.push(msg)
-              if (output.length === 2) {
-                c.removeAllListeners('Z')
-                resolve(output)
-              }
-            })
-          })
-
-          a.publish('Z', [Buffer.from('hey'), Buffer.from('hey')])
-          msgB = await msgB
-          msgC = await msgC
-
-          expect(msgB.length).to.equal(2)
-          expect(msgB[0].data.toString()).to.equal('hey')
-          expect(msgB[1].data.toString()).to.equal('hey')
-          expect(msgC.length).to.equal(2)
-          expect(msgC[0].data.toString()).to.equal('hey')
-          expect(msgC[1].data.toString()).to.equal('hey')
         })
       })
     })

@@ -95,17 +95,16 @@ describe('2 nodes', () => {
         new Promise(resolve => nodes[1].once('pubsub:subscription-change', (...args) => resolve(args)))
       ])
 
-      const [changedPeerId, changedTopics, changedSubs] = evt0
+      const [changedPeerId, changedSubs] = evt0
 
       expectSet(nodes[0].subscriptions, [topic])
       expectSet(nodes[1].subscriptions, [topic])
       expect(nodes[0].peers.size).to.equal(1)
       expect(nodes[1].peers.size).to.equal(1)
-      expectSet(first(nodes[0].peers).topics, [topic])
-      expectSet(first(nodes[1].peers).topics, [topic])
+      expectSet(nodes[0].topics.get(topic), [nodes[1].peerId.toB58String()])
+      expectSet(nodes[1].topics.get(topic), [nodes[0].peerId.toB58String()])
 
       expect(changedPeerId.toB58String()).to.equal(first(nodes[0].peers).id.toB58String())
-      expectSet(changedTopics, [topic])
       expect(changedSubs).to.be.eql([{ topicID: topic, subscribe: true }])
 
       // await heartbeats
@@ -197,33 +196,6 @@ describe('2 nodes', () => {
         nodes[1].publish(topic, Buffer.from('banana'))
       })
     })
-
-    it('Publish 10 msg to a topic as array', (done) => {
-      let counter = 0
-
-      nodes[1].once(topic, shouldNotHappen)
-
-      nodes[0].on(topic, receivedMsg)
-
-      function receivedMsg (msg) {
-        expect(msg.data.toString()).to.equal('banana')
-        expect(msg.from).to.be.eql(nodes[1].peerId.toB58String())
-        expect(Buffer.isBuffer(msg.seqno)).to.be.true()
-        expect(msg.topicIDs).to.be.eql([topic])
-
-        if (++counter === 10) {
-          nodes[0].removeListener(topic, receivedMsg)
-          nodes[1].removeListener(topic, shouldNotHappen)
-          done()
-        }
-      }
-
-      const msgs = []
-      Array.from({ length: 10 }).forEach(() => {
-        msgs.push(Buffer.from('banana'))
-      })
-      nodes[1].publish(topic, msgs)
-    })
   })
 
   describe('publish after unsubscribe', () => {
@@ -254,15 +226,14 @@ describe('2 nodes', () => {
       nodes[0].unsubscribe(topic)
       expect(nodes[0].subscriptions.size).to.equal(0)
 
-      const [changedPeerId, changedTopics, changedSubs] = await new Promise((resolve) => {
+      const [changedPeerId, changedSubs] = await new Promise((resolve) => {
         nodes[1].once('pubsub:subscription-change', (...args) => resolve(args))
       })
       await new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
 
       expect(nodes[1].peers.size).to.equal(1)
-      expectSet(first(nodes[1].peers).topics, [])
+      expectSet(nodes[1].topics.get(topic), [])
       expect(changedPeerId.toB58String()).to.equal(first(nodes[1].peers).id.toB58String())
-      expectSet(changedTopics, [])
       expect(changedSubs).to.be.eql([{ topicID: topic, subscribe: false }])
     })
 
@@ -324,11 +295,11 @@ describe('2 nodes', () => {
 
       expectSet(nodes[0].subscriptions, ['Za'])
       expect(nodes[1].peers.size).to.equal(1)
-      expectSet(first(nodes[1].peers).topics, ['Za'])
+      expectSet(nodes[1].topics.get('Za'), [nodes[0].peerId.toB58String()])
 
       expectSet(nodes[1].subscriptions, ['Zb'])
       expect(nodes[0].peers.size).to.equal(1)
-      expectSet(first(nodes[0].peers).topics, ['Zb'])
+      expectSet(nodes[0].topics.get('Zb'), [nodes[1].peerId.toB58String()])
     })
   })
 

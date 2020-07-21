@@ -57,7 +57,7 @@ describe('IWantTracer', () => {
     t.addPromise(peerA, msgIds)
     t.addPromise(peerB, msgIds)
 
-    msgs.forEach(msg => t.deliverMessage(peerA, msg))
+    msgs.forEach(msg => t.deliverMessage(msg))
 
     await delay(constants.GossipsubIWantFollowupTime + 10)
 

@@ -1,7 +1,7 @@
 import * as constants from './constants'
 import { getGossipPeers } from './getGossipPeers'
 import { shuffle } from './utils'
-import { Peer } from './peer'
+import { PeerStreams } from './peerStreams'
 import Gossipsub = require('./index')
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -84,8 +84,8 @@ export class Heartbeat {
       return s
     }
 
-    const tograft = new Map<Peer, string[]>()
-    const toprune = new Map<Peer, string[]>()
+    const tograft = new Map<PeerStreams, string[]>()
+    const toprune = new Map<PeerStreams, string[]>()
 
     // clean up expired backoffs
     this.gossipsub._clearBackoff()
@@ -103,7 +103,7 @@ export class Heartbeat {
     // maintain the mesh for topics we have joined
     this.gossipsub.mesh.forEach((peers, topic) => {
       // prune/graft helper functions (defined per topic)
-      const prunePeer = (p: Peer): void => {
+      const prunePeer = (p: PeerStreams): void => {
         const id = p.id.toB58String()
         this.gossipsub.log(
           'HEARTBEAT: Remove mesh link to %s in %s',
@@ -123,7 +123,7 @@ export class Heartbeat {
           topics.push(topic)
         }
       }
-      const graftPeer = (p: Peer): void => {
+      const graftPeer = (p: PeerStreams): void => {
         const id = p.id.toB58String()
         this.gossipsub.log(
           'HEARTBEAT: Add mesh link to %s in %s',
@@ -237,7 +237,7 @@ export class Heartbeat {
         if (outbound < constants.GossipsubDout) {
           const ineed = constants.GossipsubDout - outbound
           const backoff = this.gossipsub.backoff.get(topic)
-          getGossipPeers(this.gossipsub, topic, ineed, (p: Peer): boolean => {
+          getGossipPeers(this.gossipsub, topic, ineed, (p: PeerStreams): boolean => {
             const id = p.id.toB58String()
             // filter our current mesh peers, direct peers, peers we are backing off, peers with negative score
             return !peers.has(p) && !this.gossipsub.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
@@ -263,7 +263,7 @@ export class Heartbeat {
         // if the median score is below the threshold, select a better peer (if any) and GRAFT
         if (medianScore < this.gossipsub._options.scoreThresholds.opportunisticGraftThreshold) {
           const backoff = this.gossipsub.backoff.get(topic)
-          const peersToGraft = getGossipPeers(this.gossipsub, topic, constants.GossipsubOpportunisticGraftPeers, (p: Peer): boolean => {
+          const peersToGraft = getGossipPeers(this.gossipsub, topic, constants.GossipsubOpportunisticGraftPeers, (p: PeerStreams): boolean => {
             const id = p.id.toB58String()
             // filter out current mesh peers, direct peers, peers we are backing off, peers below or at threshold
             return peers.has(p) && !this.gossipsub.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) > medianScore
@@ -297,9 +297,10 @@ export class Heartbeat {
       // checks whether our peers are still in the topic and have a score above the publish threshold
       const topicPeers = this.gossipsub.topics.get(topic)
       fanoutPeers.forEach(p => {
+        const id = p.id.toB58String()
         if (
-          !topicPeers!.has(p) ||
-          getScore(p.id.toB58String()) < this.gossipsub._options.scoreThresholds.publishThreshold
+          !topicPeers!.has(id) ||
+          getScore(id) < this.gossipsub._options.scoreThresholds.publishThreshold
         ) {
           fanoutPeers.delete(p)
         }
@@ -308,7 +309,7 @@ export class Heartbeat {
       // do we need more peers?
       if (fanoutPeers.size < constants.GossipsubD) {
         const ineed = constants.GossipsubD - fanoutPeers.size
-        const peersSet = getGossipPeers(this.gossipsub, topic, ineed, (p: Peer): boolean => {
+        const peersSet = getGossipPeers(this.gossipsub, topic, ineed, (p: PeerStreams): boolean => {
           const id = p.id.toB58String()
           // filter out existing fanout peers, direct peers, and peers with score above the publish threshold
           return !fanoutPeers.has(p) &&
