@@ -166,7 +166,7 @@ class BasicPubSub extends Pubsub {
     }
 
     if (msgs.length) {
-      msgs.forEach(async message => {
+      msgs.forEach(message => {
         const msg = utils.normalizeInRpcMessage(message, PeerId.createFromB58String(idB58Str))
         this._processRpcMessage(msg)
       })
