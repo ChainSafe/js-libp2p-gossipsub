@@ -1,5 +1,13 @@
 import { InMessage } from './message'
 import { GossipsubIWantFollowupTime } from './constants'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import pubsubErrors = require('libp2p-pubsub/src/errors')
+
+const {
+  ERR_INVALID_SIGNATURE,
+  ERR_MISSING_SIGNATURE
+} = pubsubErrors.codes
 
 /**
  * IWantTracer is an internal tracer that tracks IWANT requests in order to penalize
@@ -86,7 +94,13 @@ export class IWantTracer {
    * @param {InMessage} msg
    * @returns {void}
    */
-  rejectMessage (msg: InMessage): void {
+  rejectMessage (msg: InMessage, reason: string): void {
+    switch (reason) {
+      case ERR_INVALID_SIGNATURE:
+      case ERR_MISSING_SIGNATURE:
+        return
+    }
+
     const msgId = this.getMsgId(msg)
     this.promises.delete(msgId)
   }
