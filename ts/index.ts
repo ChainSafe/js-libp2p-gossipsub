@@ -939,9 +939,9 @@ class Gossipsub extends BasicPubsub {
 
         // direct peers
         this.direct.forEach(id => {
-          const peer = this.peers.get(id)
-          if (peer) {
-            tosend.add(peer)
+          const peerStreams = this.peers.get(id)
+          if (peerStreams) {
+            tosend.add(peerStreams)
           }
         })
 
