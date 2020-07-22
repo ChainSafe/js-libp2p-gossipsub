@@ -798,7 +798,9 @@ class Gossipsub extends BasicPubsub {
         return
       }
 
-      // the peer sent us a signed record; ensure that it is valid
+      // The peer sent us a signed record
+      // This is not a record from the peer who sent the record, but another peer who is connected with it
+      // Ensure that it is valid
       try {
         const envelope = await (Envelope as EnvelopeClass).openAndCertify(pi.signedPeerRecord, 'libp2p-peer-record')
         const eid = envelope.peerId.toB58String()
@@ -1319,6 +1321,7 @@ class Gossipsub extends BasicPubsub {
         // see if we have a signed record to send back; if we don't, just send
         // the peer ID and let the pruned peer find them in the DHT -- we can't trust
         // unsigned address records through PX anyways
+        // Finding signed records in the DHT is not supported at the time of writing in js-libp2p
         const peerId = PeerId.createFromB58String(p)
         px.push({
           peerID: peerId.toBytes(),
