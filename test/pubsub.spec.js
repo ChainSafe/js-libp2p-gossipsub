@@ -15,6 +15,7 @@ const { signMessage } = require('libp2p-pubsub/src/message/sign')
 const PeerId = require('peer-id')
 
 const Gossipsub = require('../src')
+const { ERR_TOPIC_VALIDATOR_REJECT } = require('../src/constants')
 const {
   createPeer,
   startNode,
@@ -146,7 +147,7 @@ describe('Pubsub', () => {
       // Set a trivial topic validator
       gossipsub.topicValidators.set(filteredTopic, (topic, message) => {
         if (!message.data.equals(Buffer.from('a message'))) {
-          throw errcode(new Error(), 'reject')
+          throw errcode(new Error(), ERR_TOPIC_VALIDATOR_REJECT)
         }
       })
 

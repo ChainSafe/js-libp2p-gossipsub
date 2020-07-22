@@ -8,7 +8,6 @@ import {
   ControlMessage, ControlIHave, ControlGraft, ControlIWant, ControlPrune
 } from './message'
 import * as constants from './constants'
-import { ExtendedValidatorResult } from './constants'
 import { Heartbeat } from './heartbeat'
 import { getGossipPeers } from './getGossipPeers'
 import { createGossipRpc, shuffle, hasGossipProtocol } from './utils'
@@ -417,16 +416,8 @@ class Gossipsub extends BasicPubsub {
     try {
       await super.validate(message)
     } catch (e) {
-      switch (e.code) {
-        case ExtendedValidatorResult.reject:
-          this.score.rejectMessage(message)
-          this.gossipTracer.rejectMessage(message)
-          break
-        case ExtendedValidatorResult.ignore:
-          this.score.ignoreMessage(message)
-          this.gossipTracer.rejectMessage(message)
-          break
-      }
+      this.score.rejectMessage(message, e.code)
+      this.gossipTracer.rejectMessage(message, e.code)
       throw e
     }
   }

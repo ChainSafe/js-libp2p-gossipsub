@@ -213,8 +213,5 @@ export const GossipsubIWantFollowupTime = 3 * second
 
 export const TimeCacheDuration = 120 * 1000
 
-export const enum ExtendedValidatorResult {
-  accept = 'accept',
-  reject = 'reject',
-  ignore = 'ignore'
-}
+export const ERR_TOPIC_VALIDATOR_REJECT = 'ERR_TOPIC_VALIDATOR_REJECT'
+export const ERR_TOPIC_VALIDATOR_IGNORE = 'ERR_TOPIC_VALIDATOR_IGNORE'

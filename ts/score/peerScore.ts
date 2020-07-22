@@ -4,10 +4,19 @@ import { PeerStats, createPeerStats, ensureTopicStats } from './peerStats'
 import { computeScore } from './computeScore'
 import { MessageDeliveries, DeliveryRecordStatus } from './messageDeliveries'
 import { ConnectionManager } from '../interfaces'
+import { ERR_TOPIC_VALIDATOR_IGNORE } from '../constants'
 import PeerId = require('peer-id')
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import debug = require('debug')
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import pubsubErrors = require('libp2p-pubsub/src/errors')
+
+const {
+  ERR_INVALID_SIGNATURE,
+  ERR_MISSING_SIGNATURE
+} = pubsubErrors.codes
 
 const log = debug('libp2p:gossipsub:score')
 
@@ -320,10 +329,18 @@ export class PeerScore {
 
   /**
    * @param {InMessage} message
+   * @param {string} reason
    * @returns {void}
    */
-  rejectMessage (message: InMessage): void {
+  rejectMessage (message: InMessage, reason: string): void {
     const id = message.receivedFrom
+    switch (reason) {
+      case ERR_MISSING_SIGNATURE:
+      case ERR_INVALID_SIGNATURE:
+        this._markInvalidMessageDelivery(id, message)
+        return
+    }
+
     const drec = this.deliveryRecords.ensureRecord(this.msgId(message))
 
     // defensive check that this is the first rejection -- delivery status should be unknown
@@ -335,6 +352,13 @@ export class PeerScore {
       return
     }
 
+    switch (reason) {
+      case ERR_TOPIC_VALIDATOR_IGNORE:
+        // we were explicitly instructed by the validator to ignore the message but not penalize the peer
+        drec.status = DeliveryRecordStatus.ignored
+        return
+    }
+
     // mark the message as invalid and penalize peers that have already forwarded it.
     drec.status = DeliveryRecordStatus.invalid
 
@@ -342,27 +366,6 @@ export class PeerScore {
     drec.peers.forEach(p => {
       this._markInvalidMessageDelivery(p, message)
     })
-  }
-
-  /**
-   * @param {InMessage} message
-   * @returns {void}
-   */
-  ignoreMessage (message: InMessage): void {
-    const id = message.receivedFrom
-    const drec = this.deliveryRecords.ensureRecord(this.msgId(message))
-
-    // defensive check that this is the first ignore -- delivery status should be unknown
-    if (drec.status !== DeliveryRecordStatus.unknown) {
-      log(
-        'unexpected ignore: message from %s was first seen %s ago and has delivery status %d',
-        id, Date.now() - drec.firstSeen, DeliveryRecordStatus[drec.status]
-      )
-      return
-    }
-
-    // mark the message as invalid and penalize peers that have already forwarded it.
-    drec.status = DeliveryRecordStatus.ignored
   }
 
   /**

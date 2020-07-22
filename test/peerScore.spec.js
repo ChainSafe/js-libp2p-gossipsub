@@ -4,6 +4,7 @@ const { utils } = require('libp2p-pubsub')
 const delay = require('delay')
 
 const { PeerScore, createPeerScoreParams, createTopicScoreParams } = require('../src/score')
+const { ERR_TOPIC_VALIDATOR_IGNORE, ERR_TOPIC_VALIDATOR_REJECT } = require('../src/constants')
 const { makeTestMessage } = require('./utils')
 
 const connectionManager = new Map()
@@ -412,7 +413,7 @@ describe('PeerScore', () => {
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
       msg.receivedFrom = peerA
-      ps.rejectMessage(msg)
+      ps.rejectMessage(msg, ERR_TOPIC_VALIDATOR_REJECT)
     }
     ps._refreshScores()
     let aScore = ps.score(peerA)
@@ -441,7 +442,7 @@ describe('PeerScore', () => {
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
       msg.receivedFrom = peerA
-      ps.rejectMessage(msg)
+      ps.rejectMessage(msg, ERR_TOPIC_VALIDATOR_REJECT)
     }
     ps._refreshScores()
     let aScore = ps.score(peerA)
@@ -481,7 +482,7 @@ describe('PeerScore', () => {
     ps.validateMessage(msg)
 
     // this should have no effect in the score, and subsequent duplicate messages should have no effect either
-    ps.ignoreMessage(msg)
+    ps.rejectMessage(msg, ERR_TOPIC_VALIDATOR_IGNORE)
     msg.receivedFrom = peerB
     ps.duplicateMessage(msg)
 
@@ -501,7 +502,7 @@ describe('PeerScore', () => {
     ps.validateMessage(msg)
 
     // and reject the message to make sure duplicates are also penalized
-    ps.rejectMessage(msg)
+    ps.rejectMessage(msg, ERR_TOPIC_VALIDATOR_REJECT)
     msg.receivedFrom = peerB
     ps.duplicateMessage(msg)
 
@@ -524,7 +525,7 @@ describe('PeerScore', () => {
     msg.receivedFrom = peerB
     ps.duplicateMessage(msg)
     msg.receivedFrom = peerA
-    ps.rejectMessage(msg)
+    ps.rejectMessage(msg, ERR_TOPIC_VALIDATOR_REJECT)
 
     aScore = ps.score(peerA)
     bScore = ps.score(peerB)
