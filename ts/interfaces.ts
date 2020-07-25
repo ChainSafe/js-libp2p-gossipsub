@@ -52,7 +52,7 @@ interface Book<K, V> {
   get(k: K): V[]
 }
 
-export interface AddressBook extends Book<PeerId, Multiaddr> {
+export interface AddressBook extends Book<PeerId, Multiaddr[]> {
   consumePeerRecord(envelope: Envelope): boolean
   getRawEnvelope(peerId: PeerId): Buffer | undefined
 }

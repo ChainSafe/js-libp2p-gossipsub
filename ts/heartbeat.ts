@@ -227,7 +227,7 @@ export class Heartbeat {
         }
 
         // prune the excess peers
-        peersArray.slice(0, D).forEach(prunePeer)
+        peersArray.slice(D).forEach(prunePeer)
       }
 
       // do we have enough outbound peers?
