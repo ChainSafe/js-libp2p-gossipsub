@@ -142,7 +142,7 @@ class Gossipsub extends BasicPubsub {
 
     // set direct peer addresses in the address book
     _options.directPeers.forEach(p => {
-      p.addrs.forEach(ma => libp2p.peerStore.addressBook.add(p.id, ma))
+      libp2p.peerStore.addressBook.add(p.id, p.addrs)
     })
 
     /**
@@ -653,8 +653,8 @@ class Gossipsub extends BasicPubsub {
       }
 
       this.log('GRAFT: Add mesh link from %s in %s', id, topicID)
+      this.score.graft(id, topicID)
       peersInMesh.add(id)
-      peersInTopic.add(id)
     })
 
     if (!prune.length) {
@@ -677,13 +677,12 @@ class Gossipsub extends BasicPubsub {
         return
       }
       const peersInMesh = this.mesh.get(topicID)
-      const peersInTopic = this.topics.get(topicID)
-      if (!peersInMesh || !peersInTopic) {
+      if (!peersInMesh) {
         return
       }
       this.log('PRUNE: Remove mesh link to %s in %s', id, topicID)
+      this.score.prune(id, topicID)
       peersInMesh.delete(id)
-      peersInTopic.delete(id)
       // is there a backoff specified by the peer? if so obey it
       if (typeof backoff === 'number' && backoff > 0) {
         this._doAddBackoff(id, topicID, backoff * 1000)
@@ -807,8 +806,8 @@ class Gossipsub extends BasicPubsub {
     }
     const toconnect: string[] = []
 
-    peers.forEach(async pi => {
-      if (!pi.peerID || !pi.signedPeerRecord) {
+    await Promise.all(peers.map(async pi => {
+      if (!pi.peerID) {
         return
       }
 
@@ -816,6 +815,11 @@ class Gossipsub extends BasicPubsub {
       const id = p.toB58String()
 
       if (this.peers.has(id)) {
+        return
+      }
+
+      if (!pi.signedPeerRecord) {
+        toconnect.push(id)
         return
       }
 
@@ -842,7 +846,7 @@ class Gossipsub extends BasicPubsub {
       } catch (e) {
         this.log('bogus peer record obtained through px: invalid signature or not a peer record')
       }
-    })
+    }))
 
     if (!toconnect.length) {
       return
@@ -898,7 +902,8 @@ class Gossipsub extends BasicPubsub {
    * @returns {void}
    */
   _connect (id: string): void {
-    this._libp2p.dialProtocol(id, this.multicodecs)
+    this.log('Initiating connection with %s', id)
+    this._libp2p.dialProtocol(PeerId.createFromB58String(id), this.multicodecs)
   }
 
   /**
