@@ -53,7 +53,7 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     // Subscribe to the topic, all nodes
     // Sparsely connect the nodes
     // Publish 100 messages, each from a random node
-    // Assert that the 99 other nodes receive the message
+    // Assert that subscribed nodes receive the message
     const psubs = await createGossipsubs({
       number: 20,
       options: { scoreParams: { IPColocationFactorThreshold: 20 } }
@@ -84,7 +84,7 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     // Subscribe to the topic, all nodes
     // Densely connect the nodes
     // Publish 100 messages, each from a random node
-    // Assert that the 99 other nodes receive the message
+    // Assert that subscribed nodes receive the message
     const psubs = await createGossipsubs({
       number: 20,
       options: { scoreParams: { IPColocationFactorThreshold: 20 } }
@@ -115,10 +115,10 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     // Subscribe to the topic, all nodes except the first
     // Densely connect the nodes
     // Publish 100 messages, each from the first node
-    // Assert that the 99 other nodes receive the message
+    // Assert that subscribed nodes receive the message
     // Subscribe to the topic, first node
     // Publish 100 messages, each from the first node
-    // Assert that the 99 other nodes receive the message
+    // Assert that subscribed nodes receive the message
     const psubs = await createGossipsubs({
       number: 20,
       options: { scoreParams: { IPColocationFactorThreshold: 20 } }
@@ -172,7 +172,7 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     // Subscribe to the topic, all nodes except the first
     // Densely connect the nodes
     // Publish 100 messages, each from the first node
-    // Assert that the 99 other nodes receive the message
+    // Assert that subscribed nodes receive the message
     // Unsubscribe to the topic, all nodes except the first
     // Resubscribe to the topic, all nodes except the first
     // Publish 100 messages, each from the first node
