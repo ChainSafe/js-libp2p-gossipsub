@@ -43,12 +43,12 @@ const checkReceivedMessage = (topic, data, senderIx, msgIx) =>
     })
   })
 
-describe("go-libp2p-pubsub gossipsub tests", () => {
+describe("go-libp2p-pubsub gossipsub tests", function () {
+  this.timeout(100000)
   afterEach(() => {
     sinon.restore()
   })
   it("test sparse gossipsub", async function () {
-    this.timeout(100000)
     // Create 20 gossipsub nodes
     // Subscribe to the topic, all nodes
     // Sparsely connect the nodes
@@ -79,7 +79,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test dense gossipsub", async function () {
-    this.timeout(100000)
     // Create 20 gossipsub nodes
     // Subscribe to the topic, all nodes
     // Densely connect the nodes
@@ -110,7 +109,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test gossipsub fanout", async function () {
-    this.timeout(100000)
     // Create 20 gossipsub nodes
     // Subscribe to the topic, all nodes except the first
     // Densely connect the nodes
@@ -167,7 +165,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test gossipsub fanout maintenance", async function () {
-    this.timeout(100000)
     // Create 20 gossipsub nodes
     // Subscribe to the topic, all nodes except the first
     // Densely connect the nodes
@@ -230,7 +227,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test gossipsub fanout expiry", async function () {
-    this.timeout(100000)
     // Create 10 gossipsub nodes
     // Subscribe to the topic, all nodes except the first
     // Densely connect the nodes
@@ -277,7 +273,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     expect(psubs[0].fanout.size).to.be.eql(0)
   })
   it("test gossipsub gossip", async function () {
-    this.timeout(100000)
     // Create 20 gossipsub nodes
     // Subscribe to the topic, all nodes
     // Densely connect the nodes
@@ -313,7 +308,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     await delay(2000)
   })
   it("test gossipsub gossip propagation", async function () {
-    this.timeout(100000)
     // Create 20 gossipsub nodes
     // Split into two groups, only a single node shared between
     // Densely connect each group to itself
@@ -374,7 +368,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test gossipsub prune", async function () {
-    this.timeout(100000)
     // Create 20 gossipsub nodes
     // Subscribe to the topic, all nodes
     // Densely connect nodes
@@ -413,7 +406,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test gossipsub graft", async function () {
-    this.timeout(100000)
     // Create 20 gossipsub nodes
     // Sparsely connect nodes
     // Subscribe to the topic, all nodes, waiting for each subscription to propagate first
@@ -448,7 +440,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test gossipsub remove peer", async function () {
-    this.timeout(100000)
     // Create 20 gossipsub nodes
     // Subscribe to the topic, all nodes
     // Densely connect nodes
@@ -487,7 +478,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test gossipsub graft prune retry", async function () {
-    this.timeout(100000)
     // Create 10 gossipsub nodes
     // Densely connect nodes
     // Subscribe to 35 topics, all nodes
@@ -522,7 +512,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test gossipsub control piggyback", async function () {
-    this.timeout(100000)
     // Create 10 gossipsub nodes
     // Densely connect nodes
     // Subscribe to a 'flood' topic, all nodes
@@ -582,7 +571,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test mixed gossipsub", async function () {
-    this.timeout(100000)
     // Create 20 gossipsub nodes
     // Create 10 floodsub nodes
     // Subscribe to the topic, all nodes
@@ -627,7 +615,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test gossipsub multihops", async function () {
-    this.timeout(100000)
     // Create 6 gossipsub nodes
     // Connect nodes in a line (eg: 0 -> 1 -> 2 -> 3 ...)
     // Subscribe to the topic, all nodes
@@ -655,7 +642,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     await results
   })
   it("test gossipsub tree topology", async function () {
-    this.timeout(100000)
     // Create 10 gossipsub nodes
     // Connect nodes in a tree, diagram below
     // Subscribe to the topic, all nodes
@@ -709,7 +695,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test gossipsub star topology with signed peer records", async function () {
-    this.timeout(100000)
     // Create 20 gossipsub nodes with lower degrees
     // Connect nodes to a center node, with the center having very low degree
     // Subscribe to the topic, all nodes
@@ -764,7 +749,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test gossipsub direct peers", async function () {
-    this.timeout(100000)
     // Create 3 gossipsub nodes
     // 2 and 3 with direct peer connections with each other
     // Connect nodes: 2 <- 1 -> 3
@@ -850,7 +834,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test gossipsub flood publish", async function () {
-    this.timeout(100000)
     // Create 30 gossipsub nodes
     // Connect in star topology
     // Subscribe to the topic, all nodes
@@ -885,7 +868,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     }
   })
   it("test gossipsub negative score", async function () {
-    this.timeout(100000)
     // Create 20 gossipsub nodes, with scoring params to quickly lower node 0's score
     // Connect densely
     // Subscribe to the topic, all nodes
@@ -932,7 +914,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     await delay(2000)
   })
   it("test gossipsub score validator ex", async function () {
-    this.timeout(100000)
     // Create 3 gossipsub nodes
     // Connect fully
     // Register a topic validator on node 0: ignore 1, reject 2
@@ -984,7 +965,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     expect(psubs[0].score.score(psubs[2].peerId.toB58String())).to.be.lt(0)
   })
   it("test gossipsub piggyback control", async function () {
-    this.timeout(100000)
     const libp2ps = await createPeers({ number: 2 })
     const otherId = libp2ps[1].peerId.toB58String()
     const psub = new Gossipsub(libp2ps[0])
@@ -1018,7 +998,6 @@ describe("go-libp2p-pubsub gossipsub tests", () => {
     expect(rpc.control.prune[1].topicID).to.be.eql(test3)
   })
   it("test gossipsub opportunistic grafting", async function () {
-    this.timeout(100000)
     // Create 50 nodes
     // 10 real gossip nodes, 40 'sybil' nodes, unresponsive nodes
     // Connect some of the real nodes
