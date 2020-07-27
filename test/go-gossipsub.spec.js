@@ -43,7 +43,7 @@ const checkReceivedMessage = (topic, data, senderIx, msgIx) =>
     })
   })
 
-describe.skip("go-libp2p-pubsub gossipsub tests", () => {
+describe("go-libp2p-pubsub gossipsub tests", () => {
   afterEach(() => {
     sinon.restore()
   })
@@ -312,7 +312,7 @@ describe.skip("go-libp2p-pubsub gossipsub tests", () => {
     // and wait for some gossip flushing
     await delay(2000)
   })
-  it.skip("test gossipsub gossip propagation", async function () {
+  it("test gossipsub gossip propagation", async function () {
     this.timeout(100000)
     // Create 20 gossipsub nodes
     // Split into two groups, only a single node shared between
@@ -521,7 +521,7 @@ describe.skip("go-libp2p-pubsub gossipsub tests", () => {
       await results
     }
   })
-  it.skip("test gossipsub control piggyback", async function () {
+  it("test gossipsub control piggyback", async function () {
     this.timeout(100000)
     // Create 10 gossipsub nodes
     // Densely connect nodes
@@ -884,7 +884,7 @@ describe.skip("go-libp2p-pubsub gossipsub tests", () => {
       await results
     }
   })
-  it.skip("test gossipsub negative score", async function () {
+  it("test gossipsub negative score", async function () {
     this.timeout(100000)
     // Create 20 gossipsub nodes, with scoring params to quickly lower node 0's score
     // Connect densely
