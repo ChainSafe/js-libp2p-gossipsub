@@ -33,6 +33,7 @@ const {
 const checkReceivedMessage = (topic, data, senderIx, msgIx) =>
   (psub, receiverIx) => new Promise((resolve, reject) => {
     const t = setTimeout(() => {
+      psub.removeAllListeners()
       expect.fail(`Message never received, sender ${senderIx}, receiver ${receiverIx}, index ${msgIx}`)
       reject()
     }, 10000)
