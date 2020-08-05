@@ -7,6 +7,7 @@ const delay = require('delay')
 const PeerId = require('peer-id')
 const errcode = require('err-code')
 const sinon = require('sinon')
+const { EventEmitter } = require('events')
 
 const Floodsub = require('libp2p-floodsub')
 const Gossipsub = require('../src')
@@ -24,6 +25,8 @@ const {
   connectGossipsub
 } = require('./utils')
 
+EventEmitter.defaultMaxListeners = 100
+
 /**
  * Given a topic and data (and debug metadata -- sender index and msg index)
  * Return a function (takes a gossipsub (and receiver index))
@@ -32,19 +35,23 @@ const {
  */
 const checkReceivedMessage = (topic, data, senderIx, msgIx) =>
   (psub, receiverIx) => new Promise((resolve, reject) => {
+    let cb;
     const t = setTimeout(() => {
-      psub.removeAllListeners()
+      psub.off(topic, cb)
       expect.fail(`Message never received, sender ${senderIx}, receiver ${receiverIx}, index ${msgIx}`)
       reject()
     }, 10000)
-    psub.once(topic, (msg) => {
-      clearTimeout(t)
-      expect(data).to.deep.equal(msg.data)
-      resolve()
-    })
+    cb = (msg) => {
+      if (data.equals(msg.data)) {
+        clearTimeout(t)
+        psub.off(topic, cb)
+        resolve()
+      }
+    }
+    psub.on(topic, cb)
   })
 
-describe("go-libp2p-pubsub gossipsub tests", function () {
+describe.only("go-libp2p-pubsub gossipsub tests", function () {
   this.timeout(100000)
   afterEach(() => {
     sinon.restore()
@@ -67,6 +74,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // wait for heartbeats to build mesh
     await delay(2000)
 
+    let sendRecv = []
     for (let i = 0; i < 100; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
@@ -75,9 +83,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
   })
   it("test dense gossipsub", async function () {
     // Create 20 gossipsub nodes
@@ -97,6 +106,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // wait for heartbeats to build mesh
     await delay(2000)
 
+    let sendRecv = []
     for (let i = 0; i < 100; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
@@ -105,9 +115,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
   })
   it("test gossipsub fanout", async function () {
     // Create 20 gossipsub nodes
@@ -130,6 +141,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // wait for heartbeats to build mesh
     await delay(2000)
 
+    let sendRecv = []
     for (let i = 0; i < 100; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
 
@@ -141,15 +153,17 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
 
     psubs[0].subscribe(topic)
 
     // wait for a heartbeat
     await delay(1000)
 
+    sendRecv = []
     for (let i = 0; i < 100; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
 
@@ -161,9 +175,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
   })
   it("test gossipsub fanout maintenance", async function () {
     // Create 20 gossipsub nodes
@@ -187,6 +202,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // wait for heartbeats to build mesh
     await delay(2000)
 
+    let sendRecv = []
     for (let i = 0; i < 100; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
 
@@ -198,9 +214,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
 
     psubs.slice(1).forEach(ps => ps.unsubscribe(topic))
 
@@ -212,6 +229,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // wait for heartbeats
     await delay(2000)
 
+    sendRecv = []
     for (let i = 0; i < 100; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
 
@@ -223,9 +241,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
   })
   it("test gossipsub fanout expiry", async function () {
     // Create 10 gossipsub nodes
@@ -252,6 +271,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // wait for heartbeats to build mesh
     await delay(2000)
 
+    let sendRecv = []
     for (let i = 0; i < 5; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
 
@@ -262,9 +282,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
 
     expect(psubs[0].fanout.size).to.be.gt(0)
 
@@ -334,6 +355,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // wait for heartbeats to build mesh
     await delay(2000)
 
+    let sendRecv = []
     for (let i = 0; i < 10; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = 0
@@ -341,9 +363,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
         group1.slice(1)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
 
     await delay(100)
 
@@ -393,6 +416,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // wait a bit to take effect
     await delay(100)
 
+    let sendRecv = []
     for (let i = 0; i < 100; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
@@ -402,9 +426,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j+5 !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
   })
   it("test gossipsub graft", async function () {
     // Create 20 gossipsub nodes
@@ -428,6 +453,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     await delay(1000)
 
+    let sendRecv = []
     for (let i = 0; i < 100; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
@@ -436,9 +462,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
   })
   it("test gossipsub remove peer", async function () {
     // Create 20 gossipsub nodes
@@ -466,6 +493,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // wait a heartbeat
     await delay(1000)
 
+    let sendRecv = []
     for (let i = 0; i < 100; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * (psubs.length - 5))
@@ -474,9 +502,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs.slice(5)[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs.slice(5)[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
   })
   it("test gossipsub graft prune retry", async function () {
     // Create 10 gossipsub nodes
@@ -559,6 +588,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     await backgroundFlood
 
     // and test that we have functional overlays
+    let sendRecv = []
     for (let i = 0; i < 5; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
@@ -567,9 +597,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic+i, msg, owner, i))
       )
-      await psubs[owner].publish(topic+i, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic+i, msg))
+      sendRecv.push(esults)
     }
+    await Promise.all(sendRecv)
   })
   it("test mixed gossipsub", async function () {
     // Create 20 gossipsub nodes
@@ -603,6 +634,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // wait for heartbeats to build mesh
     await delay(2000)
 
+    let sendRecv = []
     for (let i = 0; i < 100; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
@@ -611,9 +643,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
   })
   it("test gossipsub multihops", async function () {
     // Create 6 gossipsub nodes
@@ -684,6 +717,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     expectSet(new Set(psubs[1].peers.keys()), [psubs[0].peerId.toB58String(), psubs[2].peerId.toB58String(), psubs[4].peerId.toB58String()])
     expectSet(new Set(psubs[2].peers.keys()), [psubs[1].peerId.toB58String(), psubs[3].peerId.toB58String()])
 
+    let sendRecv = []
     for (const owner of [9, 3]) {
       const msg = Buffer.from(`${owner} its not a flooooood ${owner}`)
       const results = Promise.all(
@@ -691,9 +725,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, owner))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
   })
   it("test gossipsub star topology with signed peer records", async function () {
     // Create 20 gossipsub nodes with lower degrees
@@ -737,6 +772,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     })
 
     // send a message from each peer and assert it was propagated
+    let sendRecv = []
     for (let i = 0; i < psubs.length; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = i
@@ -745,9 +781,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
   })
   it("test gossipsub direct peers", async function () {
     // Create 3 gossipsub nodes
@@ -803,6 +840,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     await delay(1000)
 
+    let sendRecv = []
     for (let i = 0; i < 3; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = i
@@ -811,9 +849,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
 
     // disconnect the direct peers to test reconnection
     libp2ps[1].connectionManager.getAll(libp2ps[2].peerId).forEach(c => c.close())
@@ -822,6 +861,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     expect(libp2ps[1].connectionManager.get(libp2ps[2].peerId)).to.be.truthy
 
+    sendRecv = []
     for (let i = 0; i < 3; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = i
@@ -830,9 +870,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
   })
   it("test gossipsub flood publish", async function () {
     // Create 30 gossipsub nodes
@@ -856,6 +897,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     await delay(1000)
 
     // send messages from the star and assert they were received
+    let sendRecv = []
     for (let i = 0; i < 20; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = 0
@@ -864,9 +906,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           .filter((psub, j) => j !== owner)
           .map(checkReceivedMessage(topic, msg, owner, i))
       )
-      await psubs[owner].publish(topic, msg)
-      await results
+      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push(results)
     }
+    await Promise.all(sendRecv)
   })
   it("test gossipsub negative score", async function () {
     // Create 20 gossipsub nodes, with scoring params to quickly lower node 0's score
@@ -906,11 +949,13 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       expect(m.receivedFrom).to.not.equal(libp2ps[0].peerId.toB58String())
     }))
 
+    let sendRecv = []
     for (let i = 0; i < 20; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = i
-      await psubs[owner].publish(topic, msg)
+      sendRecv.push(psubs[owner].publish(topic, msg))
     }
+    await Promise.all(sendRecv)
 
     await delay(2000)
   })
