@@ -1,11 +1,13 @@
 'use strict'
 /* eslint-env mocha */
 /* eslint max-nested-callbacks: ["error", 5] */
-const { Buffer } = require('buffer')
+
 const chai = require('chai')
 chai.use(require('dirty-chai'))
 const expect = chai.expect
 const sinon = require('sinon')
+const uint8ArrayFromString = require('uint8arrays/from-string')
+const uint8ArrayEquals = require('uint8arrays/equals')
 
 const { utils } = require('libp2p-pubsub')
 const {
@@ -30,7 +32,7 @@ describe('Pubsub', () => {
     it('should sign messages on publish', async () => {
       sinon.spy(gossipsub, '_publish')
 
-      await gossipsub.publish('signing-topic', Buffer.from('hello'))
+      await gossipsub.publish('signing-topic', uint8ArrayFromString('hello'))
 
       // Get the first message sent to _publish, and validate it
       const signedMessage = gossipsub._publish.getCall(0).lastArg[0]
@@ -51,7 +53,7 @@ describe('Pubsub', () => {
         subscriptions: [],
         msgs: [{
           from: gossipsub.peerId.id,
-          data: Buffer.from('an unsigned message'),
+          data: uint8ArrayFromString('an unsigned message'),
           seqno: utils.randomSeqno(),
           topicIDs: [topic]
         }]
@@ -74,7 +76,7 @@ describe('Pubsub', () => {
       const topic = 'my-topic'
       const signedMessage = await gossipsub._buildMessage({
         from: gossipsub.peerId.id,
-        data: Buffer.from('an unsigned message'),
+        data: uint8ArrayFromString('an unsigned message'),
         seqno: utils.randomSeqno(),
         topicIDs: [topic]
       })
@@ -105,7 +107,7 @@ describe('Pubsub', () => {
         subscriptions: [],
         msgs: [{
           from: gossipsub.peerId.id,
-          data: Buffer.from('an unsigned message'),
+          data: uint8ArrayFromString('an unsigned message'),
           seqno: utils.randomSeqno(),
           topicIDs: [topic]
         }]
@@ -134,7 +136,7 @@ describe('Pubsub', () => {
 
       // Set a trivial topic validator
       gossipsub.topicValidators.set(filteredTopic, (topic, peer, message) => {
-        return message.data.equals(Buffer.from('a message'))
+        return uint8ArrayEquals(message.data, uint8ArrayFromString('a message'))
       })
 
       // valid case
@@ -142,7 +144,7 @@ describe('Pubsub', () => {
         subscriptions: [],
         msgs: [{
           from: gossipsub.peerId.id,
-          data: Buffer.from('a message'),
+          data: uint8ArrayFromString('a message'),
           seqno: utils.randomSeqno(),
           topicIDs: [filteredTopic]
         }]
@@ -158,7 +160,7 @@ describe('Pubsub', () => {
         subscriptions: [],
         msgs: [{
           from: gossipsub.peerId.id,
-          data: Buffer.from('a different message'),
+          data: uint8ArrayFromString('a different message'),
           seqno: utils.randomSeqno(),
           topicIDs: [filteredTopic]
         }]
@@ -177,7 +179,7 @@ describe('Pubsub', () => {
         subscriptions: [],
         msgs: [{
           from: gossipsub.peerId.id,
-          data: Buffer.from('a different message'),
+          data: uint8ArrayFromString('a different message'),
           seqno: utils.randomSeqno(),
           topicIDs: [filteredTopic]
         }]

@@ -1,11 +1,12 @@
 /* eslint-env mocha */
 'use strict'
 
-const { Buffer } = require('buffer')
 const chai = require('chai')
 chai.use(require('dirty-chai'))
 chai.use(require('chai-spies'))
 const expect = chai.expect
+const uint8ArrayFromString = require('uint8arrays/from-string')
+
 
 const { multicodec } = require('../src')
 
@@ -151,7 +152,7 @@ describe('2 nodes', () => {
       const promise = new Promise((resolve) => nodes[1].once(topic, resolve))
       nodes[0].once(topic, (m) => shouldNotHappen)
 
-      nodes[0].publish(topic, Buffer.from('hey'))
+      nodes[0].publish(topic, uint8ArrayFromString('hey'))
 
       const msg = await promise
 
@@ -165,7 +166,7 @@ describe('2 nodes', () => {
       const promise = new Promise((resolve) => nodes[0].once(topic, resolve))
       nodes[1].once(topic, shouldNotHappen)
 
-      nodes[1].publish(topic, Buffer.from('banana'))
+      nodes[1].publish(topic, uint8ArrayFromString('banana'))
 
       const msg = await promise
 
@@ -185,7 +186,7 @@ describe('2 nodes', () => {
       function receivedMsg (msg) {
         expect(msg.data.toString()).to.equal('banana')
         expect(msg.from).to.be.eql(nodes[1].peerId.toB58String())
-        expect(Buffer.isBuffer(msg.seqno)).to.be.true()
+        expect(msg.seqno).to.be.a('Uint8Array')
         expect(msg.topicIDs).to.be.eql([topic])
 
         if (++counter === 10) {
@@ -196,7 +197,7 @@ describe('2 nodes', () => {
       }
 
       Array.from({ length: 10 }).forEach(() => {
-        nodes[1].publish(topic, Buffer.from('banana'))
+        nodes[1].publish(topic, uint8ArrayFromString('banana'))
       })
     })
 
@@ -210,7 +211,7 @@ describe('2 nodes', () => {
       function receivedMsg (msg) {
         expect(msg.data.toString()).to.equal('banana')
         expect(msg.from).to.be.eql(nodes[1].peerId.toB58String())
-        expect(Buffer.isBuffer(msg.seqno)).to.be.true()
+        expect(msg.seqno).to.be.a('Uint8Array')
         expect(msg.topicIDs).to.be.eql([topic])
 
         if (++counter === 10) {
@@ -222,7 +223,7 @@ describe('2 nodes', () => {
 
       const msgs = []
       Array.from({ length: 10 }).forEach(() => {
-        msgs.push(Buffer.from('banana'))
+        msgs.push(uint8ArrayFromString('banana'))
       })
       nodes[1].publish(topic, msgs)
     })
@@ -281,8 +282,8 @@ describe('2 nodes', () => {
         }, 100)
       })
 
-      nodes[1].publish('Z', Buffer.from('banana'))
-      nodes[0].publish('Z', Buffer.from('banana'))
+      nodes[1].publish('Z', uint8ArrayFromString('banana'))
+      nodes[0].publish('Z', uint8ArrayFromString('banana'))
 
       try {
         await promise

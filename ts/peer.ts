@@ -10,10 +10,10 @@ export interface Peer {
   protocols: string[]
   conn: Connection
   topics: Set<string>
-  stream: Pushable<Buffer>
+  stream: Pushable<Uint8Array>
   readonly isConnected: boolean
   readonly isWritable: boolean
-  write (buf: Buffer): void
+  write (buf: Uint8Array): void
   attachConnection (conn: Connection): void
   sendSubscriptions (topics: string[]): void
   sendUnsubscriptions (topics: string[]): void

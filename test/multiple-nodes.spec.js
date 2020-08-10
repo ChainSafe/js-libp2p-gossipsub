@@ -1,11 +1,12 @@
 /* eslint-env mocha */
 /* eslint max-nested-callbacks: ["error", 8] */
 'use strict'
-const { Buffer } = require('buffer')
+
 const chai = require('chai')
 chai.use(require('dirty-chai'))
 const expect = chai.expect
 const promisify = require('promisify-es6')
+const uint8ArrayFromString = require('uint8arrays/from-string')
 
 const { GossipsubID: multicodec } = require('../src/constants')
 const {
@@ -192,7 +193,7 @@ describe('multiple nodes (more than 2)', () => {
           let msgB = new Promise((resolve) => b.once('Z', resolve))
           let msgC = new Promise((resolve) => c.once('Z', resolve))
 
-          a.publish('Z', Buffer.from('hey'))
+          a.publish('Z', uint8ArrayFromString('hey'))
           msgB = await msgB
           msgC = await msgC
 
@@ -222,7 +223,7 @@ describe('multiple nodes (more than 2)', () => {
             })
           })
 
-          a.publish('Z', [Buffer.from('hey'), Buffer.from('hey')])
+          a.publish('Z', [uint8ArrayFromString('hey'), uint8ArrayFromString('hey')])
           msgB = await msgB
           msgC = await msgC
 
@@ -318,7 +319,7 @@ describe('multiple nodes (more than 2)', () => {
         let msgA = new Promise((resolve) => a.once('Z', resolve))
         let msgC = new Promise((resolve) => c.once('Z', resolve))
 
-        b.publish('Z', Buffer.from('hey'))
+        b.publish('Z', uint8ArrayFromString('hey'))
         msgA = await msgA
         msgC = await msgC
 
@@ -460,7 +461,7 @@ describe('multiple nodes (more than 2)', () => {
         let msgE = new Promise((resolve) => e.once('Z', resolve))
 
         const msg = 'hey from c'
-        c.publish('Z', Buffer.from(msg))
+        c.publish('Z', uint8ArrayFromString(msg))
 
         msgA = await msgA
         msgB = await msgB

@@ -31,17 +31,17 @@ export interface Message {
    *
    * Note: This is not necessarily the peer who sent the RPC this message is contained in
    */
-  from?: Buffer
+  from?: Uint8Array
   /**
    * Opaque blob of data
    */
-  data?: Buffer
+  data?: Uint8Array
   /**
    * 64-bit big-endian uint
    *
    * No two messages on a topic from the same peer should have the same seqno value
    */
-  seqno?: Buffer
+  seqno?: Uint8Array
   /**
    * Set of topics being published to
    */
@@ -52,11 +52,11 @@ export interface Message {
    * The signature is computed over the marshalled message protobuf excluding the key field
    * The protobuf bloc is prefixed by the string `libp2p-pubsub:` before signing
    */
-  signature?: Buffer
+  signature?: Uint8Array
   /**
    * Signing key
    */
-  key?: Buffer
+  key?: Uint8Array
 }
 
 type Overwrite<T1, T2> = {
@@ -126,8 +126,8 @@ export interface RPC {
 }
 
 interface ProtoCodec<T> {
-  encode(obj: T): Buffer
-  decode(buf: Buffer): T
+  encode(obj: T): Uint8Array
+  decode(buf: Uint8Array): T
 }
 
 export const RPCCodec = rpcProto.RPC as ProtoCodec<RPC>

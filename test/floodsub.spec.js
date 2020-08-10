@@ -1,9 +1,9 @@
 /* eslint-env mocha */
 'use strict'
 
-const { Buffer } = require('buffer')
 const chai = require('chai')
 chai.use(require('dirty-chai'))
+const uint8ArrayFromString = require('uint8arrays/from-string')
 
 const expect = chai.expect
 const times = require('lodash/times')
@@ -228,7 +228,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       const promise = new Promise((resolve) => nodeFs.once(topic, resolve))
       nodeGs.once(topic, (m) => shouldNotHappen)
 
-      nodeGs.publish(topic, Buffer.from('hey'))
+      nodeGs.publish(topic, uint8ArrayFromString('hey'))
 
       promise.then((msg) => {
         expect(msg.data.toString()).to.equal('hey')
@@ -242,7 +242,7 @@ describe('gossipsub fallbacks to floodsub', () => {
     it('Publish to a topic - nodeFs', async () => {
       const promise = new Promise((resolve) => nodeGs.once(topic, resolve))
 
-      nodeFs.publish(topic, Buffer.from('banana'))
+      nodeFs.publish(topic, uint8ArrayFromString('banana'))
 
       const msg = await promise
 
@@ -263,7 +263,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       function receivedMsg (msg) {
         expect(msg.data.toString()).to.equal('banana ' + counter)
         expect(msg.from).to.be.eql(nodeGs.peerId.toB58String())
-        expect(Buffer.isBuffer(msg.seqno)).to.be.true()
+        expect(msg.seqno).to.be.a('Uint8Array')
         expect(msg.topicIDs).to.be.eql([topic])
 
         if (++counter === 10) {
@@ -273,7 +273,7 @@ describe('gossipsub fallbacks to floodsub', () => {
         }
       }
 
-      times(10, (index) => nodeGs.publish(topic, Buffer.from('banana ' + index)))
+      times(10, (index) => nodeGs.publish(topic, uint8ArrayFromString('banana ' + index)))
     })
 
     it('Publish 10 msg to a topic as array', (done) => {
@@ -290,7 +290,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       function receivedMsg (msg) {
         expect(msg.data.toString()).to.equal('banana ' + counter)
         expect(msg.from).to.be.eql(nodeGs.peerId.toB58String())
-        expect(Buffer.isBuffer(msg.seqno)).to.be.true()
+        expect(msg.seqno).to.be.a('Uint8Array')
         expect(msg.topicIDs).to.be.eql([topic])
 
         if (++counter === 10) {
@@ -301,7 +301,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       }
 
       const msgs = []
-      times(10, (index) => msgs.push(Buffer.from('banana ' + index)))
+      times(10, (index) => msgs.push(uint8ArrayFromString('banana ' + index)))
       nodeGs.publish(topic, msgs)
     })
   })
@@ -384,8 +384,8 @@ describe('gossipsub fallbacks to floodsub', () => {
         }, 100)
       })
 
-      nodeFs.publish('Z', Buffer.from('banana'))
-      nodeGs.publish('Z', Buffer.from('banana'))
+      nodeFs.publish('Z', uint8ArrayFromString('banana'))
+      nodeGs.publish('Z', uint8ArrayFromString('banana'))
 
       try {
         await promise

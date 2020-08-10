@@ -1,13 +1,14 @@
 /* eslint-env mocha */
 /* eslint-disable no-unused-expressions */
 'use strict'
-const { Buffer } = require('buffer')
+
 const chai = require('chai')
 const dirtyChai = require('dirty-chai')
 chai.use(dirtyChai)
 const chaiSpies = require('chai-spies')
 chai.use(chaiSpies)
 const expect = chai.expect
+const uint8ArrayFromString = require('uint8arrays/from-string')
 
 const { MessageCache } = require('../src/messageCache')
 const { utils } = require('libp2p-pubsub')
@@ -24,7 +25,7 @@ describe('Testing Message Cache Operations', () => {
     const makeTestMessage = (n) => {
       return {
         from: 'test',
-        data: Buffer.from(n.toString()),
+        data: uint8ArrayFromString(n.toString()),
         seqno: utils.randomSeqno(),
         topicIDs: ['test']
       }
