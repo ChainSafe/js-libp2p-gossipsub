@@ -38,8 +38,7 @@ const checkReceivedMessage = (topic, data, senderIx, msgIx) =>
     let cb;
     const t = setTimeout(() => {
       psub.off(topic, cb)
-      expect.fail(`Message never received, sender ${senderIx}, receiver ${receiverIx}, index ${msgIx}`)
-      reject()
+      reject(new Error(`Message never received, sender ${senderIx}, receiver ${receiverIx}, index ${msgIx}`))
     }, 10000)
     cb = (msg) => {
       if (data.equals(msg.data)) {
@@ -223,20 +222,23 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
     await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
 
     let sendRecv = []
-    for (let i = 0; i < 100; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+    const sendMessages = () => {
+      for (let i = 0; i < 100; i++) {
+        const msg = Buffer.from(`${i} its not a flooooood ${i}`)
 
-      const owner = 0
+        const owner = 0
 
-      const results = Promise.all(
-        psubs
-          .slice(1)
-          .filter((psub, j) => j !== owner)
-          .map(checkReceivedMessage(topic, msg, owner, i))
-      )
-      sendRecv.push(psubs[owner].publish(topic, msg))
-      sendRecv.push(results)
+        const results = Promise.all(
+          psubs
+            .slice(1)
+            .filter((psub, j) => j !== owner)
+            .map(checkReceivedMessage(topic, msg, owner, i))
+        )
+        sendRecv.push(psubs[owner].publish(topic, msg))
+        sendRecv.push(results)
+      }
     }
+    sendMessages()
     await Promise.all(sendRecv)
 
     psubs.slice(1).forEach(ps => ps.unsubscribe(topic))
@@ -250,20 +252,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
     await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
 
     sendRecv = []
-    for (let i = 0; i < 100; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
-
-      const owner = 0
-
-      const results = Promise.all(
-        psubs
-          .slice(1)
-          .filter((psub, j) => j !== owner)
-          .map(checkReceivedMessage(topic, msg, owner, i))
-      )
-      sendRecv.push(psubs[owner].publish(topic, msg))
-      sendRecv.push(results)
-    }
+    sendMessages()
     await Promise.all(sendRecv)
   })
   it("test gossipsub fanout expiry", async function () {
@@ -365,7 +354,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
     const topic = 'foobar'
     const group1 = psubs.slice(0, GossipsubD + 1)
     const group2 = psubs.slice(GossipsubD + 1)
-    group2.push(psubs[0])
+    group2.unshift(psubs[0])
 
     await denseConnect(group1)
     await denseConnect(group2)
@@ -373,7 +362,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
     group1.slice(1).forEach(ps => ps.subscribe(topic))
 
     // wait for heartbeats to build mesh
-    await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
+    await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 3)))
 
     let sendRecv = []
     for (let i = 0; i < 10; i++) {
@@ -394,7 +383,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
 
     const received = Array.from({ length: psubs.length - (GossipsubD + 1) }, () => ([]))
     const results = Promise.all(
-      psubs.slice(GossipsubD+1).map((ps, ix) => {
+      group2.slice(1).map((ps, ix) => new Promise((resolve, reject) => {
         const t = setTimeout(reject, 10000)
         ps.on(topic, (m) => {
           received[ix].push(m)
@@ -403,7 +392,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
             resolve()
           }
         })
-      })
+      }))
     )
     try {
       await results
@@ -411,7 +400,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
       expect.fail(e)
     }
   })
-  it.only("test gossipsub prune", async function () {
+  it("test gossipsub prune", async function () {
     // Create 20 gossipsub nodes
     // Subscribe to the topic, all nodes
     // Densely connect nodes
@@ -561,7 +550,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
       await results
     }
   })
-  it("test gossipsub control piggyback", async function () {
+  it.skip("test gossipsub control piggyback", async function () {
     // Create 10 gossipsub nodes
     // Densely connect nodes
     // Subscribe to a 'flood' topic, all nodes
