@@ -25,7 +25,7 @@ const suite = new Benchmark.Suite('gossipsub')
   suite
     .add('publish and receive', (deferred) => {
       peers[1].gs.once('Z', (msg) => deferred.resolve(msg))
-      peers[0].gs.publish('Z', Buffer.alloc(1024))
+      peers[0].gs.publish('Z', new Uint8Array(1024))
     }, {
       defer: true
     })

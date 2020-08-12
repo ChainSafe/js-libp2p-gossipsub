@@ -1,11 +1,12 @@
 /* eslint-env mocha */
 'use strict'
 
-const { Buffer } = require('buffer')
 const chai = require('chai')
 chai.use(require('dirty-chai'))
 chai.use(require('chai-spies'))
 const expect = chai.expect
+const uint8ArrayFromString = require('uint8arrays/from-string')
+
 
 const { GossipsubID: multicodec } = require('../src/constants')
 const { createGossipsubConnectedNodes } = require('./utils')
@@ -43,7 +44,7 @@ describe('gossip incoming', () => {
       const promise = new Promise((resolve) => nodes[2].once(topic, resolve))
       nodes[0].once(topic, (m) => shouldNotHappen)
 
-      nodes[0].publish(topic, Buffer.from('hey'))
+      nodes[0].publish(topic, uint8ArrayFromString('hey'))
 
       const msg = await promise
 
@@ -80,7 +81,7 @@ describe('gossip incoming', () => {
     it('should not gossip incoming messages', async () => {
       nodes[2].once(topic, (m) => shouldNotHappen)
 
-      nodes[0].publish(topic, Buffer.from('hey'))
+      nodes[0].publish(topic, uint8ArrayFromString('hey'))
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
 

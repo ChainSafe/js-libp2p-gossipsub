@@ -1,9 +1,9 @@
 'use strict'
 /* eslint-env mocha */
 
-const { Buffer } = require('buffer')
 const { expect } = require('chai')
 const sinon = require('sinon')
+const uint8ArrayFromString = require('uint8arrays/from-string')
 
 const { GossipsubID: multicodec, GossipsubDhi } = require('../src/constants')
 const {
@@ -42,7 +42,7 @@ describe('gossip', () => {
     // set spy
     sinon.spy(nodeA, 'log')
 
-    await nodeA.publish(topic, Buffer.from('hey'))
+    await nodeA.publish(topic, uint8ArrayFromString('hey'))
 
     await new Promise((resolve) => nodeA.once('gossipsub:heartbeat', resolve))
 
@@ -84,7 +84,7 @@ describe('gossip', () => {
     // manually add control message to be sent to peerB
     nodeA.control.set(peerB, { graft: [{ topicID: topic }] })
 
-    await nodeA.publish(topic, Buffer.from('hey'))
+    await nodeA.publish(topic, uint8ArrayFromString('hey'))
 
     await new Promise((resolve) => nodeA.once('gossipsub:heartbeat', resolve))
     expect(nodeB.log.callCount).to.be.gt(1)
