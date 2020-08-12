@@ -5,12 +5,12 @@ import { DuplexIterableStream } from './interfaces'
 export interface PeerStreams {
   id: PeerId
   protocol: string
-  outboundStream: Pushable<Buffer>
+  outboundStream: Pushable<Uint8Array>
   inboundStream: DuplexIterableStream
   readonly isReadable: boolean
   readonly isWritable: boolean
   attachInboundConnection (stream: DuplexIterableStream): void
   attachOutboundConnection (stream: DuplexIterableStream): Promise<void>
-  write (buf: Buffer): void
+  write (buf: Uint8Array): void
   close (): void
 }

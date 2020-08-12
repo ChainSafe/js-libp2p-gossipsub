@@ -53,7 +53,7 @@ gsub.on('fruit', (data) => {
 })
 gsub.subscribe('fruit')
 
-gsub.publish('fruit', new Buffer('banana'))
+gsub.publish('fruit', new TextEncoder().encode('banana'))
 ```
 
 ## API
