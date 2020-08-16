@@ -352,11 +352,11 @@ class Gossipsub extends BasicPubsub {
     const prune = this._handleGraft(id, controlMsg.graft)
     this._handlePrune(id, controlMsg.prune)
 
-    if (!iwant || !ihave || !prune) {
+    if (!iwant && !ihave && !prune) {
       return
     }
 
-    const outRpc = createGossipRpc(ihave, { iwant: [iwant], prune })
+    const outRpc = createGossipRpc(ihave, { iwant: iwant ? [iwant] : [], prune })
     this._sendRpc(id, outRpc)
   }
 
@@ -464,6 +464,9 @@ class Gossipsub extends BasicPubsub {
    * @returns {ControlIWant}
    */
   _handleIHave (id: string, ihave: ControlIHave[]): ControlIWant | undefined {
+    if (!ihave.length) {
+      return
+    }
     // we ignore IHAVE gossip from any peer whose score is below the gossips threshold
     const score = this.score.score(id)
     if (score < this._options.scoreThresholds.gossipThreshold) {
@@ -546,6 +549,9 @@ class Gossipsub extends BasicPubsub {
    * @returns {Array<Message>}
    */
   _handleIWant (id: string, iwant: ControlIWant[]): Message[] | undefined {
+    if (!iwant.length) {
+      return
+    }
     // we don't respond to IWANT requests from any per whose score is below the gossip threshold
     const score = this.score.score(id)
     if (score < this._options.scoreThresholds.gossipThreshold) {
@@ -1028,6 +1034,10 @@ class Gossipsub extends BasicPubsub {
    * @returns {void}
    */
   async _publish (msg: InMessage): Promise<void> {
+    // ensure that any operations performed on the message will include the signature
+    const outMsg = await this._buildMessage(msg)
+    msg = utils.normalizeInRpcMessage(outMsg)
+
     const msgID = this.getMsgId(msg)
     // put in seen cache
     this.seenCache.put(msgID)
@@ -1099,9 +1109,7 @@ class Gossipsub extends BasicPubsub {
       }
     })
     // Publish messages to peers
-    const rpc = createGossipRpc([
-      await this._buildMessage(msg)
-    ])
+    const rpc = createGossipRpc([outMsg])
     tosend.forEach((id) => {
       if (id === msg.from) {
         return
