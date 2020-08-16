@@ -352,11 +352,11 @@ class Gossipsub extends BasicPubsub {
     const prune = this._handleGraft(id, controlMsg.graft)
     this._handlePrune(id, controlMsg.prune)
 
-    if (!iwant || !ihave || !prune) {
+    if (!iwant.length && !ihave.length && !prune.length) {
       return
     }
 
-    const outRpc = createGossipRpc(ihave, { iwant: [iwant], prune })
+    const outRpc = createGossipRpc(ihave, { iwant, prune })
     this._sendRpc(id, outRpc)
   }
 
@@ -463,7 +463,10 @@ class Gossipsub extends BasicPubsub {
    * @param {Array<ControlIHave>} ihave
    * @returns {ControlIWant}
    */
-  _handleIHave (id: string, ihave: ControlIHave[]): ControlIWant | undefined {
+  _handleIHave (id: string, ihave: ControlIHave[]): ControlIWant[] {
+    if (!ihave.length) {
+      return []
+    }
     // we ignore IHAVE gossip from any peer whose score is below the gossips threshold
     const score = this.score.score(id)
     if (score < this._options.scoreThresholds.gossipThreshold) {
@@ -471,7 +474,7 @@ class Gossipsub extends BasicPubsub {
         'IHAVE: ignoring peer %s with score below threshold [ score = %d ]',
         id, score
       )
-      return
+      return []
     }
 
     // IHAVE flood protection
@@ -482,7 +485,7 @@ class Gossipsub extends BasicPubsub {
         'IHAVE: peer %s has advertised too many times (%d) within this heartbeat interval; ignoring',
         id, peerhave
       )
-      return
+      return []
     }
 
     const iasked = this.iasked.get(id) || 0
@@ -491,7 +494,7 @@ class Gossipsub extends BasicPubsub {
         'IHAVE: peer %s has already advertised too many messages (%d); ignoring',
         id, iasked
       )
-      return
+      return []
     }
 
     const iwant = new Set<string>()
@@ -510,7 +513,7 @@ class Gossipsub extends BasicPubsub {
     })
 
     if (!iwant.size) {
-      return
+      return []
     }
 
     let iask = iwant.size
@@ -533,9 +536,9 @@ class Gossipsub extends BasicPubsub {
 
     this.gossipTracer.addPromise(id, iwantList)
 
-    return {
+    return [{
       messageIDs: iwantList
-    }
+    }]
   }
 
   /**
@@ -545,7 +548,10 @@ class Gossipsub extends BasicPubsub {
    * @param {Array<ControlIWant>} iwant
    * @returns {Array<Message>}
    */
-  _handleIWant (id: string, iwant: ControlIWant[]): Message[] | undefined {
+  _handleIWant (id: string, iwant: ControlIWant[]): Message[] {
+    if (!iwant.length) {
+      return []
+    }
     // we don't respond to IWANT requests from any per whose score is below the gossip threshold
     const score = this.score.score(id)
     if (score < this._options.scoreThresholds.gossipThreshold) {
@@ -553,7 +559,7 @@ class Gossipsub extends BasicPubsub {
         'IWANT: ignoring peer %s with score below threshold [score = %d]',
         id, score
       )
-      return
+      return []
     }
     // @type {Map<string, Message>}
     const ihave = new Map<string, InMessage>()
@@ -568,7 +574,7 @@ class Gossipsub extends BasicPubsub {
     })
 
     if (!ihave.size) {
-      return
+      return []
     }
 
     this.log('IWANT: Sending %d messages to %s', ihave.size, id)
@@ -582,7 +588,7 @@ class Gossipsub extends BasicPubsub {
    * @param {Array<ControlGraft>} graft
    * @return {Array<ControlPrune>}
    */
-  _handleGraft (id: string, graft: ControlGraft[]): ControlPrune[] | undefined {
+  _handleGraft (id: string, graft: ControlGraft[]): ControlPrune[] {
     const prune: string[] = []
     const score = this.score.score(id)
     const now = this._now()
@@ -667,7 +673,7 @@ class Gossipsub extends BasicPubsub {
     })
 
     if (!prune.length) {
-      return
+      return []
     }
 
     return prune.map(topic => this._makePrune(id, topic, doPX))
@@ -1028,6 +1034,10 @@ class Gossipsub extends BasicPubsub {
    * @returns {void}
    */
   async _publish (msg: InMessage): Promise<void> {
+    // ensure that any operations performed on the message will include the signature
+    const outMsg = await this._buildMessage(msg)
+    msg = utils.normalizeInRpcMessage(outMsg)
+
     const msgID = this.getMsgId(msg)
     // put in seen cache
     this.seenCache.put(msgID)
@@ -1099,9 +1109,7 @@ class Gossipsub extends BasicPubsub {
       }
     })
     // Publish messages to peers
-    const rpc = createGossipRpc([
-      await this._buildMessage(msg)
-    ])
+    const rpc = createGossipRpc([outMsg])
     tosend.forEach((id) => {
       if (id === msg.from) {
         return
