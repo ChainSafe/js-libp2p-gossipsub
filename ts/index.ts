@@ -546,6 +546,15 @@ class Gossipsub extends BasicPubsub {
    * @returns {Array<Message>}
    */
   _handleIWant (id: string, iwant: ControlIWant[]): Message[] | undefined {
+    // we don't respond to IWANT requests from any per whose score is below the gossip threshold
+    const score = this.score.score(id)
+    if (score < this._options.scoreThresholds.gossipThreshold) {
+      this.log(
+        'IWANT: ignoring peer %s with score below threshold [score = %d]',
+        id, score
+      )
+      return
+    }
     // @type {Map<string, Message>}
     const ihave = new Map<string, InMessage>()
 
