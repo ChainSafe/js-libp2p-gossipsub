@@ -164,6 +164,10 @@ class BasicPubSub extends Pubsub {
 
     if (msgs.length) {
       msgs.forEach(message => {
+        if (!message.topicIDs.some((topic) => this.subscriptions.has(topic))) {
+          this.log('received message we didn\'t subscribe to. Dropping.')
+          return
+        }
         const msg = utils.normalizeInRpcMessage(message, PeerId.createFromB58String(idB58Str))
         this._processRpcMessage(msg)
       })
