@@ -53,12 +53,13 @@ describe('Pubsub', () => {
   })
 
   describe('validate', () => {
+    const topic = 'my-topic'
+
     it('should drop unsigned messages', async () => {
       sinon.spy(gossipsub, '_processRpcMessage')
       sinon.spy(gossipsub, '_publishFrom')
       sinon.stub(gossipsub.peers, 'get').returns({})
 
-      const topic = 'my-topic'
       const peer = new PeerStreams({ id: await PeerId.create() })
       const rpc = {
         subscriptions: [],
@@ -69,8 +70,9 @@ describe('Pubsub', () => {
           topicIDs: [topic]
         }]
       }
-
+      gossipsub.subscribe(topic)
       gossipsub._processRpc(peer.id.toB58String(), peer, rpc)
+      gossipsub.unsubscribe(topic)
 
       return new Promise(resolve => setTimeout(async () => {
         expect(gossipsub._publishFrom.callCount).to.eql(0)
@@ -83,7 +85,6 @@ describe('Pubsub', () => {
       sinon.spy(gossipsub, '_publishFrom')
       sinon.stub(gossipsub.peers, 'get').returns({})
 
-      const topic = 'my-topic'
       const peer = new PeerStreams({ id: await PeerId.create() })
       let signedMessage = {
         from: peer.id.toB58String(),
@@ -98,7 +99,9 @@ describe('Pubsub', () => {
         msgs: [signedMessage]
       }
 
+      gossipsub.subscribe(topic)
       gossipsub._processRpc(peer.id.toB58String(), peer, rpc)
+      gossipsub.unsubscribe(topic)
 
       return new Promise(resolve => setTimeout(async () => {
         expect(gossipsub._publishFrom.callCount).to.eql(1)
@@ -113,7 +116,6 @@ describe('Pubsub', () => {
       // Disable strict signing
       sinon.stub(gossipsub, 'strictSigning').value(false)
 
-      const topic = 'my-topic'
       const peer = new PeerStreams({ id: await PeerId.create() })
       const rpc = {
         subscriptions: [],
@@ -125,7 +127,9 @@ describe('Pubsub', () => {
         }]
       }
 
+      gossipsub.subscribe(topic)
       gossipsub._processRpc(peer.id.toB58String(), peer, rpc)
+      gossipsub.unsubscribe(topic)
 
       return new Promise(resolve => setTimeout(async () => {
         expect(gossipsub._publishFrom.callCount).to.eql(1)
@@ -163,6 +167,7 @@ describe('Pubsub', () => {
       }
 
       // process valid message
+      gossipsub.subscribe(filteredTopic)
       gossipsub._processRpc(peer.id.toB58String(), peer, validRpc)
       await delay(500)
       expect(gossipsub._publishFrom.callCount).to.eql(1)
@@ -199,6 +204,7 @@ describe('Pubsub', () => {
 
       // process previously invalid message, now is valid
       gossipsub._processRpc(peer.id.toB58String(), peer, invalidRpc2)
+      gossipsub.unsubscribe(filteredTopic)
       await delay(500)
       expect(gossipsub._publishFrom.callCount).to.eql(2)
     })
