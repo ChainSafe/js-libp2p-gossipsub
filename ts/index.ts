@@ -883,10 +883,11 @@ class Gossipsub extends BasicPubsub {
    *
    * @override
    * @param {Array<string>} topics
+   * @param {function} [handler]
    * @returns {void}
    */
-  _subscribe (topics: string[]): void {
-    super._subscribe(topics)
+  _subscribe (topics: string[], handler: (msg: any) => void): void {
+    super._subscribe(topics, handler)
     this.join(topics)
   }
 
@@ -895,10 +896,11 @@ class Gossipsub extends BasicPubsub {
    *
    * @override
    * @param {Array<string>} topics
+   * @param {function} [handler]
    * @returns {void}
    */
-  _unsubscribe (topics: string[]): void {
-    super._unsubscribe(topics)
+  _unsubscribe (topics: string[], handler: (msg: any) => void): void {
+    super._unsubscribe(topics, handler)
     this.leave(topics)
   }
 

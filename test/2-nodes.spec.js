@@ -11,46 +11,16 @@ const uint8ArrayFromString = require('uint8arrays/from-string')
 
 
 const { multicodec } = require('../src')
-const Gossipsub = require('../src')
 
 const {
-  createPeer,
   createGossipsubs,
   createConnectedGossipsubs,
   expectSet,
-  startNode,
   stopNode,
   first
 } = require('./utils')
 
 const shouldNotHappen = (msg) => expect.fail()
-
-describe('1 node', () => {
-  describe('basics', () => {
-    let gossipsub
-
-    before(async () => {
-      gossipsub = new Gossipsub(await createPeer({ started: false }))
-    })
-
-    after(() => stopNode(gossipsub))
-
-    it('should mount the pubsub protocol', () => {
-      expect(gossipsub.peers.size).to.be.eql(0)
-      expect(gossipsub.mesh.size).to.eql(0)
-      expect(gossipsub.fanout.size).to.eql(0)
-      expect(gossipsub.lastpub.size).to.eql(0)
-      expect(gossipsub.gossip.size).to.eql(0)
-      expect(gossipsub.control.size).to.eql(0)
-      expect(gossipsub.subscriptions.size).to.eql(0)
-    })
-
-    it('should start a gossipsub successfully', async () => {
-      await startNode(gossipsub)
-      expect(gossipsub.started).to.equal(true)
-    })
-  })
-})
 
 describe('2 nodes', () => {
   describe('basics', () => {

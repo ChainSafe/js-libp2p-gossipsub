@@ -5,9 +5,9 @@ const PeerId = require('peer-id')
 
 const pipe = require('it-pipe')
 
-const Pubsub = require('libp2p-pubsub')
+const Pubsub = require('libp2p-interfaces/src/pubsub')
+const { utils } = require('libp2p-interfaces/src/pubsub')
 
-const { utils } = require('libp2p-pubsub')
 const { RPCCodec } = require('./message')
 
 class BasicPubSub extends Pubsub {
@@ -33,8 +33,7 @@ class BasicPubSub extends Pubsub {
     super({
       debugName,
       multicodecs,
-      peerId: libp2p.peerId,
-      registrar: libp2p.registrar,
+      libp2p,
       ..._options
     })
 
@@ -275,9 +274,10 @@ class BasicPubSub extends Pubsub {
    * Subscribes to topics
    * @override
    * @param {Array<string>|string} topics
+   * @param {function} [handler]
    * @returns {void}
    */
-  subscribe (topics) {
+  subscribe (topics, handler) {
     if (!this.started) {
       throw new Error('Pubsub has not started')
     }
@@ -288,19 +288,22 @@ class BasicPubSub extends Pubsub {
     if (newTopics.length === 0) {
       return
     }
-    this._subscribe(newTopics)
+    this._subscribe(newTopics, handler)
   }
 
   /**
    * Subscribes to topics
-   *
    * @param {Array<string>} topics
+   * @param {function} [handler]
    * @returns {void}
    */
-  _subscribe (topics) {
+  _subscribe (topics, handler) {
     // set subscriptions
     topics.forEach((topic) => {
       this.subscriptions.add(topic)
+
+      // Bind provider handler
+      handler && this.on(topic, handler)
     })
 
     // Broadcast SUBSCRIBE to all peers
@@ -311,9 +314,10 @@ class BasicPubSub extends Pubsub {
    * Leaves a topic
    * @override
    * @param {Array<string>|string} topics
+   * @param {function} [handler]
    * @returns {void}
    */
-  unsubscribe (topics) {
+  unsubscribe (topics, handler) {
     if (!this.started) {
       throw new Error('Pubsub has not started')
     }
@@ -324,19 +328,27 @@ class BasicPubSub extends Pubsub {
     if (unTopics.length === 0) {
       return
     }
-    this._unsubscribe(unTopics)
+    this._unsubscribe(unTopics, handler)
   }
 
   /**
    * Unsubscribes to topics
    *
    * @param {Array<string>} topics
+   * @param {function} [handler]
    * @returns {void}
    */
-  _unsubscribe (topics) {
+  _unsubscribe (topics, handler) {
     // delete subscriptions
     topics.forEach((topic) => {
       this.subscriptions.delete(topic)
+
+      // Remove bind handlers
+      if (!handler) {
+        this.removeAllListeners(topic)
+      } else {
+        this.removeListener(topic, handler)
+      }
     })
 
     // Broadcast UNSUBSCRIBE to all peers ready

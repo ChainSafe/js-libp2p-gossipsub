@@ -11,9 +11,9 @@ const delay = require('delay')
 const uint8ArrayFromString = require('uint8arrays/from-string')
 const uint8ArrayEquals = require('uint8arrays/equals')
 
-const { utils } = require('libp2p-pubsub')
-const PeerStreams = require('libp2p-pubsub/src/peerStreams')
-const { signMessage } = require('libp2p-pubsub/src/message/sign')
+const { utils } = require('libp2p-interfaces/src/pubsub')
+const PeerStreams = require('libp2p-interfaces/src/pubsub/peer-streams')
+const { signMessage } = require('libp2p-interfaces/src/pubsub/message/sign')
 const PeerId = require('peer-id')
 
 const Gossipsub = require('../src')
@@ -36,6 +36,18 @@ describe('Pubsub', () => {
 
   afterEach(() => {
     sinon.restore()
+  })
+
+  describe('basics', () => {
+    it('should mount the pubsub protocol', () => {
+      expect(gossipsub.peers.size).to.be.eql(0)
+      expect(gossipsub.mesh.size).to.eql(0)
+      expect(gossipsub.fanout.size).to.eql(0)
+      expect(gossipsub.lastpub.size).to.eql(0)
+      expect(gossipsub.gossip.size).to.eql(0)
+      expect(gossipsub.control.size).to.eql(0)
+      expect(gossipsub.subscriptions.size).to.eql(0)
+    })
   })
 
   describe('publish', () => {
