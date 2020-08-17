@@ -566,10 +566,19 @@ class Gossipsub extends BasicPubsub {
 
     iwant.forEach(({ messageIDs }) => {
       messageIDs.forEach((msgID) => {
-        const msg = this.messageCache.get(msgID)
-        if (msg) {
-          ihave.set(msgID, msg)
+        const [msg, count] = this.messageCache.getForPeer(msgID)
+        if (!msg) {
+          return
         }
+
+        if (count > constants.GossipsubGossipRetransmission) {
+          this.log(
+            'IWANT: Peer %s has asked for message %s too many times: ignoring request',
+            id, msgID
+          )
+          return
+        }
+        ihave.set(msgID, msg)
       })
     })
 
