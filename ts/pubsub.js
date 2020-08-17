@@ -243,17 +243,9 @@ class BasicPubSub extends Pubsub {
       return
     }
 
-    this._publishFrom(msg)
-  }
-
-  /**
-   * Publish a message sent from a peer
-   * @param {InMessage} msg
-   * @returns {void}
-   */
-  _publishFrom (msg) {
-    // Emit to self
     this._emitMessage(msg)
+
+    this._publish(msg)
   }
 
   /**
@@ -369,13 +361,16 @@ class BasicPubSub extends Pubsub {
 
     const from = this.peerId.toB58String()
 
-    const msgObject = {
+    let msgObject = {
       receivedFrom: from,
       from: from,
       data: message,
       seqno: utils.randomSeqno(),
       topicIDs: topics
     }
+    // ensure that any operations performed on the message will include the signature
+    const outMsg = await this._buildMessage(msgObject)
+    msgObject = utils.normalizeInRpcMessage(outMsg)
 
     // Emit to self if I'm interested and emitSelf enabled
     this._options.emitSelf && this._emitMessage(msgObject)
