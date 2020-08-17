@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-ignore
-import { utils } from 'libp2p-pubsub'
-import { MessageCache } from './message-cache'
+import { utils } from 'libp2p-interfaces/src/pubsub'
+import { MessageCache } from './messageCache'
 import {
   RPCCodec,
   RPC, Message, InMessage,
