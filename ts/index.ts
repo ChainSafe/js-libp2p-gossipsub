@@ -85,6 +85,7 @@ class Gossipsub extends BasicPubsub {
 
   public static multicodec: string = constants.GossipsubIDv11
 
+  // TODO: add remaining props
   /**
    * @param {Libp2p} libp2p
    * @param {Object} [options]
@@ -105,7 +106,7 @@ class Gossipsub extends BasicPubsub {
     options: Partial<GossipInputOptions> = {}
   ) {
     const multicodecs = [constants.GossipsubIDv11, constants.GossipsubIDv10]
-    const _options = {
+    const opts = {
       gossipIncoming: true,
       fallbackToFloodsub: true,
       floodPublish: true,
@@ -123,7 +124,7 @@ class Gossipsub extends BasicPubsub {
     } as GossipOptions
 
     // Also wants to get notified of peers connected using floodsub
-    if (_options.fallbackToFloodsub) {
+    if (opts.fallbackToFloodsub) {
       multicodecs.push(constants.FloodsubID)
     }
 
@@ -131,17 +132,19 @@ class Gossipsub extends BasicPubsub {
       debugName: 'libp2p:gossipsub',
       multicodecs,
       libp2p,
-      options: _options
+      options: opts
     })
+
+    this._options = opts
 
     /**
      * Direct peers
      * @type {Set<string>}
      */
-    this.direct = new Set(_options.directPeers.map(p => p.id.toB58String()))
+    this.direct = new Set(opts.directPeers.map(p => p.id.toB58String()))
 
     // set direct peer addresses in the address book
-    _options.directPeers.forEach(p => {
+    opts.directPeers.forEach(p => {
       libp2p.peerStore.addressBook.add(p.id, p.addrs)
     })
 
@@ -220,6 +223,7 @@ class Gossipsub extends BasicPubsub {
     /**
      * Use the overriden mesgIdFn or the default one.
      */
+    this.defaultMsgIdFn = (msg : InMessage) => utils.msgId(msg.from, msg.seqno)
     this._msgIdFn = options.msgIdFn || this.defaultMsgIdFn
 
     /**
@@ -253,6 +257,28 @@ class Gossipsub extends BasicPubsub {
      * Peer score tracking
      */
     this.score = new PeerScore(this._options.scoreParams, libp2p.connectionManager, this._msgIdFn)
+  }
+
+  /**
+   * Decode a Uint8Array into an RPC object
+   * Overrided to use an extended protocol-specific protobuf decoder
+   * @override
+   * @param {Buffer} bytes
+   * @returns {RPC}
+   */
+  _decodeRpc (bytes: Buffer) { // TODO: UInt8
+    return RPCCodec.decode(bytes)
+  }
+
+  /**
+   * Encode an RPC object into a Uint8Array
+   * Overrided to use an extended protocol-specific protobuf encoder
+   * @override
+   * @param {RPC} rpc
+   * @returns {Uint8Array}
+   */
+  _encodeRpc (rpc: RPC) {
+    return RPCCodec.encode(rpc)
   }
 
   /**
@@ -365,6 +391,7 @@ class Gossipsub extends BasicPubsub {
    * emitting locally and forwarding on to relevant floodsub and gossipsub peers
    * @override
    * @param {InMessage} msg
+   * @returns {Promise<void>}
    */
   async _processRpcMessage (msg: InMessage): Promise<void> {
     const msgID = this.getMsgId(msg)
@@ -880,27 +907,25 @@ class Gossipsub extends BasicPubsub {
 
   /**
    * Subscribes to topics
-   *
    * @override
    * @param {Array<string>} topics
    * @param {function} [handler]
    * @returns {void}
    */
-  _subscribe (topics: string[], handler: (msg: any) => void): void {
-    super._subscribe(topics, handler)
+  subscribe (topics: string[], handler: (msg: any) => void): void {
+    super.subscribe(topics, handler)
     this.join(topics)
   }
 
   /**
    * Unsubscribes to topics
-   *
    * @override
    * @param {Array<string>} topics
    * @param {function} [handler]
    * @returns {void}
    */
-  _unsubscribe (topics: string[], handler: (msg: any) => void): void {
-    super._unsubscribe(topics, handler)
+  unsubscribe (topics: string[], handler: (msg: any) => void): void {
+    super.unsubscribe(topics, handler)
     this.leave(topics)
   }
 
