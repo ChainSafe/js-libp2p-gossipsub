@@ -1,5 +1,5 @@
 import * as constants from './constants'
-import { getGossipPeers } from './getGossipPeers'
+import { getGossipPeers } from './get-gossip-peers'
 import { shuffle } from './utils'
 import Gossipsub = require('./index')
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment

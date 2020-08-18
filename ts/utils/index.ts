@@ -1,3 +1,3 @@
-export * from './createGossipRpc'
+export * from './create-gossip-rpc'
 export * from './shuffle'
-export * from './hasGossipProtocol'
+export * from './has-gossip-protocol'

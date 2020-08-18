@@ -1,8 +1,8 @@
 import { InMessage } from '../message'
-import { PeerScoreParams, validatePeerScoreParams } from './peerScoreParams'
-import { PeerStats, createPeerStats, ensureTopicStats } from './peerStats'
-import { computeScore } from './computeScore'
-import { MessageDeliveries, DeliveryRecordStatus } from './messageDeliveries'
+import { PeerScoreParams, validatePeerScoreParams } from './peer-score-params'
+import { PeerStats, createPeerStats, ensureTopicStats } from './peer-stats'
+import { computeScore } from './compute-score'
+import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries'
 import { ConnectionManager } from '../interfaces'
 import { ERR_TOPIC_VALIDATOR_IGNORE } from '../constants'
 import PeerId = require('peer-id')
