@@ -78,7 +78,7 @@ export class MessageCache {
   }
 
   /**
-   * Retrieves a message from the cahche by its ID, if it is present
+   * Retrieves a message from the cache by its ID, if it is present
    * for a specific peer.
    * Returns the message and the number of times the peer has requested the message
    *
