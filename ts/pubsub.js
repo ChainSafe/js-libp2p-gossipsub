@@ -1,7 +1,6 @@
 'use strict'
 
 const errcode = require('err-code')
-const { Buffer } = require('buffer')
 const PeerId = require('peer-id')
 
 const pipe = require('it-pipe')
@@ -102,7 +101,7 @@ class BasicPubSub extends Pubsub {
         stream,
         async (source) => {
           for await (const data of source) {
-            const rpcMsgBuf = Buffer.isBuffer(data) ? data : data.slice()
+            const rpcMsgBuf = data instanceof Uint8Array ? data : data.slice()
             const rpcMsg = this._decodeRpc(rpcMsgBuf)
 
             this._processRpc(idB58Str, peerStreams, rpcMsg)
@@ -115,11 +114,11 @@ class BasicPubSub extends Pubsub {
   }
 
   /**
-   * Decode a buffer into an RPC object
+   * Decode a Uint8Array into an RPC object
    *
    * Override to use an extended protocol-specific protobuf decoder
    *
-   * @param {Buffer} buf
+   * @param {Uint8Array} buf
    * @returns {RPC}
    */
   _decodeRpc (buf) {
@@ -127,12 +126,12 @@ class BasicPubSub extends Pubsub {
   }
 
   /**
-   * Encode an RPC object into a buffer
+   * Encode an RPC object into a Uint8Array
    *
    * Override to use an extended protocol-specific protobuf encoder
    *
    * @param {RPC} rpc
-   * @returns {Buffer}
+   * @returns {Uint8Array}
    */
   _encodeRpc (rpc) {
     return RPCCodec.encode(rpc)

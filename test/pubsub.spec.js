@@ -1,13 +1,15 @@
 'use strict'
 /* eslint-env mocha */
 /* eslint max-nested-callbacks: ["error", 5] */
-const { Buffer } = require('buffer')
+
 const chai = require('chai')
 chai.use(require('dirty-chai'))
 const expect = chai.expect
 const sinon = require('sinon')
+
 const delay = require('delay')
-const errcode = require('err-code')
+const uint8ArrayFromString = require('uint8arrays/from-string')
+const uint8ArrayEquals = require('uint8arrays/equals')
 
 const { utils } = require('libp2p-pubsub')
 const PeerStreams = require('libp2p-pubsub/src/peerStreams')
@@ -40,7 +42,7 @@ describe('Pubsub', () => {
     it('should sign messages on publish', async () => {
       sinon.spy(gossipsub, '_publish')
 
-      await gossipsub.publish('signing-topic', Buffer.from('hello'))
+      await gossipsub.publish('signing-topic', uint8ArrayFromString('hello'))
 
       // Get the first message sent to _publish, and validate it
       const signedMessage = gossipsub._publish.getCall(0).lastArg
@@ -65,7 +67,7 @@ describe('Pubsub', () => {
         subscriptions: [],
         msgs: [{
           from: peer.id.toBytes(),
-          data: Buffer.from('an unsigned message'),
+          data: uint8ArrayFromString('an unsigned message'),
           seqno: utils.randomSeqno(),
           topicIDs: [topic]
         }]
@@ -88,7 +90,7 @@ describe('Pubsub', () => {
       const peer = new PeerStreams({ id: await PeerId.create() })
       let signedMessage = {
         from: peer.id.toB58String(),
-        data: Buffer.from('a signed message'),
+        data: uint8ArrayFromString('an unsigned message'),
         seqno: utils.randomSeqno(),
         topicIDs: [topic]
       }
@@ -121,7 +123,7 @@ describe('Pubsub', () => {
         subscriptions: [],
         msgs: [{
           from: peer.id.toBytes(),
-          data: Buffer.from('an unsigned message'),
+          data: uint8ArrayFromString('an unsigned message'),
           seqno: utils.randomSeqno(),
           topicIDs: [topic]
         }]
@@ -150,7 +152,7 @@ describe('Pubsub', () => {
 
       // Set a trivial topic validator
       gossipsub.topicValidators.set(filteredTopic, (topic, message) => {
-        if (!message.data.equals(Buffer.from('a message'))) {
+        if(!uint8ArrayEquals(message.data, uint8ArrayFromString('a message'))) {
           throw errcode(new Error(), ERR_TOPIC_VALIDATOR_REJECT)
         }
       })
@@ -160,7 +162,7 @@ describe('Pubsub', () => {
         subscriptions: [],
         msgs: [{
           from: peer.id.toBytes(),
-          data: Buffer.from('a message'),
+          data: uint8ArrayFromString('a message'),
           seqno: utils.randomSeqno(),
           topicIDs: [filteredTopic]
         }]
@@ -177,7 +179,7 @@ describe('Pubsub', () => {
         subscriptions: [],
         msgs: [{
           from: peer.id.toBytes(),
-          data: Buffer.from('a different message'),
+          data: uint8ArrayFromString('a different message'),
           seqno: utils.randomSeqno(),
           topicIDs: [filteredTopic]
         }]
@@ -196,7 +198,7 @@ describe('Pubsub', () => {
         subscriptions: [],
         msgs: [{
           from: peer.id.toB58String(),
-          data: Buffer.from('a different message'),
+          data: uint8ArrayFromString('a different message'),
           seqno: utils.randomSeqno(),
           topicIDs: [filteredTopic]
         }]

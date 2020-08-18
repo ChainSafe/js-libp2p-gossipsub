@@ -56,5 +56,11 @@ module.exports = {
   hooks: {
     pre: before,
     post: after
+  },
+  webpack: {
+    node: {
+      // this is needed until bcrypto stops using node buffers in browser code
+      Buffer: true
+    }
   }
 }

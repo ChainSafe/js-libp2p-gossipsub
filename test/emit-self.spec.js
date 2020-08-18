@@ -1,10 +1,11 @@
 /* eslint-env mocha */
 'use strict'
-const { Buffer } = require('buffer')
+
 const chai = require('chai')
 chai.use(require('dirty-chai'))
 chai.use(require('chai-spies'))
 const expect = chai.expect
+const uint8ArrayFromString = require('uint8arrays/from-string')
 
 const Gossipsub = require('../src')
 const {
@@ -31,7 +32,8 @@ describe('emit self', () => {
     it('should emit to self on publish', async () => {
       gossipsub.subscribe(topic)
       const promise = new Promise((resolve) => gossipsub.once(topic, resolve))
-      gossipsub.publish(topic, Buffer.from('hey'))
+
+      gossipsub.publish(topic, uint8ArrayFromString('hey'))
 
       await promise
     })
@@ -49,7 +51,7 @@ describe('emit self', () => {
       gossipsub.subscribe(topic)
       gossipsub.once(topic, (m) => shouldNotHappen)
 
-      gossipsub.publish(topic, Buffer.from('hey'))
+      gossipsub.publish(topic, uint8ArrayFromString('hey'))
 
       // Wait 1 second to guarantee that self is not noticed
       await new Promise((resolve) => setTimeout(() => resolve(), 1000))
