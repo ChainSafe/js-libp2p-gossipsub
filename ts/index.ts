@@ -381,57 +381,6 @@ class Gossipsub extends BasicPubsub {
   }
 
   /**
-   * Publish a message sent from a peer
-   * @override
-   * @param {InMessage} msg
-   * @returns {void}
-   */
-  _publishFrom (msg: InMessage): void {
-    this.score.deliverMessage(msg)
-    this.gossipTracer.deliverMessage(msg)
-    const topics = msg.topicIDs
-    const rpc = createGossipRpc([
-      utils.normalizeOutRpcMessage(msg)
-    ])
-
-    // If options.gossipIncoming is false, do NOT emit incoming messages to peers
-    if (this._options.gossipIncoming) {
-      // Emit to floodsub peers
-      this.peers.forEach((peer, id) => {
-        if (
-          peer.protocol === constants.FloodsubID &&
-          id !== msg.from &&
-          topics.some(topic => {
-            const t = this.topics.get(topic)
-            return t && t.has(id)
-          })
-        ) {
-          this._sendRpc(id, rpc)
-          this.log('publish msg on topics - floodsub', topics, id)
-        }
-      })
-
-      // Emit to peers in the mesh
-      topics.forEach((topic) => {
-        const meshPeers = this.mesh.get(topic)
-        if (!meshPeers) {
-          return
-        }
-        meshPeers.forEach((id) => {
-          if (id === msg.from) {
-            return
-          }
-          this._sendRpc(id, rpc)
-          this.log('publish msg on topic - meshsub', topic, id)
-        })
-      })
-    }
-
-    // Emit to self
-    super._publishFrom(msg)
-  }
-
-  /**
    * Whether to accept a message from a peer
    * @override
    * @param {string} id
@@ -608,8 +557,7 @@ class Gossipsub extends BasicPubsub {
         return
       }
       const peersInMesh = this.mesh.get(topicID)
-      const peersInTopic = this.topics.get(topicID)
-      if (!peersInMesh || !peersInTopic) {
+      if (!peersInMesh) {
         // don't do PX when there is an unknown topic to avoid leaking our peers
         doPX = false
         // spam hardening: ignore GRAFTs for unknown topics
@@ -1043,10 +991,6 @@ class Gossipsub extends BasicPubsub {
    * @returns {void}
    */
   async _publish (msg: InMessage): Promise<void> {
-    // ensure that any operations performed on the message will include the signature
-    const outMsg = await this._buildMessage(msg)
-    msg = utils.normalizeInRpcMessage(outMsg)
-
     const msgID = this.getMsgId(msg)
     // put in seen cache
     this.seenCache.put(msgID)
@@ -1060,7 +1004,7 @@ class Gossipsub extends BasicPubsub {
         return
       }
 
-      if (this._options.floodPublish) {
+      if (this._options.floodPublish && msg.from === this.peerId.toB58String()) {
         // flood-publish behavior
         // send to direct peers and _all_ peers meeting the publishThreshold
         peersInTopic.forEach(id => {
@@ -1118,7 +1062,9 @@ class Gossipsub extends BasicPubsub {
       }
     })
     // Publish messages to peers
-    const rpc = createGossipRpc([outMsg])
+    const rpc = createGossipRpc([
+      utils.normalizeOutRpcMessage(msg)
+    ])
     tosend.forEach((id) => {
       if (id === msg.from) {
         return

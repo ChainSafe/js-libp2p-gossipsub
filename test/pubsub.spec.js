@@ -43,7 +43,7 @@ describe('Pubsub', () => {
       await gossipsub.publish('signing-topic', Buffer.from('hello'))
 
       // Get the first message sent to _publish, and validate it
-      const signedMessage = await gossipsub._buildMessage(gossipsub._publish.getCall(0).lastArg)
+      const signedMessage = gossipsub._publish.getCall(0).lastArg
       try {
         await gossipsub.validate(signedMessage)
       } catch (e) {
@@ -57,7 +57,7 @@ describe('Pubsub', () => {
 
     it('should drop unsigned messages', async () => {
       sinon.spy(gossipsub, '_processRpcMessage')
-      sinon.spy(gossipsub, '_publishFrom')
+      sinon.spy(gossipsub, '_publish')
       sinon.stub(gossipsub.peers, 'get').returns({})
 
       const peer = new PeerStreams({ id: await PeerId.create() })
@@ -75,14 +75,14 @@ describe('Pubsub', () => {
       gossipsub.unsubscribe(topic)
 
       return new Promise(resolve => setTimeout(async () => {
-        expect(gossipsub._publishFrom.callCount).to.eql(0)
+        expect(gossipsub._publish.callCount).to.eql(0)
         resolve()
       }, 500))
     })
 
     it('should not drop signed messages', async () => {
       sinon.spy(gossipsub, '_processRpcMessage')
-      sinon.spy(gossipsub, '_publishFrom')
+      sinon.spy(gossipsub, '_publish')
       sinon.stub(gossipsub.peers, 'get').returns({})
 
       const peer = new PeerStreams({ id: await PeerId.create() })
@@ -104,14 +104,14 @@ describe('Pubsub', () => {
       gossipsub.unsubscribe(topic)
 
       return new Promise(resolve => setTimeout(async () => {
-        expect(gossipsub._publishFrom.callCount).to.eql(1)
+        expect(gossipsub._publish.callCount).to.eql(1)
         resolve()
       }, 500))
     })
 
     it('should not drop unsigned messages if strict signing is disabled', async () => {
       sinon.spy(gossipsub, '_processRpcMessage')
-      sinon.spy(gossipsub, '_publishFrom')
+      sinon.spy(gossipsub, '_publish')
       sinon.stub(gossipsub.peers, 'get').returns({})
       // Disable strict signing
       sinon.stub(gossipsub, 'strictSigning').value(false)
@@ -132,7 +132,7 @@ describe('Pubsub', () => {
       gossipsub.unsubscribe(topic)
 
       return new Promise(resolve => setTimeout(async () => {
-        expect(gossipsub._publishFrom.callCount).to.eql(1)
+        expect(gossipsub._publish.callCount).to.eql(1)
         resolve()
       }, 500))
     })
@@ -140,8 +140,8 @@ describe('Pubsub', () => {
 
   describe('topic validators', () => {
     it('should filter messages by topic validator', async () => {
-      // use _publishFrom.callCount() to see if a message is valid or not
-      sinon.spy(gossipsub, '_publishFrom')
+      // use _publish.callCount() to see if a message is valid or not
+      sinon.spy(gossipsub, '_publish')
       // Disable strict signing
       sinon.stub(gossipsub, 'strictSigning').value(false)
       sinon.stub(gossipsub.peers, 'get').returns({})
@@ -170,7 +170,7 @@ describe('Pubsub', () => {
       gossipsub.subscribe(filteredTopic)
       gossipsub._processRpc(peer.id.toB58String(), peer, validRpc)
       await delay(500)
-      expect(gossipsub._publishFrom.callCount).to.eql(1)
+      expect(gossipsub._publish.callCount).to.eql(1)
 
       // invalid case
       const invalidRpc = {
@@ -186,7 +186,7 @@ describe('Pubsub', () => {
       // process invalid message
       gossipsub._processRpc(peer.id.toB58String(), peer, invalidRpc)
       await delay(500)
-      expect(gossipsub._publishFrom.callCount).to.eql(1)
+      expect(gossipsub._publish.callCount).to.eql(1)
 
       // remove topic validator
       gossipsub.topicValidators.delete(filteredTopic)
@@ -206,7 +206,7 @@ describe('Pubsub', () => {
       gossipsub._processRpc(peer.id.toB58String(), peer, invalidRpc2)
       gossipsub.unsubscribe(filteredTopic)
       await delay(500)
-      expect(gossipsub._publishFrom.callCount).to.eql(2)
+      expect(gossipsub._publish.callCount).to.eql(2)
     })
   })
 })
