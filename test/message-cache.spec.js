@@ -10,7 +10,7 @@ chai.use(chaiSpies)
 const expect = chai.expect
 const uint8ArrayFromString = require('uint8arrays/from-string')
 
-const { MessageCache } = require('../src/messageCache')
+const { MessageCache } = require('../src/message-cache')
 const { utils } = require('libp2p-pubsub')
 
 const getMsgID = (msg) => {

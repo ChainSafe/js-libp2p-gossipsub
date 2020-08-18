@@ -2,13 +2,8 @@
 
 const { expect } = require('chai')
 
-const DuplexPair = require('it-pair/duplex')
-const pTimes = require('p-times')
-
 const FloodSub = require('libp2p-floodsub')
 const PeerId = require('peer-id')
-
-const Gossipsub = require('../../src')
 
 exports.first = (map) => map.values().next().value
 
@@ -42,9 +37,9 @@ const createFloodsubNode = async (libp2p, shouldStart = false, options) => {
 exports.createFloodsubNode = createFloodsubNode
 
 for (const [k, v] of Object.entries({
-  ...require('./createPeer'),
-  ...require('./createGossipsub'),
-  ...require('./makeTestMessage')
+  ...require('./create-peer'),
+  ...require('./create-gossipsub'),
+  ...require('./make-test-message')
 })) {
   exports[k] = v
 }

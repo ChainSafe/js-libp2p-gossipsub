@@ -1,3 +1,3 @@
-export * from './peerScoreParams'
-export * from './peerScoreThresholds'
-export * from './peerScore'
+export * from './peer-score-params'
+export * from './peer-score-thresholds'
+export * from './peer-score'

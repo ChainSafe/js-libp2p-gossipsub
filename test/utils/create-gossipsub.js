@@ -3,7 +3,7 @@ const Gossipsub = require('../../src')
 const {
   createPeer,
   createPeers,
-} = require('./createPeer')
+} = require('./create-peer')
 
 /**
  * Start node - gossipsub + libp2p

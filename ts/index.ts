@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-ignore
 import { utils } from 'libp2p-pubsub'
-import { MessageCache } from './messageCache'
+import { MessageCache } from './message-cache'
 import {
   RPCCodec,
   RPC, Message, InMessage,
@@ -9,9 +9,9 @@ import {
 } from './message'
 import * as constants from './constants'
 import { Heartbeat } from './heartbeat'
-import { getGossipPeers } from './getGossipPeers'
+import { getGossipPeers } from './get-gossip-peers'
 import { createGossipRpc, shuffle, hasGossipProtocol } from './utils'
-import { PeerStreams } from './peerStreams'
+import { PeerStreams } from './peer-streams'
 import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds } from './score'
 import { IWantTracer } from './tracer'
 import { AddrInfo, Libp2p, EnvelopeClass } from './interfaces'
