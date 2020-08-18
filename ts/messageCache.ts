@@ -7,6 +7,7 @@ export interface CacheEntry {
 
 export class MessageCache {
   msgs: Map<string, InMessage>
+  peertx: Map<string, Map<string, number>>
   history: CacheEntry[][]
   gossip: number
   msgIdFn: (msg: InMessage) => string
@@ -23,6 +24,8 @@ export class MessageCache {
      * @type {Map<string, RPC.Message>}
      */
     this.msgs = new Map()
+
+    this.peertx = new Map()
 
     /**
      * @type {Array<Array<CacheEntry>>}
@@ -75,6 +78,32 @@ export class MessageCache {
   }
 
   /**
+   * Retrieves a message from the cache by its ID, if it is present
+   * for a specific peer.
+   * Returns the message and the number of times the peer has requested the message
+   *
+   * @param {string} msgID
+   * @param {string} p
+   * @returns {[InMessage | undefined, number]}
+   */
+  getForPeer (msgID: string, p: string): [InMessage | undefined, number] {
+    const msg = this.msgs.get(msgID)
+    if (!msg) {
+      return [undefined, 0]
+    }
+
+    let peertx = this.peertx.get(msgID)
+    if (!peertx) {
+      peertx = new Map()
+      this.peertx.set(msgID, peertx)
+    }
+    const count = (peertx.get(p) || 0) + 1
+    peertx.set(p, count)
+
+    return [msg, count]
+  }
+
+  /**
    * Retrieves a list of message IDs for a given topic
    *
    * @param {String} topic
@@ -106,6 +135,7 @@ export class MessageCache {
     const last = this.history[this.history.length - 1]
     last.forEach((entry) => {
       this.msgs.delete(entry.msgID)
+      this.peertx.delete(entry.msgID)
     })
 
     this.history.pop()
