@@ -147,7 +147,7 @@ class Gossipsub extends Pubsub {
       debugName: 'libp2p:gossipsub',
       multicodecs,
       libp2p,
-      options: opts
+      ...opts
     })
 
     this._options = opts
