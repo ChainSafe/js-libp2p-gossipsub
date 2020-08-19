@@ -922,97 +922,92 @@ class Gossipsub extends Pubsub {
   }
 
   /**
-   * Subscribes to topics
+   * Subscribes to a topic
    * @override
-   * @param {Array<string>} topics
-   * @param {function} [handler]
+   * @param {string} topic
+   * @param {(msg: InMessage) => void} [handler]
    * @returns {void}
    */
-  subscribe (topics: string[], handler: (msg: any) => void): void {
-    super.subscribe(topics, handler)
-    this.join(topics)
+  subscribe (topic: string, handler?: (msg: InMessage) => void): void {
+    super.subscribe(topic, handler)
+    this.join(topic)
   }
 
   /**
-   * Unsubscribes to topics
+   * Unsubscribe to a topic
    * @override
-   * @param {Array<string>} topics
-   * @param {function} [handler]
+   * @param {string} topic
+   * @param {(msg: InMessage) => void} [handler]
    * @returns {void}
    */
-  unsubscribe (topics: string[], handler: (msg: any) => void): void {
-    super.unsubscribe(topics, handler)
-    this.leave(topics)
+  unsubscribe (topic: string, handler?: (msg: InMessage) => void): void {
+    super.unsubscribe(topic, handler)
+    this.leave(topic)
   }
 
   /**
-   * Join topics
-   * @param {Array<string>|string} topics
+   * Join topic
+   * @param {string} topic
    * @returns {void}
    */
-  join (topics: string[] | string): void {
+  join (topic: string): void {
     if (!this.started) {
       throw new Error('Gossipsub has not started')
     }
-    topics = utils.ensureArray(topics)
+    this.log('JOIN %s', topic)
 
-    this.log('JOIN %s', topics)
-
-    ;(topics as string[]).forEach((topic) => {
-      const fanoutPeers = this.fanout.get(topic)
-      if (fanoutPeers) {
-        // these peers have a score above the publish threshold, which may be negative
-        // so drop the ones with a negative score
-        fanoutPeers.forEach(id => {
-          if (this.score.score(id) < 0) {
-            fanoutPeers.delete(id)
-          }
-        })
-        if (fanoutPeers.size < this._options.D) {
-          // we need more peers; eager, as this would get fixed in the next heartbeat
-          getGossipPeers(this, topic, this._options.D - fanoutPeers.size, (id: string): boolean => {
-            // filter our current peers, direct peers, and peers with negative scores
-            return !fanoutPeers.has(id) && !this.direct.has(id) && this.score.score(id) >= 0
-          }).forEach(id => fanoutPeers.add(id))
+    const fanoutPeers = this.fanout.get(topic)
+    if (fanoutPeers) {
+      // these peers have a score above the publish threshold, which may be negative
+      // so drop the ones with a negative score
+      fanoutPeers.forEach(id => {
+        if (this.score.score(id) < 0) {
+          fanoutPeers.delete(id)
         }
-        this.mesh.set(topic, fanoutPeers)
-        this.fanout.delete(topic)
-        this.lastpub.delete(topic)
-      } else {
-        const peers = getGossipPeers(this, topic, this._options.D, (id: string): boolean => {
-          // filter direct peers and peers with negative score
-          return !this.direct.has(id) && this.score.score(id) >= 0
-        })
-        this.mesh.set(topic, peers)
-      }
-      this.mesh.get(topic)!.forEach((id) => {
-        this.log('JOIN: Add mesh link to %s in %s', id, topic)
-        this._sendGraft(id, topic)
       })
+      if (fanoutPeers.size < this._options.D) {
+        // we need more peers; eager, as this would get fixed in the next heartbeat
+        getGossipPeers(this, topic, this._options.D - fanoutPeers.size, (id: string): boolean => {
+          // filter our current peers, direct peers, and peers with negative scores
+          return !fanoutPeers.has(id) && !this.direct.has(id) && this.score.score(id) >= 0
+        }).forEach(id => fanoutPeers.add(id))
+      }
+      this.mesh.set(topic, fanoutPeers)
+      this.fanout.delete(topic)
+      this.lastpub.delete(topic)
+    } else {
+      const peers = getGossipPeers(this, topic, this._options.D, (id: string): boolean => {
+        // filter direct peers and peers with negative score
+        return !this.direct.has(id) && this.score.score(id) >= 0
+      })
+      this.mesh.set(topic, peers)
+    }
+    this.mesh.get(topic)!.forEach((id) => {
+      this.log('JOIN: Add mesh link to %s in %s', id, topic)
+      this._sendGraft(id, topic)
     })
   }
 
   /**
-   * Leave topics
-   * @param {Array<string>|string} topics
+   * Leave topic
+   * @param {string} topic
    * @returns {void}
    */
-  leave (topics: string[] | string): void {
-    topics = utils.ensureArray(topics)
+  leave (topic: string): void {
+    if (!this.started) {
+      throw new Error('Gossipsub has not started')
+    }
+    this.log('LEAVE %s', topic)
 
-    this.log('LEAVE %s', topics)
-
-    ;(topics as string[]).forEach((topic) => {
-      // Send PRUNE to mesh peers
-      const meshPeers = this.mesh.get(topic)
-      if (meshPeers) {
-        meshPeers.forEach((id) => {
-          this.log('LEAVE: Remove mesh link to %s in %s', id, topic)
-          this._sendPrune(id, topic)
-        })
-        this.mesh.delete(topic)
-      }
-    })
+    // Send PRUNE to mesh peers
+    const meshPeers = this.mesh.get(topic)
+    if (meshPeers) {
+      meshPeers.forEach((id) => {
+        this.log('LEAVE: Remove mesh link to %s in %s', id, topic)
+        this._sendPrune(id, topic)
+      })
+      this.mesh.delete(topic)
+    }
   }
 
   /**
