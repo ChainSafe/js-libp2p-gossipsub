@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-ignore
 import { utils } from 'libp2p-interfaces/src/pubsub'
-import { MessageCache } from './messageCache'
+import { MessageCache } from './message-cache'
 import {
   RPCCodec,
   RPC, Message, InMessage,
@@ -283,6 +283,7 @@ class Gossipsub extends BasicPubsub {
 
   /**
    * Add a peer to the router
+   * @override
    * @param {PeerId} peerId
    * @param {string} protocol
    * @returns {PeerStreams}
@@ -858,10 +859,10 @@ class Gossipsub extends BasicPubsub {
    * Mounts the gossipsub protocol onto the libp2p node and sends our
    * our subscriptions to every peer connected
    * @override
-   * @returns {Promise}
+   * @returns {void}
    */
-  async start (): Promise<void> {
-    await super.start()
+  start (): void {
+    super.start()
     this.heartbeat.start()
     this.score.start()
     // connect to direct peers
@@ -875,10 +876,10 @@ class Gossipsub extends BasicPubsub {
   /**
    * Unmounts the gossipsub protocol and shuts down every connection
    * @override
-   * @returns {Promise}
+   * @returns {void}
    */
-  async stop (): Promise<void> {
-    await super.stop()
+  stop (): void {
+    super.stop()
     this.heartbeat.stop()
     this.score.stop()
 
