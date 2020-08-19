@@ -38,6 +38,7 @@
     "lint"
   ],
   "dependencies": {
+    "@types/debug": "^4.1.5",
     "debug": "^4.1.1",
     "denque": "^1.4.1",
     "err-code": "^2.0.0",

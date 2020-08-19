@@ -15,12 +15,14 @@ import { PeerStreams } from './peer-streams'
 import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds } from './score'
 import { IWantTracer } from './tracer'
 import { AddrInfo, Libp2p, EnvelopeClass } from './interfaces'
+import { Debugger } from 'debug'
 // @ts-ignore
 import TimeCache = require('time-cache')
 import PeerId = require('peer-id')
-import BasicPubsub = require('./pubsub')
 // @ts-ignore
 import Envelope = require('libp2p/src/record/envelope')
+// @ts-ignore
+import Pubsub = require('libp2p-interfaces/src/pubsub')
 
 interface GossipInputOptions {
   emitSelf: boolean
@@ -28,7 +30,7 @@ interface GossipInputOptions {
   fallbackToFloodsub: boolean
   floodPublish: boolean
   doPX: boolean
-  msgIdFn: (msg: Message) => string
+  msgIdFn: (msg: InMessage) => string
   messageCache: MessageCache
   scoreParams: Partial<PeerScoreParams>
   scoreThresholds: Partial<PeerScoreThresholds>
@@ -64,9 +66,10 @@ interface GossipOptions extends GossipInputOptions {
   scoreThresholds: PeerScoreThresholds
 }
 
-class Gossipsub extends BasicPubsub {
+class Gossipsub extends Pubsub {
   peers: Map<string, PeerStreams>
   direct: Set<string>
+  seenCache: TimeCache
   topics: Map<string, Set<string>>
   mesh: Map<string, Set<string>>
   fanout: Map<string, Set<string>>
@@ -77,11 +80,23 @@ class Gossipsub extends BasicPubsub {
   iasked:Map<string, number>
   backoff: Map<string, Map<string, number>>
   outbound: Map<string, boolean>
+  defaultMsgIdFn: (msg: InMessage) => string
+  _msgIdFn: (msg: InMessage) => string
+  messageCache: MessageCache
   score: PeerScore
+  heartbeat: Heartbeat
   heartbeatTicks: number
   gossipTracer: IWantTracer
+  multicodecs: string[]
+  started: boolean
+  peerId: PeerId
+  subscriptions: Set<string>
   _libp2p: Libp2p
   _options: GossipOptions
+  _directPeerInitial: NodeJS.Timeout
+  log: Debugger
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  emit: (...args: any) => void
 
   public static multicodec: string = constants.GossipsubIDv11
 
@@ -543,7 +558,7 @@ class Gossipsub extends BasicPubsub {
 
     iwant.forEach(({ messageIDs }) => {
       messageIDs.forEach((msgID) => {
-        const [msg, count] = this.messageCache.getForPeer(msgID)
+        const [msg, count] = this.messageCache.getForPeer(msgID, id)
         if (!msg) {
           return
         }
