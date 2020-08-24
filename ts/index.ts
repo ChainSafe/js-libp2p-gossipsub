@@ -278,10 +278,10 @@ class Gossipsub extends Pubsub {
    * Decode a Uint8Array into an RPC object
    * Overrided to use an extended protocol-specific protobuf decoder
    * @override
-   * @param {Buffer} bytes
+   * @param {Uint8Array} bytes
    * @returns {RPC}
    */
-  _decodeRpc (bytes: Buffer) { // TODO: UInt8
+  _decodeRpc (bytes: Uint8Array) {
     return RPCCodec.decode(bytes)
   }
 

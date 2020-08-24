@@ -114,7 +114,7 @@ export interface ControlPrune {
 
 export interface PeerInfo {
   peerID?: Uint8Array
-  signedPeerRecord?: Buffer
+  signedPeerRecord?: Uint8Array
 }
 
 /**

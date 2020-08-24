@@ -33,17 +33,17 @@ export interface Registrar {
 
 export interface Envelope {
   peerId: PeerId
-  payloadType: Buffer
-  payload: Buffer
-  signature: Buffer
+  payloadType: Uint8Array
+  payload: Uint8Array
+  signature: Uint8Array
 
-  marshal(): Buffer
+  marshal(): Uint8Array
   isEqual(other: Envelope): boolean
   validate(domain: string): Promise<boolean>
 }
 
 export interface EnvelopeClass {
-  openAndCertify(data: Buffer, domain: string): Promise<Envelope>
+  openAndCertify(data: Uint8Array, domain: string): Promise<Envelope>
 }
 
 interface Book<K, V> {
@@ -54,7 +54,7 @@ interface Book<K, V> {
 
 export interface AddressBook extends Book<PeerId, Multiaddr[]> {
   consumePeerRecord(envelope: Envelope): boolean
-  getRawEnvelope(peerId: PeerId): Buffer | undefined
+  getRawEnvelope(peerId: PeerId): Uint8Array | undefined
 }
 
 export interface PeerStore {
