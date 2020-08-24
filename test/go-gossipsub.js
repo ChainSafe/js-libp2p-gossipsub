@@ -40,7 +40,7 @@ const checkReceivedMessage = (topic, data, senderIx, msgIx) =>
     const t = setTimeout(() => {
       psub.off(topic, cb)
       reject(new Error(`Message never received, sender ${senderIx}, receiver ${receiverIx}, index ${msgIx}`))
-    }, 10000)
+    }, 20000)
     cb = (msg) => {
       if (data.equals(msg.data)) {
         clearTimeout(t)
@@ -1127,7 +1127,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     const sybilPeerIds = sybils.map(r => r.peerId.toB58String())
 
     await pRetry(() => {
-      real.forEach((r, i) => {
+      real.forEach(async (r, i) => {
         const meshPeers = r.mesh.get(topic)
         let count = 0
         realPeerIds.forEach(p => {
@@ -1137,6 +1137,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
         })
 
         if (count < 3) {
+          await delay(100)
           throw new Error()
         }
       })
