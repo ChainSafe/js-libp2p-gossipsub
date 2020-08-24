@@ -925,11 +925,10 @@ class Gossipsub extends Pubsub {
    * Subscribes to a topic
    * @override
    * @param {string} topic
-   * @param {(msg: InMessage) => void} [handler]
    * @returns {void}
    */
-  subscribe (topic: string, handler?: (msg: InMessage) => void): void {
-    super.subscribe(topic, handler)
+  subscribe (topic: string): void {
+    super.subscribe(topic)
     this.join(topic)
   }
 
@@ -937,11 +936,10 @@ class Gossipsub extends Pubsub {
    * Unsubscribe to a topic
    * @override
    * @param {string} topic
-   * @param {(msg: InMessage) => void} [handler]
    * @returns {void}
    */
-  unsubscribe (topic: string, handler?: (msg: InMessage) => void): void {
-    super.unsubscribe(topic, handler)
+  unsubscribe (topic: string): void {
+    super.unsubscribe(topic)
     this.leave(topic)
   }
 
