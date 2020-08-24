@@ -626,9 +626,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
       )
     })
     const fsubs = libp2ps.slice(20).map((libp2p) => {
-      const fs = new Floodsub(
-        libp2p.peerId, libp2p.registrar
-      )
+      const fs = new Floodsub(libp2p)
       fs._libp2p = libp2p
       return fs
     })
