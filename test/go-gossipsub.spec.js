@@ -83,7 +83,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
     // Assert that subscribed nodes receive the message
     const psubs = await createGossipsubs({
       number: 20,
-      options: { scoreParams: { IPColocationFactorThreshold: 20 } }
+      options: { floodPublish: false, scoreParams: { IPColocationFactorThreshold: 20 } }
     })
     const topic = 'foobar'
     psubs.forEach(ps => ps.subscribe(topic))
@@ -115,7 +115,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
     // Assert that subscribed nodes receive the message
     const psubs = await createGossipsubs({
       number: 20,
-      options: { scoreParams: { IPColocationFactorThreshold: 20 } }
+      options: { floodPublish: false, scoreParams: { IPColocationFactorThreshold: 20 } }
     })
     const topic = 'foobar'
     psubs.forEach(ps => ps.subscribe(topic))
@@ -150,7 +150,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
     // Assert that subscribed nodes receive the message
     const psubs = await createGossipsubs({
       number: 20,
-      options: { scoreParams: { IPColocationFactorThreshold: 20 } }
+      options: { floodPublish: false, scoreParams: { IPColocationFactorThreshold: 20 } }
     })
     const topic = 'foobar'
     psubs.slice(1).forEach(ps => ps.subscribe(topic))
@@ -211,7 +211,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
     // Assert that the subscribed nodes receive the message
     const psubs = await createGossipsubs({
       number: 20,
-      options: { scoreParams: { IPColocationFactorThreshold: 20 } }
+      options: { floodPublish: false, scoreParams: { IPColocationFactorThreshold: 20 } }
     })
     const topic = 'foobar'
     psubs.slice(1).forEach(ps => ps.subscribe(topic))
@@ -340,7 +340,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
   })
   it("test gossipsub gossip propagation", async function () {
     // Create 20 gossipsub nodes
-    // Split into two groups, only a single node shared between
+    // Split into two groups, just a single node shared between
     // Densely connect each group to itself
     // Subscribe to the topic, first group minus the shared node
     // Publish 10 messages, each from the shared node
@@ -349,7 +349,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
     // Assert that the second group receives the messages (via gossip)
     const psubs = await createGossipsubs({
       number: 20,
-      options: { scoreParams: { IPColocationFactorThreshold: 20 } }
+      options: { floodPublish: false, scoreParams: { IPColocationFactorThreshold: 20 } }
     })
     const topic = 'foobar'
     const group1 = psubs.slice(0, GossipsubD + 1)
@@ -641,7 +641,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
     await sparseConnect(psubs)
 
     // wait for heartbeats to build mesh
-    await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
+    await Promise.all(gsubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
 
     let sendRecv = []
     for (let i = 0; i < 100; i++) {
@@ -773,7 +773,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
     psubs.forEach(ps => ps.subscribe(topic))
 
     // wait a bit for the mesh to build
-    await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 15)))
+    await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 15, 20000)))
 
     // check that all peers have > 1 connection
     psubs.forEach(ps => {
@@ -940,7 +940,7 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
           scoreThresholds: {
             gossipThreshold: -10,
             publishThreshold: -100,
-            graylistThreshold: -10000
+            graylistThreshold: -1000
           }
         }
       )
@@ -1053,21 +1053,21 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
     expect(rpc.control.prune[1].topicID).to.be.eql(test3)
   })
   it("test gossipsub opportunistic grafting", async function () {
-    // Create 50 nodes
-    // 10 real gossip nodes, 40 'sybil' nodes, unresponsive nodes
+    // Create 20 nodes
+    // 6 real gossip nodes, 14 'sybil' nodes, unresponsive nodes
     // Connect some of the real nodes
     // Connect every sybil to every real node
     // Subscribe to the topic, all real nodes
-    // Publish 1000 messages from the real nodes
+    // Publish 300 messages from the real nodes
     // Wait for opgraft
     // Assert the real peer meshes have at least 3 honest peers
     sinon.replace(constants, 'GossipsubPruneBackoff', 500)
     sinon.replace(constants, 'GossipsubGraftFloodThreshold', 100)
-    sinon.replace(constants, 'GossipsubOpportunisticGraftPeers', 2)
-    sinon.replace(constants, 'GossipsubOpportunisticGraftTicks', 2)
+    sinon.replace(constants, 'GossipsubOpportunisticGraftPeers', 3)
+    sinon.replace(constants, 'GossipsubOpportunisticGraftTicks', 1)
     const topic = 'test'
     const psubs = await createGossipsubs({
-      number: 50,
+      number: 20,
       options: {
         scoreParams: {
           IPColocationFactorThreshold: 50,
@@ -1078,9 +1078,9 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
               timeInMeshWeight: 0.00002777,
               timeInMeshQuantum: 1000,
               timeInMeshCap: 3600,
-              firstMessageDeliveriesWeight: 10,
+              firstMessageDeliveriesWeight: 100,
               firstMessageDeliveriesDecay: 0.99997,
-              firstMessageDeliveriesCap: 100,
+              firstMessageDeliveriesCap: 1000,
               meshMessageDeliveriesWeight: 0,
               invalidMessageDeliveriesDecay: 0.99997,
             }
@@ -1094,8 +1094,8 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
         }
       }
     })
-    const real = psubs.slice(0, 10)
-    const sybils = psubs.slice(10)
+    const real = psubs.slice(0, 6)
+    const sybils = psubs.slice(6)
 
     await connectSome(real, 5)
 
@@ -1113,20 +1113,11 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
 
     psubs.forEach(ps => ps.subscribe(topic))
 
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 300; i++) {
       const msg = Buffer.from(`${i} its not a flooooood ${i}`)
       const owner = i % 10
       await psubs[owner].publish(topic, msg)
-      await delay(40)
-    }
-
-    await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 7)))
-
-    for (let i = 0; i < 100; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
-      const owner = i % 10
-      await psubs[owner].publish(topic, msg)
-      await delay(40)
+      await delay(20)
     }
 
     // now wait for opgraft cycles
