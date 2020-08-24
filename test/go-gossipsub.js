@@ -1126,7 +1126,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     const realPeerIds = real.map(r => r.peerId.toB58String())
     const sybilPeerIds = sybils.map(r => r.peerId.toB58String())
 
-    await pRetry(() => {
+    await pRetry(() => new Promise((resolve, reject) => {
       real.forEach(async (r, i) => {
         const meshPeers = r.mesh.get(topic)
         let count = 0
@@ -1138,9 +1138,10 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
         if (count < 3) {
           await delay(100)
-          throw new Error()
+          reject()
         }
+        resolve()
       })
-    }, { retries: 10 })
+    }), { retries: 10 })
   })
 })
