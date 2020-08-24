@@ -772,7 +772,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     psubs.forEach(ps => ps.subscribe(topic))
 
     // wait a bit for the mesh to build
-    await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 15, 20000)))
+    await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 15, 25000)))
 
     // check that all peers have > 1 connection
     psubs.forEach(ps => {
