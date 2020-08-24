@@ -1029,6 +1029,11 @@ class Gossipsub extends Pubsub {
    * @returns {void}
    */
   async _publish (msg: InMessage): Promise<void> {
+    if (msg.receivedFrom !== this.peerId.toB58String()) {
+      this.score.deliverMessage(msg)
+      this.gossipTracer.deliverMessage(msg)
+    }
+
     const msgID = this.getMsgId(msg)
     // put in seen cache
     this.seenCache.put(msgID)
