@@ -21,6 +21,10 @@ async function stopNode(gs) {
   gs.stop()
 }
 
+async function connectGossipsub (gs1, gs2) {
+  await gs1._libp2p.dialProtocol(gs2._libp2p.peerId, gs1.multicodecs)
+}
+
 /**
  * Create a number of preconfigured gossipsub nodes
  */
@@ -38,13 +42,39 @@ async function createGossipsubs({ number = 1, started = true, options = {}} = {}
 }
 
 /**
+ * Connect some gossipsub nodes to others
+ * @param {Gossipsub[]} gss
+ * @param {number} num number of peers to connect
+ */
+async function connectSome (gss, num) {
+  for (let i = 0; i < gss.length; i++) {
+    for (let j = 0; j < num; j++) {
+      const n = Math.floor(Math.random() * gss.length)
+      if (n === i) {
+        j--
+        continue
+      }
+      await connectGossipsub(gss[i], gss[n])
+    }
+  }
+}
+
+async function sparseConnect (gss) {
+  await connectSome(gss, 3)
+}
+
+async function denseConnect (gss) {
+  await connectSome(gss, 10)
+}
+
+/**
  * Connect every gossipsub node to every other
  * @param {Gossipsub[]} gss
  */
 async function connectGossipsubs (gss) {
   for (let i = 0; i < gss.length; i++) {
     for (let j = i + 1; j < gss.length; j++) {
-      await gss[i]._libp2p.dialProtocol(gss[j]._libp2p.peerId, gss[i].multicodecs)
+      await connectGossipsub(gss[i], gss[j])
     }
   }
 }
@@ -61,7 +91,11 @@ async function createConnectedGossipsubs ({ number = 2, options = {}} = {}) {
 module.exports = {
   startNode,
   stopNode,
+  connectGossipsub,
   createGossipsubs,
+  connectSome,
+  sparseConnect,
+  denseConnect,
   connectGossipsubs,
   createConnectedGossipsubs
 }
