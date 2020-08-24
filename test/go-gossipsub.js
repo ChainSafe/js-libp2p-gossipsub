@@ -7,6 +7,7 @@ const delay = require('delay')
 const PeerId = require('peer-id')
 const errcode = require('err-code')
 const sinon = require('sinon')
+const pRetry = require('p-retry')
 const { EventEmitter } = require('events')
 
 const Floodsub = require('libp2p-floodsub')
@@ -70,7 +71,7 @@ const awaitEvents = (emitter, event, number, timeout = 10000) => {
   })
 }
 
-describe.only("go-libp2p-pubsub gossipsub tests", function () {
+describe("go-libp2p-pubsub gossipsub tests", function () {
   this.timeout(100000)
   afterEach(() => {
     sinon.restore()
@@ -1124,15 +1125,21 @@ describe.only("go-libp2p-pubsub gossipsub tests", function () {
     // check the honest node meshes, they should have at least 3 honest peers each
     const realPeerIds = real.map(r => r.peerId.toB58String())
     const sybilPeerIds = sybils.map(r => r.peerId.toB58String())
-    real.forEach((r, i) => {
-      const meshPeers = r.mesh.get(topic)
-      let count = 0
-      realPeerIds.forEach(p => {
-        if (meshPeers.has(p)) {
-          count++
+
+    await pRetry(() => {
+      real.forEach((r, i) => {
+        const meshPeers = r.mesh.get(topic)
+        let count = 0
+        realPeerIds.forEach(p => {
+          if (meshPeers.has(p)) {
+            count++
+          }
+        })
+
+        if (count < 3) {
+          throw new Error()
         }
       })
-      expect(count).to.be.gte(3)
-    })
+    }, { retries: 10 })
   })
 })
