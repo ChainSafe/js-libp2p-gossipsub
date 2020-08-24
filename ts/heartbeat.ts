@@ -3,8 +3,6 @@ import { getGossipPeers } from './get-gossip-peers'
 import { shuffle } from './utils'
 import Gossipsub = require('./index')
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import errcode = require('err-code')
 
 export class Heartbeat {
   gossipsub: Gossipsub
@@ -24,9 +22,7 @@ export class Heartbeat {
 
   start (): void {
     if (this._heartbeatTimer) {
-      const errMsg = 'Heartbeat timer is already running'
-      this.gossipsub.log(errMsg)
-      throw errcode(new Error(errMsg), 'ERR_HEARTBEAT_ALREADY_RUNNING')
+      return
     }
 
     const heartbeat = this._heartbeat.bind(this)
@@ -55,9 +51,7 @@ export class Heartbeat {
    */
   stop (): void {
     if (!this._heartbeatTimer) {
-      const errMsg = 'Heartbeat timer is not running'
-      this.gossipsub.log(errMsg)
-      throw errcode(new Error(errMsg), 'ERR_HEARTBEAT_NO_RUNNING')
+      return
     }
 
     this._heartbeatTimer.cancel()

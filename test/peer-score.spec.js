@@ -1,6 +1,6 @@
 const { expect } = require('chai')
 const PeerId = require('peer-id')
-const { utils } = require('libp2p-pubsub')
+const { utils } = require('libp2p-interfaces/src/pubsub')
 const delay = require('delay')
 
 const { PeerScore, createPeerScoreParams, createTopicScoreParams } = require('../src/score')

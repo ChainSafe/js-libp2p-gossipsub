@@ -155,7 +155,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       // await subscription change
       await Promise.all([
         new Promise((resolve) => nodeGs.once('pubsub:subscription-change', resolve)),
-        new Promise((resolve) => nodeFs.once('floodsub:subscription-change', resolve))
+        new Promise((resolve) => nodeFs.once('pubsub:subscription-change', resolve))
       ])
     })
 
@@ -273,7 +273,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       // await subscription change
       await Promise.all([
         new Promise((resolve) => nodeGs.once('pubsub:subscription-change', resolve)),
-        new Promise((resolve) => nodeFs.once('floodsub:subscription-change', resolve))
+        new Promise((resolve) => nodeFs.once('pubsub:subscription-change', resolve))
       ])
       // allow subscriptions to propagate to the other peer
       await delay(10)
@@ -292,7 +292,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       expect(nodeGs.subscriptions.size).to.equal(0)
 
       const [changedPeerId, changedSubs] = await new Promise((resolve) => {
-        nodeFs.once('floodsub:subscription-change', (...args) => resolve(args))
+        nodeFs.once('pubsub:subscription-change', (...args) => resolve(args))
       })
 
       expect(nodeFs.peers.size).to.equal(1)
@@ -303,7 +303,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
     it('Publish to a topic after unsubscribe', async () => {
       nodeGs.unsubscribe(topic)
-      await new Promise((resolve) => nodeFs.once('floodsub:subscription-change', resolve))
+      await new Promise((resolve) => nodeFs.once('pubsub:subscription-change', resolve))
 
       const promise = new Promise((resolve, reject) => {
         nodeGs.once(topic, reject)

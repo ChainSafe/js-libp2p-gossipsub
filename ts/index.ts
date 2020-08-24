@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-ignore
-import { utils } from 'libp2p-pubsub'
+import { utils } from 'libp2p-interfaces/src/pubsub'
 import { MessageCache } from './message-cache'
 import {
   RPCCodec,
@@ -15,12 +15,14 @@ import { PeerStreams } from './peer-streams'
 import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds } from './score'
 import { IWantTracer } from './tracer'
 import { AddrInfo, Libp2p, EnvelopeClass } from './interfaces'
+import { Debugger } from 'debug'
 // @ts-ignore
 import TimeCache = require('time-cache')
 import PeerId = require('peer-id')
-import BasicPubsub = require('./pubsub')
 // @ts-ignore
 import Envelope = require('libp2p/src/record/envelope')
+// @ts-ignore
+import Pubsub = require('libp2p-interfaces/src/pubsub')
 
 interface GossipInputOptions {
   emitSelf: boolean
@@ -28,7 +30,7 @@ interface GossipInputOptions {
   fallbackToFloodsub: boolean
   floodPublish: boolean
   doPX: boolean
-  msgIdFn: (msg: Message) => string
+  msgIdFn: (msg: InMessage) => string
   messageCache: MessageCache
   scoreParams: Partial<PeerScoreParams>
   scoreThresholds: Partial<PeerScoreThresholds>
@@ -64,9 +66,10 @@ interface GossipOptions extends GossipInputOptions {
   scoreThresholds: PeerScoreThresholds
 }
 
-class Gossipsub extends BasicPubsub {
+class Gossipsub extends Pubsub {
   peers: Map<string, PeerStreams>
   direct: Set<string>
+  seenCache: TimeCache
   topics: Map<string, Set<string>>
   mesh: Map<string, Set<string>>
   fanout: Map<string, Set<string>>
@@ -77,14 +80,27 @@ class Gossipsub extends BasicPubsub {
   iasked:Map<string, number>
   backoff: Map<string, Map<string, number>>
   outbound: Map<string, boolean>
+  defaultMsgIdFn: (msg: InMessage) => string
+  _msgIdFn: (msg: InMessage) => string
+  messageCache: MessageCache
   score: PeerScore
+  heartbeat: Heartbeat
   heartbeatTicks: number
   gossipTracer: IWantTracer
+  multicodecs: string[]
+  started: boolean
+  peerId: PeerId
+  subscriptions: Set<string>
   _libp2p: Libp2p
   _options: GossipOptions
+  _directPeerInitial: NodeJS.Timeout
+  log: Debugger
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  emit: (...args: any) => void
 
   public static multicodec: string = constants.GossipsubIDv11
 
+  // TODO: add remaining props
   /**
    * @param {Libp2p} libp2p
    * @param {Object} [options]
@@ -105,7 +121,7 @@ class Gossipsub extends BasicPubsub {
     options: Partial<GossipInputOptions> = {}
   ) {
     const multicodecs = [constants.GossipsubIDv11, constants.GossipsubIDv10]
-    const _options = {
+    const opts = {
       gossipIncoming: true,
       fallbackToFloodsub: true,
       floodPublish: true,
@@ -123,7 +139,7 @@ class Gossipsub extends BasicPubsub {
     } as GossipOptions
 
     // Also wants to get notified of peers connected using floodsub
-    if (_options.fallbackToFloodsub) {
+    if (opts.fallbackToFloodsub) {
       multicodecs.push(constants.FloodsubID)
     }
 
@@ -131,17 +147,19 @@ class Gossipsub extends BasicPubsub {
       debugName: 'libp2p:gossipsub',
       multicodecs,
       libp2p,
-      options: _options
+      ...opts
     })
+
+    this._options = opts
 
     /**
      * Direct peers
      * @type {Set<string>}
      */
-    this.direct = new Set(_options.directPeers.map(p => p.id.toB58String()))
+    this.direct = new Set(opts.directPeers.map(p => p.id.toB58String()))
 
     // set direct peer addresses in the address book
-    _options.directPeers.forEach(p => {
+    opts.directPeers.forEach(p => {
       libp2p.peerStore.addressBook.add(p.id, p.addrs)
     })
 
@@ -220,6 +238,7 @@ class Gossipsub extends BasicPubsub {
     /**
      * Use the overriden mesgIdFn or the default one.
      */
+    this.defaultMsgIdFn = (msg : InMessage) => utils.msgId(msg.from, msg.seqno)
     this._msgIdFn = options.msgIdFn || this.defaultMsgIdFn
 
     /**
@@ -256,7 +275,30 @@ class Gossipsub extends BasicPubsub {
   }
 
   /**
+   * Decode a Uint8Array into an RPC object
+   * Overrided to use an extended protocol-specific protobuf decoder
+   * @override
+   * @param {Uint8Array} bytes
+   * @returns {RPC}
+   */
+  _decodeRpc (bytes: Uint8Array) {
+    return RPCCodec.decode(bytes)
+  }
+
+  /**
+   * Encode an RPC object into a Uint8Array
+   * Overrided to use an extended protocol-specific protobuf encoder
+   * @override
+   * @param {RPC} rpc
+   * @returns {Uint8Array}
+   */
+  _encodeRpc (rpc: RPC) {
+    return RPCCodec.encode(rpc)
+  }
+
+  /**
    * Add a peer to the router
+   * @override
    * @param {PeerId} peerId
    * @param {string} protocol
    * @returns {PeerStreams}
@@ -365,6 +407,7 @@ class Gossipsub extends BasicPubsub {
    * emitting locally and forwarding on to relevant floodsub and gossipsub peers
    * @override
    * @param {InMessage} msg
+   * @returns {Promise<void>}
    */
   async _processRpcMessage (msg: InMessage): Promise<void> {
     const msgID = this.getMsgId(msg)
@@ -515,7 +558,7 @@ class Gossipsub extends BasicPubsub {
 
     iwant.forEach(({ messageIDs }) => {
       messageIDs.forEach((msgID) => {
-        const [msg, count] = this.messageCache.getForPeer(msgID)
+        const [msg, count] = this.messageCache.getForPeer(msgID, id)
         if (!msg) {
           return
         }
@@ -831,10 +874,10 @@ class Gossipsub extends BasicPubsub {
    * Mounts the gossipsub protocol onto the libp2p node and sends our
    * our subscriptions to every peer connected
    * @override
-   * @returns {Promise}
+   * @returns {void}
    */
-  async start (): Promise<void> {
-    await super.start()
+  start (): void {
+    super.start()
     this.heartbeat.start()
     this.score.start()
     // connect to direct peers
@@ -848,10 +891,10 @@ class Gossipsub extends BasicPubsub {
   /**
    * Unmounts the gossipsub protocol and shuts down every connection
    * @override
-   * @returns {Promise}
+   * @returns {void}
    */
-  async stop (): Promise<void> {
-    await super.stop()
+  stop (): void {
+    super.stop()
     this.heartbeat.stop()
     this.score.stop()
 
@@ -879,97 +922,92 @@ class Gossipsub extends BasicPubsub {
   }
 
   /**
-   * Subscribes to topics
-   *
+   * Subscribes to a topic
    * @override
-   * @param {Array<string>} topics
+   * @param {string} topic
+   * @param {(msg: InMessage) => void} [handler]
    * @returns {void}
    */
-  _subscribe (topics: string[]): void {
-    super._subscribe(topics)
-    this.join(topics)
+  subscribe (topic: string, handler?: (msg: InMessage) => void): void {
+    super.subscribe(topic, handler)
+    this.join(topic)
   }
 
   /**
-   * Unsubscribes to topics
-   *
+   * Unsubscribe to a topic
    * @override
-   * @param {Array<string>} topics
+   * @param {string} topic
+   * @param {(msg: InMessage) => void} [handler]
    * @returns {void}
    */
-  _unsubscribe (topics: string[]): void {
-    super._unsubscribe(topics)
-    this.leave(topics)
+  unsubscribe (topic: string, handler?: (msg: InMessage) => void): void {
+    super.unsubscribe(topic, handler)
+    this.leave(topic)
   }
 
   /**
-   * Join topics
-   * @param {Array<string>|string} topics
+   * Join topic
+   * @param {string} topic
    * @returns {void}
    */
-  join (topics: string[] | string): void {
+  join (topic: string): void {
     if (!this.started) {
       throw new Error('Gossipsub has not started')
     }
-    topics = utils.ensureArray(topics)
+    this.log('JOIN %s', topic)
 
-    this.log('JOIN %s', topics)
-
-    ;(topics as string[]).forEach((topic) => {
-      const fanoutPeers = this.fanout.get(topic)
-      if (fanoutPeers) {
-        // these peers have a score above the publish threshold, which may be negative
-        // so drop the ones with a negative score
-        fanoutPeers.forEach(id => {
-          if (this.score.score(id) < 0) {
-            fanoutPeers.delete(id)
-          }
-        })
-        if (fanoutPeers.size < this._options.D) {
-          // we need more peers; eager, as this would get fixed in the next heartbeat
-          getGossipPeers(this, topic, this._options.D - fanoutPeers.size, (id: string): boolean => {
-            // filter our current peers, direct peers, and peers with negative scores
-            return !fanoutPeers.has(id) && !this.direct.has(id) && this.score.score(id) >= 0
-          }).forEach(id => fanoutPeers.add(id))
+    const fanoutPeers = this.fanout.get(topic)
+    if (fanoutPeers) {
+      // these peers have a score above the publish threshold, which may be negative
+      // so drop the ones with a negative score
+      fanoutPeers.forEach(id => {
+        if (this.score.score(id) < 0) {
+          fanoutPeers.delete(id)
         }
-        this.mesh.set(topic, fanoutPeers)
-        this.fanout.delete(topic)
-        this.lastpub.delete(topic)
-      } else {
-        const peers = getGossipPeers(this, topic, this._options.D, (id: string): boolean => {
-          // filter direct peers and peers with negative score
-          return !this.direct.has(id) && this.score.score(id) >= 0
-        })
-        this.mesh.set(topic, peers)
-      }
-      this.mesh.get(topic)!.forEach((id) => {
-        this.log('JOIN: Add mesh link to %s in %s', id, topic)
-        this._sendGraft(id, topic)
       })
+      if (fanoutPeers.size < this._options.D) {
+        // we need more peers; eager, as this would get fixed in the next heartbeat
+        getGossipPeers(this, topic, this._options.D - fanoutPeers.size, (id: string): boolean => {
+          // filter our current peers, direct peers, and peers with negative scores
+          return !fanoutPeers.has(id) && !this.direct.has(id) && this.score.score(id) >= 0
+        }).forEach(id => fanoutPeers.add(id))
+      }
+      this.mesh.set(topic, fanoutPeers)
+      this.fanout.delete(topic)
+      this.lastpub.delete(topic)
+    } else {
+      const peers = getGossipPeers(this, topic, this._options.D, (id: string): boolean => {
+        // filter direct peers and peers with negative score
+        return !this.direct.has(id) && this.score.score(id) >= 0
+      })
+      this.mesh.set(topic, peers)
+    }
+    this.mesh.get(topic)!.forEach((id) => {
+      this.log('JOIN: Add mesh link to %s in %s', id, topic)
+      this._sendGraft(id, topic)
     })
   }
 
   /**
-   * Leave topics
-   * @param {Array<string>|string} topics
+   * Leave topic
+   * @param {string} topic
    * @returns {void}
    */
-  leave (topics: string[] | string): void {
-    topics = utils.ensureArray(topics)
+  leave (topic: string): void {
+    if (!this.started) {
+      throw new Error('Gossipsub has not started')
+    }
+    this.log('LEAVE %s', topic)
 
-    this.log('LEAVE %s', topics)
-
-    ;(topics as string[]).forEach((topic) => {
-      // Send PRUNE to mesh peers
-      const meshPeers = this.mesh.get(topic)
-      if (meshPeers) {
-        meshPeers.forEach((id) => {
-          this.log('LEAVE: Remove mesh link to %s in %s', id, topic)
-          this._sendPrune(id, topic)
-        })
-        this.mesh.delete(topic)
-      }
-    })
+    // Send PRUNE to mesh peers
+    const meshPeers = this.mesh.get(topic)
+    if (meshPeers) {
+      meshPeers.forEach((id) => {
+        this.log('LEAVE: Remove mesh link to %s in %s', id, topic)
+        this._sendPrune(id, topic)
+      })
+      this.mesh.delete(topic)
+    }
   }
 
   /**

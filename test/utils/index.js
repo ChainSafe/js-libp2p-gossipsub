@@ -23,12 +23,12 @@ const createPeerId = async () => {
 exports.createPeerId = createPeerId
 
 const createFloodsubNode = async (libp2p, shouldStart = false, options) => {
-  const fs = new FloodSub(libp2p.peerId, libp2p.registrar, options)
+  const fs = new FloodSub(libp2p, options)
   fs._libp2p = libp2p
 
   if (shouldStart) {
     await libp2p.start()
-    await fs.start()
+    fs.start()
   }
 
   return fs

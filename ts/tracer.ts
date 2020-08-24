@@ -2,7 +2,7 @@ import { InMessage } from './message'
 import { GossipsubIWantFollowupTime } from './constants'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import pubsubErrors = require('libp2p-pubsub/src/errors')
+import pubsubErrors = require('libp2p-interfaces/src/pubsub/errors')
 
 const {
   ERR_INVALID_SIGNATURE,

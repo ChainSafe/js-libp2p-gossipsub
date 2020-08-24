@@ -1,6 +1,6 @@
 const { expect } = require('chai')
 const delay = require('delay')
-const { utils } = require('libp2p-pubsub')
+const { utils } = require('libp2p-interfaces/src/pubsub')
 
 const { IWantTracer } = require('../src/tracer')
 const constants = require('../src/constants')

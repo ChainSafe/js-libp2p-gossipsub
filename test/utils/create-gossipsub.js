@@ -10,7 +10,7 @@ const {
  */
 async function startNode(gs) {
   await gs._libp2p.start()
-  await gs.start()
+  gs.start()
 }
 
 /**
@@ -18,7 +18,7 @@ async function startNode(gs) {
  */
 async function stopNode(gs) {
   await gs._libp2p.stop()
-  await gs.stop()
+  gs.stop()
 }
 
 /**
