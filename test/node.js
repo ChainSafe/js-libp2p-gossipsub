@@ -1,3 +1,3 @@
 'use strict'
 
-require('./gossip')
+require('./go-gossipsub')

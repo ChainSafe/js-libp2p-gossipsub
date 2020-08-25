@@ -2,18 +2,16 @@
 
 const { expect } = require('chai')
 
-const DuplexPair = require('it-pair/duplex')
-const pTimes = require('p-times')
-
 const FloodSub = require('libp2p-floodsub')
 const PeerId = require('peer-id')
 
-const Gossipsub = require('../../src')
-
 exports.first = (map) => map.values().next().value
 
-exports.expectSet = (set, subs) => {
-  expect(Array.from(set.values())).to.eql(subs)
+exports.expectSet = (set, list) => {
+  expect(set.size).to.eql(list.length)
+  list.forEach(item => {
+    expect(set.has(item)).to.eql(true)
+  })
 }
 
 const createPeerId = async () => {
@@ -24,87 +22,13 @@ const createPeerId = async () => {
 
 exports.createPeerId = createPeerId
 
-const createGossipsub = async (registrar, shouldStart = false, options) => {
-  const peerId = await createPeerId()
-  const gs = new Gossipsub(peerId, registrar, options)
+const createFloodsubNode = async (libp2p, shouldStart = false, options) => {
+  const fs = new FloodSub(libp2p, options)
+  fs._libp2p = libp2p
 
   if (shouldStart) {
-    await gs.start()
-  }
-
-  return gs
-}
-
-exports.createGossipsub = createGossipsub
-
-const createGossipsubNodes = async (n, shouldStart, options) => {
-  const registrarRecords = Array.from({ length: n })
-
-  const nodes = await pTimes(n, (index) => {
-    registrarRecords[index] = {}
-
-    return createGossipsub(createMockRegistrar(registrarRecords[index]), shouldStart, options)
-  })
-
-  return {
-    nodes,
-    registrarRecords
-  }
-}
-
-exports.createGossipsubNodes = createGossipsubNodes
-
-const connectGossipsubNodes = async (nodes, registrarRecords, multicodec) => {
-  // connect all nodes
-  for (let i = 0; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      const onConnectI = registrarRecords[i][multicodec].onConnect
-      const onConnectJ = registrarRecords[j][multicodec].onConnect
-
-      const handleI = registrarRecords[i][multicodec].handler
-      const handleJ = registrarRecords[j][multicodec].handler
-
-      // Notice peers of connection
-      const [d0, d1] = ConnectionPair()
-      await onConnectI(nodes[j].peerId, d0)
-      await handleJ({
-        protocol: multicodec,
-        stream: d1.stream,
-        connection: {
-          remotePeer: nodes[i].peerId
-        }
-      })
-      await onConnectJ(nodes[i].peerId, d1)
-      await handleI({
-        protocol: multicodec,
-        stream: d0.stream,
-        connection: {
-          remotePeer: nodes[j].peerId
-        }
-      })
-    }
-  }
-
-  return nodes
-}
-
-exports.connectGossipsubNodes = connectGossipsubNodes
-
-const createGossipsubConnectedNodes = async (n, multicodec, options) => {
-  const { nodes, registrarRecords } = await createGossipsubNodes(n, true, options)
-
-  // connect all nodes
-  return connectGossipsubNodes(nodes, registrarRecords, multicodec)
-}
-
-exports.createGossipsubConnectedNodes = createGossipsubConnectedNodes
-
-const createFloodsubNode = async (registrar, shouldStart = false, options) => {
-  const peerId = await createPeerId()
-  const fs = new FloodSub(peerId, registrar, options)
-
-  if (shouldStart) {
-    await fs.start()
+    await libp2p.start()
+    fs.start()
   }
 
   return fs
@@ -112,55 +36,10 @@ const createFloodsubNode = async (registrar, shouldStart = false, options) => {
 
 exports.createFloodsubNode = createFloodsubNode
 
-exports.mockRegistrar = {
-  handle: () => { },
-  register: () => { },
-  unregister: () => { }
+for (const [k, v] of Object.entries({
+  ...require('./create-peer'),
+  ...require('./create-gossipsub'),
+  ...require('./make-test-message')
+})) {
+  exports[k] = v
 }
-
-const createMockRegistrar = (registrarRecord) => ({
-  handle: (multicodecs, handler) => {
-    multicodecs.forEach((multicodec) => {
-      const rec = registrarRecord[multicodec] || {}
-
-      registrarRecord[multicodec] = {
-        ...rec,
-        handler
-      }
-    })
-  },
-  register: ({ multicodecs, _onConnect, _onDisconnect }) => {
-    multicodecs.forEach((multicodec) => {
-      const rec = registrarRecord[multicodec] || {}
-
-      registrarRecord[multicodec] = {
-        ...rec,
-        onConnect: _onConnect,
-        onDisconnect: _onDisconnect
-      }
-    })
-    return multicodecs[0]
-  },
-  unregister: (id) => {
-    delete registrarRecord[id]
-  }
-})
-
-exports.createMockRegistrar = createMockRegistrar
-
-const ConnectionPair = () => {
-  const [d0, d1] = DuplexPair()
-
-  return [
-    {
-      stream: d0,
-      newStream: () => Promise.resolve({ stream: d0 })
-    },
-    {
-      stream: d1,
-      newStream: () => Promise.resolve({ stream: d1 })
-    }
-  ]
-}
-
-exports.ConnectionPair = ConnectionPair

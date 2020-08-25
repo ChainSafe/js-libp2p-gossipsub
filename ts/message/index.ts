@@ -70,6 +70,10 @@ export type InMessage = Overwrite<Message, {
   /**
    * Base58-encoded peer id
    */
+  receivedFrom: string
+  /**
+   * Base58-encoded peer id
+   */
   from?: string
 }>
 
@@ -104,6 +108,13 @@ export interface ControlGraft {
  */
 export interface ControlPrune {
   topicID?: string
+  peers: PeerInfo[]
+  backoff?: number
+}
+
+export interface PeerInfo {
+  peerID?: Uint8Array
+  signedPeerRecord?: Uint8Array
 }
 
 /**
