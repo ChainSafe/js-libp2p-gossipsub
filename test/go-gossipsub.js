@@ -1138,7 +1138,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
         if (count < 3) {
           await delay(100)
-          reject()
+          reject(new Error())
         }
         resolve()
       })

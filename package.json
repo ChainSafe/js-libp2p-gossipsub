@@ -1,6 +1,6 @@
 {
   "name": "libp2p-gossipsub",
-  "version": "0.4.5",
+  "version": "0.5.0",
   "description": "A typescript implementation of gossipsub",
   "leadMaintainer": "Cayman Nava <caymannava@gmail.com>",
   "main": "src/index.js",
@@ -94,6 +94,7 @@
     "Alan Shaw <alan.shaw@protocol.ai>",
     "achingbrain <alex@achingbrain.net>",
     "Jacob Heun <jacobheun@gmail.com>",
+    "Patrick Michot <k0m0d0tr0n@gmail.com>",
     "chainsafe <aidan@chainsafe.io>",
     "Marin Petrunić <marin.petrunic@gmail.com>",
     "ChainSafe <superadmin@chainsafe.io>",

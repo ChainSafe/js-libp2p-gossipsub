@@ -1077,7 +1077,7 @@ class Gossipsub extends Pubsub {
 
         // Gossipsub peers handling
         let meshPeers = this.mesh.get(topic)
-        if (!meshPeers) {
+        if (!meshPeers || !meshPeers.size) {
           // We are not in the mesh for topic, use fanout peers
           meshPeers = this.fanout.get(topic)
           if (!meshPeers) {

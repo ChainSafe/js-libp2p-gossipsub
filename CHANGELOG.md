@@ -1,3 +1,31 @@
+<a name="0.5.0"></a>
+# [0.5.0](https://github.com/ChainSafe/gossipsub-js/compare/v0.4.6...v0.5.0) (2020-08-12)
+
+
+### Bug Fixes
+
+* replace node buffers with uint8arrays ([#118](https://github.com/ChainSafe/gossipsub-js/issues/118)) ([2f50108](https://github.com/ChainSafe/gossipsub-js/commit/2f50108))
+
+
+### BREAKING CHANGES
+
+* - The `.data` and `.seq` properties of messages used to be node Buffers, now they are Uint8Arrays
+- All deps of this module now use Uint8Arrays instead of Buffers
+
+* chore: remove gh url from dep version
+
+
+
+<a name="0.4.6"></a>
+## [0.4.6](https://github.com/ChainSafe/gossipsub-js/compare/v0.4.5...v0.4.6) (2020-07-07)
+
+
+### Bug Fixes
+
+* connected with a subscriber before a mesh is created should send messages ([060346a](https://github.com/ChainSafe/gossipsub-js/commit/060346a))
+
+
+
 <a name="0.4.5"></a>
 ## [0.4.5](https://github.com/ChainSafe/gossipsub-js/compare/v0.4.4...v0.4.5) (2020-06-04)
 

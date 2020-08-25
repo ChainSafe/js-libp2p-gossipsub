@@ -3,12 +3,11 @@
 
 const chai = require('chai')
 chai.use(require('dirty-chai'))
+const expect = chai.expect
 
 const delay = require('delay')
 const uint8ArrayFromString = require('uint8arrays/from-string')
 
-const expect = chai.expect
-const times = require('lodash/times')
 const PeerId = require('peer-id')
 
 const Gossipsub = require('../src')
