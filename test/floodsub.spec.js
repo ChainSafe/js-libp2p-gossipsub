@@ -194,61 +194,6 @@ describe('gossipsub fallbacks to floodsub', () => {
       expect(msg.data.toString()).to.equal('banana')
       expect(msg.from).to.be.eql(nodeFs.peerId.toB58String())
     })
-
-    it('Publish 10 msg to a topic', (done) => {
-      let counter = 0
-
-      const shouldNotHappen = (msg) => {
-        done(new Error('Should not be here'))
-      }
-
-      nodeGs.once(topic, shouldNotHappen)
-      nodeFs.on(topic, receivedMsg)
-
-      function receivedMsg (msg) {
-        expect(msg.data.toString()).to.equal('banana ' + counter)
-        expect(msg.from).to.be.eql(nodeGs.peerId.toB58String())
-        expect(msg.seqno).to.be.a('Uint8Array')
-        expect(msg.topicIDs).to.be.eql([topic])
-
-        if (++counter === 10) {
-          nodeFs.removeListener(topic, receivedMsg)
-          nodeGs.removeListener(topic, shouldNotHappen)
-          done()
-        }
-      }
-
-      times(10, (index) => nodeGs.publish(topic, uint8ArrayFromString('banana ' + index)))
-    })
-
-    it('Publish 10 msg to a topic as array', (done) => {
-      let counter = 0
-
-      const shouldNotHappen = () => {
-        done(new Error('Should not be here'))
-      }
-
-      nodeGs.once(topic, shouldNotHappen)
-
-      nodeFs.on(topic, receivedMsg)
-
-      function receivedMsg (msg) {
-        expect(msg.data.toString()).to.equal('banana ' + counter)
-        expect(msg.from).to.be.eql(nodeGs.peerId.toB58String())
-        expect(msg.seqno).to.be.a('Uint8Array')
-        expect(msg.topicIDs).to.be.eql([topic])
-
-        if (++counter === 10) {
-          nodeFs.removeListener(topic, receivedMsg)
-          nodeGs.removeListener(topic, shouldNotHappen)
-          done()
-        }
-      }
-
-      const msgs = []
-      times(10, (index) => msgs.push(uint8ArrayFromString('banana ' + index)))
-      msgs.forEach(msg => nodeGs.publish(topic, msg))
-    })
   })
 
   describe('publish after unsubscribe', () => {
