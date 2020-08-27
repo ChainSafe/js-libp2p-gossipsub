@@ -192,11 +192,11 @@ class Gossipsub extends BasicPubsub {
     const prune = this._handleGraft(peer, controlMsg.graft)
     this._handlePrune(peer, controlMsg.prune)
 
-    if (!iwant || !ihave || !prune) {
+    if (!iwant && !ihave && !prune) {
       return
     }
 
-    const outRpc = createGossipRpc(ihave, { iwant: [iwant], prune })
+    const outRpc = createGossipRpc(ihave, { iwant: iwant && [iwant], prune })
     this._sendRpc(peer, outRpc)
   }
 
