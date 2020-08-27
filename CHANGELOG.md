@@ -1,3 +1,14 @@
+<a name="0.4.7"></a>
+## [0.4.7](https://github.com/ChainSafe/gossipsub-js/compare/v0.4.5...v0.4.7) (2020-08-27)
+
+
+### Bug Fixes
+
+* connected with a subscriber before a mesh is created should send messages ([060346a](https://github.com/ChainSafe/gossipsub-js/commit/060346a))
+* rpc control messages 0.4.x ([#133](https://github.com/ChainSafe/gossipsub-js/issues/133)) ([a8438b5](https://github.com/ChainSafe/gossipsub-js/commit/a8438b5))
+
+
+
 <a name="0.4.6"></a>
 ## [0.4.6](https://github.com/ChainSafe/gossipsub-js/compare/v0.4.5...v0.4.6) (2020-07-07)
 
