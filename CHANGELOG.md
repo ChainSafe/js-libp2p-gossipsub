@@ -1,3 +1,22 @@
+<a name="0.5.1"></a>
+## [0.5.1](https://github.com/ChainSafe/gossipsub-js/compare/v0.4.6...v0.5.1) (2020-08-27)
+
+
+### Bug Fixes
+
+* replace node buffers with uint8arrays ([#118](https://github.com/ChainSafe/gossipsub-js/issues/118)) ([2f50108](https://github.com/ChainSafe/gossipsub-js/commit/2f50108))
+* rpc control messages 0.5.x ([#131](https://github.com/ChainSafe/gossipsub-js/issues/131)) ([dfaa3fd](https://github.com/ChainSafe/gossipsub-js/commit/dfaa3fd))
+
+
+### BREAKING CHANGES
+
+* - The `.data` and `.seq` properties of messages used to be node Buffers, now they are Uint8Arrays
+- All deps of this module now use Uint8Arrays instead of Buffers
+
+* chore: remove gh url from dep version
+
+
+
 <a name="0.5.0"></a>
 # [0.5.0](https://github.com/ChainSafe/gossipsub-js/compare/v0.4.6...v0.5.0) (2020-08-12)
 
