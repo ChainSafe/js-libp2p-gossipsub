@@ -33,20 +33,7 @@ Gossipsub is an implementation of pubsub based on meshsub and floodsub. You can 
 ```javascript
 const Gossipsub = require('libp2p-gossipsub')
 
-const registrar = {
-  handle: (multicodecs, handle) => {
-    // register multicodec to libp2p
-    // handle function is called everytime a remote peer opens a stream to the peer.
-  },
-  register: (multicodecs, handlers) => {
-    // handlers will be used to notify pubsub of peer connection establishment or closing
-  },
-  unregister: (id) => {
-
-  }
-}
-
-const gsub = new Gossipsub(peerId, registrar, options)
+const gsub = new Gossipsub(libp2p, options)
 
 await gsub.start()
 
@@ -64,15 +51,21 @@ gsub.publish('fruit', new TextEncoder().encode('banana'))
 
 ```js
 const options = {…}
-const gossipsub = new Gossipsub(peerId, registrar, options)
+const gossipsub = new Gossipsub(libp2p, options)
 ```
 
 Options is an optional object with the following key-value pairs:
 
-* **`fallbackToFloodsub`**: boolean identifying whether the node should fallback to the floodsub protocol, if another connecting peer does not support gossipsub (defaults to **true**).
 * **`emitSelf`**: boolean identifying whether the node should emit to self on publish, in the event of the topic being subscribed (defaults to **false**).
+* **`gossipIncoming`**: boolean identifying if incoming messages on a subscribed topic should be automatically gossiped (defaults to **true**).
+* **`fallbackToFloodsub`**: boolean identifying whether the node should fallback to the floodsub protocol, if another connecting peer does not support gossipsub (defaults to **true**).
+* **`floodPublish`**: boolean identifying if self-published messages should be sent to all peers, (defaults to **true**).
+* **`doPX`**: boolean identifying whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes (defaults to **false**).
 * **`msgIdFn`**: a function with signature `(message) => string` defining the message id given a message, used internally to deduplicate gossip (defaults to `(message) => message.from + message.seqno.toString('hex')`)
 * **`messageCache`**: optional, a customized `MessageCache` instance, see the implementation for the interface.
+* **`scoreParams`**: optional, a customized peer score parameters Object.
+* **`scoreThresholds`**: optional, a customized peer score thresholds Object.
+* **`directPeers`**: optional, an array of `AddrInfo` of peers with which we will maintain direct connections.
 
 For the remaining API, see https://github.com/libp2p/js-libp2p-pubsub
 
