@@ -21,8 +21,7 @@ import TimeCache = require('time-cache')
 import PeerId = require('peer-id')
 // @ts-ignore
 import Envelope = require('libp2p/src/record/envelope')
-// @ts-ignore
-import Pubsub = require('libp2p-interfaces/src/pubsub')
+import Pubsub from 'libp2p-interfaces/src/pubsub'
 
 interface GossipInputOptions {
   emitSelf: boolean
