@@ -34,9 +34,6 @@
     "url": "https://github.com/ChainSafe/js-libp2p-gossipsub/issues"
   },
   "homepage": "https://github.com/ChainSafe/js-libp2p-gossipsub#readme",
-  "pre-push": [
-    "lint"
-  ],
   "dependencies": {
     "@types/debug": "^4.1.5",
     "debug": "^4.1.1",
