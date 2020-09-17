@@ -1,4 +1,4 @@
-import {InMessage, utils} from 'libp2p-interfaces/src/pubsub'
+import Pubsub, { InMessage, utils } from 'libp2p-interfaces/src/pubsub'
 import { MessageCache } from './message-cache'
 import {
   RPCCodec,
@@ -13,13 +13,15 @@ import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams,
 import { IWantTracer } from './tracer'
 import { AddrInfo, Libp2p, EnvelopeClass } from './interfaces'
 import { Debugger } from 'debug'
+
+import PeerStreams from 'libp2p-interfaces/src/pubsub/peer-streams'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import TimeCache = require('time-cache')
 import PeerId = require('peer-id')
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import Envelope = require('libp2p/src/record/envelope')
-import Pubsub from 'libp2p-interfaces/src/pubsub'
-import PeerStreams from 'libp2p-interfaces/src/pubsub/peer-streams'
 
 interface GossipInputOptions {
   emitSelf: boolean
@@ -316,7 +318,7 @@ class Gossipsub extends Pubsub {
         }
       }
     }
-    this.outbound.set(p, outbound)
+    this.outbound.set(p.id.toB58String(), outbound)
 
     return p
   }

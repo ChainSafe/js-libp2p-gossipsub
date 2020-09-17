@@ -1,6 +1,6 @@
 import { GossipsubIWantFollowupTime } from './constants'
+import { InMessage } from 'libp2p-interfaces/src/pubsub'
 import pubsubErrors = require('libp2p-interfaces/src/pubsub/errors')
-import {InMessage} from "libp2p-interfaces/src/pubsub";
 
 const {
   ERR_INVALID_SIGNATURE,

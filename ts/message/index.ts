@@ -63,7 +63,6 @@ type Overwrite<T1, T2> = {
     [P in Exclude<keyof T1, keyof T2>]: T1[P]
 } & T2;
 
-
 /**
  * IHAVE control message
  * Sent to notify a peer with a list of messages that were recently seen by the local router in the included topic id

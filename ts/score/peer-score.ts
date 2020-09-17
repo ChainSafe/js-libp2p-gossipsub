@@ -5,9 +5,9 @@ import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries'
 import { ConnectionManager } from '../interfaces'
 import { ERR_TOPIC_VALIDATOR_IGNORE } from '../constants'
 import PeerId from 'peer-id'
+import { InMessage } from 'libp2p-interfaces/src/pubsub'
 import debug = require('debug')
 import pubsubErrors = require('libp2p-interfaces/src/pubsub/errors')
-import {InMessage} from "libp2p-interfaces/src/pubsub";
 
 const {
   ERR_INVALID_SIGNATURE,
