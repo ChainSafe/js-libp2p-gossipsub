@@ -7353,7 +7353,7 @@ libp2p-floodsub@^0.23.0:
 
 libp2p-interfaces@^0.5.1, "libp2p-interfaces@https://github.com/mpetrunic/js-libp2p-interfaces.git#mpetrunic/typescript-types":
   version "0.5.1"
-  resolved "https://github.com/mpetrunic/js-libp2p-interfaces.git#46bf5a1375f51a121c7e70090900efea0eeecbc8"
+  resolved "https://github.com/mpetrunic/js-libp2p-interfaces.git#1e783a0930c7c51161581ba6bb377c6c9e7c7c07"
   dependencies:
     abort-controller "^3.0.0"
     abortable-iterator "^3.0.0"
