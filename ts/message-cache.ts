@@ -1,4 +1,4 @@
-import { InMessage } from './message'
+import {InMessage} from "libp2p-interfaces/src/pubsub";
 
 export interface CacheEntry {
   msgID: string

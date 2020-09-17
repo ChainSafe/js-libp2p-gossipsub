@@ -1,17 +1,14 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-ignore
-import { utils } from 'libp2p-interfaces/src/pubsub'
+import {InMessage, utils} from 'libp2p-interfaces/src/pubsub'
 import { MessageCache } from './message-cache'
 import {
   RPCCodec,
-  RPC, Message, InMessage,
+  RPC, Message,
   ControlMessage, ControlIHave, ControlGraft, ControlIWant, ControlPrune, PeerInfo
 } from './message'
 import * as constants from './constants'
 import { Heartbeat } from './heartbeat'
 import { getGossipPeers } from './get-gossip-peers'
 import { createGossipRpc, shuffle, hasGossipProtocol } from './utils'
-import { PeerStreams } from './peer-streams'
 import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds } from './score'
 import { IWantTracer } from './tracer'
 import { AddrInfo, Libp2p, EnvelopeClass } from './interfaces'
@@ -22,6 +19,7 @@ import PeerId = require('peer-id')
 // @ts-ignore
 import Envelope = require('libp2p/src/record/envelope')
 import Pubsub from 'libp2p-interfaces/src/pubsub'
+import PeerStreams from 'libp2p-interfaces/src/pubsub/peer-streams'
 
 interface GossipInputOptions {
   emitSelf: boolean
@@ -237,7 +235,7 @@ class Gossipsub extends Pubsub {
     /**
      * Use the overriden mesgIdFn or the default one.
      */
-    this.defaultMsgIdFn = (msg : InMessage) => utils.msgId(msg.from, msg.seqno)
+    this.defaultMsgIdFn = (msg : InMessage) => utils.msgId(msg.from!, msg.seqno!)
     this._msgIdFn = options.msgIdFn || this.defaultMsgIdFn
 
     /**

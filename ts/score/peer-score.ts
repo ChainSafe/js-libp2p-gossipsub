@@ -1,17 +1,13 @@
-import { InMessage } from '../message'
 import { PeerScoreParams, validatePeerScoreParams } from './peer-score-params'
 import { PeerStats, createPeerStats, ensureTopicStats } from './peer-stats'
 import { computeScore } from './compute-score'
 import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries'
 import { ConnectionManager } from '../interfaces'
 import { ERR_TOPIC_VALIDATOR_IGNORE } from '../constants'
-import PeerId = require('peer-id')
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+import PeerId from 'peer-id'
 import debug = require('debug')
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import pubsubErrors = require('libp2p-interfaces/src/pubsub/errors')
+import {InMessage} from "libp2p-interfaces/src/pubsub";
 
 const {
   ERR_INVALID_SIGNATURE,

@@ -7455,7 +7455,7 @@ libp2p-websockets@^0.14.0:
     multiaddr-to-uri "^6.0.0"
     p-timeout "^3.2.0"
 
-libp2p@^0.29.0-rc.0:
+libp2p@^0.29.0:
   version "0.29.0"
   resolved "https://registry.yarnpkg.com/libp2p/-/libp2p-0.29.0.tgz#56d55630b834111b8d0c62724e139461672d5bfd"
   integrity sha512-eALoJ0vpsonRwzLpdPY2/272RIl2MImIg2QToqLb+wBChcSQFB4U/r3LU8rZqEaDfRNupOBG/rx67gJTWC0h2Q==
