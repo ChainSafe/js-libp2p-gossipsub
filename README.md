@@ -62,6 +62,8 @@ Options is an optional object with the following key-value pairs:
 * **`floodPublish`**: boolean identifying if self-published messages should be sent to all peers, (defaults to **true**).
 * **`doPX`**: boolean identifying whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes (defaults to **false**).
 * **`msgIdFn`**: a function with signature `(message) => string` defining the message id given a message, used internally to deduplicate gossip (defaults to `(message) => message.from + message.seqno.toString('hex')`)
+* **`signMessages`**: boolean identifying if we want to sign outgoing messages or not
+* **`strictSigning`**: boolean identifying if message signing is required for incoming messages or not
 * **`messageCache`**: optional, a customized `MessageCache` instance, see the implementation for the interface.
 * **`scoreParams`**: optional, a customized peer score parameters Object.
 * **`scoreThresholds`**: optional, a customized peer score thresholds Object.
