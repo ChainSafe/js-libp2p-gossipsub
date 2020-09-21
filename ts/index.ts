@@ -113,8 +113,8 @@ class Gossipsub extends Pubsub {
    * @param {bool} [options.doPX] whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes. defaults to false
    * @param {function} [options.msgIdFn] override the default message id function
    * @param {Object} [options.messageCache] override the default MessageCache
-   * @param {bool} [options.signMessages] if we want to sign outgoing messages or not
-   * @param {bool} [options.strictSigning] if message signing is required for incoming messages or not
+   * @param {bool} [options.signMessages] if we want to sign outgoing messages or not (default: true)
+   * @param {bool} [options.strictSigning] if message signing is required for incoming messages or not (default: true)
    * @param {Object} [options.scoreParams] peer score parameters
    * @param {Object} [options.scoreThresholds] peer score thresholds
    * @param {AddrInfo[]} [options.directPeers] peers with which we will maintain direct connections
