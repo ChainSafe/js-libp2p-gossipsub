@@ -12,7 +12,7 @@
   "scripts": {
     "lint": "eslint --ext .ts ts",
     "release": "aegir release",
-    "prebuild": "tsc --traceResolution",
+    "prebuild": "tsc",
     "build": "aegir build",
     "pretest": "tsc",
     "test": "aegir test",
