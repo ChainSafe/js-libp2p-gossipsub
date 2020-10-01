@@ -90,7 +90,7 @@ export class IWantTracer {
    * A message got rejected, so we can stop tracking promises and let the score penalty apply from invalid message delivery,
    * unless its an obviously invalid message.
    * @param {InMessage} msg
-   * @param reason
+   * @param {string} reason
    * @returns {void}
    */
   rejectMessage (msg: InMessage, reason: string): void {
