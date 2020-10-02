@@ -64,20 +64,6 @@ type Overwrite<T1, T2> = {
 } & T2;
 
 /**
- * Pubsub message, with `from` as a base58-encoded string
- */
-export type InMessage = Overwrite<Message, {
-  /**
-   * Base58-encoded peer id
-   */
-  receivedFrom: string
-  /**
-   * Base58-encoded peer id
-   */
-  from?: string
-}>
-
-/**
  * IHAVE control message
  * Sent to notify a peer with a list of messages that were recently seen by the local router in the included topic id
  */

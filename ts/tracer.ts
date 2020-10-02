@@ -1,7 +1,5 @@
-import { InMessage } from './message'
 import { GossipsubIWantFollowupTime } from './constants'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+import { InMessage } from 'libp2p-interfaces/src/pubsub'
 import pubsubErrors = require('libp2p-interfaces/src/pubsub/errors')
 
 const {
@@ -92,6 +90,7 @@ export class IWantTracer {
    * A message got rejected, so we can stop tracking promises and let the score penalty apply from invalid message delivery,
    * unless its an obviously invalid message.
    * @param {InMessage} msg
+   * @param {string} reason
    * @returns {void}
    */
   rejectMessage (msg: InMessage, reason: string): void {
