@@ -2,7 +2,7 @@ import { PeerScoreParams, validatePeerScoreParams } from './peer-score-params'
 import { PeerStats, createPeerStats, ensureTopicStats } from './peer-stats'
 import { computeScore } from './compute-score'
 import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries'
-import { ConnectionManager } from '../interfaces'
+import { ConnectionManager, MessageIdFunction } from '../interfaces'
 import { ERR_TOPIC_VALIDATOR_IGNORE } from '../constants'
 import PeerId from 'peer-id'
 import { InMessage } from 'libp2p-interfaces/src/pubsub'
@@ -36,11 +36,11 @@ export class PeerScore {
   /**
    * Message ID function
    */
-  msgId: (message: InMessage) => string
+  msgId: MessageIdFunction
   _connectionManager: ConnectionManager
-  _backgroundInterval: NodeJS.Timeout
+  _backgroundInterval?: NodeJS.Timeout
 
-  constructor (params: PeerScoreParams, connectionManager: ConnectionManager, msgId: (message: InMessage) => string) {
+  constructor (params: PeerScoreParams, connectionManager: ConnectionManager, msgId: MessageIdFunction) {
     validatePeerScoreParams(params)
     this.params = params
     this._connectionManager = connectionManager

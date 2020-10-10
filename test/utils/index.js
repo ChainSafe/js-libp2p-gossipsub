@@ -3,6 +3,7 @@
 const { expect } = require('chai')
 
 const FloodSub = require('libp2p-floodsub')
+const { result } = require('lodash')
 const PeerId = require('peer-id')
 
 exports.first = (map) => map.values().next().value
@@ -42,4 +43,13 @@ for (const [k, v] of Object.entries({
   ...require('./make-test-message')
 })) {
   exports[k] = v
+}
+
+exports.getMsgId = (msg) => {
+  const from = Buffer.from(msg.from)
+  const seqno = Buffer.from(msg.seqno)
+  const result = new Uint8Array(from.length + seqno.length)
+  result.set(from, 0)
+  result.set(seqno, from.length)
+  return result
 }

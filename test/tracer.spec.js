@@ -4,9 +4,7 @@ const { utils } = require('libp2p-interfaces/src/pubsub')
 
 const { IWantTracer } = require('../src/tracer')
 const constants = require('../src/constants')
-const { makeTestMessage } = require('./utils')
-
-const getMsgId = (msg) => utils.msgId(msg.from, msg.seqno)
+const { makeTestMessage, getMsgId } = require('./utils')
 
 describe('IWantTracer', () => {
   it('should track broken promises', async function () {

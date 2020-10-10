@@ -1,3 +1,4 @@
+import { InMessage } from 'libp2p-interfaces/src/pubsub'
 import PeerId = require('peer-id')
 import Multiaddr = require('multiaddr')
 
@@ -69,3 +70,5 @@ export interface Libp2p {
   registrar: Registrar
   peerStore: PeerStore
 }
+
+export type MessageIdFunction = (msg: InMessage) => Uint8Array;
