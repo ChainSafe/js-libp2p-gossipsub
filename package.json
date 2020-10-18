@@ -43,7 +43,8 @@
     "libp2p-interfaces": "^0.6.0",
     "peer-id": "^0.14.0",
     "protons": "^2.0.0",
-    "time-cache": "^0.3.0"
+    "time-cache": "^0.3.0",
+    "uint8arrays": "^1.1.0"
   },
   "devDependencies": {
     "@types/chai": "^4.2.3",
@@ -77,8 +78,7 @@
     "p-wait-for": "^3.1.0",
     "promisify-es6": "^1.0.3",
     "sinon": "^9.0.2",
-    "typescript": "^3.9.3",
-    "uint8arrays": "^1.1.0"
+    "typescript": "^3.9.3"
   },
   "peerDependencies": {
     "libp2p": "^0.29.0"
