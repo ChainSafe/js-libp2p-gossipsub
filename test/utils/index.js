@@ -3,7 +3,6 @@
 const { expect } = require('chai')
 
 const FloodSub = require('libp2p-floodsub')
-const { result } = require('lodash')
 const PeerId = require('peer-id')
 
 exports.first = (map) => map.values().next().value

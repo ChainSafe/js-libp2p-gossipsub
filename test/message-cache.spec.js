@@ -39,8 +39,8 @@ describe('Testing Message Cache Operations', () => {
 
   it('Should retrieve correct messages for each test message', () => {
     for (let i = 0; i < 10; i++) {
-      const mId = getMsgId(testMessages[i])
-      const message = messageCache.get(mId)
+      const messageId = getMsgId(testMessages[i])
+      const message = messageCache.get(messageId)
       expect(message).to.equal(testMessages[i])
     }
   })
