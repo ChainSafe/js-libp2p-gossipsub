@@ -69,7 +69,7 @@ type Overwrite<T1, T2> = {
  */
 export interface ControlIHave {
   topicID?: string
-  messageIDs: string[]
+  messageIDs: Uint8Array[]
 }
 
 /**
@@ -77,7 +77,7 @@ export interface ControlIHave {
  * Sent to request the full content of messages whose IDs were announced by a remote peer in an IHAVE message
  */
 export interface ControlIWant {
-  messageIDs: string[]
+  messageIDs: Uint8Array[]
 }
 
 /**

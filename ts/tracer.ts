@@ -1,5 +1,7 @@
 import { GossipsubIWantFollowupTime } from './constants'
 import { InMessage } from 'libp2p-interfaces/src/pubsub'
+import { MessageIdFunction } from './interfaces'
+import { messageIdToString } from './utils'
 import pubsubErrors = require('libp2p-interfaces/src/pubsub/errors')
 
 const {
@@ -16,13 +18,13 @@ const {
  * These 'promises' are merely expectations of a peer's behavior.
  */
 export class IWantTracer {
-  getMsgId: (msg: InMessage) => string
+  getMsgId: MessageIdFunction
   /**
    * Promises to deliver a message
    * Map per message id, per peer, promise expiration time
    */
   promises: Map<string, Map<string, number>>
-  constructor (getMsgId: (msg: InMessage) => string) {
+  constructor (getMsgId: MessageIdFunction) {
     this.getMsgId = getMsgId
     this.promises = new Map()
   }
@@ -33,15 +35,16 @@ export class IWantTracer {
    * @param {string[]} msgIds
    * @returns {void}
    */
-  addPromise (p: string, msgIds: string[]): void {
+  addPromise (p: string, msgIds: Uint8Array[]): void {
     // pick msgId randomly from the list
     const ix = Math.floor(Math.random() * msgIds.length)
     const msgId = msgIds[ix]
+    const msgIdStr = messageIdToString(msgId)
 
-    let peers = this.promises.get(msgId)
+    let peers = this.promises.get(msgIdStr)
     if (!peers) {
       peers = new Map()
-      this.promises.set(msgId, peers)
+      this.promises.set(msgIdStr, peers)
     }
 
     if (!peers.has(p)) {
@@ -83,7 +86,8 @@ export class IWantTracer {
    */
   deliverMessage (msg: InMessage): void {
     const msgId = this.getMsgId(msg)
-    this.promises.delete(msgId)
+    const msgIdStr = messageIdToString(msgId)
+    this.promises.delete(msgIdStr)
   }
 
   /**
@@ -101,7 +105,8 @@ export class IWantTracer {
     }
 
     const msgId = this.getMsgId(msg)
-    this.promises.delete(msgId)
+    const msgIdStr = messageIdToString(msgId)
+    this.promises.delete(msgIdStr)
   }
 
   clear (): void {

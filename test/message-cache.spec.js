@@ -12,13 +12,10 @@ const uint8ArrayFromString = require('uint8arrays/from-string')
 
 const { MessageCache } = require('../src/message-cache')
 const { utils } = require('libp2p-interfaces/src/pubsub')
-
-const getMsgID = (msg) => {
-  return utils.msgId(msg.from, msg.seqno)
-}
+const { getMsgId } = require('./utils')
 
 describe('Testing Message Cache Operations', () => {
-  const messageCache = new MessageCache(3, 5, getMsgID)
+  const messageCache = new MessageCache(3, 5, getMsgId)
   const testMessages = []
 
   before(() => {
@@ -42,8 +39,8 @@ describe('Testing Message Cache Operations', () => {
 
   it('Should retrieve correct messages for each test message', () => {
     for (let i = 0; i < 10; i++) {
-      const msgId = getMsgID(testMessages[i])
-      const message = messageCache.get(msgId)
+      const messageId = getMsgId(testMessages[i])
+      const message = messageCache.get(messageId)
       expect(message).to.equal(testMessages[i])
     }
   })
@@ -53,8 +50,8 @@ describe('Testing Message Cache Operations', () => {
     expect(gossipIDs.length).to.equal(10)
 
     for (let i = 0; i < 10; i++) {
-      const messageID = getMsgID(testMessages[i])
-      expect(messageID).to.equal(gossipIDs[i])
+      const messageID = getMsgId(testMessages[i])
+      expect(messageID).to.deep.equal(gossipIDs[i])
     }
   })
 
@@ -65,7 +62,7 @@ describe('Testing Message Cache Operations', () => {
     }
 
     for (let i = 0; i < 20; i++) {
-      const messageID = getMsgID(testMessages[i])
+      const messageID = getMsgId(testMessages[i])
       const message = messageCache.get(messageID)
       expect(message).to.equal(testMessages[i])
     }
@@ -74,13 +71,13 @@ describe('Testing Message Cache Operations', () => {
     expect(gossipIDs.length).to.equal(20)
 
     for (let i = 0; i < 10; i++) {
-      const messageID = getMsgID(testMessages[i])
-      expect(messageID).to.equal(gossipIDs[10 + i])
+      const messageID = getMsgId(testMessages[i])
+      expect(messageID).to.deep.equal(gossipIDs[10 + i])
     }
 
     for (let i = 10; i < 20; i++) {
-      const messageID = getMsgID(testMessages[i])
-      expect(messageID).to.equal(gossipIDs[i - 10])
+      const messageID = getMsgId(testMessages[i])
+      expect(messageID).to.deep.equal(gossipIDs[i - 10])
     }
 
     messageCache.shift()
@@ -106,13 +103,13 @@ describe('Testing Message Cache Operations', () => {
     expect(messageCache.msgs.size).to.equal(50)
 
     for (let i = 0; i < 10; i++) {
-      const messageID = getMsgID(testMessages[i])
+      const messageID = getMsgId(testMessages[i])
       const message = messageCache.get(messageID)
       expect(message).to.be.an('undefined')
     }
 
     for (let i = 10; i < 60; i++) {
-      const messageID = getMsgID(testMessages[i])
+      const messageID = getMsgId(testMessages[i])
       const message = messageCache.get(messageID)
       expect(message).to.equal(testMessages[i])
     }
@@ -121,18 +118,18 @@ describe('Testing Message Cache Operations', () => {
     expect(gossipIDs.length).to.equal(30)
 
     for (let i = 0; i < 10; i++) {
-      const messageID = getMsgID(testMessages[50 + i])
-      expect(messageID).to.equal(gossipIDs[i])
+      const messageID = getMsgId(testMessages[50 + i])
+      expect(messageID).to.deep.equal(gossipIDs[i])
     }
 
     for (let i = 10; i < 20; i++) {
-      const messageID = getMsgID(testMessages[30 + i])
-      expect(messageID).to.equal(gossipIDs[i])
+      const messageID = getMsgId(testMessages[30 + i])
+      expect(messageID).to.deep.equal(gossipIDs[i])
     }
 
     for (let i = 20; i < 30; i++) {
-      const messageID = getMsgID(testMessages[10 + i])
-      expect(messageID).to.equal(gossipIDs[i])
+      const messageID = getMsgId(testMessages[10 + i])
+      expect(messageID).to.deep.equal(gossipIDs[i])
     }
   })
 })

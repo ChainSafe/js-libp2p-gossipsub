@@ -1,7 +1,9 @@
 import { InMessage } from 'libp2p-interfaces/src/pubsub'
+import { MessageIdFunction } from './interfaces'
+import { messageIdToString } from './utils'
 
 export interface CacheEntry {
-  msgID: string
+  msgID: Uint8Array
   topics: string[]
 }
 
@@ -10,7 +12,7 @@ export class MessageCache {
   peertx: Map<string, Map<string, number>>
   history: CacheEntry[][]
   gossip: number
-  msgIdFn: (msg: InMessage) => string
+  msgIdFn: MessageIdFunction
 
   /**
    * @param {Number} gossip
@@ -19,7 +21,7 @@ export class MessageCache {
    *
    * @constructor
    */
-  constructor (gossip: number, history: number, msgIdFn: (msg: InMessage) => string) {
+  constructor (gossip: number, history: number, msgIdFn: MessageIdFunction) {
     /**
      * @type {Map<string, RPC.Message>}
      */
@@ -54,27 +56,28 @@ export class MessageCache {
    */
   put (msg: InMessage): void {
     const msgID = this.getMsgId(msg)
-    this.msgs.set(msgID, msg)
+    const msgIdStr = messageIdToString(msgID)
+    this.msgs.set(msgIdStr, msg)
     this.history[0].push({ msgID, topics: msg.topicIDs })
   }
 
   /**
    * Get message id of message.
    * @param {RPC.Message} msg
-   * @returns {string}
+   * @returns {Uint8Array}
    */
-  getMsgId (msg: InMessage): string {
+  getMsgId (msg: InMessage): Uint8Array {
     return this.msgIdFn(msg)
   }
 
   /**
    * Retrieves a message from the cache by its ID, if it is still present
    *
-   * @param {String} msgID
+   * @param {Uint8Array} msgID
    * @returns {Message}
    */
-  get (msgID: string): InMessage | undefined {
-    return this.msgs.get(msgID)
+  get (msgID: Uint8Array): InMessage | undefined {
+    return this.msgs.get(messageIdToString(msgID))
   }
 
   /**
@@ -86,16 +89,17 @@ export class MessageCache {
    * @param {string} p
    * @returns {[InMessage | undefined, number]}
    */
-  getForPeer (msgID: string, p: string): [InMessage | undefined, number] {
-    const msg = this.msgs.get(msgID)
+  getForPeer (msgID: Uint8Array, p: string): [InMessage | undefined, number] {
+    const msgIdStr = messageIdToString(msgID)
+    const msg = this.msgs.get(msgIdStr)
     if (!msg) {
       return [undefined, 0]
     }
 
-    let peertx = this.peertx.get(msgID)
+    let peertx = this.peertx.get(msgIdStr)
     if (!peertx) {
       peertx = new Map()
-      this.peertx.set(msgID, peertx)
+      this.peertx.set(msgIdStr, peertx)
     }
     const count = (peertx.get(p) || 0) + 1
     peertx.set(p, count)
@@ -108,10 +112,10 @@ export class MessageCache {
    *
    * @param {String} topic
    *
-   * @returns {Array<String>}
+   * @returns {Array<Uint8Array>}
    */
-  getGossipIDs (topic: string): string[] {
-    const msgIDs: string[] = []
+  getGossipIDs (topic: string): Uint8Array[] {
+    const msgIDs: Uint8Array[] = []
     for (let i = 0; i < this.gossip; i++) {
       this.history[i].forEach((entry) => {
         for (const t of entry.topics) {
@@ -134,8 +138,9 @@ export class MessageCache {
   shift (): void {
     const last = this.history[this.history.length - 1]
     last.forEach((entry) => {
-      this.msgs.delete(entry.msgID)
-      this.peertx.delete(entry.msgID)
+      const msgIdStr = messageIdToString(entry.msgID)
+      this.msgs.delete(msgIdStr)
+      this.peertx.delete(msgIdStr)
     })
 
     this.history.pop()

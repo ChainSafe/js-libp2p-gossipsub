@@ -43,3 +43,12 @@ for (const [k, v] of Object.entries({
 })) {
   exports[k] = v
 }
+
+exports.getMsgId = (msg) => {
+  const from = Buffer.from(msg.from)
+  const seqno = Buffer.from(msg.seqno)
+  const result = new Uint8Array(from.length + seqno.length)
+  result.set(from, 0)
+  result.set(seqno, from.length)
+  return result
+}

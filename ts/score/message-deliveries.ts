@@ -1,5 +1,6 @@
 import { TimeCacheDuration } from '../constants'
 import Denque from 'denque'
+import { messageIdToString } from '../utils'
 
 export enum DeliveryRecordStatus {
   /**
@@ -46,8 +47,9 @@ export class MessageDeliveries {
     this.queue = new Denque()
   }
 
-  ensureRecord (msgId: string): DeliveryRecord {
-    let drec = this.records.get(msgId)
+  ensureRecord (msgId: Uint8Array): DeliveryRecord {
+    const msgIdStr = messageIdToString(msgId)
+    let drec = this.records.get(msgIdStr)
     if (drec) {
       return drec
     }
@@ -60,11 +62,11 @@ export class MessageDeliveries {
       validated: 0,
       peers: new Set()
     }
-    this.records.set(msgId, drec)
+    this.records.set(msgIdStr, drec)
 
     // and add msgId to the queue
     const entry: DeliveryQueueEntry = {
-      msgId,
+      msgId: msgIdStr,
       expire: Date.now() + TimeCacheDuration
     }
     this.queue.push(entry)

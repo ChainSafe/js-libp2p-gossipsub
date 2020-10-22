@@ -8,10 +8,10 @@ import {
 import * as constants from './constants'
 import { Heartbeat } from './heartbeat'
 import { getGossipPeers } from './get-gossip-peers'
-import { createGossipRpc, shuffle, hasGossipProtocol } from './utils'
+import { createGossipRpc, shuffle, hasGossipProtocol, messageIdToString } from './utils'
 import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds } from './score'
 import { IWantTracer } from './tracer'
-import { AddrInfo, Libp2p, EnvelopeClass } from './interfaces'
+import { AddrInfo, Libp2p, EnvelopeClass, MessageIdFunction } from './interfaces'
 import { Debugger } from 'debug'
 
 import PeerStreams from 'libp2p-interfaces/src/pubsub/peer-streams'
@@ -29,7 +29,7 @@ interface GossipInputOptions {
   fallbackToFloodsub: boolean
   floodPublish: boolean
   doPX: boolean
-  msgIdFn: (msg: InMessage) => string
+  msgIdFn: MessageIdFunction
   messageCache: MessageCache
   signMessages: boolean
   strictSigning: boolean
@@ -81,8 +81,8 @@ class Gossipsub extends Pubsub {
   iasked:Map<string, number>
   backoff: Map<string, Map<string, number>>
   outbound: Map<string, boolean>
-  defaultMsgIdFn: (msg: InMessage) => string
-  _msgIdFn: (msg: InMessage) => string
+  defaultMsgIdFn: MessageIdFunction
+  _msgIdFn: MessageIdFunction
   messageCache: MessageCache
   score: PeerScore
   heartbeat: Heartbeat
@@ -110,7 +110,7 @@ class Gossipsub extends Pubsub {
    * @param {bool} [options.fallbackToFloodsub] if dial should fallback to floodsub, defaults to true
    * @param {bool} [options.floodPublish] if self-published messages should be sent to all peers, defaults to true
    * @param {bool} [options.doPX] whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes. defaults to false
-   * @param {function} [options.msgIdFn] override the default message id function
+   * @param {MessageIdFunction} [options.msgIdFn] override the default message id function
    * @param {Object} [options.messageCache] override the default MessageCache
    * @param {bool} [options.signMessages] if we want to sign outgoing messages or not (default: true)
    * @param {bool} [options.strictSigning] if message signing is required for incoming messages or not (default: true)
@@ -416,13 +416,14 @@ class Gossipsub extends Pubsub {
    */
   async _processRpcMessage (msg: InMessage): Promise<void> {
     const msgID = this.getMsgId(msg)
+    const msgIdStr = messageIdToString(msgID)
 
     // Ignore if we've already seen the message
-    if (this.seenCache.has(msgID)) {
+    if (this.seenCache.has(msgIdStr)) {
       this.score.duplicateMessage(msg)
       return
     }
-    this.seenCache.put(msgID)
+    this.seenCache.put(msgIdStr)
 
     this.score.validateMessage(msg)
     await super._processRpcMessage(msg)
@@ -494,7 +495,8 @@ class Gossipsub extends Pubsub {
       return []
     }
 
-    const iwant = new Set<string>()
+    // string msgId => msgId
+    const iwant = new Map<string, Uint8Array>()
 
     ihave.forEach(({ topicID, messageIDs }) => {
       if (!topicID || !this.mesh.has(topicID)) {
@@ -502,10 +504,11 @@ class Gossipsub extends Pubsub {
       }
 
       messageIDs.forEach((msgID) => {
-        if (this.seenCache.has(msgID)) {
+        const msgIdStr = messageIdToString(msgID)
+        if (this.seenCache.has(msgIdStr)) {
           return
         }
-        iwant.add(msgID)
+        iwant.set(msgIdStr, msgID)
       })
     })
 
@@ -523,7 +526,7 @@ class Gossipsub extends Pubsub {
       iask, iwant.size, id
     )
 
-    let iwantList = Array.from(iwant)
+    let iwantList = Array.from(iwant.values())
     // ask in random order
     shuffle(iwantList)
 
@@ -575,7 +578,7 @@ class Gossipsub extends Pubsub {
           )
           return
         }
-        ihave.set(msgID, msg)
+        ihave.set(messageIdToString(msgID), msg)
       })
     })
 
@@ -1017,10 +1020,10 @@ class Gossipsub extends Pubsub {
    * Override the default implementation in BasicPubSub.
    * If we don't provide msgIdFn in constructor option, it's the same.
    * @override
-   * @param {Message} msg the message object
-   * @returns {string} message id as string
+   * @param {InMessage} msg the message object
+   * @returns {Uint8Array} message id as bytes
    */
-  getMsgId (msg: InMessage): string {
+  getMsgId (msg: InMessage): Uint8Array {
     return this._msgIdFn(msg)
   }
 
@@ -1038,8 +1041,9 @@ class Gossipsub extends Pubsub {
     }
 
     const msgID = this.getMsgId(msg)
+    const msgIdStr = messageIdToString(msgID)
     // put in seen cache
-    this.seenCache.put(msgID)
+    this.seenCache.put(msgIdStr)
 
     this.messageCache.put(msg)
 
