@@ -31,8 +31,7 @@ interface GossipInputOptions {
   doPX: boolean
   msgIdFn: MessageIdFunction
   messageCache: MessageCache
-  signMessages: boolean
-  strictSigning: boolean
+  globalSignaturePolicy: string
   scoreParams: Partial<PeerScoreParams>
   scoreThresholds: Partial<PeerScoreThresholds>
   directPeers: AddrInfo[]
@@ -112,8 +111,7 @@ class Gossipsub extends Pubsub {
    * @param {bool} [options.doPX] whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes. defaults to false
    * @param {MessageIdFunction} [options.msgIdFn] override the default message id function
    * @param {Object} [options.messageCache] override the default MessageCache
-   * @param {bool} [options.signMessages] if we want to sign outgoing messages or not (default: true)
-   * @param {bool} [options.strictSigning] if message signing is required for incoming messages or not (default: true)
+   * @param {string} [options.globalSignaturePolicy] signing policy to apply across all messages (default: "StrictSign")
    * @param {Object} [options.scoreParams] peer score parameters
    * @param {Object} [options.scoreThresholds] peer score thresholds
    * @param {AddrInfo[]} [options.directPeers] peers with which we will maintain direct connections
@@ -136,8 +134,6 @@ class Gossipsub extends Pubsub {
       Dscore: constants.GossipsubDscore,
       Dout: constants.GossipsubDout,
       Dlazy: constants.GossipsubDlazy,
-      signMessages: true,
-      strictSigning: true,
       ...options,
       scoreParams: createPeerScoreParams(options.scoreParams),
       scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
