@@ -40,7 +40,7 @@
     "denque": "^1.4.1",
     "err-code": "^2.0.0",
     "it-pipe": "^1.0.1",
-    "libp2p-interfaces": "^0.7.1",
+    "libp2p-interfaces": "https://github.com/ChainSafe/js-libp2p-interfaces#cayman/fix-tests",
     "peer-id": "^0.14.0",
     "protons": "^2.0.0",
     "time-cache": "^0.3.0",
