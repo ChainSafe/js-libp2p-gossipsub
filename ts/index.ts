@@ -31,8 +31,7 @@ interface GossipInputOptions {
   doPX: boolean
   msgIdFn: MessageIdFunction
   messageCache: MessageCache
-  signMessages: boolean
-  strictSigning: boolean
+  globalSignaturePolicy: string
   scoreParams: Partial<PeerScoreParams>
   scoreThresholds: Partial<PeerScoreThresholds>
   directPeers: AddrInfo[]
@@ -110,10 +109,8 @@ class Gossipsub extends Pubsub {
    * @param {bool} [options.fallbackToFloodsub] if dial should fallback to floodsub, defaults to true
    * @param {bool} [options.floodPublish] if self-published messages should be sent to all peers, defaults to true
    * @param {bool} [options.doPX] whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes. defaults to false
-   * @param {MessageIdFunction} [options.msgIdFn] override the default message id function
    * @param {Object} [options.messageCache] override the default MessageCache
-   * @param {bool} [options.signMessages] if we want to sign outgoing messages or not (default: true)
-   * @param {bool} [options.strictSigning] if message signing is required for incoming messages or not (default: true)
+   * @param {string} [options.globalSignaturePolicy] signing policy to apply across all messages (default: "StrictSign")
    * @param {Object} [options.scoreParams] peer score parameters
    * @param {Object} [options.scoreThresholds] peer score thresholds
    * @param {AddrInfo[]} [options.directPeers] peers with which we will maintain direct connections
@@ -136,8 +133,6 @@ class Gossipsub extends Pubsub {
       Dscore: constants.GossipsubDscore,
       Dout: constants.GossipsubDout,
       Dlazy: constants.GossipsubDlazy,
-      signMessages: true,
-      strictSigning: true,
       ...options,
       scoreParams: createPeerScoreParams(options.scoreParams),
       scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
@@ -241,16 +236,10 @@ class Gossipsub extends Pubsub {
     this.outbound = new Map()
 
     /**
-     * Use the overriden mesgIdFn or the default one.
-     */
-    this.defaultMsgIdFn = (msg : InMessage) => utils.msgId(msg.from!, msg.seqno!)
-    this._msgIdFn = options.msgIdFn || this.defaultMsgIdFn
-
-    /**
      * A message cache that contains the messages for last few hearbeat ticks
      *
      */
-    this.messageCache = options.messageCache || new MessageCache(constants.GossipsubHistoryGossip, constants.GossipsubHistoryLength, this._msgIdFn)
+    this.messageCache = options.messageCache || new MessageCache(constants.GossipsubHistoryGossip, constants.GossipsubHistoryLength, this.getMsgId.bind(this))
 
     /**
      * A heartbeat timer that maintains the mesh
@@ -266,7 +255,7 @@ class Gossipsub extends Pubsub {
     /**
      * Tracks IHAVE/IWANT promises broken by peers
      */
-    this.gossipTracer = new IWantTracer(this._msgIdFn)
+    this.gossipTracer = new IWantTracer(this.getMsgId.bind(this))
 
     /**
      * libp2p
@@ -276,7 +265,7 @@ class Gossipsub extends Pubsub {
     /**
      * Peer score tracking
      */
-    this.score = new PeerScore(this._options.scoreParams, libp2p.connectionManager, this._msgIdFn)
+    this.score = new PeerScore(this._options.scoreParams, libp2p.connectionManager, this.getMsgId.bind(this))
   }
 
   /**
@@ -1014,17 +1003,6 @@ class Gossipsub extends Pubsub {
       })
       this.mesh.delete(topic)
     }
-  }
-
-  /**
-   * Override the default implementation in BasicPubSub.
-   * If we don't provide msgIdFn in constructor option, it's the same.
-   * @override
-   * @param {InMessage} msg the message object
-   * @returns {Uint8Array} message id as bytes
-   */
-  getMsgId (msg: InMessage): Uint8Array {
-    return this._msgIdFn(msg)
   }
 
   /**
