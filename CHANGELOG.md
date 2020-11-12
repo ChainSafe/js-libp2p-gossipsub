@@ -1,3 +1,8 @@
+<a name="0.6.5"></a>
+## [0.6.5](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.6.4...v0.6.5) (2020-11-12)
+
+
+
 <a name="0.6.4"></a>
 ## [0.6.4](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.6.3...v0.6.4) (2020-10-22)
 
