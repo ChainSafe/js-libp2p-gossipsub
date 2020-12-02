@@ -6,7 +6,7 @@ const tests = require('libp2p-interfaces/src/pubsub/tests')
 const Gossipsub = require('../src')
 const { createPeers } = require('./utils/create-peer')
 
-describe('interface compliance', () => {
+describe.only('interface compliance', () => {
   let peers
   let pubsubNodes = []
 

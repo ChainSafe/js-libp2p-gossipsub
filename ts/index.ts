@@ -25,13 +25,14 @@ import Envelope = require('libp2p/src/record/envelope')
 
 interface GossipInputOptions {
   emitSelf: boolean
+  canRelayMessage: boolean
   gossipIncoming: boolean
   fallbackToFloodsub: boolean
   floodPublish: boolean
   doPX: boolean
   msgIdFn: MessageIdFunction
   messageCache: MessageCache
-  globalSignaturePolicy: string
+  globalSignaturePolicy: "StrictSign" | "StrictNoSign" | undefined;
   scoreParams: Partial<PeerScoreParams>
   scoreThresholds: Partial<PeerScoreThresholds>
   directPeers: AddrInfo[]
@@ -96,7 +97,7 @@ class Gossipsub extends Pubsub {
   _directPeerInitial: NodeJS.Timeout
   log: Debugger
   // eslint-disable-next-line @typescript-eslint/ban-types
-  emit: (...args: any) => void
+  emit: (event: string | symbol, ...args: any[]) => boolean
 
   public static multicodec: string = constants.GossipsubIDv11
 
@@ -104,13 +105,14 @@ class Gossipsub extends Pubsub {
   /**
    * @param {Libp2p} libp2p
    * @param {Object} [options]
-   * @param {bool} [options.emitSelf] if publish should emit to self, if subscribed, defaults to false
-   * @param {bool} [options.gossipIncoming] if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
-   * @param {bool} [options.fallbackToFloodsub] if dial should fallback to floodsub, defaults to true
-   * @param {bool} [options.floodPublish] if self-published messages should be sent to all peers, defaults to true
-   * @param {bool} [options.doPX] whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes. defaults to false
+   * @param {boolean} [options.emitSelf = false] if publish should emit to self, if subscribed
+   * @param {boolean} [options.canRelayMessage = false] - if can relay messages not subscribed
+   * @param {boolean} [options.gossipIncoming = true] if incoming messages on a subscribed topic should be automatically gossiped
+   * @param {boolean} [options.fallbackToFloodsub = true] if dial should fallback to floodsub
+   * @param {boolean} [options.floodPublish = true] if self-published messages should be sent to all peers
+   * @param {boolean} [options.doPX = false] whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes.
    * @param {Object} [options.messageCache] override the default MessageCache
-   * @param {string} [options.globalSignaturePolicy] signing policy to apply across all messages (default: "StrictSign")
+   * @param {string} [options.globalSignaturePolicy = "StrictSign"] signing policy to apply across all messages
    * @param {Object} [options.scoreParams] peer score parameters
    * @param {Object} [options.scoreThresholds] peer score thresholds
    * @param {AddrInfo[]} [options.directPeers] peers with which we will maintain direct connections
@@ -322,9 +324,9 @@ class Gossipsub extends Pubsub {
    * Removes a peer from the router
    * @override
    * @param {PeerId} peer
-   * @returns {Peer}
+   * @returns {PeerStreams | undefined}
    */
-  _removePeer (peerId: PeerId): PeerStreams {
+  _removePeer (peerId: PeerId): PeerStreams | undefined {
     const peerStreams = super._removePeer(peerId)
     const id = peerId.toB58String()
 
