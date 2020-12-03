@@ -32,7 +32,7 @@ interface GossipInputOptions {
   doPX: boolean
   msgIdFn: MessageIdFunction
   messageCache: MessageCache
-  globalSignaturePolicy: "StrictSign" | "StrictNoSign" | undefined;
+  globalSignaturePolicy: 'StrictSign' | 'StrictNoSign' | undefined
   scoreParams: Partial<PeerScoreParams>
   scoreThresholds: Partial<PeerScoreThresholds>
   directPeers: AddrInfo[]
