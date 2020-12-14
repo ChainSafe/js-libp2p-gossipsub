@@ -11,8 +11,9 @@ import { getGossipPeers } from './get-gossip-peers'
 import { createGossipRpc, shuffle, hasGossipProtocol, messageIdToString } from './utils'
 import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds } from './score'
 import { IWantTracer } from './tracer'
-import { AddrInfo, Libp2p, EnvelopeClass, MessageIdFunction } from './interfaces'
+import { AddrInfo, MessageIdFunction } from './interfaces'
 import { Debugger } from 'debug'
+import Libp2p from 'libp2p'
 
 import PeerStreams from 'libp2p-interfaces/src/pubsub/peer-streams'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -841,7 +842,7 @@ class Gossipsub extends Pubsub {
       // This is not a record from the peer who sent the record, but another peer who is connected with it
       // Ensure that it is valid
       try {
-        const envelope = await (Envelope as EnvelopeClass).openAndCertify(pi.signedPeerRecord, 'libp2p-peer-record')
+        const envelope = await Envelope.openAndCertify(pi.signedPeerRecord, 'libp2p-peer-record')
         const eid = envelope.peerId.toB58String()
         if (id !== eid) {
           this.log(

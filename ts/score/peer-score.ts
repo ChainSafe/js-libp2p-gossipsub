@@ -2,9 +2,10 @@ import { PeerScoreParams, validatePeerScoreParams } from './peer-score-params'
 import { PeerStats, createPeerStats, ensureTopicStats } from './peer-stats'
 import { computeScore } from './compute-score'
 import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries'
-import { ConnectionManager, MessageIdFunction } from '../interfaces'
+import { MessageIdFunction } from '../interfaces'
 import { ERR_TOPIC_VALIDATOR_IGNORE } from '../constants'
 import PeerId from 'peer-id'
+import ConnectionManager from 'libp2p/src/connection-manager'
 import { InMessage } from 'libp2p-interfaces/src/pubsub'
 import debug = require('debug')
 import pubsubErrors = require('libp2p-interfaces/src/pubsub/errors')

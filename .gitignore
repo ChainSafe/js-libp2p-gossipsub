@@ -1,6 +1,5 @@
 .idea/
 node_modules/
-src/
 package-lock.json
 dist/
 docs/

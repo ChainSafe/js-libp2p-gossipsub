@@ -51,7 +51,7 @@
     "@types/mocha": "^7.0.2",
     "@typescript-eslint/eslint-plugin": "^3.0.2",
     "@typescript-eslint/parser": "^3.0.2",
-    "aegir": "^29.2.0",
+    "aegir": "^28.0.0",
     "benchmark": "^2.1.4",
     "chai": "^4.2.0",
     "chai-spies": "^1.0.0",
@@ -65,8 +65,8 @@
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
     "it-pair": "^1.0.0",
-    "libp2p": "^0.29.0",
-    "libp2p-floodsub": "^0.23.0",
+    "libp2p": "^0.30.0",
+    "libp2p-floodsub": "libp2p/js-libp2p-floodsub#chore/use-libp2p0.30",
     "libp2p-mplex": "^0.10.0",
     "libp2p-noise": "^2.0.0",
     "libp2p-websockets": "^0.14.0",
@@ -81,7 +81,7 @@
     "typescript": "^3.9.3"
   },
   "peerDependencies": {
-    "libp2p": "^0.29.0"
+    "libp2p": "^0.30.0"
   },
   "contributors": [
     "Cayman <caymannava@gmail.com>",
