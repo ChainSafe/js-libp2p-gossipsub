@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset='utf-8'>
-  <title>libp2p-gossipsub 0.7.0 | Documentation</title>
+  <title>libp2p-gossipsub 0.8.0 | Documentation</title>
   <meta name='description' content='A typescript implementation of gossipsub'>
   <meta name='viewport' content='width=device-width,initial-scale=1'>
   <link href='assets/bass.css' rel='stylesheet'>
@@ -15,7 +15,7 @@
       <div id='split-left' class='overflow-auto fs0 height-viewport-100'>
         <div class='py1 px2'>
           <h3 class='mb0 no-anchor'>libp2p-gossipsub</h3>
-          <div class='mb1'><code>0.7.0</code></div>
+          <div class='mb1'><code>0.8.0</code></div>
           <input
             placeholder='Filter'
             id='filter-input'
@@ -1353,7 +1353,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L63-L170'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L64-L171'>
       <span>src/index.js</span>
       </a>
     
@@ -1405,45 +1405,66 @@
             <tbody class='mt1'>
               
                 <tr>
-  <td class='break-word'><span class='code bold'>options.emitSelf</span> <code class='quiet'>bool?</code>
+  <td class='break-word'><span class='code bold'>options.emitSelf</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  
+    (default <code>false</code>)
   </td>
-  <td class='break-word'><span>if publish should emit to self, if subscribed, defaults to false
+  <td class='break-word'><span>if publish should emit to self, if subscribed
 </span></td>
 </tr>
 
 
               
                 <tr>
-  <td class='break-word'><span class='code bold'>options.gossipIncoming</span> <code class='quiet'>bool?</code>
+  <td class='break-word'><span class='code bold'>options.canRelayMessage</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  
+    (default <code>false</code>)
   </td>
-  <td class='break-word'><span>if incoming messages on a subscribed topic should be automatically gossiped, defaults to true
+  <td class='break-word'><span>if can relay messages not subscribed
 </span></td>
 </tr>
 
 
               
                 <tr>
-  <td class='break-word'><span class='code bold'>options.fallbackToFloodsub</span> <code class='quiet'>bool?</code>
+  <td class='break-word'><span class='code bold'>options.gossipIncoming</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  
+    (default <code>true</code>)
   </td>
-  <td class='break-word'><span>if dial should fallback to floodsub, defaults to true
+  <td class='break-word'><span>if incoming messages on a subscribed topic should be automatically gossiped
 </span></td>
 </tr>
 
 
               
                 <tr>
-  <td class='break-word'><span class='code bold'>options.floodPublish</span> <code class='quiet'>bool?</code>
+  <td class='break-word'><span class='code bold'>options.fallbackToFloodsub</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  
+    (default <code>true</code>)
   </td>
-  <td class='break-word'><span>if self-published messages should be sent to all peers, defaults to true
+  <td class='break-word'><span>if dial should fallback to floodsub
 </span></td>
 </tr>
 
 
               
                 <tr>
-  <td class='break-word'><span class='code bold'>options.doPX</span> <code class='quiet'>bool?</code>
+  <td class='break-word'><span class='code bold'>options.floodPublish</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  
+    (default <code>true</code>)
   </td>
-  <td class='break-word'><span>whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes. defaults to false
+  <td class='break-word'><span>if self-published messages should be sent to all peers
+</span></td>
+</tr>
+
+
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>options.doPX</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  
+    (default <code>false</code>)
+  </td>
+  <td class='break-word'><span>whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes.
 </span></td>
 </tr>
 
@@ -1459,9 +1480,11 @@
 
               
                 <tr>
-  <td class='break-word'><span class='code bold'>options.globalSignaturePolicy</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>?</code>
+  <td class='break-word'><span class='code bold'>options.globalSignaturePolicy</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
+  
+    (default <code>&quot;StrictSign&quot;</code>)
   </td>
-  <td class='break-word'><span>signing policy to apply across all messages (default: "StrictSign")
+  <td class='break-word'><span>signing policy to apply across all messages
 </span></td>
 </tr>
 
@@ -1534,7 +1557,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L77-L77'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L78-L78'>
       <span>src/index.js</span>
       </a>
     
@@ -1593,7 +1616,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L87-L87'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L88-L88'>
       <span>src/index.js</span>
       </a>
     
@@ -1652,7 +1675,7 @@
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L94-L94'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L95-L95'>
       <span>src/index.js</span>
       </a>
     
@@ -1712,7 +1735,7 @@ topic => peer id set</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L101-L101'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L102-L102'>
       <span>src/index.js</span>
       </a>
     
@@ -1772,7 +1795,7 @@ topic => peer id set</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L108-L108'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L109-L109'>
       <span>src/index.js</span>
       </a>
     
@@ -1832,7 +1855,7 @@ topic => last publish time</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L115-L115'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L116-L116'>
       <span>src/index.js</span>
       </a>
     
@@ -1887,7 +1910,7 @@ peer id => control messages</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L122-L122'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L123-L123'>
       <span>src/index.js</span>
       </a>
     
@@ -1942,7 +1965,7 @@ peer id => control message</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L127-L127'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L128-L128'>
       <span>src/index.js</span>
       </a>
     
@@ -2001,7 +2024,7 @@ peer id => control message</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L132-L132'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L133-L133'>
       <span>src/index.js</span>
       </a>
     
@@ -2060,7 +2083,7 @@ peer id => control message</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L136-L136'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L137-L137'>
       <span>src/index.js</span>
       </a>
     
@@ -2114,7 +2137,7 @@ peer id => control message</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L143-L143'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L144-L144'>
       <span>src/index.js</span>
       </a>
     
@@ -2174,7 +2197,7 @@ peer id => direction</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L148-L148'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L149-L149'>
       <span>src/index.js</span>
       </a>
     
@@ -2228,7 +2251,7 @@ peer id => direction</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L152-L152'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L153-L153'>
       <span>src/index.js</span>
       </a>
     
@@ -2282,7 +2305,7 @@ peer id => direction</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L157-L157'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L158-L158'>
       <span>src/index.js</span>
       </a>
     
@@ -2337,7 +2360,7 @@ This allows us to amortize some resource cleanup -- eg: backoff cleanup</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L161-L161'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L162-L162'>
       <span>src/index.js</span>
       </a>
     
@@ -2391,7 +2414,7 @@ This allows us to amortize some resource cleanup -- eg: backoff cleanup</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L165-L165'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L166-L166'>
       <span>src/index.js</span>
       </a>
     
@@ -2445,7 +2468,7 @@ This allows us to amortize some resource cleanup -- eg: backoff cleanup</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L169-L169'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L170-L170'>
       <span>src/index.js</span>
       </a>
     
@@ -2499,7 +2522,7 @@ This allows us to amortize some resource cleanup -- eg: backoff cleanup</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L178-L180'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L179-L181'>
       <span>src/index.js</span>
       </a>
     
@@ -2575,7 +2598,7 @@ Overrided to use an extended protocol-specific protobuf decoder</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L188-L190'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L189-L191'>
       <span>src/index.js</span>
       </a>
     
@@ -2651,7 +2674,7 @@ Overrided to use an extended protocol-specific protobuf encoder</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L198-L214'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L199-L215'>
       <span>src/index.js</span>
       </a>
     
@@ -2734,7 +2757,7 @@ Overrided to use an extended protocol-specific protobuf encoder</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L221-L243'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L222-L244'>
       <span>src/index.js</span>
       </a>
     
@@ -2743,7 +2766,7 @@ Overrided to use an extended protocol-specific protobuf encoder</p>
 
   <p>Removes a peer from the router</p>
 
-    <div class='pre p1 fill-light mt0'>_removePeer(peerId: any, peer: PeerId): Peer</div>
+    <div class='pre p1 fill-light mt0'>_removePeer(peerId: any, peer: PeerId): (PeerStreams | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined">undefined</a>)</div>
   
   
 
@@ -2782,7 +2805,7 @@ Overrided to use an extended protocol-specific protobuf encoder</p>
   
     
       <div class='py1 quiet mt1 prose-big'>Returns</div>
-      <code>Peer</code>:
+      <code>(PeerStreams | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined">undefined</a>)</code>:
         
 
       
@@ -2817,7 +2840,7 @@ Overrided to use an extended protocol-specific protobuf encoder</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L253-L261'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L254-L262'>
       <span>src/index.js</span>
       </a>
     
@@ -2916,7 +2939,7 @@ Overrided to use an extended protocol-specific protobuf encoder</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L268-L281'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L269-L282'>
       <span>src/index.js</span>
       </a>
     
@@ -3000,7 +3023,7 @@ Overrided to use an extended protocol-specific protobuf encoder</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L289-L305'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L290-L306'>
       <span>src/index.js</span>
       </a>
     
@@ -3076,7 +3099,7 @@ emitting locally and forwarding on to relevant floodsub and gossipsub peers</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L312-L314'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L313-L315'>
       <span>src/index.js</span>
       </a>
     
@@ -3151,7 +3174,7 @@ emitting locally and forwarding on to relevant floodsub and gossipsub peers</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L321-L335'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L322-L336'>
       <span>src/index.js</span>
       </a>
     
@@ -3226,7 +3249,7 @@ emitting locally and forwarding on to relevant floodsub and gossipsub peers</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L342-L396'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L343-L397'>
       <span>src/index.js</span>
       </a>
     
@@ -3310,7 +3333,7 @@ emitting locally and forwarding on to relevant floodsub and gossipsub peers</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L404-L434'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L405-L435'>
       <span>src/index.js</span>
       </a>
     
@@ -3395,7 +3418,7 @@ Returns messages to send back to peer</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L441-L518'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L442-L519'>
       <span>src/index.js</span>
       </a>
     
@@ -3479,7 +3502,7 @@ Returns messages to send back to peer</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L525-L555'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L526-L556'>
       <span>src/index.js</span>
       </a>
     
@@ -3563,7 +3586,7 @@ Returns messages to send back to peer</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L562-L564'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L563-L565'>
       <span>src/index.js</span>
       </a>
     
@@ -3646,7 +3669,7 @@ Returns messages to send back to peer</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L572-L583'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L573-L584'>
       <span>src/index.js</span>
       </a>
     
@@ -3738,7 +3761,7 @@ Returns messages to send back to peer</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L588-L593'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L589-L594'>
       <span>src/index.js</span>
       </a>
     
@@ -3800,7 +3823,7 @@ Returns messages to send back to peer</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L598-L614'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L599-L615'>
       <span>src/index.js</span>
       </a>
     
@@ -3862,7 +3885,7 @@ Returns messages to send back to peer</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L619-L637'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L620-L638'>
       <span>src/index.js</span>
       </a>
     
@@ -3924,7 +3947,7 @@ Returns messages to send back to peer</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L643-L688'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L644-L689'>
       <span>src/index.js</span>
       </a>
     
@@ -3999,7 +4022,7 @@ Returns messages to send back to peer</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L695-L705'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L696-L706'>
       <span>src/index.js</span>
       </a>
     
@@ -4062,7 +4085,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L711-L726'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L712-L727'>
       <span>src/index.js</span>
       </a>
     
@@ -4124,7 +4147,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L732-L735'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L733-L736'>
       <span>src/index.js</span>
       </a>
     
@@ -4199,7 +4222,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L742-L745'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L743-L746'>
       <span>src/index.js</span>
       </a>
     
@@ -4274,7 +4297,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L752-L755'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L753-L756'>
       <span>src/index.js</span>
       </a>
     
@@ -4349,7 +4372,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L761-L797'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L762-L798'>
       <span>src/index.js</span>
       </a>
     
@@ -4424,7 +4447,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L803-L817'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L804-L818'>
       <span>src/index.js</span>
       </a>
     
@@ -4499,7 +4522,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L825-L907'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L826-L908'>
       <span>src/index.js</span>
       </a>
     
@@ -4574,7 +4597,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L914-L920'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L915-L921'>
       <span>src/index.js</span>
       </a>
     
@@ -4658,7 +4681,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L927-L933'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L928-L934'>
       <span>src/index.js</span>
       </a>
     
@@ -4742,7 +4765,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L937-L955'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L938-L956'>
       <span>src/index.js</span>
       </a>
     
@@ -4816,7 +4839,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L983-L1002'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L984-L1003'>
       <span>src/index.js</span>
       </a>
     
@@ -4901,7 +4924,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L1009-L1068'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L1010-L1069'>
       <span>src/index.js</span>
       </a>
     
@@ -4985,7 +5008,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L1072-L1085'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L1073-L1086'>
       <span>src/index.js</span>
       </a>
     
@@ -5039,7 +5062,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L1092-L1096'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L1093-L1097'>
       <span>src/index.js</span>
       </a>
     
@@ -5130,7 +5153,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L1101-L1103'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L1102-L1104'>
       <span>src/index.js</span>
       </a>
     
@@ -5192,7 +5215,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/index.js#L1111-L1145'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/index.js#L1112-L1146'>
       <span>src/index.js</span>
       </a>
     
@@ -5283,7 +5306,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/message-cache.js#L13-L34'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/message-cache.js#L13-L34'>
       <span>src/message-cache.js</span>
       </a>
     
@@ -5366,7 +5389,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/message-cache.js#L17-L17'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/message-cache.js#L17-L17'>
       <span>src/message-cache.js</span>
       </a>
     
@@ -5424,7 +5447,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/message-cache.js#L22-L22'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/message-cache.js#L22-L22'>
       <span>src/message-cache.js</span>
       </a>
     
@@ -5482,7 +5505,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/message-cache.js#L29-L29'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/message-cache.js#L29-L29'>
       <span>src/message-cache.js</span>
       </a>
     
@@ -5540,7 +5563,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/message-cache.js#L33-L33'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/message-cache.js#L33-L33'>
       <span>src/message-cache.js</span>
       </a>
     
@@ -5598,7 +5621,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/message-cache.js#L41-L46'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/message-cache.js#L41-L46'>
       <span>src/message-cache.js</span>
       </a>
     
@@ -5673,7 +5696,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/message-cache.js#L52-L54'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/message-cache.js#L52-L54'>
       <span>src/message-cache.js</span>
       </a>
     
@@ -5748,7 +5771,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/message-cache.js#L61-L63'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/message-cache.js#L61-L63'>
       <span>src/message-cache.js</span>
       </a>
     
@@ -5823,7 +5846,7 @@ our subscriptions to every peer connected</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/message-cache.js#L73-L87'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/message-cache.js#L73-L87'>
       <span>src/message-cache.js</span>
       </a>
     
@@ -5900,7 +5923,7 @@ Returns the message and the number of times the peer has requested the message</
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/message-cache.js#L95-L108'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/message-cache.js#L95-L108'>
       <span>src/message-cache.js</span>
       </a>
     
@@ -5975,7 +5998,7 @@ Returns the message and the number of times the peer has requested the message</
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/message-cache.js#L114-L123'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/message-cache.js#L114-L123'>
       <span>src/message-cache.js</span>
       </a>
     
@@ -6037,7 +6060,7 @@ Returns the message and the number of times the peer has requested the message</
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L12-L12'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L12-L12'>
       <span>src/constants.js</span>
       </a>
     
@@ -6092,7 +6115,7 @@ It is advertised along with GossipsubIDv11 for backwards compatability</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L18-L18'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L18-L18'>
       <span>src/constants.js</span>
       </a>
     
@@ -6148,7 +6171,7 @@ See the spec for details about how v1.1.0 compares to v1.0.0:
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L25-L25'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L25-L25'>
       <span>src/constants.js</span>
       </a>
     
@@ -6204,7 +6227,7 @@ GossipsubD should be set somewhere between GossipsubDlo and GossipsubDhi.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L31-L31'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L31-L31'>
       <span>src/constants.js</span>
       </a>
     
@@ -6260,7 +6283,7 @@ the next heartbeat.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L36-L36'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L36-L36'>
       <span>src/constants.js</span>
       </a>
     
@@ -6315,7 +6338,7 @@ If we have more than GossipsubDhi peers, we will select some to prune from the m
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L42-L42'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L42-L42'>
       <span>src/constants.js</span>
       </a>
     
@@ -6371,7 +6394,7 @@ chosen randomly.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L51-L51'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L51-L51'>
       <span>src/constants.js</span>
       </a>
     
@@ -6429,7 +6452,7 @@ our mesh with incoming connections.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L57-L57'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L57-L57'>
       <span>src/constants.js</span>
       </a>
     
@@ -6484,7 +6507,7 @@ The message cache will remember messages for GossipsubHistoryLength heartbeats.<
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L68-L68'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L68-L68'>
       <span>src/constants.js</span>
       </a>
     
@@ -6544,7 +6567,7 @@ avoid a runtime panic.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L75-L75'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L75-L75'>
       <span>src/constants.js</span>
       </a>
     
@@ -6601,7 +6624,7 @@ connected to.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L81-L81'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L81-L81'>
       <span>src/constants.js</span>
       </a>
     
@@ -6657,7 +6680,7 @@ GossipsubDlazy, whichever is greater.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L87-L87'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L87-L87'>
       <span>src/constants.js</span>
       </a>
     
@@ -6713,7 +6736,7 @@ to prevent peers from spamming us with requests and wasting our resources.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L93-L93'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L93-L93'>
       <span>src/constants.js</span>
       </a>
     
@@ -6768,7 +6791,7 @@ after the router is initialized.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L97-L97'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L97-L97'>
       <span>src/constants.js</span>
       </a>
     
@@ -6822,7 +6845,7 @@ after the router is initialized.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L103-L103'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L103-L103'>
       <span>src/constants.js</span>
       </a>
     
@@ -6878,7 +6901,7 @@ we'll delete the fanout map for that topic.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L110-L110'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L110-L110'>
       <span>src/constants.js</span>
       </a>
     
@@ -6935,7 +6958,7 @@ know of.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L119-L119'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L119-L119'>
       <span>src/constants.js</span>
       </a>
     
@@ -6994,7 +7017,7 @@ before attempting to re-graft.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L124-L124'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L124-L124'>
       <span>src/constants.js</span>
       </a>
     
@@ -7049,7 +7072,7 @@ backoff timers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L128-L128'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L128-L128'>
       <span>src/constants.js</span>
       </a>
     
@@ -7103,7 +7126,7 @@ backoff timers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L132-L132'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L132-L132'>
       <span>src/constants.js</span>
       </a>
     
@@ -7157,7 +7180,7 @@ backoff timers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L136-L136'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L136-L136'>
       <span>src/constants.js</span>
       </a>
     
@@ -7211,7 +7234,7 @@ backoff timers.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L141-L141'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L141-L141'>
       <span>src/constants.js</span>
       </a>
     
@@ -7266,7 +7289,7 @@ that are not currently connected.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L145-L145'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L145-L145'>
       <span>src/constants.js</span>
       </a>
     
@@ -7320,7 +7343,7 @@ that are not currently connected.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L152-L152'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L152-L152'>
       <span>src/constants.js</span>
       </a>
     
@@ -7377,7 +7400,7 @@ below a threshold</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L156-L156'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L156-L156'>
       <span>src/constants.js</span>
       </a>
     
@@ -7431,7 +7454,7 @@ below a threshold</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L161-L161'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L161-L161'>
       <span>src/constants.js</span>
       </a>
     
@@ -7486,7 +7509,7 @@ then there is an extra score penalty applied to the peer through P7.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L169-L169'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L169-L169'>
       <span>src/constants.js</span>
       </a>
     
@@ -7544,7 +7567,7 @@ with the defaults this is 1666 messages/s.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L173-L173'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L173-L173'>
       <span>src/constants.js</span>
       </a>
     
@@ -7598,7 +7621,7 @@ with the defaults this is 1666 messages/s.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/constants.js#L179-L179'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/constants.js#L179-L179'>
       <span>src/constants.js</span>
       </a>
     
@@ -7654,7 +7677,7 @@ the router may apply bahavioural penalties.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/heartbeat.js#L32-L34'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/heartbeat.js#L32-L34'>
       <span>src/heartbeat.js</span>
       </a>
     
@@ -7720,7 +7743,7 @@ the router may apply bahavioural penalties.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/heartbeat.js#L60-L66'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/heartbeat.js#L60-L66'>
       <span>src/heartbeat.js</span>
       </a>
     
@@ -7782,7 +7805,7 @@ the router may apply bahavioural penalties.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/heartbeat.js#L72-L292'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/heartbeat.js#L72-L292'>
       <span>src/heartbeat.js</span>
       </a>
     
@@ -7844,7 +7867,7 @@ the router may apply bahavioural penalties.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/get-gossip-peers.js#L16-L40'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/get-gossip-peers.js#L16-L40'>
       <span>src/get-gossip-peers.js</span>
       </a>
     
@@ -7946,7 +7969,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/utils/create-gossip-rpc.js#L10-L16'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/utils/create-gossip-rpc.js#L10-L16'>
       <span>src/utils/create-gossip-rpc.js</span>
       </a>
     
@@ -8031,7 +8054,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/utils/shuffle.js#L12-L26'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/utils/shuffle.js#L12-L26'>
       <span>src/utils/shuffle.js</span>
       </a>
     
@@ -8107,7 +8130,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L31-L38'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L31-L38'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -8169,7 +8192,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L43-L54'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L43-L54'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -8231,7 +8254,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L59-L63'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L59-L63'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -8293,7 +8316,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L68-L123'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L68-L123'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -8355,7 +8378,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L129-L135'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L129-L135'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -8430,7 +8453,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L142-L148'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L142-L148'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -8513,7 +8536,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L153-L164'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L153-L164'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -8587,7 +8610,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L169-L194'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L169-L194'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -8661,7 +8684,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L200-L213'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L200-L213'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -8743,7 +8766,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L219-L235'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L219-L235'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -8825,7 +8848,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L240-L242'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L240-L242'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -8899,7 +8922,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L247-L267'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L247-L267'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -8973,7 +8996,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L273-L299'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L273-L299'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -9055,7 +9078,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L304-L327'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L304-L327'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -9129,7 +9152,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L334-L346'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L334-L346'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -9212,7 +9235,7 @@ that pass an optional filter function</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L354-L378'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L354-L378'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -9296,7 +9319,7 @@ as well as the "mesh message deliveries" counter, if the peer is in the mesh for
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L387-L414'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L387-L414'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -9389,7 +9412,7 @@ as long the message was received within the P3 window.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L420-L423'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L420-L423'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -9464,7 +9487,7 @@ as long the message was received within the P3 window.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L431-L470'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L431-L470'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -9555,7 +9578,7 @@ as long the message was received within the P3 window.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L477-L488'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L477-L488'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -9638,7 +9661,7 @@ as long the message was received within the P3 window.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/peer-score.js#L493-L499'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/peer-score.js#L493-L499'>
       <span>src/score/peer-score.js</span>
       </a>
     
@@ -9700,7 +9723,7 @@ as long the message was received within the P3 window.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/message-deliveries.js#L15-L15'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/message-deliveries.js#L15-L15'>
       <span>src/score/message-deliveries.js</span>
       </a>
     
@@ -9754,7 +9777,7 @@ as long the message was received within the P3 window.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/message-deliveries.js#L19-L19'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/message-deliveries.js#L19-L19'>
       <span>src/score/message-deliveries.js</span>
       </a>
     
@@ -9808,7 +9831,7 @@ as long the message was received within the P3 window.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/message-deliveries.js#L23-L23'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/message-deliveries.js#L23-L23'>
       <span>src/score/message-deliveries.js</span>
       </a>
     
@@ -9862,7 +9885,7 @@ as long the message was received within the P3 window.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/message-deliveries.js#L27-L27'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/message-deliveries.js#L27-L27'>
       <span>src/score/message-deliveries.js</span>
       </a>
     
@@ -9916,7 +9939,7 @@ as long the message was received within the P3 window.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/score/message-deliveries.js#L34-L77'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/score/message-deliveries.js#L34-L77'>
       <span>src/score/message-deliveries.js</span>
       </a>
     
@@ -9971,7 +9994,7 @@ as long the message was received within the P3 window.</p>
     </h3>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/tracer.js#L16-L95'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/tracer.js#L16-L95'>
       <span>src/tracer.js</span>
       </a>
     
@@ -10040,7 +10063,7 @@ These 'promises' are merely expectations of a peer's behavior.</p>
   <div class='clearfix'>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/tracer.js#L27-L40'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/tracer.js#L27-L40'>
       <span>src/tracer.js</span>
       </a>
     
@@ -10128,7 +10151,7 @@ These 'promises' are merely expectations of a peer's behavior.</p>
   <div class='clearfix'>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/tracer.js#L45-L64'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/tracer.js#L45-L64'>
       <span>src/tracer.js</span>
       </a>
     
@@ -10194,7 +10217,7 @@ These 'promises' are merely expectations of a peer's behavior.</p>
   <div class='clearfix'>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/tracer.js#L70-L74'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/tracer.js#L70-L74'>
       <span>src/tracer.js</span>
       </a>
     
@@ -10273,7 +10296,7 @@ These 'promises' are merely expectations of a peer's behavior.</p>
   <div class='clearfix'>
     
     
-      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/299cfd9ec53cfaf2f9bf59d10b7c3e67f8e89d74/src/tracer.js#L82-L91'>
+      <a class='fr fill-darken0 round round pad1x quiet h5' href='https://github.com/ChainSafe/js-libp2p-gossipsub/blob/e4ed0749fd6f93dcb89d0a562f498e91ead3b96f/src/tracer.js#L82-L91'>
       <span>src/tracer.js</span>
       </a>
     
