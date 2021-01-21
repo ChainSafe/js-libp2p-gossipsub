@@ -858,7 +858,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     // verify that the direct peers connected
     await delay(2000)
-    expect(libp2ps[1].connectionManager.get(libp2ps[2].peerId)).to.be.truthy
+    expect(libp2ps[1].connectionManager.get(libp2ps[2].peerId)).to.exist()
 
     const topic = 'foobar'
     psubs.forEach(ps => ps.subscribe(topic))
@@ -884,7 +884,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 5)))
 
-    expect(libp2ps[1].connectionManager.get(libp2ps[2].peerId)).to.be.truthy
+    expect(libp2ps[1].connectionManager.get(libp2ps[2].peerId)).to.exist()
 
     sendRecv = []
     for (let i = 0; i < 3; i++) {
@@ -1067,7 +1067,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       ],
     })
 
-    expect(rpc.control).to.be.truthy
+    expect(rpc.control).to.exist()
     expect(rpc.control.graft.length).to.be.eql(1)
     expect(rpc.control.graft[0].topicID).to.be.eql(test1)
     expect(rpc.control.prune.length).to.be.eql(2)
