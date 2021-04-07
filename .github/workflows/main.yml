@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - run: yarn
-    - run: yarn lint
-    - run: yarn prebuild
-    - run: yarn aegir dep-check
+    - run: npm install
+    - run: npm run lint
+    - run: npm run prebuild
+    - run: npx aegir dep-check
   test-node:
     needs: check
     runs-on: ${{ matrix.os }}
@@ -29,8 +29,8 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node }}
-      - run: yarn
-      - run: yarn prebuild
+      - run: npm install
+      - run: npm run prebuild
       - run: npx nyc --reporter=lcov aegir test -t node -- --bail
       - uses: codecov/codecov-action@v1
   test-chrome:
@@ -38,14 +38,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: yarn
-      - run: yarn prebuild
-      - run: npx aegir test -t browser -t webworker --bail
+      - run: npm install
+      - run: npm run prebuild
+      - run: npx aegir test -t browser --bail
+      - run: npx aegir test -t webworker --bail
   test-firefox:
     needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: yarn
-      - run: yarn prebuild
-      - run: npx aegir test -t browser -t webworker --bail -- --browsers FirefoxHeadless
+      - run: npm install
+      - run: npm run prebuild
+      - run: npx aegir test -t browser --bail -- --browsers FirefoxHeadless
+      - run: npx aegir test -t webworker --bail -- --browsers FirefoxHeadless

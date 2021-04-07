@@ -128,7 +128,9 @@ describe('gossipsub fallbacks to floodsub', () => {
       expectSet(nodeFs.topics.get(topic), [nodeGs.peerId.toB58String()])
 
       expect(changedPeerId.toB58String()).to.equal(first(nodeGs.peers).id.toB58String())
-      expect(changedSubs).to.be.eql([{ topicID: topic, subscribe: true }])
+      expect(changedSubs).to.have.lengthOf(1)
+      expect(changedSubs[0].topicID).to.equal(topic)
+      expect(changedSubs[0].subscribe).to.equal(true)
     })
   })
 
