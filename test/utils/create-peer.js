@@ -13,11 +13,14 @@ const multiaddr = require('multiaddr')
 const PeerId = require('peer-id')
 
 const WS = require('libp2p-websockets')
+const filters = require('libp2p-websockets/src/filters')
 const MPLEX = require('libp2p-mplex')
 const { NOISE } = require('libp2p-noise')
 
 const Peers = require('../fixtures/peers')
 const RelayPeer = require('../fixtures/relay')
+
+const transportKey = WS.prototype[Symbol.toStringTag]
 
 const defaultConfig = {
   modules: {
@@ -31,6 +34,11 @@ const defaultConfig = {
     },
     peerDiscovery: {
       autoDial: false
+    },
+    transport: {
+      [transportKey]: {
+        filter: filters.all
+      }
     }
   }
 }

@@ -68,23 +68,20 @@
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
     "it-pair": "^1.0.0",
-    "karma-mocha-webworker": "^1.3.0",
     "libp2p": "^0.30.0",
     "libp2p-floodsub": "^0.24.1",
     "libp2p-mplex": "^0.10.0",
     "libp2p-noise": "^2.0.0",
-    "libp2p-websockets": "^0.14.0",
+    "libp2p-websockets": "^0.15.4",
     "lodash": "^4.17.15",
-    "mocha": "^7.1.1",
     "multiaddr": "^8.0.0",
     "os": "^0.1.1",
     "p-retry": "^4.2.0",
     "p-times": "^2.1.0",
     "p-wait-for": "^3.1.0",
     "promisify-es6": "^1.0.3",
-    "sinon": "^9.0.2",
-    "typescript": "4.0.x",
-    "url": "^0.11.0"
+    "sinon": "^10.0.1",
+    "typescript": "4.0.x"
   },
   "peerDependencies": {
     "libp2p": "^0.30.0"

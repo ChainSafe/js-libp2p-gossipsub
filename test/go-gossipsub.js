@@ -4,7 +4,6 @@
  */
 const { expect } = require('chai')
 const delay = require('delay')
-const PeerId = require('peer-id')
 const errcode = require('err-code')
 const sinon = require('sinon')
 const pRetry = require('p-retry')
@@ -19,7 +18,6 @@ const {
   sparseConnect,
   denseConnect,
   stopNode,
-  startNode,
   createPeers,
   expectSet,
   connectSome,

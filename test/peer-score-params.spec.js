@@ -94,7 +94,6 @@ describe('TopicScoreParams validation', () => {
       createTopicScoreParams({
         timeInMeshQuantum: 1000,
         meshMessageDeliveriesWeight: -1,
-        meshMessageDeliveriesDecay: 0.5,
         meshMessageDeliveriesDecay: 5,
         meshMessageDeliveriesThreshold: -3
       })
@@ -103,7 +102,6 @@ describe('TopicScoreParams validation', () => {
       createTopicScoreParams({
         timeInMeshQuantum: 1000,
         meshMessageDeliveriesWeight: -1,
-        meshMessageDeliveriesDecay: 0.5,
         meshMessageDeliveriesDecay: 5,
         meshMessageDeliveriesThreshold: 3,
         meshMessageDeliveriesWindow: -1
@@ -113,7 +111,6 @@ describe('TopicScoreParams validation', () => {
       createTopicScoreParams({
         timeInMeshQuantum: 1000,
         meshMessageDeliveriesWeight: -1,
-        meshMessageDeliveriesDecay: 0.5,
         meshMessageDeliveriesDecay: 5,
         meshMessageDeliveriesThreshold: 3,
         meshMessageDeliveriesWindow: 1,
