@@ -1,6 +1,6 @@
 import { InMessage } from 'libp2p-interfaces/src/pubsub'
-import PeerId = require('peer-id')
 import { Multiaddr } from 'multiaddr'
+import PeerId = require('peer-id')
 
 export interface AddrInfo {
   id: PeerId
