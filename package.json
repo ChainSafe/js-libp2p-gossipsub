@@ -17,6 +17,7 @@
     "build:proto": "pbjs -t static-module --force-number --no-verify --no-delimited --no-create --no-beautify --no-defaults --lint eslint-disable -o ts/message/rpc.js ./ts/message/rpc.proto",
     "build:proto-types": "pbts -o ts/message/rpc.d.ts ts/message/rpc.js",
     "build:types": "aegir build --no-types",
+    "prepare": "tsc",
     "pretest": "tsc",
     "test": "aegir test",
     "test:node": "aegir test --target node",
