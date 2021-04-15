@@ -28,7 +28,7 @@ async function connectGossipsub (gs1, gs2) {
 /**
  * Create a number of preconfigured gossipsub nodes
  */
-async function createGossipsubs({ number = 1, started = true, options = {}} = {}) {
+async function createGossipsubs ({ number = 1, started = true, options = {}} = {}) {
   const libp2ps = await createPeers({ number, started })
   const gss = libp2ps.map(libp2p => new Gossipsub(libp2p, options))
 
@@ -39,6 +39,16 @@ async function createGossipsubs({ number = 1, started = true, options = {}} = {}
   }
 
   return gss
+}
+
+/**
+ * Stop gossipsub nodes
+ */
+async function tearDownGossipsubs (gss) {
+  await Promise.all(gss.map(async p => {
+    await p.stop()
+    await p._libp2p.stop()
+  }))
 }
 
 /**
@@ -97,5 +107,6 @@ module.exports = {
   sparseConnect,
   denseConnect,
   connectGossipsubs,
-  createConnectedGossipsubs
+  createConnectedGossipsubs,
+  tearDownGossipsubs
 }

@@ -21,7 +21,8 @@ const {
   createPeers,
   expectSet,
   connectSome,
-  connectGossipsub
+  connectGossipsub,
+  tearDownGossipsubs
 } = require('./utils')
 
 EventEmitter.defaultMaxListeners = 100
@@ -105,6 +106,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
+    await tearDownGossipsubs(psubs)
   })
   it("test dense gossipsub", async function () {
     // Create 20 gossipsub nodes
@@ -137,6 +139,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub fanout", async function () {
     // Create 20 gossipsub nodes
@@ -197,6 +200,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub fanout maintenance", async function () {
     // Create 20 gossipsub nodes
@@ -253,6 +257,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     sendRecv = []
     sendMessages()
     await Promise.all(sendRecv)
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub fanout expiry", async function () {
     // Create 10 gossipsub nodes
@@ -301,6 +306,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     await delay(2000)
 
     expect(psubs[0].fanout.size).to.be.eql(0)
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub gossip", async function () {
     // Create 20 gossipsub nodes
@@ -336,6 +342,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     }
     // and wait for some gossip flushing
     await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub gossip propagation", async function () {
     // Create 20 gossipsub nodes
@@ -398,6 +405,8 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     } catch (e) {
       expect.fail(e)
     }
+
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub prune", async function () {
     // Create 20 gossipsub nodes
@@ -438,6 +447,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub graft", async function () {
     // Create 20 gossipsub nodes
@@ -474,6 +484,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub remove peer", async function () {
     // Create 20 gossipsub nodes
@@ -514,6 +525,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub graft prune retry", async function () {
     // Create 10 gossipsub nodes
@@ -548,6 +560,8 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       await delay(20)
       await results
     }
+
+    await tearDownGossipsubs(psubs)
   })
   it.skip("test gossipsub control piggyback", async function () {
     // Create 10 gossipsub nodes
@@ -609,6 +623,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       sendRecv.push(esults)
     }
     await Promise.all(sendRecv)
+    await tearDownGossipsubs(psubs)
   })
   it("test mixed gossipsub", async function () {
     // Create 20 gossipsub nodes
@@ -653,6 +668,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub multihops", async function () {
     // Create 6 gossipsub nodes
@@ -680,6 +696,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     const results = checkReceivedMessage(topic, msg, owner, 0)(psubs[5], 5)
     await psubs[owner].publish(topic, msg)
     await results
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub tree topology", async function () {
     // Create 10 gossipsub nodes
@@ -735,6 +752,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub star topology with signed peer records", async function () {
     // Create 20 gossipsub nodes with lower degrees
@@ -791,6 +809,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub direct peers", async function () {
     // Create 3 gossipsub nodes
@@ -880,6 +899,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub flood publish", async function () {
     // Create 30 gossipsub nodes
@@ -916,6 +936,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub negative score", async function () {
     // Create 20 gossipsub nodes, with scoring params to quickly lower node 0's score
@@ -964,6 +985,8 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     await Promise.all(sendRecv)
 
     await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
+
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub score validator ex", async function () {
     // Create 3 gossipsub nodes
@@ -1015,6 +1038,8 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     expect(psubs[0].score.score(psubs[1].peerId.toB58String())).to.be.eql(0)
     expect(psubs[0].score.score(psubs[2].peerId.toB58String())).to.be.lt(0)
+
+    await tearDownGossipsubs(psubs)
   })
   it("test gossipsub piggyback control", async function () {
     const libp2ps = await createPeers({ number: 2 })
@@ -1048,6 +1073,9 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     expect(rpc.control.prune.length).to.be.eql(2)
     expect(rpc.control.prune[0].topicID).to.be.eql(test2)
     expect(rpc.control.prune[1].topicID).to.be.eql(test3)
+
+    await psub.stop()
+    await Promise.all(libp2ps.map(libp2p => libp2p.stop()))
   })
   it("test gossipsub opportunistic grafting", async function () {
     // Create 20 nodes
@@ -1141,5 +1169,6 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
         resolve()
       })
     }), { retries: 10 })
+    await tearDownGossipsubs(psubs)
   })
 })
