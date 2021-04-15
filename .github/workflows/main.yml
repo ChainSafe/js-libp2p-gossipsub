@@ -31,7 +31,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm install
       - run: npm run prebuild
-      - run: npx nyc --reporter=lcov aegir test -t node -- --bail
+      - run: npx aegir test -t node --cov --bail
       - uses: codecov/codecov-action@v1
   test-chrome:
     needs: check
@@ -40,8 +40,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: npm install
       - run: npm run prebuild
-      - run: npx aegir test -t browser --bail
-      - run: npx aegir test -t webworker --bail
+      - run: npx aegir test -t browser -t webworker --bail
   test-firefox:
     needs: check
     runs-on: ubuntu-latest
@@ -49,5 +48,4 @@ jobs:
       - uses: actions/checkout@v2
       - run: npm install
       - run: npm run prebuild
-      - run: npx aegir test -t browser --bail -- --browsers FirefoxHeadless
-      - run: npx aegir test -t webworker --bail -- --browsers FirefoxHeadless
+      - run: npx aegir test -t browser -t webworker --bail -- --browser firefox

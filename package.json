@@ -84,9 +84,6 @@
     "sinon": "^10.0.1",
     "typescript": "4.0.x"
   },
-  "peerDependencies": {
-    "libp2p": "^0.30.0"
-  },
   "contributors": [
     "Cayman <caymannava@gmail.com>",
     "Vasco Santos <vasco.santos@moxy.studio>",
