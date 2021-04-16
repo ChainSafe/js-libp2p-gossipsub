@@ -12,13 +12,14 @@
   "scripts": {
     "lint": "eslint --ext .ts ts",
     "release": "aegir release --no-types",
-    "prebuild": "tsc && cp -R ts/message src",
+    "prebuild": "tsc",
+    "postbuild": "cp -R ts/message src",
     "build": "npm run build:proto && npm run build:proto-types && npm run build:types",
     "build:proto": "pbjs -t static-module --force-number --no-verify --no-delimited --no-create --no-beautify --no-defaults --lint eslint-disable -o ts/message/rpc.js ./ts/message/rpc.proto",
     "build:proto-types": "pbts -o ts/message/rpc.d.ts ts/message/rpc.js",
     "build:types": "aegir build --no-types",
-    "prepare": "tsc",
-    "pretest": "tsc",
+    "prepare": "npm run build",
+    "pretest": "npm run build",
     "test": "aegir test",
     "test:node": "aegir test --target node",
     "test:browser": "aegir test --target browser"
