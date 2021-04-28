@@ -75,7 +75,9 @@ describe('2 nodes', () => {
       expectSet(nodes[1].topics.get(topic), [nodes[0].peerId.toB58String()])
 
       expect(changedPeerId.toB58String()).to.equal(first(nodes[0].peers).id.toB58String())
-      expect(changedSubs).to.be.eql([{ topicID: topic, subscribe: true }])
+      expect(changedSubs).to.have.lengthOf(1)
+      expect(changedSubs[0].topicID).to.equal(topic)
+      expect(changedSubs[0].subscribe).to.equal(true)
 
       // await heartbeats
       await Promise.all([
@@ -204,7 +206,9 @@ describe('2 nodes', () => {
       expect(nodes[1].peers.size).to.equal(1)
       expectSet(nodes[1].topics.get(topic), [])
       expect(changedPeerId.toB58String()).to.equal(first(nodes[1].peers).id.toB58String())
-      expect(changedSubs).to.be.eql([{ topicID: topic, subscribe: false }])
+      expect(changedSubs).to.have.lengthOf(1)
+      expect(changedSubs[0].topicID).to.equal(topic)
+      expect(changedSubs[0].subscribe).to.equal(false)
     })
 
     it('Publish to a topic after unsubscribe', async () => {

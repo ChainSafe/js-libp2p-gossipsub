@@ -12,40 +12,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - run: yarn
-    - run: yarn lint
-    - run: yarn prebuild
-    - run: yarn aegir dep-check
+    - run: npm install
+    - run: npm run lint
+    - run: npm run prebuild
+    - run: npx aegir dep-check
   test-node:
     needs: check
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-        node: [12]
+        node: [14]
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node }}
-      - run: yarn
-      - run: yarn prebuild
-      - run: npx nyc --reporter=lcov aegir test -t node -- --bail
+      - run: npm install
+      - run: npm run prebuild
+      - run: npx aegir test -t node --cov --bail
       - uses: codecov/codecov-action@v1
   test-chrome:
     needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: yarn
-      - run: yarn prebuild
+      - run: npm install
+      - run: npm run prebuild
       - run: npx aegir test -t browser -t webworker --bail
   test-firefox:
     needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: yarn
-      - run: yarn prebuild
-      - run: npx aegir test -t browser -t webworker --bail -- --browsers FirefoxHeadless
+      - run: npm install
+      - run: npm run prebuild
+      - run: npx aegir test -t browser -t webworker --bail -- --browser firefox

@@ -1,10 +1,6 @@
 import Pubsub, { InMessage, utils } from 'libp2p-interfaces/src/pubsub'
 import { MessageCache } from './message-cache'
-import {
-  RPCCodec,
-  RPC, Message,
-  ControlMessage, ControlIHave, ControlGraft, ControlIWant, ControlPrune, PeerInfo
-} from './message'
+import { RPC, IRPC } from './message/rpc'
 import * as constants from './constants'
 import { Heartbeat } from './heartbeat'
 import { getGossipPeers } from './get-gossip-peers'
@@ -76,8 +72,8 @@ class Gossipsub extends Pubsub {
   mesh: Map<string, Set<string>>
   fanout: Map<string, Set<string>>
   lastpub: Map<string, number>
-  gossip: Map<string, ControlIHave[]>
-  control: Map<string, ControlMessage>
+  gossip: Map<string, RPC.IControlIHave[]>
+  control: Map<string, RPC.IControlMessage>
   peerhave:Map<string, number>
   iasked:Map<string, number>
   backoff: Map<string, Map<string, number>>
@@ -96,7 +92,7 @@ class Gossipsub extends Pubsub {
   _libp2p: Libp2p
   _options: GossipOptions
   _directPeerInitial: NodeJS.Timeout
-  log: Debugger
+  log: Debugger & { err: Debugger }
   // eslint-disable-next-line @typescript-eslint/ban-types
   emit: (event: string | symbol, ...args: any[]) => boolean
 
@@ -201,7 +197,7 @@ class Gossipsub extends Pubsub {
      * Map of pending messages to gossip
      * peer id => control messages
      *
-     * @type {Map<string, Array<ControlIHave object>> }
+     * @type {Map<string, Array<RPC.IControlIHave object>> }
      */
     this.gossip = new Map()
 
@@ -209,7 +205,7 @@ class Gossipsub extends Pubsub {
      * Map of control messages
      * peer id => control message
      *
-     * @type {Map<string, ControlMessage object>}
+     * @type {Map<string, RPC.IControlMessage object>}
      */
     this.control = new Map()
 
@@ -279,7 +275,7 @@ class Gossipsub extends Pubsub {
    * @returns {RPC}
    */
   _decodeRpc (bytes: Uint8Array) {
-    return RPCCodec.decode(bytes)
+    return RPC.decode(bytes)
   }
 
   /**
@@ -290,7 +286,7 @@ class Gossipsub extends Pubsub {
    * @returns {Uint8Array}
    */
   _encodeRpc (rpc: RPC) {
-    return RPCCodec.encode(rpc)
+    return RPC.encode(rpc).finish()
   }
 
   /**
@@ -378,18 +374,18 @@ class Gossipsub extends Pubsub {
   /**
    * Handles an rpc control message from a peer
    * @param {string} id peer id
-   * @param {ControlMessage} controlMsg
+   * @param {RPC.IControlMessage} controlMsg
    * @returns {void}
    */
-  _processRpcControlMessage (id: string, controlMsg: ControlMessage): void {
+  _processRpcControlMessage (id: string, controlMsg: RPC.IControlMessage): void {
     if (!controlMsg) {
       return
     }
 
-    const iwant = this._handleIHave(id, controlMsg.ihave)
-    const ihave = this._handleIWant(id, controlMsg.iwant)
-    const prune = this._handleGraft(id, controlMsg.graft)
-    this._handlePrune(id, controlMsg.prune)
+    const iwant = controlMsg.ihave ? this._handleIHave(id, controlMsg.ihave) : []
+    const ihave = controlMsg.iwant ? this._handleIWant(id, controlMsg.iwant) : []
+    const prune = controlMsg.graft ? this._handleGraft(id, controlMsg.graft) : []
+    controlMsg.prune && this._handlePrune(id, controlMsg.prune)
 
     if (!iwant.length && !ihave.length && !prune.length) {
       return
@@ -450,10 +446,10 @@ class Gossipsub extends Pubsub {
   /**
    * Handles IHAVE messages
    * @param {string} id peer id
-   * @param {Array<ControlIHave>} ihave
-   * @returns {ControlIWant}
+   * @param {Array<RPC.IControlIHave>} ihave
+   * @returns {RPC.IControlIWant}
    */
-  _handleIHave (id: string, ihave: ControlIHave[]): ControlIWant[] {
+  _handleIHave (id: string, ihave: RPC.IControlIHave[]): RPC.IControlIWant[] {
     if (!ihave.length) {
       return []
     }
@@ -491,7 +487,7 @@ class Gossipsub extends Pubsub {
     const iwant = new Map<string, Uint8Array>()
 
     ihave.forEach(({ topicID, messageIDs }) => {
-      if (!topicID || !this.mesh.has(topicID)) {
+      if (!topicID || !messageIDs || !this.mesh.has(topicID)) {
         return
       }
 
@@ -537,10 +533,10 @@ class Gossipsub extends Pubsub {
    * Handles IWANT messages
    * Returns messages to send back to peer
    * @param {string} id peer id
-   * @param {Array<ControlIWant>} iwant
-   * @returns {Array<Message>}
+   * @param {Array<RPC.IControlIWant>} iwant
+   * @returns {Array<RPC.IMessage>}
    */
-  _handleIWant (id: string, iwant: ControlIWant[]): Message[] {
+  _handleIWant (id: string, iwant: RPC.IControlIWant[]): RPC.IMessage[] {
     if (!iwant.length) {
       return []
     }
@@ -557,7 +553,7 @@ class Gossipsub extends Pubsub {
     const ihave = new Map<string, InMessage>()
 
     iwant.forEach(({ messageIDs }) => {
-      messageIDs.forEach((msgID) => {
+      messageIDs && messageIDs.forEach((msgID) => {
         const [msg, count] = this.messageCache.getForPeer(msgID, id)
         if (!msg) {
           return
@@ -586,10 +582,10 @@ class Gossipsub extends Pubsub {
   /**
    * Handles Graft messages
    * @param {string} id peer id
-   * @param {Array<ControlGraft>} graft
-   * @return {Array<ControlPrune>}
+   * @param {Array<RPC.IControlGraft>} graft
+   * @return {Array<RPC.IControlPrune>}
    */
-  _handleGraft (id: string, graft: ControlGraft[]): ControlPrune[] {
+  _handleGraft (id: string, graft: RPC.IControlGraft[]): RPC.IControlPrune[] {
     const prune: string[] = []
     const score = this.score.score(id)
     const now = this._now()
@@ -682,10 +678,10 @@ class Gossipsub extends Pubsub {
   /**
    * Handles Prune messages
    * @param {string} id peer id
-   * @param {Array<ControlPrune>} prune
+   * @param {Array<RPC.IControlPrune>} prune
    * @returns {void}
    */
-  _handlePrune (id: string, prune: ControlPrune[]): void {
+  _handlePrune (id: string, prune: RPC.IControlPrune[]): void {
     const score = this.score.score(id)
     prune.forEach(({ topicID, backoff, peers }) => {
       if (!topicID) {
@@ -811,10 +807,10 @@ class Gossipsub extends Pubsub {
 
   /**
    * Maybe attempt connection given signed peer records
-   * @param {PeerInfo[]} peers
+   * @param {RPC.IPeerInfo[]} peers
    * @returns {Promise<void>}
    */
-  async _pxConnect (peers: PeerInfo[]): Promise<void> {
+  async _pxConnect (peers: RPC.IPeerInfo[]): Promise<void> {
     if (peers.length > constants.GossipsubPrunePeers) {
       shuffle(peers)
       peers = peers.slice(0, constants.GossipsubPrunePeers)
@@ -1137,7 +1133,7 @@ class Gossipsub extends Pubsub {
   /**
    * @override
    */
-  _sendRpc (id: string, outRpc: RPC): void {
+  _sendRpc (id: string, outRpc: IRPC): void {
     const peerStreams = this.peers.get(id)
     if (!peerStreams || !peerStreams.isWritable) {
       return
@@ -1157,10 +1153,10 @@ class Gossipsub extends Pubsub {
       this.gossip.delete(id)
     }
 
-    peerStreams.write(RPCCodec.encode(outRpc))
+    peerStreams.write(RPC.encode(outRpc).finish())
   }
 
-  _piggybackControl (id: string, outRpc: RPC, ctrl: ControlMessage): void {
+  _piggybackControl (id: string, outRpc: IRPC, ctrl: RPC.IControlMessage): void {
     const tograft = (ctrl.graft || [])
       .filter(({ topicID }) => (topicID && this.mesh.get(topicID) || new Set()).has(id))
     const toprune = (ctrl.prune || [])
@@ -1171,14 +1167,14 @@ class Gossipsub extends Pubsub {
     }
 
     if (outRpc.control) {
-      outRpc.control.graft = outRpc.control.graft.concat(tograft)
-      outRpc.control.prune = outRpc.control.prune.concat(toprune)
+      outRpc.control.graft = outRpc.control.graft && outRpc.control.graft.concat(tograft)
+      outRpc.control.prune = outRpc.control.prune && outRpc.control.prune.concat(toprune)
     } else {
       outRpc.control = { ihave: [], iwant: [], graft: tograft, prune: toprune }
     }
   }
 
-  _piggybackGossip (id: string, outRpc: RPC, ihave: ControlIHave[]): void {
+  _piggybackGossip (id: string, outRpc: IRPC, ihave: RPC.IControlIHave[]): void {
     if (!outRpc.control) {
       outRpc.control = { ihave: [], iwant: [], graft: [], prune: [] }
     }
@@ -1194,7 +1190,7 @@ class Gossipsub extends Pubsub {
     const doPX = this._options.doPX
     for (const [id, topics] of tograft) {
       const graft = topics.map((topicID) => ({ topicID }))
-      let prune: ControlPrune[] = []
+      let prune: RPC.IControlPrune[] = []
       // If a peer also has prunes, process them now
       const pruning = toprune.get(id)
       if (pruning) {
@@ -1305,10 +1301,10 @@ class Gossipsub extends Pubsub {
   /**
    * Adds new IHAVE messages to pending gossip
    * @param {PeerStreams} peerStreams
-   * @param {Array<ControlIHave>} controlIHaveMsgs
+   * @param {Array<RPC.IControlIHave>} controlIHaveMsgs
    * @returns {void}
    */
-  _pushGossip (id: string, controlIHaveMsgs: ControlIHave): void {
+  _pushGossip (id: string, controlIHaveMsgs: RPC.IControlIHave): void {
     this.log('Add gossip to %s', id)
     const gossip = this.gossip.get(id) || []
     this.gossip.set(id, gossip.concat(controlIHaveMsgs))
@@ -1327,9 +1323,9 @@ class Gossipsub extends Pubsub {
    * @param {string} id
    * @param {string} topic
    * @param {boolean} doPX
-   * @returns {ControlPrune}
+   * @returns {RPC.IControlPrune}
    */
-  _makePrune (id: string, topic: string, doPX: boolean): ControlPrune {
+  _makePrune (id: string, topic: string, doPX: boolean): RPC.IControlPrune {
     if (this.peers.get(id)!.protocol === constants.GossipsubIDv10) {
       // Gossipsub v1.0 -- no backoff, the peer won't be able to parse it anyway
       return {
@@ -1340,7 +1336,7 @@ class Gossipsub extends Pubsub {
     // backoff is measured in seconds
     // GossipsubPruneBackoff is measured in milliseconds
     const backoff = constants.GossipsubPruneBackoff / 1000
-    const px: PeerInfo[] = []
+    const px: RPC.IPeerInfo[] = []
     if (doPX) {
       // select peers for Peer eXchange
       const peers = getGossipPeers(this, topic, constants.GossipsubPrunePeers, (xid: string): boolean => {
