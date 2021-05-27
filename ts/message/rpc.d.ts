@@ -30,6 +30,9 @@ export class RPC implements IRPC {
     /** RPC control. */
     public control?: (RPC.IControlMessage|null);
 
+    /** RPC _control. */
+    public _control?: "control";
+
     /**
      * Encodes the specified RPC message. Does not implicitly {@link RPC.verify|verify} messages.
      * @param m RPC message or plain object to encode
@@ -92,10 +95,16 @@ export namespace RPC {
         constructor(p?: RPC.ISubOpts);
 
         /** SubOpts subscribe. */
-        public subscribe: boolean;
+        public subscribe?: (boolean|null);
 
         /** SubOpts topicID. */
-        public topicID: string;
+        public topicID?: (string|null);
+
+        /** SubOpts _subscribe. */
+        public _subscribe?: "subscribe";
+
+        /** SubOpts _topicID. */
+        public _topicID?: "topicID";
 
         /**
          * Encodes the specified SubOpts message. Does not implicitly {@link RPC.SubOpts.verify|verify} messages.
@@ -169,22 +178,37 @@ export namespace RPC {
         constructor(p?: RPC.IMessage);
 
         /** Message from. */
-        public from: Uint8Array;
+        public from?: (Uint8Array|null);
 
         /** Message data. */
-        public data: Uint8Array;
+        public data?: (Uint8Array|null);
 
         /** Message seqno. */
-        public seqno: Uint8Array;
+        public seqno?: (Uint8Array|null);
 
         /** Message topicIDs. */
         public topicIDs: string[];
 
         /** Message signature. */
-        public signature: Uint8Array;
+        public signature?: (Uint8Array|null);
 
         /** Message key. */
-        public key: Uint8Array;
+        public key?: (Uint8Array|null);
+
+        /** Message _from. */
+        public _from?: "from";
+
+        /** Message _data. */
+        public _data?: "data";
+
+        /** Message _seqno. */
+        public _seqno?: "seqno";
+
+        /** Message _signature. */
+        public _signature?: "signature";
+
+        /** Message _key. */
+        public _key?: "key";
 
         /**
          * Encodes the specified Message message. Does not implicitly {@link RPC.Message.verify|verify} messages.
@@ -323,10 +347,13 @@ export namespace RPC {
         constructor(p?: RPC.IControlIHave);
 
         /** ControlIHave topicID. */
-        public topicID: string;
+        public topicID?: (string|null);
 
         /** ControlIHave messageIDs. */
         public messageIDs: Uint8Array[];
+
+        /** ControlIHave _topicID. */
+        public _topicID?: "topicID";
 
         /**
          * Encodes the specified ControlIHave message. Does not implicitly {@link RPC.ControlIHave.verify|verify} messages.
@@ -444,7 +471,10 @@ export namespace RPC {
         constructor(p?: RPC.IControlGraft);
 
         /** ControlGraft topicID. */
-        public topicID: string;
+        public topicID?: (string|null);
+
+        /** ControlGraft _topicID. */
+        public _topicID?: "topicID";
 
         /**
          * Encodes the specified ControlGraft message. Does not implicitly {@link RPC.ControlGraft.verify|verify} messages.
@@ -509,13 +539,19 @@ export namespace RPC {
         constructor(p?: RPC.IControlPrune);
 
         /** ControlPrune topicID. */
-        public topicID: string;
+        public topicID?: (string|null);
 
         /** ControlPrune peers. */
         public peers: RPC.IPeerInfo[];
 
         /** ControlPrune backoff. */
-        public backoff: number;
+        public backoff?: (number|null);
+
+        /** ControlPrune _topicID. */
+        public _topicID?: "topicID";
+
+        /** ControlPrune _backoff. */
+        public _backoff?: "backoff";
 
         /**
          * Encodes the specified ControlPrune message. Does not implicitly {@link RPC.ControlPrune.verify|verify} messages.
@@ -577,10 +613,16 @@ export namespace RPC {
         constructor(p?: RPC.IPeerInfo);
 
         /** PeerInfo peerID. */
-        public peerID: Uint8Array;
+        public peerID?: (Uint8Array|null);
 
         /** PeerInfo signedPeerRecord. */
-        public signedPeerRecord: Uint8Array;
+        public signedPeerRecord?: (Uint8Array|null);
+
+        /** PeerInfo _peerID. */
+        public _peerID?: "peerID";
+
+        /** PeerInfo _signedPeerRecord. */
+        public _signedPeerRecord?: "signedPeerRecord";
 
         /**
          * Encodes the specified PeerInfo message. Does not implicitly {@link RPC.PeerInfo.verify|verify} messages.
