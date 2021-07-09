@@ -1,6 +1,6 @@
 {
   "name": "libp2p-gossipsub",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "A typescript implementation of gossipsub",
   "leadMaintainer": "Cayman Nava <caymannava@gmail.com>",
   "main": "src/index.js",
@@ -92,6 +92,7 @@
     "Vasco Santos <vasco.santos@moxy.studio>",
     "Mikerah <mikerahqc@protonmail.com>",
     "Marin Petrunić <marin.petrunic@gmail.com>",
+    "Gregory Markou <16929357+GregTheGreek@users.noreply.github.com>",
     "Alex Potsides <alex@achingbrain.net>",
     "Alan Shaw <alan.shaw@protocol.ai>",
     "Tuyen <tuyen@wetrust.io>",
