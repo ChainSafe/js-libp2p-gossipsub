@@ -359,10 +359,10 @@ class Gossipsub extends Pubsub {
    * @param {String} idB58Str
    * @param {PeerStreams} peerStreams
    * @param {RPC} rpc
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
-  _processRpc (id: string, peerStreams: PeerStreams, rpc: RPC): boolean {
-    if (super._processRpc(id, peerStreams, rpc)) {
+  async _processRpc (id: string, peerStreams: PeerStreams, rpc: RPC): Promise<boolean> {
+    if (await super._processRpc(id, peerStreams, rpc)) {
       if (rpc.control) {
         this._processRpcControlMessage(id, rpc.control)
       }
@@ -403,7 +403,7 @@ class Gossipsub extends Pubsub {
    * @returns {Promise<void>}
    */
   async _processRpcMessage (msg: InMessage): Promise<void> {
-    const msgID = this.getMsgId(msg)
+    const msgID = await this.getMsgId(msg)
     const msgIdStr = messageIdToString(msgID)
 
     // Ignore if we've already seen the message
@@ -1017,7 +1017,7 @@ class Gossipsub extends Pubsub {
       this.gossipTracer.deliverMessage(msg)
     }
 
-    const msgID = this.getMsgId(msg)
+    const msgID = await this.getMsgId(msg)
     const msgIdStr = messageIdToString(msgID)
     // put in seen cache
     this.seenCache.put(msgIdStr)
