@@ -413,7 +413,7 @@ class Gossipsub extends Pubsub {
     }
     this.seenCache.put(msgIdStr)
 
-    this.score.validateMessage(msg)
+    await this.score.validateMessage(msg)
     await super._processRpcMessage(msg)
   }
 

@@ -18,7 +18,7 @@ describe('Testing Message Cache Operations', () => {
   const messageCache = new MessageCache(3, 5, getMsgId)
   const testMessages = []
 
-  before(() => {
+  before(async () => {
     const makeTestMessage = (n) => {
       return {
         from: 'test',
@@ -33,7 +33,7 @@ describe('Testing Message Cache Operations', () => {
     }
 
     for (let i = 0; i < 10; i++) {
-      messageCache.put(testMessages[i])
+      await messageCache.put(testMessages[i])
     }
   })
 
@@ -55,10 +55,10 @@ describe('Testing Message Cache Operations', () => {
     }
   })
 
-  it('Shift message cache', () => {
+  it('Shift message cache', async () => {
     messageCache.shift()
     for (let i = 10; i < 20; i++) {
-      messageCache.put(testMessages[i])
+      await messageCache.put(testMessages[i])
     }
 
     for (let i = 0; i < 20; i++) {
@@ -82,22 +82,22 @@ describe('Testing Message Cache Operations', () => {
 
     messageCache.shift()
     for (let i = 20; i < 30; i++) {
-      messageCache.put(testMessages[i])
+      await messageCache.put(testMessages[i])
     }
 
     messageCache.shift()
     for (let i = 30; i < 40; i++) {
-      messageCache.put(testMessages[i])
+      await messageCache.put(testMessages[i])
     }
 
     messageCache.shift()
     for (let i = 40; i < 50; i++) {
-      messageCache.put(testMessages[i])
+      await messageCache.put(testMessages[i])
     }
 
     messageCache.shift()
     for (let i = 50; i < 60; i++) {
-      messageCache.put(testMessages[i])
+      await messageCache.put(testMessages[i])
     }
 
     expect(messageCache.msgs.size).to.equal(50)
