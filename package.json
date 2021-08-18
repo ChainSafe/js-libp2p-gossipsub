@@ -48,14 +48,14 @@
     "peer-id": "^0.15.0",
     "protobufjs": "^6.11.2",
     "time-cache": "^0.3.0",
-    "uint8arrays": "^2.1.5"
+    "uint8arrays": "^3.0.0"
   },
   "devDependencies": {
     "@types/chai": "^4.2.3",
     "@types/mocha": "^8.2.2",
     "@typescript-eslint/eslint-plugin": "^3.0.2",
     "@typescript-eslint/parser": "^3.0.2",
-    "aegir": "^33.2.0",
+    "aegir": "^35.0.1",
     "benchmark": "^2.1.4",
     "buffer": "^6.0.3",
     "chai": "^4.2.0",
