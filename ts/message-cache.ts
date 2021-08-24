@@ -52,10 +52,10 @@ export class MessageCache {
    * Adds a message to the current window and the cache
    *
    * @param {RPC.Message} msg
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  put (msg: InMessage): void {
-    const msgID = this.getMsgId(msg)
+  async put (msg: InMessage): Promise<void> {
+    const msgID = await this.getMsgId(msg)
     const msgIdStr = messageIdToString(msgID)
     this.msgs.set(msgIdStr, msg)
     this.history[0].push({ msgID, topics: msg.topicIDs })
@@ -64,9 +64,9 @@ export class MessageCache {
   /**
    * Get message id of message.
    * @param {RPC.Message} msg
-   * @returns {Uint8Array}
+   * @returns {Promise<Uint8Array> | Uint8Array}
    */
-  getMsgId (msg: InMessage): Uint8Array {
+  getMsgId (msg: InMessage): Promise<Uint8Array> | Uint8Array {
     return this.msgIdFn(msg)
   }
 

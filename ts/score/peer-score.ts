@@ -286,21 +286,21 @@ export class PeerScore {
 
   /**
    * @param {InMessage} message
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  validateMessage (message: InMessage): void {
-    this.deliveryRecords.ensureRecord(this.msgId(message))
+  async validateMessage (message: InMessage): Promise<void> {
+    this.deliveryRecords.ensureRecord(await this.msgId(message))
   }
 
   /**
    * @param {InMessage} message
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  deliverMessage (message: InMessage): void {
+  async deliverMessage (message: InMessage): Promise<void> {
     const id = message.receivedFrom
     this._markFirstMessageDelivery(id, message)
 
-    const drec = this.deliveryRecords.ensureRecord(this.msgId(message))
+    const drec = this.deliveryRecords.ensureRecord(await this.msgId(message))
     const now = Date.now()
 
     // defensive check that this is the first delivery trace -- delivery status should be unknown
@@ -327,9 +327,9 @@ export class PeerScore {
   /**
    * @param {InMessage} message
    * @param {string} reason
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  rejectMessage (message: InMessage, reason: string): void {
+  async rejectMessage (message: InMessage, reason: string): Promise<void> {
     const id = message.receivedFrom
     switch (reason) {
       case ERR_MISSING_SIGNATURE:
@@ -338,7 +338,7 @@ export class PeerScore {
         return
     }
 
-    const drec = this.deliveryRecords.ensureRecord(this.msgId(message))
+    const drec = this.deliveryRecords.ensureRecord(await this.msgId(message))
 
     // defensive check that this is the first rejection -- delivery status should be unknown
     if (drec.status !== DeliveryRecordStatus.unknown) {
@@ -367,11 +367,11 @@ export class PeerScore {
 
   /**
    * @param {InMessage} message
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  duplicateMessage (message: InMessage): void {
+  async duplicateMessage (message: InMessage): Promise<void> {
     const id = message.receivedFrom
-    const drec = this.deliveryRecords.ensureRecord(this.msgId(message))
+    const drec = this.deliveryRecords.ensureRecord(await this.msgId(message))
 
     if (drec.peers.has(id)) {
       // we have already seen this duplicate

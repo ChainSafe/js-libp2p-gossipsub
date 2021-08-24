@@ -82,10 +82,10 @@ export class IWantTracer {
   /**
    * Someone delivered a message, stop tracking promises for it
    * @param {InMessage} msg
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  deliverMessage (msg: InMessage): void {
-    const msgId = this.getMsgId(msg)
+  async deliverMessage (msg: InMessage): Promise<void> {
+    const msgId = await this.getMsgId(msg)
     const msgIdStr = messageIdToString(msgId)
     this.promises.delete(msgIdStr)
   }
@@ -95,16 +95,16 @@ export class IWantTracer {
    * unless its an obviously invalid message.
    * @param {InMessage} msg
    * @param {string} reason
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  rejectMessage (msg: InMessage, reason: string): void {
+  async rejectMessage (msg: InMessage, reason: string): Promise<void> {
     switch (reason) {
       case ERR_INVALID_SIGNATURE:
       case ERR_MISSING_SIGNATURE:
         return
     }
 
-    const msgId = this.getMsgId(msg)
+    const msgId = await this.getMsgId(msg)
     const msgIdStr = messageIdToString(msgId)
     this.promises.delete(msgIdStr)
   }
