@@ -1,6 +1,6 @@
 {
   "name": "libp2p-gossipsub",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "A typescript implementation of gossipsub",
   "leadMaintainer": "Cayman Nava <caymannava@gmail.com>",
   "main": "src/index.js",
@@ -100,6 +100,7 @@
     "Tuyen Nguyen <vutuyen2636@gmail.com>",
     "ChainSafe <superadmin@chainsafe.io>",
     "Patrick Michot <k0m0d0tr0n@gmail.com>",
-    "Hugo Dias <hugomrdias@gmail.com>"
+    "Hugo Dias <hugomrdias@gmail.com>",
+    "Lion - dapplion <35266934+dapplion@users.noreply.github.com>"
   ]
 }
