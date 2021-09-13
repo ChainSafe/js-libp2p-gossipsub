@@ -211,6 +211,11 @@ export const GossipsubMaxIHaveMessages = 10
  */
 export const GossipsubIWantFollowupTime = 3 * second
 
+/**
+ * Time in milliseconds to keep message ids in the seen cache
+ */
+export const GossipsubSeenTTL = 30 * second
+
 export const TimeCacheDuration = 120 * 1000
 
 export const ERR_TOPIC_VALIDATOR_REJECT = 'ERR_TOPIC_VALIDATOR_REJECT'

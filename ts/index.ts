@@ -57,6 +57,28 @@ interface GossipInputOptions {
    * Dlazy affects how many peers we will emit gossip to at each heartbeat.
    */
   Dlazy: number
+  /**
+   * heartbeatInterval is the time between heartbeats in milliseconds
+   */
+  heartbeatInterval: number
+  /**
+   * fanoutTTL controls how long we keep track of the fanout state. If it's been
+   * fanoutTTL milliseconds since we've published to a topic that we're not subscribed to,
+   * we'll delete the fanout map for that topic.
+   */
+  fanoutTTL: number
+  /**
+   * mcacheLength is the number of windows to retain full messages for IWANT responses
+   */
+  mcacheLength: number
+  /**
+   * mcacheGossip is the number of windows to gossip about
+   */
+  mcacheGossip: number
+  /**
+   * seenTTL is the number of milliseconds to retain message IDs in the seen cache
+   */
+  seenTTL: number
 }
 
 interface GossipOptions extends GossipInputOptions {
@@ -132,6 +154,11 @@ class Gossipsub extends Pubsub {
       Dscore: constants.GossipsubDscore,
       Dout: constants.GossipsubDout,
       Dlazy: constants.GossipsubDlazy,
+      heartbeatInterval: constants.GossipsubHeartbeatInterval,
+      fanoutTTL: constants.GossipsubFanoutTTL,
+      mcacheLength: constants.GossipsubHistoryLength,
+      mcacheGossip: constants.GossipsubHistoryGossip,
+      seenTTL: constants.GossipsubSeenTTL,
       ...options,
       scoreParams: createPeerScoreParams(options.scoreParams),
       scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
@@ -167,7 +194,7 @@ class Gossipsub extends Pubsub {
      *
      * @type {TimeCache}
      */
-    this.seenCache = new TimeCache()
+    this.seenCache = new TimeCache({ validity: opts.seenTTL / 1000 })
 
     /**
      * Map of topic meshes
@@ -238,7 +265,7 @@ class Gossipsub extends Pubsub {
      * A message cache that contains the messages for last few hearbeat ticks
      *
      */
-    this.messageCache = options.messageCache || new MessageCache(constants.GossipsubHistoryGossip, constants.GossipsubHistoryLength, this.getMsgId.bind(this))
+    this.messageCache = options.messageCache || new MessageCache(opts.mcacheGossip, opts.mcacheLength, this.getMsgId.bind(this))
 
     /**
      * A heartbeat timer that maintains the mesh
