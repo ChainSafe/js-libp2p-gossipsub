@@ -69,7 +69,7 @@ Options is an optional object with the following key-value pairs:
 * **`scoreThresholds`**: optional, a customized peer score thresholds Object.
 * **`directPeers`**: optional, an array of `AddrInfo` of peers with which we will maintain direct connections.
 
-For the remaining API, see https://github.com/libp2p/js-libp2p-pubsub
+For the remaining API, see [libp2p-interfaces/pubsub](https://github.com/libp2p/js-libp2p-interfaces/tree/master/packages/interfaces/src/pubsub).
 
 ## Contribute
 
