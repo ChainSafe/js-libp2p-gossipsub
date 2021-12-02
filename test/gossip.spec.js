@@ -1,10 +1,10 @@
 'use strict'
 /* eslint-env mocha */
 
-const { Buffer } = require('buffer')
 const { expect } = require('chai')
 const sinon = require('sinon')
 const delay = require('delay')
+const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
 
 const { GossipsubDhi } = require('../src/constants')
 const {
@@ -42,7 +42,7 @@ describe('gossip', () => {
     // set spy
     sinon.spy(nodeA, '_pushGossip')
 
-    await nodeA.publish(topic, Buffer.from('hey'))
+    await nodeA.publish(topic, uint8ArrayFromString('hey'))
 
     await new Promise((resolve) => nodeA.once('gossipsub:heartbeat', resolve))
 
@@ -84,7 +84,7 @@ describe('gossip', () => {
     const graft = { graft: [{ topicID: topic }] }
     nodeA.control.set(peerB, graft)
 
-    await nodeA.publish(topic, Buffer.from('hey'))
+    await nodeA.publish(topic, uint8ArrayFromString('hey'))
 
     expect(nodeA._piggybackControl.callCount).to.be.equal(1)
     // expect control message to be sent alongside published message
