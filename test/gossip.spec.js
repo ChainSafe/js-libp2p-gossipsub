@@ -11,7 +11,8 @@ const {
   first,
   createGossipsubs,
   connectGossipsubs,
-  stopNode
+  stopNode,
+  waitForAllNodesToBePeered
 } = require('./utils')
 
 describe('gossip', () => {
@@ -31,9 +32,9 @@ describe('gossip', () => {
     // add subscriptions to each node
     nodes.forEach((n) => n.subscribe(topic))
 
+    // every node connected to every other
     await connectGossipsubs(nodes)
-    // await subscription propagation
-    await delay(50)
+    await waitForAllNodesToBePeered(nodes)
 
     // await mesh rebalancing
     await Promise.all(nodes.map((n) => new Promise((resolve) => n.once('gossipsub:heartbeat', resolve))))
@@ -67,7 +68,8 @@ describe('gossip', () => {
 
     // every node connected to every other
     await connectGossipsubs(nodes)
-    await delay(500)
+    await waitForAllNodesToBePeered(nodes)
+
     // await mesh rebalancing
     await Promise.all(nodes.map((n) => new Promise((resolve) => n.once('gossipsub:heartbeat', resolve))))
     await delay(500)

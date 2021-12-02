@@ -212,9 +212,14 @@ describe('2 nodes', () => {
     })
 
     it('Publish to a topic after unsubscribe', async () => {
+      const promises = [
+        new Promise((resolve) => nodes[1].once('pubsub:subscription-change', resolve)),
+        new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
+      ]
+
       nodes[0].unsubscribe(topic)
-      await new Promise((resolve) => nodes[1].once('pubsub:subscription-change', resolve))
-      await new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
+
+      await Promise.all(promises)
 
       const promise = new Promise((resolve, reject) => {
         nodes[0].once(topic, reject)
