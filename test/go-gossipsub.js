@@ -8,6 +8,8 @@ const errcode = require('err-code')
 const sinon = require('sinon')
 const pRetry = require('p-retry')
 const { EventEmitter } = require('events')
+const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
+const { equals: uint8ArrayEquals } = require('uint8arrays/equals')
 
 const Floodsub = require('libp2p-floodsub')
 const Gossipsub = require('../src')
@@ -41,7 +43,7 @@ const checkReceivedMessage = (topic, data, senderIx, msgIx) =>
       reject(new Error(`Message never received, sender ${senderIx}, receiver ${receiverIx}, index ${msgIx}`))
     }, 20000)
     cb = (msg) => {
-      if (data.equals(msg.data)) {
+      if (uint8ArrayEquals(data, msg.data)) {
         clearTimeout(t)
         psub.off(topic, cb)
         resolve()
@@ -95,7 +97,8 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     let sendRecv = []
     for (let i = 0; i < 100; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
+
       const owner = Math.floor(Math.random() * psubs.length)
       const results = Promise.all(
         psubs
@@ -128,7 +131,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     let sendRecv = []
     for (let i = 0; i < 100; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
       const results = Promise.all(
         psubs
@@ -164,7 +167,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     let sendRecv = []
     for (let i = 0; i < 100; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
 
       const owner = 0
 
@@ -186,7 +189,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     sendRecv = []
     for (let i = 0; i < 100; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
 
       const owner = 0
 
@@ -227,7 +230,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     let sendRecv = []
     const sendMessages = () => {
       for (let i = 0; i < 100; i++) {
-        const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+        const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
 
         const owner = 0
 
@@ -286,7 +289,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     let sendRecv = []
     for (let i = 0; i < 5; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
 
       const owner = 0
 
@@ -328,7 +331,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
 
     for (let i = 0; i < 100; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
       const results = Promise.all(
         psubs
@@ -372,7 +375,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     let sendRecv = []
     for (let i = 0; i < 10; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = 0
       const results = Promise.all(
         group1.slice(1)
@@ -435,7 +438,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     let sendRecv = []
     for (let i = 0; i < 100; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
       const results = Promise.all(
         psubs
@@ -473,7 +476,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     let sendRecv = []
     for (let i = 0; i < 100; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
       const results = Promise.all(
         psubs
@@ -514,7 +517,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     let sendRecv = []
     for (let i = 0; i < 100; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * (psubs.length - 5))
       const results = Promise.all(
         psubs.slice(5)
@@ -549,7 +552,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 9)))
 
     for (let i = 0; i < 35; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
       const results = Promise.all(
         psubs
@@ -589,7 +592,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     // create a background flood of messages that overloads the queues
     const floodOwner = Math.floor(Math.random() * psubs.length)
-    const floodMsg = Buffer.from('background flooooood')
+    const floodMsg = uint8ArrayFromString('background flooooood')
     const backgroundFlood = new Promise(async resolve => {
       for (let i = 0; i < 10000; i++) {
         await psubs[floodOwner].publish(floodTopic, floodMsg)
@@ -612,7 +615,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // and test that we have functional overlays
     let sendRecv = []
     for (let i = 0; i < 5; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
       const results = Promise.all(
         psubs
@@ -657,7 +660,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     let sendRecv = []
     for (let i = 0; i < 100; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
       const results = Promise.all(
         psubs
@@ -691,7 +694,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // wait for heartbeats to build mesh
     await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
 
-    const msg = Buffer.from(`${0} its not a flooooood ${0}`)
+    const msg = uint8ArrayFromString(`${0} its not a flooooood ${0}`)
     const owner = 0
     const results = checkReceivedMessage(topic, msg, owner, 0)(psubs[5], 5)
     await psubs[owner].publish(topic, msg)
@@ -742,7 +745,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     let sendRecv = []
     for (const owner of [9, 3]) {
-      const msg = Buffer.from(`${owner} its not a flooooood ${owner}`)
+      const msg = uint8ArrayFromString(`${owner} its not a flooooood ${owner}`)
       const results = Promise.all(
         psubs
           .filter((psub, j) => j !== owner)
@@ -798,7 +801,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // send a message from each peer and assert it was propagated
     let sendRecv = []
     for (let i = 0; i < psubs.length; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = i
       const results = Promise.all(
         psubs
@@ -867,7 +870,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     let sendRecv = []
     for (let i = 0; i < 3; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = i
       const results = Promise.all(
         psubs
@@ -888,7 +891,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     sendRecv = []
     for (let i = 0; i < 3; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = i
       const results = Promise.all(
         psubs
@@ -925,7 +928,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     // send messages from the star and assert they were received
     let sendRecv = []
     for (let i = 0; i < 20; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = 0
       const results = Promise.all(
         psubs
@@ -978,7 +981,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     let sendRecv = []
     for (let i = 0; i < 20; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = i
       sendRecv.push(psubs[owner].publish(topic, msg))
     }
@@ -1030,7 +1033,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     psubs[0].on(topic, () => expect.fail('node 0 should not receive any messages'))
 
-    const msg = Buffer.from('its not a flooooood')
+    const msg = uint8ArrayFromString('its not a flooooood')
     await psubs[1].publish(topic, msg)
     await psubs[2].publish(topic, msg)
 
@@ -1139,7 +1142,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     psubs.forEach(ps => ps.subscribe(topic))
 
     for (let i = 0; i < 300; i++) {
-      const msg = Buffer.from(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = i % 10
       await psubs[owner].publish(topic, msg)
       await delay(20)

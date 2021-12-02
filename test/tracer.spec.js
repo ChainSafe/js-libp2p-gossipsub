@@ -1,6 +1,6 @@
 const { expect } = require('chai')
 const delay = require('delay')
-const { utils } = require('libp2p-interfaces/src/pubsub')
+const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
 
 const { IWantTracer } = require('../src/tracer')
 const constants = require('../src/constants')
@@ -17,7 +17,7 @@ describe('IWantTracer', () => {
     const msgIds = []
     for (let i = 0; i < 100; i++) {
       const m = makeTestMessage(i)
-      m.from = Buffer.from(peerA)
+      m.from = uint8ArrayFromString(peerA)
       msgIds.push(getMsgId(m))
     }
 
@@ -47,7 +47,7 @@ describe('IWantTracer', () => {
     const msgIds = []
     for (let i = 0; i < 100; i++) {
       const m = makeTestMessage(i)
-      m.from = Buffer.from(peerA)
+      m.from = uint8ArrayFromString(peerA)
       msgs.push(m)
       msgIds.push(getMsgId(m))
     }

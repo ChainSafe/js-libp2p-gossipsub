@@ -5,6 +5,7 @@ const { expect } = require('chai')
 const FloodSub = require('libp2p-floodsub')
 const PeerId = require('peer-id')
 const delay = require('delay')
+const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
 
 exports.first = (map) => map.values().next().value
 
@@ -46,8 +47,8 @@ for (const [k, v] of Object.entries({
 }
 
 exports.getMsgId = (msg) => {
-  const from = Buffer.from(msg.from)
-  const seqno = Buffer.from(msg.seqno)
+  const from = uint8ArrayFromString(msg.from)
+  const seqno = uint8ArrayFromString(msg.seqno)
   const result = new Uint8Array(from.length + seqno.length)
   result.set(from, 0)
   result.set(seqno, from.length)
