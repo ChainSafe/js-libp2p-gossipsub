@@ -5,7 +5,6 @@
  * set up a libp2p instance for browser nodes to relay through
  * before tests start
  */
-const path = require('path')
 
 const Libp2p = require('libp2p')
 const PeerId = require('peer-id')
@@ -45,7 +44,7 @@ const before = async () => {
       }
     }
   })
-  
+
   await libp2p.start()
 }
 
@@ -53,20 +52,10 @@ const after = async () => {
   await libp2p.stop()
 }
 
-/** @type {import('aegir').Options["build"]["config"]} */
-const esbuild = {
-  inject: [path.join(__dirname, './scripts/node-globals.js')]
-}
-
 /** @type {import('aegir').PartialOptions} */
 module.exports = {
   test: {
     before,
-    after,
-    browser: {
-      config: {
-        buildConfig: esbuild
-      }
-    }
+    after
   }
 }
