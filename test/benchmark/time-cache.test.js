@@ -14,23 +14,13 @@ describe("npm TimeCache vs SimpleTimeCache", () => {
   const simpleTimeCache = new SimpleTimeCache({ validityMs: 1000 });
 
   for (const iteration of iterations) {
-    itBench(
-      {
-        id: `npm TimeCache.put ${iteration} times`,
-      },
-      () => {
-        for (let j = 0; j < iteration; j++) timeCache.put(String(j));
-      }
-    );
+    itBench(`npm TimeCache.put x${iteration}`, () => {
+      for (let j = 0; j < iteration; j++) timeCache.put(String(j));
+    });
 
-    itBench(
-      {
-        id: `SimpleTimeCache.put ${iteration} times`,
-      },
-      () => {
-        for (let j = 0; j < iteration; j++) simpleTimeCache.put(String(j));
-      }
-    );
+    itBench(`SimpleTimeCache.put x${iteration}`, () => {
+      for (let j = 0; j < iteration; j++) simpleTimeCache.put(String(j));
+    });
   }
 
 });
