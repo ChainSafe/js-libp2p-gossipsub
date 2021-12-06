@@ -84,10 +84,22 @@ interface GossipOptions extends GossipInputOptions {
   scoreThresholds: PeerScoreThresholds
 }
 
+const ACCEPT_REQUEST_WHITE_LIST_THRESHOLD_SCORE = 0
+const ACCEPT_REQUEST_WHITE_LIST_MAX_MESSAGES = 128
+const ACCEPT_REQUEST_WHITE_LIST_DURATION_MS = 1000
+
+interface AcceptRequestWhiteListEntry {
+  /** max number of messages accepted after a score is calculated */
+  messagesAccepted: number
+  /** have to recompute score after this time */
+  whitelistedTill: number
+}
+
 class Gossipsub extends Pubsub {
   peers: Map<string, PeerStreams>
   direct: Set<string>
   seenCache: SimpleTimeCache
+  acceptRequestsWhitelist: Map<string, AcceptRequestWhiteListEntry>
   topics: Map<string, Set<string>>
   mesh: Map<string, Set<string>>
   fanout: Map<string, Set<string>>
@@ -181,6 +193,13 @@ class Gossipsub extends Pubsub {
      * @type {Set<string>}
      */
     this.direct = new Set(opts.directPeers.map(p => p.id.toB58String()))
+
+    /**
+     * Map of peer id and AcceptRequestWhileListEntry
+     *
+     * @type {Map<string, AcceptRequestWhiteListEntry}
+     */
+    this.acceptRequestsWhitelist = new Map()
 
     // set direct peer addresses in the address book
     opts.directPeers.forEach(p => {
@@ -449,7 +468,33 @@ class Gossipsub extends Pubsub {
    * @returns {boolean}
    */
   _acceptFrom (id: string): boolean {
-    return this.direct.has(id) || this.score.score(id) >= this._options.scoreThresholds.graylistThreshold
+    if (this.direct.has(id)) {
+      return true
+    }
+
+    const now = Date.now()
+    const entry = this.acceptRequestsWhitelist.get(id)
+
+    if (entry &&
+      entry.messagesAccepted < ACCEPT_REQUEST_WHITE_LIST_MAX_MESSAGES &&
+      entry.whitelistedTill >= now) {
+      entry.messagesAccepted += 1
+      return true
+    }
+
+    const score = this.score.score(id)
+    if (score >= ACCEPT_REQUEST_WHITE_LIST_THRESHOLD_SCORE) {
+      // peer is unlikely to be able to drop its score to `graylistThreshold`
+      // after 128 messages or 1s
+      this.acceptRequestsWhitelist.set(id, {
+        messagesAccepted: 0,
+        whitelistedTill: now + ACCEPT_REQUEST_WHITE_LIST_DURATION_MS
+      })
+    } else {
+      this.acceptRequestsWhitelist.delete(id)
+    }
+
+    return score >= this._options.scoreThresholds.graylistThreshold
   }
 
   /**
