@@ -8,13 +8,11 @@ import { createGossipRpc, shuffle, hasGossipProtocol, messageIdToString } from '
 import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds } from './score'
 import { IWantTracer } from './tracer'
 import { AddrInfo, MessageIdFunction } from './interfaces'
+import { SimpleTimeCache } from './utils/time-cache'
 import { Debugger } from 'debug'
 import Libp2p from 'libp2p'
 
 import PeerStreams from 'libp2p-interfaces/src/pubsub/peer-streams'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import TimeCache = require('time-cache')
 import PeerId = require('peer-id')
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -89,7 +87,7 @@ interface GossipOptions extends GossipInputOptions {
 class Gossipsub extends Pubsub {
   peers: Map<string, PeerStreams>
   direct: Set<string>
-  seenCache: TimeCache
+  seenCache: SimpleTimeCache
   topics: Map<string, Set<string>>
   mesh: Map<string, Set<string>>
   fanout: Map<string, Set<string>>
@@ -192,9 +190,9 @@ class Gossipsub extends Pubsub {
     /**
      * Cache of seen messages
      *
-     * @type {TimeCache}
+     * @type {SimpleTimeCache}
      */
-    this.seenCache = new TimeCache({ validity: opts.seenTTL / 1000 })
+    this.seenCache = new SimpleTimeCache({ validityMs: opts.seenTTL })
 
     /**
      * Map of topic meshes
