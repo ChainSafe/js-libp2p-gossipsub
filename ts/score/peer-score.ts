@@ -30,6 +30,9 @@ export class PeerScore {
    * IP colocation tracking; maps IP => set of peers.
    */
   peerIPs: Map<string, Set<string>>
+  /**
+   * Cache score up to decayInterval if topic stats are unchanged.
+   */
   scoreCache: Map<string, number>
   /**
    * Flag to mark a peer score cache valid or not.
