@@ -668,9 +668,8 @@ describe('PeerScore', () => {
 })
 
 describe('PeerScore score cache', function () {
-  let ps2
-  let peerA
-  const sandbox = sinon.createSandbox()
+  const peerA = '16Uiu2HAmMkH6ZLen2tbhiuNCTZLLvrZaDgufNdT5MPjtC9Hr9YNG'
+  let sandbox
   let computeStoreStub
   const params = createPeerScoreParams({
     appSpecificScore: () => -1000,
@@ -679,12 +678,12 @@ describe('PeerScore score cache', function () {
     decayInterval: 1000,
     topics: {a: {topicWeight: 10}}
   })
+  const ps2 = new PeerScore(params, connectionManager, getMsgId)
 
-  beforeEach(async () => {
+  beforeEach(() => {
+    sandbox = sinon.createSandbox()
     sandbox.useFakeTimers()
-    peerA = (await PeerId.create({keyType: 'secp256k1'})).toB58String()
     computeStoreStub = sandbox.stub(computeScoreModule, 'computeScore')
-    ps2 = new PeerScore(params, connectionManager, getMsgId)
   })
 
   afterEach(() => {
