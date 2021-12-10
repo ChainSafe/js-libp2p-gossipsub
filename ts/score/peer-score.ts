@@ -35,13 +35,9 @@ export class PeerScore {
    */
   scoreCache: Map<string, number>
   /**
-   * Flag to mark a peer score cache valid or not.
+   * The time after which the cached score for a peer is no longer valid.
    */
-  scoreCacheValid: Map<string, boolean>
-  /**
-   * The last time the score for a peer was cached.
-   */
-  scoreCacheTime: Map<string, number>
+  scoreCacheUntil: Map<string, number>
   /**
    * Recent message delivery timing/participants
    */
@@ -60,8 +56,7 @@ export class PeerScore {
     this.peerStats = new Map()
     this.peerIPs = new Map()
     this.scoreCache = new Map()
-    this.scoreCacheValid = new Map()
-    this.scoreCacheTime = new Map()
+    this.scoreCacheUntil = new Map()
     this.deliveryRecords = new MessageDeliveries()
     this.msgId = msgId
   }
@@ -169,7 +164,7 @@ export class PeerScore {
         pstats.behaviourPenalty = 0
       }
 
-      this.scoreCacheValid.set(id, false)
+      this.scoreCacheUntil.set(id, 0)
     })
   }
 
@@ -185,14 +180,14 @@ export class PeerScore {
     }
 
     const now = Date.now()
-    if (this.scoreCacheValid.get(id) && now - (this.scoreCacheTime.get(id) ?? 0) < this.params.decayInterval) {
+    const cacheUntil = this.scoreCacheUntil.get(id)
+    if (cacheUntil !== undefined && cacheUntil > now) {
       const score = this.scoreCache.get(id)
       if (score !== undefined) return score
     }
 
     const score = computeScore(id, pstats, this.params, this.peerIPs)
-    this.scoreCacheValid.set(id, true)
-    this.scoreCacheTime.set(id, now)
+    this.scoreCacheUntil.set(id, now + this.params.decayInterval)
     this.scoreCache.set(id, score)
     return score
   }
@@ -209,7 +204,7 @@ export class PeerScore {
       return
     }
     pstats.behaviourPenalty += penalty
-    this.scoreCacheValid.set(id, false)
+    this.scoreCacheUntil.set(id, 0)
   }
 
   /**
@@ -228,10 +223,6 @@ export class PeerScore {
     const ips = this._getIPs(id)
     this._setIPs(id, ips, pstats.ips)
     pstats.ips = ips
-
-    // initialize score cache
-    this.scoreCacheTime.set(id, 0)
-    this.scoreCacheValid.set(id, false)
   }
 
   /**
@@ -254,8 +245,7 @@ export class PeerScore {
 
     // delete score cache
     this.scoreCache.delete(id)
-    this.scoreCacheTime.delete(id)
-    this.scoreCacheValid.delete(id)
+    this.scoreCacheUntil.delete(id)
 
     // furthermore, when we decide to retain the score, the firstMessageDelivery counters are
     // reset to 0 and mesh delivery penalties applied.
@@ -295,7 +285,7 @@ export class PeerScore {
     tstats.graftTime = Date.now()
     tstats.meshTime = 0
     tstats.meshMessageDeliveriesActive = false
-    this.scoreCacheValid.set(id, false)
+    this.scoreCacheUntil.set(id, 0)
   }
 
   /**
@@ -321,7 +311,7 @@ export class PeerScore {
       tstats.meshFailurePenalty += deficit * deficit
     }
     tstats.inMesh = false
-    this.scoreCacheValid.set(id, false)
+    this.scoreCacheUntil.set(id, 0)
   }
 
   /**
@@ -456,7 +446,7 @@ export class PeerScore {
 
       tstats.invalidMessageDeliveries += 1
     })
-    this.scoreCacheValid.set(id, false)
+    this.scoreCacheUntil.set(id, 0)
   }
 
   /**
@@ -494,7 +484,7 @@ export class PeerScore {
         tstats.meshMessageDeliveries = cap
       }
     })
-    this.scoreCacheValid.set(id, false)
+    this.scoreCacheUntil.set(id, 0)
   }
 
   /**
@@ -538,7 +528,7 @@ export class PeerScore {
         tstats.meshMessageDeliveries = cap
       }
     })
-    this.scoreCacheValid.set(id, false)
+    this.scoreCacheUntil.set(id, 0)
   }
 
   /**
@@ -600,7 +590,7 @@ export class PeerScore {
       }
     }
 
-    this.scoreCacheValid.set(id, false)
+    this.scoreCacheUntil.set(id, 0)
   }
 
   /**
@@ -622,7 +612,7 @@ export class PeerScore {
       }
     })
 
-    this.scoreCacheValid.set(id, false)
+    this.scoreCacheUntil.set(id, 0)
   }
 
   /**
@@ -634,7 +624,7 @@ export class PeerScore {
       const newIPs = this._getIPs(id)
       this._setIPs(id, newIPs, pstats.ips)
       pstats.ips = newIPs
-      this.scoreCacheValid.set(id, false)
+      this.scoreCacheUntil.set(id, 0)
     })
   }
 }

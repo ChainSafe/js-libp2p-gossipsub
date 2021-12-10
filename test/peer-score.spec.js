@@ -682,7 +682,8 @@ describe('PeerScore score cache', function () {
 
   beforeEach(() => {
     sandbox = sinon.createSandbox()
-    sandbox.useFakeTimers()
+    const now = Date.now()
+    sandbox.useFakeTimers(now)
     computeStoreStub = sandbox.stub(computeScoreModule, 'computeScore')
   })
 
