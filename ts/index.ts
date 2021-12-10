@@ -17,6 +17,7 @@ import PeerId = require('peer-id')
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import Envelope = require('libp2p/src/record/envelope')
+import { ACCEPT_FROM_WHITE_LIST_DURATION_MS, ACCEPT_FROM_WHITE_LIST_MAX_MESSAGES, ACCEPT_FROM_WHITE_LIST_THRESHOLD_SCORE } from './constants'
 
 interface GossipInputOptions {
   emitSelf: boolean
@@ -84,22 +85,18 @@ interface GossipOptions extends GossipInputOptions {
   scoreThresholds: PeerScoreThresholds
 }
 
-const ACCEPT_REQUEST_WHITE_LIST_THRESHOLD_SCORE = 0
-const ACCEPT_REQUEST_WHITE_LIST_MAX_MESSAGES = 128
-const ACCEPT_REQUEST_WHITE_LIST_DURATION_MS = 1000
-
-interface AcceptRequestWhiteListEntry {
-  /** max number of messages accepted after a score is calculated */
+interface AcceptFromWhiteListEntry {
+  /** number of messages accepted since recomputing the peer's score */
   messagesAccepted: number
   /** have to recompute score after this time */
-  whitelistedTill: number
+  acceptUntil: number
 }
 
 class Gossipsub extends Pubsub {
   peers: Map<string, PeerStreams>
   direct: Set<string>
   seenCache: SimpleTimeCache
-  acceptRequestsWhitelist: Map<string, AcceptRequestWhiteListEntry>
+  acceptFromWhitelist: Map<string, AcceptFromWhiteListEntry>
   topics: Map<string, Set<string>>
   mesh: Map<string, Set<string>>
   fanout: Map<string, Set<string>>
@@ -197,9 +194,9 @@ class Gossipsub extends Pubsub {
     /**
      * Map of peer id and AcceptRequestWhileListEntry
      *
-     * @type {Map<string, AcceptRequestWhiteListEntry}
+     * @type {Map<string, AcceptFromWhiteListEntry}
      */
-    this.acceptRequestsWhitelist = new Map()
+    this.acceptFromWhitelist = new Map()
 
     // set direct peer addresses in the address book
     opts.directPeers.forEach(p => {
@@ -473,25 +470,25 @@ class Gossipsub extends Pubsub {
     }
 
     const now = Date.now()
-    const entry = this.acceptRequestsWhitelist.get(id)
+    const entry = this.acceptFromWhitelist.get(id)
 
     if (entry &&
-      entry.messagesAccepted < ACCEPT_REQUEST_WHITE_LIST_MAX_MESSAGES &&
-      entry.whitelistedTill >= now) {
+      entry.messagesAccepted < ACCEPT_FROM_WHITE_LIST_MAX_MESSAGES &&
+      entry.acceptUntil >= now) {
       entry.messagesAccepted += 1
       return true
     }
 
     const score = this.score.score(id)
-    if (score >= ACCEPT_REQUEST_WHITE_LIST_THRESHOLD_SCORE) {
+    if (score >= ACCEPT_FROM_WHITE_LIST_THRESHOLD_SCORE) {
       // peer is unlikely to be able to drop its score to `graylistThreshold`
       // after 128 messages or 1s
-      this.acceptRequestsWhitelist.set(id, {
+      this.acceptFromWhitelist.set(id, {
         messagesAccepted: 0,
-        whitelistedTill: now + ACCEPT_REQUEST_WHITE_LIST_DURATION_MS
+        acceptUntil: now + ACCEPT_FROM_WHITE_LIST_DURATION_MS
       })
     } else {
-      this.acceptRequestsWhitelist.delete(id)
+      this.acceptFromWhitelist.delete(id)
     }
 
     return score >= this._options.scoreThresholds.graylistThreshold

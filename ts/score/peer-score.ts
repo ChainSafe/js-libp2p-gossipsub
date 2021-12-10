@@ -187,6 +187,7 @@ export class PeerScore {
     }
 
     const score = computeScore(id, pstats, this.params, this.peerIPs)
+    // decayInterval is used to refresh score so we don't want to cache more than that
     this.scoreCacheUntil.set(id, now + this.params.decayInterval)
     this.scoreCache.set(id, score)
     return score
