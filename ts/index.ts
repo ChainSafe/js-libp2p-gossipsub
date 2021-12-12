@@ -390,6 +390,8 @@ class Gossipsub extends Pubsub {
     // Remove from peer scoring
     this.score.removePeer(id)
 
+    this.acceptFromWhitelist.delete(id)
+
     return peerStreams
   }
 

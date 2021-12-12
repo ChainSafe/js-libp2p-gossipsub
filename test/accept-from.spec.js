@@ -8,10 +8,11 @@ const {
 
 describe('Gossipsub acceptFrom', () => {
   let gossipsub
-  const sandbox = sinon.createSandbox()
+  let sandbox
   let scoreStub
 
   beforeEach(async () => {
+    sandbox = sinon.createSandbox()
     sandbox.useFakeTimers()
     gossipsub = new Gossipsub(await createPeer({ started: false }), { emitSelf: true })
     scoreStub = sandbox.createStubInstance(PeerScore)
