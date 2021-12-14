@@ -17,6 +17,13 @@ const {
 
 const log = debug('libp2p:gossipsub:score')
 
+interface ScoreCacheEntry {
+  /** The cached score, null if not cached */
+  score: number | null
+  /** Unix timestamp in miliseconds, the time after which the cached score for a peer is no longer valid */
+  cacheUntil: number
+}
+
 export class PeerScore {
   /**
    * The score parameters
@@ -33,11 +40,7 @@ export class PeerScore {
   /**
    * Cache score up to decayInterval if topic stats are unchanged.
    */
-  scoreCache: Map<string, number>
-  /**
-   * The time after which the cached score for a peer is no longer valid.
-   */
-  scoreCacheUntil: Map<string, number>
+  scoreCache: Map<string, ScoreCacheEntry>
   /**
    * Recent message delivery timing/participants
    */
@@ -56,7 +59,6 @@ export class PeerScore {
     this.peerStats = new Map()
     this.peerIPs = new Map()
     this.scoreCache = new Map()
-    this.scoreCacheUntil = new Map()
     this.deliveryRecords = new MessageDeliveries()
     this.msgId = msgId
   }
@@ -164,7 +166,7 @@ export class PeerScore {
         pstats.behaviourPenalty = 0
       }
 
-      this.scoreCacheUntil.set(id, 0)
+      this.scoreCache.set(id, { score: null, cacheUntil: 0 })
     })
   }
 
@@ -180,17 +182,19 @@ export class PeerScore {
     }
 
     const now = Date.now()
-    const cacheUntil = this.scoreCacheUntil.get(id)
-    if (cacheUntil !== undefined && cacheUntil > now) {
-      const score = this.scoreCache.get(id)
-      if (score !== undefined) return score
+    let cacheEntry = this.scoreCache.get(id)
+    if (cacheEntry === undefined) {
+      cacheEntry = { score: null, cacheUntil: 0 }
+      this.scoreCache.set(id, cacheEntry)
     }
 
-    const score = computeScore(id, pstats, this.params, this.peerIPs)
+    const { score, cacheUntil } = cacheEntry
+    if (cacheUntil > now && score !== null) return score
+
+    cacheEntry.score = computeScore(id, pstats, this.params, this.peerIPs)
     // decayInterval is used to refresh score so we don't want to cache more than that
-    this.scoreCacheUntil.set(id, now + this.params.decayInterval)
-    this.scoreCache.set(id, score)
-    return score
+    cacheEntry.cacheUntil = now + this.params.decayInterval
+    return cacheEntry.score
   }
 
   /**
@@ -205,7 +209,7 @@ export class PeerScore {
       return
     }
     pstats.behaviourPenalty += penalty
-    this.scoreCacheUntil.set(id, 0)
+    this.scoreCache.set(id, { score: null, cacheUntil: 0 })
   }
 
   /**
@@ -246,7 +250,6 @@ export class PeerScore {
 
     // delete score cache
     this.scoreCache.delete(id)
-    this.scoreCacheUntil.delete(id)
 
     // furthermore, when we decide to retain the score, the firstMessageDelivery counters are
     // reset to 0 and mesh delivery penalties applied.
@@ -286,7 +289,7 @@ export class PeerScore {
     tstats.graftTime = Date.now()
     tstats.meshTime = 0
     tstats.meshMessageDeliveriesActive = false
-    this.scoreCacheUntil.set(id, 0)
+    this.scoreCache.set(id, { score: null, cacheUntil: 0 })
   }
 
   /**
@@ -312,7 +315,7 @@ export class PeerScore {
       tstats.meshFailurePenalty += deficit * deficit
     }
     tstats.inMesh = false
-    this.scoreCacheUntil.set(id, 0)
+    this.scoreCache.set(id, { score: null, cacheUntil: 0 })
   }
 
   /**
@@ -447,7 +450,7 @@ export class PeerScore {
 
       tstats.invalidMessageDeliveries += 1
     })
-    this.scoreCacheUntil.set(id, 0)
+    this.scoreCache.set(id, { score: null, cacheUntil: 0 })
   }
 
   /**
@@ -485,7 +488,7 @@ export class PeerScore {
         tstats.meshMessageDeliveries = cap
       }
     })
-    this.scoreCacheUntil.set(id, 0)
+    this.scoreCache.set(id, { score: null, cacheUntil: 0 })
   }
 
   /**
@@ -529,7 +532,7 @@ export class PeerScore {
         tstats.meshMessageDeliveries = cap
       }
     })
-    this.scoreCacheUntil.set(id, 0)
+    this.scoreCache.set(id, { score: null, cacheUntil: 0 })
   }
 
   /**
@@ -591,7 +594,7 @@ export class PeerScore {
       }
     }
 
-    this.scoreCacheUntil.set(id, 0)
+    this.scoreCache.set(id, { score: null, cacheUntil: 0 })
   }
 
   /**
@@ -613,7 +616,7 @@ export class PeerScore {
       }
     })
 
-    this.scoreCacheUntil.set(id, 0)
+    this.scoreCache.set(id, { score: null, cacheUntil: 0 })
   }
 
   /**
@@ -625,7 +628,7 @@ export class PeerScore {
       const newIPs = this._getIPs(id)
       this._setIPs(id, newIPs, pstats.ips)
       pstats.ips = newIPs
-      this.scoreCacheUntil.set(id, 0)
+      this.scoreCache.set(id, { score: null, cacheUntil: 0 })
     })
   }
 }
