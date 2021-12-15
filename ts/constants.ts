@@ -220,3 +220,21 @@ export const TimeCacheDuration = 120 * 1000
 
 export const ERR_TOPIC_VALIDATOR_REJECT = 'ERR_TOPIC_VALIDATOR_REJECT'
 export const ERR_TOPIC_VALIDATOR_IGNORE = 'ERR_TOPIC_VALIDATOR_IGNORE'
+
+/**
+ * If peer score is better than this, we accept messages from this peer
+ * within ACCEPT_FROM_WHITELIST_DURATION_MS from the last time computing score.
+ **/
+export const ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE = 0
+
+/**
+ * If peer score >= ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE, accept up to this
+ * number of messages from that peer.
+ */
+export const ACCEPT_FROM_WHITELIST_MAX_MESSAGES = 128
+
+/**
+ * If peer score >= ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE, accept messages from
+ * this peer up to this time duration.
+ */
+export const ACCEPT_FROM_WHITELIST_DURATION_MS = 1000

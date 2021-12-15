@@ -1,8 +1,10 @@
+const sinon = require('sinon')
 const { expect } = require('chai')
 const PeerId = require('peer-id')
 const delay = require('delay')
 
 const { PeerScore, createPeerScoreParams, createTopicScoreParams } = require('../src/score')
+const computeScoreModule = require('../src/score/compute-score')
 const { ERR_TOPIC_VALIDATOR_IGNORE, ERR_TOPIC_VALIDATOR_REJECT } = require('../src/constants')
 const { makeTestMessage, getMsgId } = require('./utils')
 
@@ -642,7 +644,6 @@ describe('PeerScore', () => {
     const ps = new PeerScore(params, connectionManager, getMsgId)
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
-    
     // score should equal -1000 (app-specific score)
     const expected = -1000
     ps._refreshScores()
@@ -664,4 +665,71 @@ describe('PeerScore', () => {
     aScore = ps.score(peerA)
     expect(aScore).to.equal(0)
   })
+})
+
+describe('PeerScore score cache', function () {
+  const peerA = '16Uiu2HAmMkH6ZLen2tbhiuNCTZLLvrZaDgufNdT5MPjtC9Hr9YNG'
+  let sandbox
+  let computeStoreStub
+  const params = createPeerScoreParams({
+    appSpecificScore: () => -1000,
+    appSpecificWeight: 1,
+    retainScore: 800,
+    decayInterval: 1000,
+    topics: {a: {topicWeight: 10}}
+  })
+  const ps2 = new PeerScore(params, connectionManager, getMsgId)
+
+  beforeEach(() => {
+    sandbox = sinon.createSandbox()
+    const now = Date.now()
+    sandbox.useFakeTimers(now)
+    computeStoreStub = sandbox.stub(computeScoreModule, 'computeScore')
+  })
+
+  afterEach(() => {
+    sandbox.restore()
+  })
+
+  it('should compute first time', function () {
+    computeStoreStub.returns(10)
+    ps2.addPeer(peerA)
+    expect(computeStoreStub.calledOnce).to.be.false
+    ps2.score(peerA)
+    expect(computeStoreStub.calledOnce).to.be.true
+    // this time peerA score is cached
+    ps2.score(peerA)
+    expect(computeStoreStub.calledOnce).to.be.true
+  })
+
+  const testCases = [
+    {name: 'decayInterval timeout', fun: () => sandbox.clock.tick(params.decayInterval)},
+    {name: '_refreshScores', fun: () => ps2._refreshScores()},
+    {name: 'addPenalty', fun: () => ps2.addPenalty(peerA, 10)},
+    {name: 'graft', fun: () => ps2.graft(peerA, 'a')},
+    {name: 'prune', fun: () => ps2.prune(peerA, 'a')},
+    {name: '_markInvalidMessageDelivery', fun: () => ps2._markInvalidMessageDelivery(peerA, {topicIDs: ['a']})},
+    {name: '_markFirstMessageDelivery', fun: () => ps2._markFirstMessageDelivery(peerA, {topicIDs: ['a']})},
+    {name: '_markDuplicateMessageDelivery', fun: () => ps2._markDuplicateMessageDelivery(peerA, {topicIDs: ['a']})},
+    {name: '_setIPs', fun: () => ps2._setIPs(peerA, [], ['127.0.0.1'])},
+    {name: '_removeIPs', fun: () => ps2._removeIPs(peerA, ['127.0.0.1'])},
+    {name: '_updateIPs', fun: () => ps2._updateIPs()},
+  ]
+
+  for (const {name, fun} of testCases) {
+    it(`should invalidate the cache after ${name}`, function () {
+      computeStoreStub.returns(10)
+      ps2.addPeer(peerA)
+      ps2.score(peerA)
+      expect(computeStoreStub.calledOnce).to.be.true
+      // the score is cached
+      ps2.score(peerA)
+      expect(computeStoreStub.calledOnce).to.be.true
+      // invalidate the cache
+      fun()
+      // should not use the cache
+      ps2.score(peerA)
+      expect(computeStoreStub.calledTwice).to.be.true
+    })
+  }
 })
