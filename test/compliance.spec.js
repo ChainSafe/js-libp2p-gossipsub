@@ -6,7 +6,8 @@ const tests = require('libp2p-interfaces-compliance-tests/src/pubsub')
 const Gossipsub = require('../src')
 const { createPeers } = require('./utils/create-peer')
 
-describe('interface compliance', () => {
+describe('interface compliance', function () {
+  this.timeout(3000)
   let peers
   let pubsubNodes = []
 
@@ -17,6 +18,9 @@ describe('interface compliance', () => {
       peers.forEach((peer) => {
         const gossipsub = new Gossipsub(peer, {
           emitSelf: true,
+          // we don't want to cache anything, spec test sends duplicate messages and expect
+          // peer to receive all.
+          seenTTL: -1,
           ...options
         })
 

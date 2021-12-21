@@ -2,7 +2,6 @@ import { PeerScoreParams, validatePeerScoreParams } from './peer-score-params'
 import { PeerStats, createPeerStats, ensureTopicStats } from './peer-stats'
 import { computeScore } from './compute-score'
 import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries'
-import { MessageIdFunction } from '../interfaces'
 import { ERR_TOPIC_VALIDATOR_IGNORE } from '../constants'
 import PeerId from 'peer-id'
 import ConnectionManager from 'libp2p/src/connection-manager'
@@ -45,14 +44,10 @@ export class PeerScore {
    * Recent message delivery timing/participants
    */
   deliveryRecords: MessageDeliveries
-  /**
-   * Message ID function
-   */
-  msgId: MessageIdFunction
   _connectionManager: ConnectionManager
   _backgroundInterval?: NodeJS.Timeout
 
-  constructor (params: PeerScoreParams, connectionManager: ConnectionManager, msgId: MessageIdFunction) {
+  constructor (params: PeerScoreParams, connectionManager: ConnectionManager) {
     validatePeerScoreParams(params)
     this.params = params
     this._connectionManager = connectionManager
@@ -60,7 +55,6 @@ export class PeerScore {
     this.peerIPs = new Map()
     this.scoreCache = new Map()
     this.deliveryRecords = new MessageDeliveries()
-    this.msgId = msgId
   }
 
   /**
@@ -322,19 +316,19 @@ export class PeerScore {
    * @param {InMessage} message
    * @returns {Promise<void>}
    */
-  async validateMessage (message: InMessage): Promise<void> {
-    this.deliveryRecords.ensureRecord(await this.msgId(message))
+  async validateMessage (msgIdStr: string): Promise<void> {
+    this.deliveryRecords.ensureRecord(msgIdStr)
   }
 
   /**
    * @param {InMessage} message
    * @returns {Promise<void>}
    */
-  async deliverMessage (message: InMessage): Promise<void> {
+  async deliverMessage (message: InMessage, msgIdStr: string): Promise<void> {
     const id = message.receivedFrom
     this._markFirstMessageDelivery(id, message)
 
-    const drec = this.deliveryRecords.ensureRecord(await this.msgId(message))
+    const drec = this.deliveryRecords.ensureRecord(msgIdStr)
     const now = Date.now()
 
     // defensive check that this is the first delivery trace -- delivery status should be unknown
@@ -363,7 +357,7 @@ export class PeerScore {
    * @param {string} reason
    * @returns {Promise<void>}
    */
-  async rejectMessage (message: InMessage, reason: string): Promise<void> {
+  async rejectMessage (message: InMessage, msgIdStr: string, reason: string): Promise<void> {
     const id = message.receivedFrom
     switch (reason) {
       case ERR_MISSING_SIGNATURE:
@@ -372,7 +366,7 @@ export class PeerScore {
         return
     }
 
-    const drec = this.deliveryRecords.ensureRecord(await this.msgId(message))
+    const drec = this.deliveryRecords.ensureRecord(msgIdStr)
 
     // defensive check that this is the first rejection -- delivery status should be unknown
     if (drec.status !== DeliveryRecordStatus.unknown) {
@@ -403,9 +397,9 @@ export class PeerScore {
    * @param {InMessage} message
    * @returns {Promise<void>}
    */
-  async duplicateMessage (message: InMessage): Promise<void> {
+  async duplicateMessage (message: InMessage, msgIdStr: string): Promise<void> {
     const id = message.receivedFrom
-    const drec = this.deliveryRecords.ensureRecord(await this.msgId(message))
+    const drec = this.deliveryRecords.ensureRecord(msgIdStr)
 
     if (drec.peers.has(id)) {
       // we have already seen this duplicate

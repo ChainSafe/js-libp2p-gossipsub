@@ -189,7 +189,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     sendRecv = []
     for (let i = 0; i < 100; i++) {
-      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`2nd - ${i} its not a flooooood ${i}`)
 
       const owner = 0
 
@@ -228,9 +228,9 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
 
     let sendRecv = []
-    const sendMessages = () => {
+    const sendMessages = (time) => {
       for (let i = 0; i < 100; i++) {
-        const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
+        const msg = uint8ArrayFromString(`${time} ${i} its not a flooooood ${i}`)
 
         const owner = 0
 
@@ -244,7 +244,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
         sendRecv.push(results)
       }
     }
-    sendMessages()
+    sendMessages(1)
     await Promise.all(sendRecv)
 
     psubs.slice(1).forEach(ps => ps.unsubscribe(topic))
@@ -258,7 +258,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
 
     sendRecv = []
-    sendMessages()
+    sendMessages(2)
     await Promise.all(sendRecv)
     await tearDownGossipsubs(psubs)
   })
@@ -891,7 +891,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     sendRecv = []
     for (let i = 0; i < 3; i++) {
-      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
+      const msg = uint8ArrayFromString(`2nd - ${i} its not a flooooood ${i}`)
       const owner = i
       const results = Promise.all(
         psubs
@@ -1035,7 +1035,8 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
 
     const msg = uint8ArrayFromString('its not a flooooood')
     await psubs[1].publish(topic, msg)
-    await psubs[2].publish(topic, msg)
+    const msg2 = uint8ArrayFromString('2nd - its not a flooooood')
+    await psubs[2].publish(topic, msg2)
 
     await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
 

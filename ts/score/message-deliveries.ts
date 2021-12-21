@@ -1,6 +1,5 @@
 import { TimeCacheDuration } from '../constants'
 import Denque from 'denque'
-import { messageIdToString } from '../utils'
 
 export enum DeliveryRecordStatus {
   /**
@@ -34,7 +33,7 @@ interface DeliveryQueueEntry {
 }
 
 /**
- * Map of message ID to DeliveryRecord
+ * Map of canonical message ID to DeliveryRecord
  *
  * Maintains an internal queue for efficient gc of old messages
  */
@@ -47,8 +46,7 @@ export class MessageDeliveries {
     this.queue = new Denque()
   }
 
-  ensureRecord (msgId: Uint8Array): DeliveryRecord {
-    const msgIdStr = messageIdToString(msgId)
+  ensureRecord (msgIdStr: string): DeliveryRecord {
     let drec = this.records.get(msgIdStr)
     if (drec) {
       return drec
