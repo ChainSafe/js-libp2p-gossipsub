@@ -1,6 +1,4 @@
 import { GossipsubIWantFollowupTime } from './constants'
-import { InMessage } from 'libp2p-interfaces/src/pubsub'
-import { MessageIdStrFunction } from './interfaces'
 import { messageIdToString } from './utils'
 import pubsubErrors = require('libp2p-interfaces/src/pubsub/errors')
 
@@ -18,14 +16,12 @@ const {
  * These 'promises' are merely expectations of a peer's behavior.
  */
 export class IWantTracer {
-  getMsgStrId: MessageIdStrFunction
   /**
    * Promises to deliver a message
    * Map per message id, per peer, promise expiration time
    */
   promises: Map<string, Map<string, number>>
-  constructor (getMsgStrId: MessageIdStrFunction) {
-    this.getMsgStrId = getMsgStrId
+  constructor () {
     this.promises = new Map()
   }
 
@@ -81,29 +77,27 @@ export class IWantTracer {
 
   /**
    * Someone delivered a message, stop tracking promises for it
-   * @param {InMessage} msg
+   * @param {string} msgIdStr
    * @returns {Promise<void>}
    */
-  async deliverMessage (msg: InMessage): Promise<void> {
-    const msgIdStr = await this.getMsgStrId(msg)
+  async deliverMessage (msgIdStr: string): Promise<void> {
     this.promises.delete(msgIdStr)
   }
 
   /**
    * A message got rejected, so we can stop tracking promises and let the score penalty apply from invalid message delivery,
    * unless its an obviously invalid message.
-   * @param {InMessage} msg
+   * @param {string} msgIdStr
    * @param {string} reason
    * @returns {Promise<void>}
    */
-  async rejectMessage (msg: InMessage, reason: string): Promise<void> {
+  async rejectMessage (msgIdStr: string, reason: string): Promise<void> {
     switch (reason) {
       case ERR_INVALID_SIGNATURE:
       case ERR_MISSING_SIGNATURE:
         return
     }
 
-    const msgIdStr = await this.getMsgStrId(msg)
     this.promises.delete(msgIdStr)
   }
 

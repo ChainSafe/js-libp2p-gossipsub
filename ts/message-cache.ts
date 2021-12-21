@@ -1,6 +1,6 @@
 import { InMessage } from 'libp2p-interfaces/src/pubsub'
 import { MessageIdFunction } from './interfaces'
-import { messageIdToString } from './utils'
+import { messageIdFromString, messageIdToString } from './utils'
 
 export interface CacheEntry {
   msgID: Uint8Array
@@ -21,7 +21,7 @@ export class MessageCache {
    *
    * @constructor
    */
-  constructor (gossip: number, history: number, msgIdFn: MessageIdFunction) {
+  constructor (gossip: number, history: number) {
     /**
      * @type {Map<string, RPC.Message>}
      */
@@ -41,33 +41,19 @@ export class MessageCache {
      * @type {Number}
      */
     this.gossip = gossip
-
-    /**
-     * @type {Function}
-     */
-    this.msgIdFn = msgIdFn
   }
 
   /**
    * Adds a message to the current window and the cache
    *
+   * @param {string} msgIdStr
    * @param {RPC.Message} msg
    * @returns {Promise<void>}
    */
-  async put (msg: InMessage): Promise<void> {
-    const msgID = await this.getMsgId(msg)
-    const msgIdStr = messageIdToString(msgID)
+  async put (msg: InMessage, msgIdStr: string): Promise<void> {
     this.msgs.set(msgIdStr, msg)
+    const msgID = messageIdFromString(msgIdStr)
     this.history[0].push({ msgID, topics: msg.topicIDs })
-  }
-
-  /**
-   * Get message id of message.
-   * @param {RPC.Message} msg
-   * @returns {Promise<Uint8Array> | Uint8Array}
-   */
-  getMsgId (msg: InMessage): Promise<Uint8Array> | Uint8Array {
-    return this.msgIdFn(msg)
   }
 
   /**
@@ -85,12 +71,11 @@ export class MessageCache {
    * for a specific peer.
    * Returns the message and the number of times the peer has requested the message
    *
-   * @param {string} msgID
+   * @param {string} msgIdStr
    * @param {string} p
    * @returns {[InMessage | undefined, number]}
    */
-  getForPeer (msgID: Uint8Array, p: string): [InMessage | undefined, number] {
-    const msgIdStr = messageIdToString(msgID)
+  getForPeer (msgIdStr: string, p: string): [InMessage | undefined, number] {
     const msg = this.msgs.get(msgIdStr)
     if (!msg) {
       return [undefined, 0]

@@ -285,9 +285,8 @@ class Gossipsub extends Pubsub {
 
     /**
      * A message cache that contains the messages for last few hearbeat ticks
-     * TODO: consider using this.getCanonicalMessageIdStr.bind(this)
      */
-    this.messageCache = options.messageCache || new MessageCache(opts.mcacheGossip, opts.mcacheLength, this.getMsgId.bind(this))
+    this.messageCache = options.messageCache || new MessageCache(opts.mcacheGossip, opts.mcacheLength)
 
     /**
      * A heartbeat timer that maintains the mesh
@@ -303,7 +302,7 @@ class Gossipsub extends Pubsub {
     /**
      * Tracks IHAVE/IWANT promises broken by peers
      */
-    this.gossipTracer = new IWantTracer(this.getCanonicalMessageIdStr.bind(this))
+    this.gossipTracer = new IWantTracer()
 
     /**
      * libp2p
@@ -520,7 +519,7 @@ class Gossipsub extends Pubsub {
     } catch (e) {
       const canonicalMsgIdStr = await this.getCanonicalMessageIdStr(message)
       this.score.rejectMessage(message, canonicalMsgIdStr, e.code)
-      this.gossipTracer.rejectMessage(message, e.code)
+      this.gossipTracer.rejectMessage(canonicalMsgIdStr, e.code)
       throw e
     }
   }
@@ -636,7 +635,8 @@ class Gossipsub extends Pubsub {
 
     iwant.forEach(({ messageIDs }) => {
       messageIDs && messageIDs.forEach((msgID) => {
-        const [msg, count] = this.messageCache.getForPeer(msgID, id)
+        const msgIDStr = messageIdToString(msgID)
+        const [msg, count] = this.messageCache.getForPeer(msgIDStr, id)
         if (!msg) {
           return
         }
@@ -648,7 +648,7 @@ class Gossipsub extends Pubsub {
           )
           return
         }
-        ihave.set(messageIdToString(msgID), msg)
+        ihave.set(msgIDStr, msg)
       })
     })
 
@@ -1108,13 +1108,13 @@ class Gossipsub extends Pubsub {
     const msgIdStr = await this.getCanonicalMessageIdStr(msg)
     if (msg.receivedFrom !== this.peerId.toB58String()) {
       this.score.deliverMessage(msg, msgIdStr)
-      this.gossipTracer.deliverMessage(msg)
+      this.gossipTracer.deliverMessage(msgIdStr)
     }
 
     // put in seen cache
     this.seenCache.put(msgIdStr)
 
-    this.messageCache.put(msg)
+    this.messageCache.put(msg, msgIdStr)
 
     const tosend = new Set<string>()
     msg.topicIDs.forEach((topic) => {

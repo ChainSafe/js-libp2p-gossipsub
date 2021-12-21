@@ -1,5 +1,6 @@
 const { expect } = require('chai')
 const delay = require('delay')
+const { messageIdToString } = require('../src/utils/messageIdToString')
 const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
 
 const { IWantTracer } = require('../src/tracer')
@@ -39,7 +40,7 @@ describe('IWantTracer', () => {
   it('should track unbroken promises', async function () {
     // like above, but this time we deliver messages to fullfil the promises
     this.timeout(6000)
-    const t = new IWantTracer(getMsgId)
+    const t = new IWantTracer()
     const peerA = 'A'
     const peerB = 'B'
 
@@ -55,7 +56,7 @@ describe('IWantTracer', () => {
     t.addPromise(peerA, msgIds)
     t.addPromise(peerB, msgIds)
 
-    msgs.forEach(msg => t.deliverMessage(msg))
+    msgs.forEach(msg => t.deliverMessage(messageIdToString(getMsgId(msg))))
 
     await delay(constants.GossipsubIWantFollowupTime + 10)
 
