@@ -1,6 +1,6 @@
 import { GossipsubIWantFollowupTime } from './constants'
 import { InMessage } from 'libp2p-interfaces/src/pubsub'
-import { MessageIdFunction } from './interfaces'
+import { MessageIdStrFunction } from './interfaces'
 import { messageIdToString } from './utils'
 import pubsubErrors = require('libp2p-interfaces/src/pubsub/errors')
 
@@ -18,14 +18,14 @@ const {
  * These 'promises' are merely expectations of a peer's behavior.
  */
 export class IWantTracer {
-  getMsgId: MessageIdFunction
+  getMsgStrId: MessageIdStrFunction
   /**
    * Promises to deliver a message
    * Map per message id, per peer, promise expiration time
    */
   promises: Map<string, Map<string, number>>
-  constructor (getMsgId: MessageIdFunction) {
-    this.getMsgId = getMsgId
+  constructor (getMsgStrId: MessageIdStrFunction) {
+    this.getMsgStrId = getMsgStrId
     this.promises = new Map()
   }
 
@@ -85,8 +85,7 @@ export class IWantTracer {
    * @returns {Promise<void>}
    */
   async deliverMessage (msg: InMessage): Promise<void> {
-    const msgId = await this.getMsgId(msg)
-    const msgIdStr = messageIdToString(msgId)
+    const msgIdStr = await this.getMsgStrId(msg)
     this.promises.delete(msgIdStr)
   }
 
@@ -104,8 +103,7 @@ export class IWantTracer {
         return
     }
 
-    const msgId = await this.getMsgId(msg)
-    const msgIdStr = messageIdToString(msgId)
+    const msgIdStr = await this.getMsgStrId(msg)
     this.promises.delete(msgIdStr)
   }
 

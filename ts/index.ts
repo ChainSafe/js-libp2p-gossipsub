@@ -285,7 +285,7 @@ class Gossipsub extends Pubsub {
 
     /**
      * A message cache that contains the messages for last few hearbeat ticks
-     *
+     * TODO: consider using this.getCanonicalMessageIdStr.bind(this)
      */
     this.messageCache = options.messageCache || new MessageCache(opts.mcacheGossip, opts.mcacheLength, this.getMsgId.bind(this))
 
@@ -303,7 +303,7 @@ class Gossipsub extends Pubsub {
     /**
      * Tracks IHAVE/IWANT promises broken by peers
      */
-    this.gossipTracer = new IWantTracer(this.getMsgId.bind(this))
+    this.gossipTracer = new IWantTracer(this.getCanonicalMessageIdStr.bind(this))
 
     /**
      * libp2p
@@ -518,10 +518,8 @@ class Gossipsub extends Pubsub {
     try {
       await super.validate(message)
     } catch (e) {
-      const fastMsgIdStr = messageIdToString(SHA256.digest(message.data))
-      const canonicalMsgIdStr = this.fastMsgIdCache.get(fastMsgIdStr)
-      // we should have canonicalMsgIdStr considering 30s cache
-      if (canonicalMsgIdStr) this.score.rejectMessage(message, canonicalMsgIdStr, e.code)
+      const canonicalMsgIdStr = await this.getCanonicalMessageIdStr(message)
+      this.score.rejectMessage(message, canonicalMsgIdStr, e.code)
       this.gossipTracer.rejectMessage(message, e.code)
       throw e
     }
@@ -1091,6 +1089,15 @@ class Gossipsub extends Pubsub {
   }
 
   /**
+   * Prefer the fast cache over this.getMsgId()
+   * @param {InMessage} msg
+   */
+  async getCanonicalMessageIdStr (message: InMessage): Promise<string> {
+    const fastMsgIdStr = messageIdToString(SHA256.digest(message.data))
+    return this.fastMsgIdCache.get(fastMsgIdStr) ?? messageIdToString(await this.getMsgId(message))
+  }
+
+  /**
    * Publish messages
    *
    * @override
@@ -1098,13 +1105,12 @@ class Gossipsub extends Pubsub {
    * @returns {void}
    */
   async _publish (msg: InMessage): Promise<void> {
-    const msgID = await this.getMsgId(msg)
+    const msgIdStr = await this.getCanonicalMessageIdStr(msg)
     if (msg.receivedFrom !== this.peerId.toB58String()) {
-      this.score.deliverMessage(msg, messageIdToString(msgID))
+      this.score.deliverMessage(msg, msgIdStr)
       this.gossipTracer.deliverMessage(msg)
     }
 
-    const msgIdStr = messageIdToString(msgID)
     // put in seen cache
     this.seenCache.put(msgIdStr)
 
