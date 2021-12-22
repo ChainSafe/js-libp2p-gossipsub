@@ -1089,12 +1089,27 @@ class Gossipsub extends Pubsub {
   }
 
   /**
-   * Prefer the fast cache over this.getMsgId()
-   * @param {InMessage} msg
+   * Get from the application cache first, then from the fast cache, then from this.getMsgId()
+   * @param {InMessage} message
    */
   async getCanonicalMessageIdStr (message: InMessage): Promise<string> {
+    const cachedMsgId = this.getCachedMsgId(message)
+    if (cachedMsgId) {
+      return messageIdToString(cachedMsgId)
+    }
+
     const fastMsgIdStr = messageIdToString(SHA256.digest(message.data))
     return this.fastMsgIdCache.get(fastMsgIdStr) ?? messageIdToString(await this.getMsgId(message))
+  }
+
+  /**
+   * Application should override this to return its cached message id without computing it.
+   * Return undefine if it does not have it
+   * @param {InMessage} message
+   * @returns
+   */
+  getCachedMsgId (message: InMessage): Uint8Array | undefined {
+    return undefined
   }
 
   /**
