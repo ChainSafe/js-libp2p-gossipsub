@@ -1,7 +1,7 @@
 'use strict'
 
 const { expect } = require('chai')
-
+const { messageIdToString } = require('../../src/utils/messageIdToString')
 const FloodSub = require('libp2p-floodsub')
 const PeerId = require('peer-id')
 const delay = require('delay')
@@ -46,7 +46,7 @@ for (const [k, v] of Object.entries({
   exports[k] = v
 }
 
-exports.getMsgId = (msg) => {
+const getMsgId = (msg) => {
   const from = uint8ArrayFromString(msg.from)
   const seqno = uint8ArrayFromString(msg.seqno)
   const result = new Uint8Array(from.length + seqno.length)
@@ -54,6 +54,10 @@ exports.getMsgId = (msg) => {
   result.set(seqno, from.length)
   return result
 }
+
+exports.getMsgId = getMsgId
+
+exports.getMsgIdStr = (msg) => messageIdToString(getMsgId(msg))
 
 exports.waitForAllNodesToBePeered = async (peers, attempts = 10, delayMs = 100) => {
   const nodeIds = peers.map(peer => peer.peerId.toB58String())

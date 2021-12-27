@@ -5,9 +5,8 @@ const delay = require('delay')
 
 const { PeerScore, createPeerScoreParams, createTopicScoreParams } = require('../src/score')
 const computeScoreModule = require('../src/score/compute-score')
-const { messageIdToString } = require('../src/utils/messageIdToString')
 const { ERR_TOPIC_VALIDATOR_IGNORE, ERR_TOPIC_VALIDATOR_REJECT } = require('../src/constants')
-const { makeTestMessage, getMsgId } = require('./utils')
+const { makeTestMessage, getMsgId, getMsgIdStr } = require('./utils')
 
 const connectionManager = new Map()
 connectionManager.getAll = () => ([])
@@ -102,8 +101,8 @@ describe('PeerScore', () => {
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
       msg.receivedFrom = peerA
-      ps.validateMessage(messageIdToString(getMsgId(msg)))
-      ps.deliverMessage(msg, messageIdToString(getMsgId(msg)))
+      ps.validateMessage(getMsgIdStr(msg))
+      ps.deliverMessage(msg, getMsgIdStr(msg))
     }
 
     ps._refreshScores()
@@ -142,8 +141,8 @@ describe('PeerScore', () => {
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
       msg.receivedFrom = peerA
-      ps.validateMessage(messageIdToString(getMsgId(msg)))
-      ps.deliverMessage(msg, messageIdToString(getMsgId(msg)))
+      ps.validateMessage(getMsgIdStr(msg))
+      ps.deliverMessage(msg, getMsgIdStr(msg))
     }
 
     ps._refreshScores()
@@ -182,8 +181,8 @@ describe('PeerScore', () => {
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
       msg.receivedFrom = peerA
-      ps.validateMessage(messageIdToString(getMsgId(msg)))
-      ps.deliverMessage(msg, messageIdToString(getMsgId(msg)))
+      ps.validateMessage(getMsgIdStr(msg))
+      ps.deliverMessage(msg, getMsgIdStr(msg))
     }
 
     ps._refreshScores()
@@ -251,16 +250,16 @@ describe('PeerScore', () => {
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
       msg.receivedFrom = peerA
-      ps.validateMessage(messageIdToString(getMsgId(msg)))
-      ps.deliverMessage(msg, messageIdToString(getMsgId(msg)))
+      ps.validateMessage(getMsgIdStr(msg))
+      ps.deliverMessage(msg, getMsgIdStr(msg))
 
       msg.receivedFrom = peerB
-      ps.duplicateMessage(msg, messageIdToString(getMsgId(msg)))
+      ps.duplicateMessage(msg, getMsgIdStr(msg))
 
       // deliver duplicate from peer C after the window
       await delay(tparams.meshMessageDeliveriesWindow + 5)
       msg.receivedFrom = peerC
-      ps.duplicateMessage(msg, messageIdToString(getMsgId(msg)))
+      ps.duplicateMessage(msg, getMsgIdStr(msg))
     }
     ps._refreshScores()
     const aScore = ps.score(peerA)
@@ -307,8 +306,8 @@ describe('PeerScore', () => {
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
       msg.receivedFrom = peerA
-      ps.validateMessage(messageIdToString(getMsgId(msg)))
-      ps.deliverMessage(msg, messageIdToString(getMsgId(msg)))
+      ps.validateMessage(getMsgIdStr(msg))
+      ps.deliverMessage(msg, getMsgIdStr(msg))
     }
     ps._refreshScores()
     let aScore = ps.score(peerA)
@@ -371,8 +370,8 @@ describe('PeerScore', () => {
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
       msg.receivedFrom = peerA
-      ps.validateMessage(messageIdToString(getMsgId(msg)))
-      ps.deliverMessage(msg, messageIdToString(getMsgId(msg)))
+      ps.validateMessage(getMsgIdStr(msg))
+      ps.deliverMessage(msg, getMsgIdStr(msg))
     }
     // peers A and B should both have zero scores, since the failure penalty hasn't been applied yet
     ps._refreshScores()
@@ -415,7 +414,7 @@ describe('PeerScore', () => {
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
       msg.receivedFrom = peerA
-      await ps.rejectMessage(msg, messageIdToString(getMsgId(msg)), ERR_TOPIC_VALIDATOR_REJECT)
+      await ps.rejectMessage(msg, getMsgIdStr(msg), ERR_TOPIC_VALIDATOR_REJECT)
     }
     ps._refreshScores()
     let aScore = ps.score(peerA)
@@ -444,7 +443,7 @@ describe('PeerScore', () => {
     for (let i = 0; i < nMessages; i++) {
       const msg = makeTestMessage(i, [mytopic])
       msg.receivedFrom = peerA
-      await ps.rejectMessage(msg, messageIdToString(getMsgId(msg)), ERR_TOPIC_VALIDATOR_REJECT)
+      await ps.rejectMessage(msg, getMsgIdStr(msg), ERR_TOPIC_VALIDATOR_REJECT)
     }
     ps._refreshScores()
     let aScore = ps.score(peerA)
@@ -481,12 +480,12 @@ describe('PeerScore', () => {
     msg.receivedFrom = peerA
 
     // insert a record
-    await ps.validateMessage(messageIdToString(getMsgId(msg)))
+    await ps.validateMessage(getMsgIdStr(msg))
 
     // this should have no effect in the score, and subsequent duplicate messages should have no effect either
-    await ps.rejectMessage(msg, messageIdToString(getMsgId(msg)), ERR_TOPIC_VALIDATOR_IGNORE)
+    await ps.rejectMessage(msg, getMsgIdStr(msg), ERR_TOPIC_VALIDATOR_IGNORE)
     msg.receivedFrom = peerB
-    await ps.duplicateMessage(msg, messageIdToString(getMsgId(msg)))
+    await ps.duplicateMessage(msg, getMsgIdStr(msg))
 
     let aScore = ps.score(peerA)
     let bScore = ps.score(peerB)
@@ -501,12 +500,12 @@ describe('PeerScore', () => {
 
     // insert a new record in the message deliveries
     msg.receivedFrom = peerA
-    await ps.validateMessage(messageIdToString(getMsgId(msg)))
+    await ps.validateMessage(getMsgIdStr(msg))
 
     // and reject the message to make sure duplicates are also penalized
-    await ps.rejectMessage(msg, messageIdToString(getMsgId(msg)), ERR_TOPIC_VALIDATOR_REJECT)
+    await ps.rejectMessage(msg, getMsgIdStr(msg), ERR_TOPIC_VALIDATOR_REJECT)
     msg.receivedFrom = peerB
-    await ps.duplicateMessage(msg, messageIdToString(getMsgId(msg)))
+    await ps.duplicateMessage(msg, getMsgIdStr(msg))
 
     aScore = ps.score(peerA)
     bScore = ps.score(peerB)
@@ -521,13 +520,13 @@ describe('PeerScore', () => {
 
     // insert a new record in the message deliveries
     msg.receivedFrom = peerA
-    await ps.validateMessage(messageIdToString(getMsgId(msg)))
+    await ps.validateMessage(getMsgIdStr(msg))
 
     // and reject the message after a duplicate has arrived
     msg.receivedFrom = peerB
-    await ps.duplicateMessage(msg, messageIdToString(getMsgId(msg)))
+    await ps.duplicateMessage(msg, getMsgIdStr(msg))
     msg.receivedFrom = peerA
-    await ps.rejectMessage(msg, messageIdToString(getMsgId(msg)), ERR_TOPIC_VALIDATOR_REJECT)
+    await ps.rejectMessage(msg, getMsgIdStr(msg), ERR_TOPIC_VALIDATOR_REJECT)
 
     aScore = ps.score(peerA)
     bScore = ps.score(peerB)
