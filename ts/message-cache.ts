@@ -3,7 +3,7 @@ import { MessageIdFunction } from './interfaces'
 import { messageIdFromString, messageIdToString } from './utils'
 
 export interface CacheEntry {
-  msgID: Uint8Array
+  msgId: Uint8Array
   topics: string[]
 }
 
@@ -52,18 +52,18 @@ export class MessageCache {
    */
   async put (msg: InMessage, msgIdStr: string): Promise<void> {
     this.msgs.set(msgIdStr, msg)
-    const msgID = messageIdFromString(msgIdStr)
-    this.history[0].push({ msgID, topics: msg.topicIDs })
+    const msgId = messageIdFromString(msgIdStr)
+    this.history[0].push({ msgId: msgId, topics: msg.topicIDs })
   }
 
   /**
    * Retrieves a message from the cache by its ID, if it is still present
    *
-   * @param {Uint8Array} msgID
+   * @param {Uint8Array} msgId
    * @returns {Message}
    */
-  get (msgID: Uint8Array): InMessage | undefined {
-    return this.msgs.get(messageIdToString(msgID))
+  get (msgId: Uint8Array): InMessage | undefined {
+    return this.msgs.get(messageIdToString(msgId))
   }
 
   /**
@@ -100,19 +100,19 @@ export class MessageCache {
    * @returns {Array<Uint8Array>}
    */
   getGossipIDs (topic: string): Uint8Array[] {
-    const msgIDs: Uint8Array[] = []
+    const msgIds: Uint8Array[] = []
     for (let i = 0; i < this.gossip; i++) {
       this.history[i].forEach((entry) => {
         for (const t of entry.topics) {
           if (t === topic) {
-            msgIDs.push(entry.msgID)
+            msgIds.push(entry.msgId)
             break
           }
         }
       })
     }
 
-    return msgIDs
+    return msgIds
   }
 
   /**
@@ -123,7 +123,7 @@ export class MessageCache {
   shift (): void {
     const last = this.history[this.history.length - 1]
     last.forEach((entry) => {
-      const msgIdStr = messageIdToString(entry.msgID)
+      const msgIdStr = messageIdToString(entry.msgId)
       this.msgs.delete(msgIdStr)
       this.peertx.delete(msgIdStr)
     })

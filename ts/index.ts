@@ -456,18 +456,18 @@ class Gossipsub extends Pubsub {
     const fastMsgIdStr = messageIdToString(SHA256.digest(msg.data))
 
     // Ignore if we've already seen the message
-    let canonicalMsgIDStr = this.fastMsgIdCache.get(fastMsgIdStr)
-    if (canonicalMsgIDStr !== undefined) {
-      this.score.duplicateMessage(msg, canonicalMsgIDStr)
+    let canonicalMsgIdStr = this.fastMsgIdCache.get(fastMsgIdStr)
+    if (canonicalMsgIdStr !== undefined) {
+      this.score.duplicateMessage(msg, canonicalMsgIdStr)
       return
     }
 
-    const canonicalMsgID = await this.getMsgId(msg)
-    canonicalMsgIDStr = messageIdToString(canonicalMsgID)
-    this.seenCache.put(canonicalMsgIDStr)
-    this.fastMsgIdCache.put(fastMsgIdStr, canonicalMsgIDStr)
+    const canonicalMsgId = await this.getMsgId(msg)
+    canonicalMsgIdStr = messageIdToString(canonicalMsgId)
+    this.seenCache.put(canonicalMsgIdStr)
+    this.fastMsgIdCache.put(fastMsgIdStr, canonicalMsgIdStr)
 
-    await this.score.validateMessage(canonicalMsgIDStr)
+    await this.score.validateMessage(canonicalMsgIdStr)
     await super._processRpcMessage(msg)
   }
 
@@ -510,15 +510,15 @@ class Gossipsub extends Pubsub {
   /**
    * Validate incoming message
    * @override
-   * @param {InMessage} message
+   * @param {InMessage} msg
    * @returns {Promise<void>}
    */
-  async validate (message: InMessage): Promise<void> {
+  async validate (msg: InMessage): Promise<void> {
     try {
-      await super.validate(message)
+      await super.validate(msg)
     } catch (e) {
-      const canonicalMsgIdStr = await this.getCanonicalMessageIdStr(message)
-      this.score.rejectMessage(message, canonicalMsgIdStr, e.code)
+      const canonicalMsgIdStr = await this.getCanonicalMsgIdStr(msg)
+      this.score.rejectMessage(msg, canonicalMsgIdStr, e.code)
       this.gossipTracer.rejectMessage(canonicalMsgIdStr, e.code)
       throw e
     }
@@ -572,12 +572,12 @@ class Gossipsub extends Pubsub {
         return
       }
 
-      messageIDs.forEach((msgID) => {
-        const msgIdStr = messageIdToString(msgID)
+      messageIDs.forEach((msgId) => {
+        const msgIdStr = messageIdToString(msgId)
         if (this.seenCache.has(msgIdStr)) {
           return
         }
-        iwant.set(msgIdStr, msgID)
+        iwant.set(msgIdStr, msgId)
       })
     })
 
@@ -634,9 +634,9 @@ class Gossipsub extends Pubsub {
     const ihave = new Map<string, InMessage>()
 
     iwant.forEach(({ messageIDs }) => {
-      messageIDs && messageIDs.forEach((msgID) => {
-        const msgIDStr = messageIdToString(msgID)
-        const [msg, count] = this.messageCache.getForPeer(msgIDStr, id)
+      messageIDs && messageIDs.forEach((msgId) => {
+        const msgIdStr = messageIdToString(msgId)
+        const [msg, count] = this.messageCache.getForPeer(msgIdStr, id)
         if (!msg) {
           return
         }
@@ -644,11 +644,11 @@ class Gossipsub extends Pubsub {
         if (count > constants.GossipsubGossipRetransmission) {
           this.log(
             'IWANT: Peer %s has asked for message %s too many times: ignoring request',
-            id, msgID
+            id, msgId
           )
           return
         }
-        ihave.set(msgIDStr, msg)
+        ihave.set(msgIdStr, msg)
       })
     })
 
@@ -1090,25 +1090,25 @@ class Gossipsub extends Pubsub {
 
   /**
    * Get from the application cache first, then from the fast cache, then from this.getMsgId()
-   * @param {InMessage} message
+   * @param {InMessage} msg
    */
-  async getCanonicalMessageIdStr (message: InMessage): Promise<string> {
-    const cachedMsgId = this.getCachedMsgId(message)
+  async getCanonicalMsgIdStr (msg: InMessage): Promise<string> {
+    const cachedMsgId = this.getCachedMsgId(msg)
     if (cachedMsgId) {
       return messageIdToString(cachedMsgId)
     }
 
-    const fastMsgIdStr = messageIdToString(SHA256.digest(message.data))
-    return this.fastMsgIdCache.get(fastMsgIdStr) ?? messageIdToString(await this.getMsgId(message))
+    const fastMsgIdStr = messageIdToString(SHA256.digest(msg.data))
+    return this.fastMsgIdCache.get(fastMsgIdStr) ?? messageIdToString(await this.getMsgId(msg))
   }
 
   /**
    * Application should override this to return its cached message id without computing it.
    * Return undefine if it does not have it
-   * @param {InMessage} message
+   * @param {InMessage} msg
    * @returns
    */
-  getCachedMsgId (message: InMessage): Uint8Array | undefined {
+  getCachedMsgId (msg: InMessage): Uint8Array | undefined {
     return undefined
   }
 
@@ -1120,7 +1120,7 @@ class Gossipsub extends Pubsub {
    * @returns {void}
    */
   async _publish (msg: InMessage): Promise<void> {
-    const msgIdStr = await this.getCanonicalMessageIdStr(msg)
+    const msgIdStr = await this.getCanonicalMsgIdStr(msg)
     if (msg.receivedFrom !== this.peerId.toB58String()) {
       this.score.deliverMessage(msg, msgIdStr)
       this.gossipTracer.deliverMessage(msgIdStr)

@@ -26,7 +26,7 @@ export class IWantTracer {
   }
 
   /**
-   * Track a promise to deliver a message from a list of msgIDs we are requesting
+   * Track a promise to deliver a message from a list of msgIds we are requesting
    * @param {string} p peer id
    * @param {string[]} msgIds
    * @returns {void}

@@ -321,12 +321,12 @@ export class PeerScore {
   }
 
   /**
-   * @param {InMessage} message
+   * @param {InMessage} msg
    * @returns {Promise<void>}
    */
-  async deliverMessage (message: InMessage, msgIdStr: string): Promise<void> {
-    const id = message.receivedFrom
-    this._markFirstMessageDelivery(id, message)
+  async deliverMessage (msg: InMessage, msgIdStr: string): Promise<void> {
+    const id = msg.receivedFrom
+    this._markFirstMessageDelivery(id, msg)
 
     const drec = this.deliveryRecords.ensureRecord(msgIdStr)
     const now = Date.now()
@@ -347,22 +347,22 @@ export class PeerScore {
       // this check is to make sure a peer can't send us a message twice and get a double count
       // if it is a first delivery.
       if (p !== id) {
-        this._markDuplicateMessageDelivery(p, message)
+        this._markDuplicateMessageDelivery(p, msg)
       }
     })
   }
 
   /**
-   * @param {InMessage} message
+   * @param {InMessage} msg
    * @param {string} reason
    * @returns {Promise<void>}
    */
-  async rejectMessage (message: InMessage, msgIdStr: string, reason: string): Promise<void> {
-    const id = message.receivedFrom
+  async rejectMessage (msg: InMessage, msgIdStr: string, reason: string): Promise<void> {
+    const id = msg.receivedFrom
     switch (reason) {
       case ERR_MISSING_SIGNATURE:
       case ERR_INVALID_SIGNATURE:
-        this._markInvalidMessageDelivery(id, message)
+        this._markInvalidMessageDelivery(id, msg)
         return
     }
 
@@ -387,18 +387,18 @@ export class PeerScore {
     // mark the message as invalid and penalize peers that have already forwarded it.
     drec.status = DeliveryRecordStatus.invalid
 
-    this._markInvalidMessageDelivery(id, message)
+    this._markInvalidMessageDelivery(id, msg)
     drec.peers.forEach(p => {
-      this._markInvalidMessageDelivery(p, message)
+      this._markInvalidMessageDelivery(p, msg)
     })
   }
 
   /**
-   * @param {InMessage} message
+   * @param {InMessage} msg
    * @returns {Promise<void>}
    */
-  async duplicateMessage (message: InMessage, msgIdStr: string): Promise<void> {
-    const id = message.receivedFrom
+  async duplicateMessage (msg: InMessage, msgIdStr: string): Promise<void> {
+    const id = msg.receivedFrom
     const drec = this.deliveryRecords.ensureRecord(msgIdStr)
 
     if (drec.peers.has(id)) {
@@ -415,11 +415,11 @@ export class PeerScore {
       case DeliveryRecordStatus.valid:
         // mark the peer delivery time to only count a duplicate delivery once.
         drec.peers.add(id)
-        this._markDuplicateMessageDelivery(id, message, drec.validated)
+        this._markDuplicateMessageDelivery(id, msg, drec.validated)
         break
       case DeliveryRecordStatus.invalid:
         // we no longer track delivery time
-        this._markInvalidMessageDelivery(id, message)
+        this._markInvalidMessageDelivery(id, msg)
         break
     }
   }
@@ -427,16 +427,16 @@ export class PeerScore {
   /**
    * Increments the "invalid message deliveries" counter for all scored topics the message is published in.
    * @param {string} id
-   * @param {InMessage} message
+   * @param {InMessage} msg
    * @returns {void}
    */
-  _markInvalidMessageDelivery (id: string, message: InMessage): void {
+  _markInvalidMessageDelivery (id: string, msg: InMessage): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
     }
 
-    message.topicIDs.forEach(topic => {
+    msg.topicIDs.forEach(topic => {
       const tstats = ensureTopicStats(topic, pstats, this.params)
       if (!tstats) {
         return
@@ -451,16 +451,16 @@ export class PeerScore {
    * Increments the "first message deliveries" counter for all scored topics the message is published in,
    * as well as the "mesh message deliveries" counter, if the peer is in the mesh for the topic.
    * @param {string} id
-   * @param {InMessage} message
+   * @param {InMessage} msg
    * @returns {void}
    */
-  _markFirstMessageDelivery (id: string, message: InMessage): void {
+  _markFirstMessageDelivery (id: string, msg: InMessage): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
     }
 
-    message.topicIDs.forEach(topic => {
+    msg.topicIDs.forEach(topic => {
       const tstats = ensureTopicStats(topic, pstats, this.params)
       if (!tstats) {
         return
@@ -489,11 +489,11 @@ export class PeerScore {
    * Increments the "mesh message deliveries" counter for messages we've seen before,
    * as long the message was received within the P3 window.
    * @param {string} id
-   * @param {InMessage} message
+   * @param {InMessage} msg
    * @param {number} validatedTime
    * @returns {void}
    */
-  _markDuplicateMessageDelivery (id: string, message: InMessage, validatedTime = 0): void {
+  _markDuplicateMessageDelivery (id: string, msg: InMessage, validatedTime = 0): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -501,7 +501,7 @@ export class PeerScore {
 
     const now = validatedTime ? Date.now() : 0
 
-    message.topicIDs.forEach(topic => {
+    msg.topicIDs.forEach(topic => {
       const tstats = ensureTopicStats(topic, pstats, this.params)
       if (!tstats) {
         return
