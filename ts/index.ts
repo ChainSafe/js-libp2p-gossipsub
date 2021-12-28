@@ -453,7 +453,7 @@ class Gossipsub extends Pubsub {
    * @returns {Promise<void>}
    */
   async _processRpcMessage (msg: InMessage): Promise<void> {
-    const fastMsgIdStr = messageIdToString(SHA256.digest(msg.data))
+    const fastMsgIdStr = this.getFastMsgIdStr(msg)
 
     // Ignore if we've already seen the message
     let canonicalMsgIdStr = this.fastMsgIdCache.get(fastMsgIdStr)
@@ -1098,7 +1098,7 @@ class Gossipsub extends Pubsub {
       return messageIdToString(cachedMsgId)
     }
 
-    const fastMsgIdStr = messageIdToString(SHA256.digest(msg.data))
+    const fastMsgIdStr = this.getFastMsgIdStr(msg)
     return this.fastMsgIdCache.get(fastMsgIdStr) ?? messageIdToString(await this.getMsgId(msg))
   }
 
@@ -1110,6 +1110,14 @@ class Gossipsub extends Pubsub {
    */
   getCachedMsgId (msg: InMessage): Uint8Array | undefined {
     return undefined
+  }
+
+  /**
+   * The default implementation uses SHA256 hash, application could override if needed.
+   * @returns
+   */
+  getFastMsgIdStr (msg: InMessage): string {
+    return messageIdToString(SHA256.digest(msg.data))
   }
 
   /**
