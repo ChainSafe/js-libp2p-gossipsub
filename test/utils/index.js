@@ -28,7 +28,7 @@ const createFloodsubNode = async (libp2p, shouldStart = false, options) => {
 
   if (shouldStart) {
     await libp2p.start()
-    fs.start()
+    await fs.start()
   }
 
   return fs

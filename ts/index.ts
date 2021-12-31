@@ -421,7 +421,7 @@ class Gossipsub extends Pubsub {
   async _processRpc (id: string, peerStreams: PeerStreams, rpc: RPC): Promise<boolean> {
     if (await super._processRpc(id, peerStreams, rpc)) {
       if (rpc.control) {
-        this._processRpcControlMessage(id, rpc.control)
+        await this._processRpcControlMessage(id, rpc.control)
       }
       return true
     }
@@ -434,14 +434,14 @@ class Gossipsub extends Pubsub {
    * @param {RPC.IControlMessage} controlMsg
    * @returns {void}
    */
-  _processRpcControlMessage (id: string, controlMsg: RPC.IControlMessage): void {
+  async _processRpcControlMessage (id: string, controlMsg: RPC.IControlMessage): Promise<void> {
     if (!controlMsg) {
       return
     }
 
     const iwant = controlMsg.ihave ? this._handleIHave(id, controlMsg.ihave) : []
     const ihave = controlMsg.iwant ? this._handleIWant(id, controlMsg.iwant) : []
-    const prune = controlMsg.graft ? this._handleGraft(id, controlMsg.graft) : []
+    const prune = controlMsg.graft ? await this._handleGraft(id, controlMsg.graft) : []
     controlMsg.prune && this._handlePrune(id, controlMsg.prune)
 
     if (!iwant.length && !ihave.length && !prune.length) {
@@ -682,9 +682,9 @@ class Gossipsub extends Pubsub {
    * Handles Graft messages
    * @param {string} id peer id
    * @param {Array<RPC.IControlGraft>} graft
-   * @return {Array<RPC.IControlPrune>}
+   * @return {Promise<RPC.IControlPrune[]>}
    */
-  _handleGraft (id: string, graft: RPC.IControlGraft[]): RPC.IControlPrune[] {
+  async _handleGraft (id: string, graft: RPC.IControlGraft[]): Promise<RPC.IControlPrune[]> {
     const prune: string[] = []
     const score = this.score.score(id)
     const now = this._now()
@@ -771,7 +771,7 @@ class Gossipsub extends Pubsub {
       return []
     }
 
-    return prune.map(topic => this._makePrune(id, topic, doPX))
+    return Promise.all(prune.map(topic => this._makePrune(id, topic, doPX)))
   }
 
   /**
@@ -969,10 +969,10 @@ class Gossipsub extends Pubsub {
    * Mounts the gossipsub protocol onto the libp2p node and sends our
    * our subscriptions to every peer connected
    * @override
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  start (): void {
-    super.start()
+  async start (): Promise<void> {
+    await super.start()
     this.heartbeat.start()
     this.score.start()
     // connect to direct peers
@@ -986,10 +986,10 @@ class Gossipsub extends Pubsub {
   /**
    * Unmounts the gossipsub protocol and shuts down every connection
    * @override
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  stop (): void {
-    super.stop()
+  async stop (): Promise<void> {
+    await super.stop()
     this.heartbeat.stop()
     this.score.stop()
 
@@ -1244,11 +1244,11 @@ class Gossipsub extends Pubsub {
    * Sends a PRUNE message to a peer
    * @param {string} id peer id
    * @param {string} topic
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  _sendPrune (id: string, topic: string): void {
+  async _sendPrune (id: string, topic: string): Promise<void> {
     const prune = [
-      this._makePrune(id, topic, this._options.doPX)
+      await this._makePrune(id, topic, this._options.doPX)
     ]
 
     const out = createGossipRpc([], { prune })
@@ -1311,7 +1311,7 @@ class Gossipsub extends Pubsub {
    * @param {Map<string, Array<string>>} tograft peer id => topic[]
    * @param {Map<string, Array<string>>} toprune peer id => topic[]
    */
-  _sendGraftPrune (tograft: Map<string, string[]>, toprune: Map<string, string[]>, noPX: Map<string, boolean>): void {
+  async _sendGraftPrune (tograft: Map<string, string[]>, toprune: Map<string, string[]>, noPX: Map<string, boolean>): Promise<void> {
     const doPX = this._options.doPX
     for (const [id, topics] of tograft) {
       const graft = topics.map((topicID) => ({ topicID }))
@@ -1319,7 +1319,7 @@ class Gossipsub extends Pubsub {
       // If a peer also has prunes, process them now
       const pruning = toprune.get(id)
       if (pruning) {
-        prune = pruning.map((topicID) => this._makePrune(id, topicID, doPX && !noPX.get(id)))
+        prune = await Promise.all(pruning.map((topicID) => this._makePrune(id, topicID, doPX && !noPX.get(id))))
         toprune.delete(id)
       }
 
@@ -1327,7 +1327,7 @@ class Gossipsub extends Pubsub {
       this._sendRpc(id, outRpc)
     }
     for (const [id, topics] of toprune) {
-      const prune = topics.map((topicID) => this._makePrune(id, topicID, doPX && !noPX.get(id)))
+      const prune = await Promise.all(topics.map((topicID) => this._makePrune(id, topicID, doPX && !noPX.get(id))))
       const outRpc = createGossipRpc([], { prune })
       this._sendRpc(id, outRpc)
     }
@@ -1448,9 +1448,9 @@ class Gossipsub extends Pubsub {
    * @param {string} id
    * @param {string} topic
    * @param {boolean} doPX
-   * @returns {RPC.IControlPrune}
+   * @returns {Promise<RPC.IControlPrune>}
    */
-  _makePrune (id: string, topic: string, doPX: boolean): RPC.IControlPrune {
+  async _makePrune (id: string, topic: string, doPX: boolean): Promise<RPC.IControlPrune> {
     if (this.peers.get(id)!.protocol === constants.GossipsubIDv10) {
       // Gossipsub v1.0 -- no backoff, the peer won't be able to parse it anyway
       return {
@@ -1467,7 +1467,7 @@ class Gossipsub extends Pubsub {
       const peers = getGossipPeers(this, topic, constants.GossipsubPrunePeers, (xid: string): boolean => {
         return xid !== id && this.score.score(xid) >= 0
       })
-      peers.forEach(p => {
+      for (const p of peers) {
         // see if we have a signed record to send back; if we don't, just send
         // the peer ID and let the pruned peer find them in the DHT -- we can't trust
         // unsigned address records through PX anyways
@@ -1475,9 +1475,9 @@ class Gossipsub extends Pubsub {
         const peerId = PeerId.createFromB58String(p)
         px.push({
           peerID: peerId.toBytes(),
-          signedPeerRecord: this._libp2p.peerStore.addressBook.getRawEnvelope(peerId)
+          signedPeerRecord: await this._libp2p.peerStore.addressBook.getRawEnvelope(peerId)
         })
-      })
+      }
     }
     return {
       topicID: topic,

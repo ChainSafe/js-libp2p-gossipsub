@@ -2,7 +2,9 @@
  * These tests were translated from:
  *   https://github.com/libp2p/go-libp2p-pubsub/blob/master/gossipsub_test.go
  */
-const { expect } = require('chai')
+const chai = require('chai')
+chai.use(require('dirty-chai'))
+const expect = chai.expect
 const delay = require('delay')
 const errcode = require('err-code')
 const sinon = require('sinon')
