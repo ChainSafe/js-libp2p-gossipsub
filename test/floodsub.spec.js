@@ -17,7 +17,8 @@ const {
   expectSet,
   first,
   startNode,
-  stopNode
+  stopNode,
+  fastMsgIdFn
 } = require('./utils')
 
 describe('gossipsub fallbacks to floodsub', () => {
@@ -26,7 +27,7 @@ describe('gossipsub fallbacks to floodsub', () => {
     let nodeFs
 
     beforeEach(async () => {
-      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
+      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true, fastMsgIdFn })
       nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
       await Promise.all([
@@ -56,7 +57,7 @@ describe('gossipsub fallbacks to floodsub', () => {
     let nodeFs
 
     before(async () => {
-      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: false })
+      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: false, fastMsgIdFn })
       nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
       await Promise.all([
@@ -89,7 +90,7 @@ describe('gossipsub fallbacks to floodsub', () => {
     let nodeFs
 
     before(async () => {
-      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
+      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true, fastMsgIdFn })
       nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
       await Promise.all([
@@ -140,7 +141,7 @@ describe('gossipsub fallbacks to floodsub', () => {
     const topic = 'Z'
 
     beforeEach(async () => {
-      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
+      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true, fastMsgIdFn })
       nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
       await Promise.all([
@@ -203,7 +204,7 @@ describe('gossipsub fallbacks to floodsub', () => {
     const topic = 'Z'
 
     beforeEach(async () => {
-      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
+      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true, fastMsgIdFn })
       nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
       await Promise.all([

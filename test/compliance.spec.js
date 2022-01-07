@@ -5,6 +5,7 @@ const tests = require('libp2p-interfaces-compliance-tests/src/pubsub')
 
 const Gossipsub = require('../src')
 const { createPeers } = require('./utils/create-peer')
+const { fastMsgIdFn } = require('./utils/msgId')
 
 describe('interface compliance', function () {
   this.timeout(3000)
@@ -18,6 +19,7 @@ describe('interface compliance', function () {
       peers.forEach((peer) => {
         const gossipsub = new Gossipsub(peer, {
           emitSelf: true,
+          fastMsgIdFn,
           // we don't want to cache anything, spec test sends duplicate messages and expect
           // peer to receive all.
           seenTTL: -1,

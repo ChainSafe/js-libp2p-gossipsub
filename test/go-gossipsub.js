@@ -20,11 +20,12 @@ const {
   sparseConnect,
   denseConnect,
   stopNode,
-  createPeers,
-  expectSet,
   connectSome,
   connectGossipsub,
-  tearDownGossipsubs
+  expectSet,
+  fastMsgIdFn,
+  tearDownGossipsubs,
+  createPeers,
 } = require('./utils')
 
 EventEmitter.defaultMaxListeners = 100
@@ -639,7 +640,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     const gsubs = libp2ps.slice(0, 20).map((libp2p) => {
       return new Gossipsub(
         libp2p,
-        { scoreParams: { IPColocationFactorThreshold: 20 } }
+        { scoreParams: { IPColocationFactorThreshold: 20 }, fastMsgIdFn }
       )
     })
     const fsubs = libp2ps.slice(20).map((libp2p) => {
@@ -831,7 +832,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
     const psubs =  [
       new Gossipsub(
         libp2ps[0],
-        { scoreParams: { IPColocationFactorThreshold: 20 } }
+        { scoreParams: { IPColocationFactorThreshold: 20 }, fastMsgIdFn }
       ),
       new Gossipsub(
         libp2ps[1],
@@ -840,7 +841,8 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           directPeers: [{
             id: libp2ps[2].peerId,
             addrs: libp2ps[2].multiaddrs
-          }]
+          }],
+          fastMsgIdFn
         }
       ),
       new Gossipsub(
@@ -850,7 +852,8 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
           directPeers: [{
             id: libp2ps[1].peerId,
             addrs: libp2ps[1].multiaddrs
-          }]
+          }],
+          fastMsgIdFn
         }
       ),
     ]
@@ -962,7 +965,8 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
             gossipThreshold: -10,
             publishThreshold: -100,
             graylistThreshold: -1000
-          }
+          },
+          fastMsgIdFn
         }
       )
     )
@@ -1048,7 +1052,7 @@ describe("go-libp2p-pubsub gossipsub tests", function () {
   it("test gossipsub piggyback control", async function () {
     const libp2ps = await createPeers({ number: 2 })
     const otherId = libp2ps[1].peerId.toB58String()
-    const psub = new Gossipsub(libp2ps[0])
+    const psub = new Gossipsub(libp2ps[0], {fastMsgIdFn})
     await psub.start()
 
     const test1 = 'test1'

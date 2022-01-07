@@ -1,7 +1,9 @@
 const Gossipsub = require('../../src')
+const {
+  fastMsgIdFn,
+} = require('./msgId')
 
 const {
-  createPeer,
   createPeers,
 } = require('./create-peer')
 
@@ -30,7 +32,7 @@ async function connectGossipsub (gs1, gs2) {
  */
 async function createGossipsubs ({ number = 1, started = true, options = {}} = {}) {
   const libp2ps = await createPeers({ number, started })
-  const gss = libp2ps.map(libp2p => new Gossipsub(libp2p, options))
+  const gss = libp2ps.map(libp2p => new Gossipsub(libp2p, {...options, fastMsgIdFn: fastMsgIdFn}))
 
   if (started) {
     await Promise.all(

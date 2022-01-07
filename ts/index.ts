@@ -1,5 +1,4 @@
 import Pubsub, { InMessage, utils } from 'libp2p-interfaces/src/pubsub'
-import SHA256 from '@chainsafe/as-sha256'
 import { MessageCache } from './message-cache'
 import { RPC, IRPC } from './message/rpc'
 import * as constants from './constants'
@@ -28,6 +27,7 @@ interface GossipInputOptions {
   floodPublish: boolean
   doPX: boolean
   msgIdFn: MessageIdFunction
+  fastMsgIdFn: FastMsgIdFn
   messageCache: MessageCache
   globalSignaturePolicy: 'StrictSign' | 'StrictNoSign' | undefined
   scoreParams: Partial<PeerScoreParams>
@@ -93,6 +93,8 @@ interface AcceptFromWhitelistEntry {
   acceptUntil: number
 }
 
+type FastMsgIdFn = (msg: InMessage) => string;
+
 class Gossipsub extends Pubsub {
   peers: Map<string, PeerStreams>
   direct: Set<string>
@@ -111,6 +113,7 @@ class Gossipsub extends Pubsub {
   outbound: Map<string, boolean>
   defaultMsgIdFn: MessageIdFunction
   _msgIdFn: MessageIdFunction
+  getFastMsgIdStr: FastMsgIdFn
   messageCache: MessageCache
   score: PeerScore
   heartbeat: Heartbeat
@@ -140,6 +143,7 @@ class Gossipsub extends Pubsub {
    * @param {boolean} [options.floodPublish = true] if self-published messages should be sent to all peers
    * @param {boolean} [options.doPX = false] whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes.
    * @param {Object} [options.messageCache] override the default MessageCache
+   * @param {FastMsgIdFn} [options.fastMsgIdFn] fast message id function
    * @param {string} [options.globalSignaturePolicy = "StrictSign"] signing policy to apply across all messages
    * @param {Object} [options.scoreParams] peer score parameters
    * @param {Object} [options.scoreThresholds] peer score thresholds
@@ -148,7 +152,7 @@ class Gossipsub extends Pubsub {
    */
   constructor (
     libp2p: Libp2p,
-    options: Partial<GossipInputOptions> = {}
+    options: Partial<GossipInputOptions> & Pick<GossipInputOptions, 'fastMsgIdFn'>
   ) {
     const multicodecs = [constants.GossipsubIDv11, constants.GossipsubIDv10]
     const opts = {
@@ -287,6 +291,11 @@ class Gossipsub extends Pubsub {
      * A message cache that contains the messages for last few hearbeat ticks
      */
     this.messageCache = options.messageCache || new MessageCache(opts.mcacheGossip, opts.mcacheLength)
+
+    /**
+     * A fast message id function which return a string from InMessage
+     */
+    this.getFastMsgIdStr = options.fastMsgIdFn
 
     /**
      * A heartbeat timer that maintains the mesh
@@ -1110,14 +1119,6 @@ class Gossipsub extends Pubsub {
    */
   getCachedMsgId (msg: InMessage): Uint8Array | undefined {
     return undefined
-  }
-
-  /**
-   * The default implementation uses SHA256 hash, application could override if needed.
-   * @returns
-   */
-  getFastMsgIdStr (msg: InMessage): string {
-    return messageIdToString(SHA256.digest(msg.data))
   }
 
   /**
