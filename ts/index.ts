@@ -1102,22 +1102,16 @@ class Gossipsub extends Pubsub {
    * @param {InMessage} msg
    */
   async getCanonicalMsgIdStr (msg: InMessage): Promise<string> {
-    const cachedMsgId = this.getCachedMsgId(msg)
-    if (cachedMsgId) {
-      return messageIdToString(cachedMsgId)
-    }
-
-    const fastMsgIdStr = this.getFastMsgIdStr(msg)
-    return this.fastMsgIdCache.get(fastMsgIdStr) ?? messageIdToString(await this.getMsgId(msg))
+    return this.getCachedMsgIdStr(msg) ?? this.fastMsgIdCache.get(this.getFastMsgIdStr(msg)) ?? messageIdToString(await this.getMsgId(msg))
   }
 
   /**
-   * Application should override this to return its cached message id without computing it.
-   * Return undefine if it does not have it
+   * Application should override this to return its cached message id string without computing it.
+   * Return undefined if it does not have it
    * @param {InMessage} msg
    * @returns
    */
-  getCachedMsgId (msg: InMessage): Uint8Array | undefined {
+  getCachedMsgIdStr (msg: InMessage): string | undefined {
     return undefined
   }
 
