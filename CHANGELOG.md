@@ -1,8 +1,9 @@
 ### Features
 
-* Add fast message id cache
+* Support fast message id cache via fastMsgIdFn option
 * Application should implement an extra getCachedMsgIdStr() api
-* New getCanonicalMsgIdStr() api to get canonical message id from application cache, or fast cache or compute it.
+* New getCanonicalMsgIdStr() api to get canonical message id from application cache, or fast cache or compute it
+* This change is backward compatible
 
 ## [0.12.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.12.0...v0.12.1) (2021-12-03)
 

@@ -99,7 +99,6 @@ class Gossipsub extends Pubsub {
   peers: Map<string, PeerStreams>
   direct: Set<string>
   seenCache: SimpleTimeCache<void>
-  fastMsgIdCache: SimpleTimeCache<string>
   acceptFromWhitelist: Map<string, AcceptFromWhitelistEntry>
   topics: Map<string, Set<string>>
   mesh: Map<string, Set<string>>
@@ -112,8 +111,8 @@ class Gossipsub extends Pubsub {
   backoff: Map<string, Map<string, number>>
   outbound: Map<string, boolean>
   defaultMsgIdFn: MessageIdFunction
-  _msgIdFn: MessageIdFunction
-  getFastMsgIdStr: FastMsgIdFn
+  getFastMsgIdStr: FastMsgIdFn | undefined
+  fastMsgIdCache: SimpleTimeCache<string> | undefined
   messageCache: MessageCache
   score: PeerScore
   heartbeat: Heartbeat
@@ -152,7 +151,7 @@ class Gossipsub extends Pubsub {
    */
   constructor (
     libp2p: Libp2p,
-    options: Partial<GossipInputOptions> & Pick<GossipInputOptions, 'fastMsgIdFn'>
+    options: Partial<GossipInputOptions>
   ) {
     const multicodecs = [constants.GossipsubIDv11, constants.GossipsubIDv10]
     const opts = {
@@ -216,11 +215,6 @@ class Gossipsub extends Pubsub {
      * @type {SimpleTimeCache}
      */
     this.seenCache = new SimpleTimeCache<void>({ validityMs: opts.seenTTL })
-
-    /**
-     * This uses a faster cheaper message-id function for internal message de-duplication.
-     */
-    this.fastMsgIdCache = new SimpleTimeCache<string>({ validityMs: opts.seenTTL })
 
     /**
      * Map of topic meshes
@@ -295,7 +289,12 @@ class Gossipsub extends Pubsub {
     /**
      * A fast message id function which return a string from InMessage
      */
-    this.getFastMsgIdStr = options.fastMsgIdFn
+    this.getFastMsgIdStr = options.fastMsgIdFn ?? undefined
+
+    /**
+     * This uses a faster cheaper message-id function for internal message de-duplication.
+     */
+    this.fastMsgIdCache = options.fastMsgIdFn ? new SimpleTimeCache<string>({ validityMs: opts.seenTTL }) : undefined
 
     /**
      * A heartbeat timer that maintains the mesh
@@ -462,19 +461,31 @@ class Gossipsub extends Pubsub {
    * @returns {Promise<void>}
    */
   async _processRpcMessage (msg: InMessage): Promise<void> {
-    const fastMsgIdStr = this.getFastMsgIdStr(msg)
+    let canonicalMsgIdStr
+    if (this.getFastMsgIdStr && this.fastMsgIdCache) {
+      // check duplicate
+      const fastMsgIdStr = await this.getFastMsgIdStr(msg)
+      canonicalMsgIdStr = this.fastMsgIdCache.get(fastMsgIdStr)
+      if (canonicalMsgIdStr !== undefined) {
+        this.score.duplicateMessage(msg, canonicalMsgIdStr)
+        return
+      }
+      canonicalMsgIdStr = messageIdToString(await this.getMsgId(msg))
 
-    // Ignore if we've already seen the message
-    let canonicalMsgIdStr = this.fastMsgIdCache.get(fastMsgIdStr)
-    if (canonicalMsgIdStr !== undefined) {
-      this.score.duplicateMessage(msg, canonicalMsgIdStr)
-      return
+      // put to cache
+      this.seenCache.put(canonicalMsgIdStr)
+      this.fastMsgIdCache.put(fastMsgIdStr, canonicalMsgIdStr)
+    } else {
+      // check duplicate
+      canonicalMsgIdStr = messageIdToString(await this.getMsgId(msg))
+      if (this.seenCache.has(canonicalMsgIdStr)) {
+        this.score.duplicateMessage(msg, canonicalMsgIdStr)
+        return
+      }
+
+      // put to cache
+      this.seenCache.put(canonicalMsgIdStr)
     }
-
-    const canonicalMsgId = await this.getMsgId(msg)
-    canonicalMsgIdStr = messageIdToString(canonicalMsgId)
-    this.seenCache.put(canonicalMsgIdStr)
-    this.fastMsgIdCache.put(fastMsgIdStr, canonicalMsgIdStr)
 
     await this.score.validateMessage(canonicalMsgIdStr)
     await super._processRpcMessage(msg)
@@ -996,7 +1007,7 @@ class Gossipsub extends Pubsub {
     this.outbound = new Map()
     this.gossipTracer.clear()
     this.seenCache.clear()
-    this.fastMsgIdCache.clear()
+    if (this.fastMsgIdCache) this.fastMsgIdCache.clear()
     clearTimeout(this._directPeerInitial)
   }
 
@@ -1098,16 +1109,21 @@ class Gossipsub extends Pubsub {
   }
 
   /**
-   * Get from the application cache first, then from the fast cache, then from this.getMsgId()
+   * Fast message id logic: Get from the application cache first, then from the fast cache, then from this.getMsgId()
+   * Non fast message id: just get from message id
    * @param {InMessage} msg
    */
   async getCanonicalMsgIdStr (msg: InMessage): Promise<string> {
-    return this.getCachedMsgIdStr(msg) ?? this.fastMsgIdCache.get(this.getFastMsgIdStr(msg)) ?? messageIdToString(await this.getMsgId(msg))
+    return (this.fastMsgIdCache && this.getFastMsgIdStr)
+      ? this.getCachedMsgIdStr(msg) ?? this.fastMsgIdCache.get(await this.getFastMsgIdStr(msg)) ?? messageIdToString(await this.getMsgId(msg))
+      : messageIdToString(await this.getMsgId(msg))
   }
 
   /**
-   * Application should override this to return its cached message id string without computing it.
-   * Return undefined if it does not have it
+   * Fast message id logic:
+   *   Application should override this to return its cached message id string without computing it.
+   *   Return undefined if it does not have it
+   * Non fast message id logic: application doesn't need to override this
    * @param {InMessage} msg
    * @returns
    */
