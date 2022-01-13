@@ -151,7 +151,7 @@ class Gossipsub extends Pubsub {
    */
   constructor (
     libp2p: Libp2p,
-    options: Partial<GossipInputOptions>
+    options: Partial<GossipInputOptions> = {}
   ) {
     const multicodecs = [constants.GossipsubIDv11, constants.GossipsubIDv10]
     const opts = {
@@ -209,8 +209,7 @@ class Gossipsub extends Pubsub {
     })
 
     /**
-     * The canonical cache of seen messages, this goes with getMsgId() function.
-     * Only compute getMsgId() once per message even with the redundantcy.
+     * Cache of seen messages
      *
      * @type {SimpleTimeCache}
      */
@@ -287,12 +286,12 @@ class Gossipsub extends Pubsub {
     this.messageCache = options.messageCache || new MessageCache(opts.mcacheGossip, opts.mcacheLength)
 
     /**
-     * A fast message id function which return a string from InMessage
+     * A fast message id function used for internal message de-duplication
      */
     this.getFastMsgIdStr = options.fastMsgIdFn ?? undefined
 
     /**
-     * This uses a faster cheaper message-id function for internal message de-duplication.
+     * Maps fast message-id to canonical message-id
      */
     this.fastMsgIdCache = options.fastMsgIdFn ? new SimpleTimeCache<string>({ validityMs: opts.seenTTL }) : undefined
 
@@ -472,8 +471,6 @@ class Gossipsub extends Pubsub {
       }
       canonicalMsgIdStr = messageIdToString(await this.getMsgId(msg))
 
-      // put to cache
-      this.seenCache.put(canonicalMsgIdStr)
       this.fastMsgIdCache.put(fastMsgIdStr, canonicalMsgIdStr)
     } else {
       // check duplicate
@@ -482,10 +479,10 @@ class Gossipsub extends Pubsub {
         this.score.duplicateMessage(msg, canonicalMsgIdStr)
         return
       }
-
-      // put to cache
-      this.seenCache.put(canonicalMsgIdStr)
     }
+
+    // put in cache
+    this.seenCache.put(canonicalMsgIdStr)
 
     await this.score.validateMessage(canonicalMsgIdStr)
     await super._processRpcMessage(msg)
@@ -1109,23 +1106,25 @@ class Gossipsub extends Pubsub {
   }
 
   /**
-   * Fast message id logic: Get from the application cache first, then from the fast cache, then from this.getMsgId()
-   * Non fast message id: just get from message id
+   * Return the canonical message-id of a message as a string
+   *
+   * If a fast message-id is set: Try 1. the application cache 2. the fast cache 3. `getMsgId()`
+   * If a fast message-id is NOT set: Just `getMsgId()`
    * @param {InMessage} msg
+   * @returns {Promise<string>}
    */
   async getCanonicalMsgIdStr (msg: InMessage): Promise<string> {
     return (this.fastMsgIdCache && this.getFastMsgIdStr)
-      ? this.getCachedMsgIdStr(msg) ?? this.fastMsgIdCache.get(await this.getFastMsgIdStr(msg)) ?? messageIdToString(await this.getMsgId(msg))
+      ? this.getCachedMsgIdStr(msg) ?? this.fastMsgIdCache.get(this.getFastMsgIdStr(msg)) ?? messageIdToString(await this.getMsgId(msg))
       : messageIdToString(await this.getMsgId(msg))
   }
 
   /**
-   * Fast message id logic:
-   *   Application should override this to return its cached message id string without computing it.
-   *   Return undefined if it does not have it
-   * Non fast message id logic: application doesn't need to override this
+   * An application should override this function to return its cached message id string without computing it.
+   * Return undefined if message id is not found.
+   * If a fast message id function is not defined, this function is ignored.
    * @param {InMessage} msg
-   * @returns
+   * @returns {string | undefined}
    */
   getCachedMsgIdStr (msg: InMessage): string | undefined {
     return undefined
