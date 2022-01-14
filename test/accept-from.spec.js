@@ -1,6 +1,7 @@
 const {expect} = require('chai')
 const sinon = require('sinon')
 const Gossipsub = require('../src')
+const {fastMsgIdFn} = require('./utils/msgId')
 
 describe('Gossipsub acceptFrom', () => {
   let gossipsub
@@ -10,7 +11,7 @@ describe('Gossipsub acceptFrom', () => {
   beforeEach(async () => {
     sandbox = sinon.createSandbox()
     sandbox.useFakeTimers(Date.now())
-    gossipsub = new Gossipsub({}, { emitSelf: false })
+    gossipsub = new Gossipsub({}, { emitSelf: false, fastMsgIdFn })
     // stubbing PeerScore causes some pending issue in firefox browser environment
     // we can only spy it
     // using scoreSpy.withArgs("peerA").calledOnce causes the pending issue in firefox

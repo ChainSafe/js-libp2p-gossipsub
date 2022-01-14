@@ -52,6 +52,7 @@
   },
   "devDependencies": {
     "@chainsafe/libp2p-noise": "^4.1.1",
+    "@chainsafe/as-sha256": "^0.2.4",
     "@types/chai": "^4.2.3",
     "@types/mocha": "^8.2.2",
     "@typescript-eslint/eslint-plugin": "^3.0.2",

@@ -1,11 +1,9 @@
 'use strict'
 
 const { expect } = require('chai')
-
 const FloodSub = require('libp2p-floodsub')
 const PeerId = require('peer-id')
 const delay = require('delay')
-const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
 
 exports.first = (map) => map.values().next().value
 
@@ -41,18 +39,10 @@ exports.createFloodsubNode = createFloodsubNode
 for (const [k, v] of Object.entries({
   ...require('./create-peer'),
   ...require('./create-gossipsub'),
-  ...require('./make-test-message')
+  ...require('./make-test-message'),
+  ...require('./msgId'),
 })) {
   exports[k] = v
-}
-
-exports.getMsgId = (msg) => {
-  const from = uint8ArrayFromString(msg.from)
-  const seqno = uint8ArrayFromString(msg.seqno)
-  const result = new Uint8Array(from.length + seqno.length)
-  result.set(from, 0)
-  result.set(seqno, from.length)
-  return result
 }
 
 exports.waitForAllNodesToBePeered = async (peers, attempts = 10, delayMs = 100) => {

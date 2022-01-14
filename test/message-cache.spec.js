@@ -8,6 +8,7 @@ chai.use(dirtyChai)
 const chaiSpies = require('chai-spies')
 chai.use(chaiSpies)
 const expect = chai.expect
+const { messageIdToString } = require('../src/utils/messageIdToString')
 const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
 
 const { MessageCache } = require('../src/message-cache')
@@ -15,7 +16,7 @@ const { utils } = require('libp2p-interfaces/src/pubsub')
 const { getMsgId } = require('./utils')
 
 describe('Testing Message Cache Operations', () => {
-  const messageCache = new MessageCache(3, 5, getMsgId)
+  const messageCache = new MessageCache(3, 5)
   const testMessages = []
 
   before(async () => {
@@ -33,7 +34,7 @@ describe('Testing Message Cache Operations', () => {
     }
 
     for (let i = 0; i < 10; i++) {
-      await messageCache.put(testMessages[i])
+      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
     }
   })
 
@@ -58,7 +59,7 @@ describe('Testing Message Cache Operations', () => {
   it('Shift message cache', async () => {
     messageCache.shift()
     for (let i = 10; i < 20; i++) {
-      await messageCache.put(testMessages[i])
+      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
     }
 
     for (let i = 0; i < 20; i++) {
@@ -82,22 +83,22 @@ describe('Testing Message Cache Operations', () => {
 
     messageCache.shift()
     for (let i = 20; i < 30; i++) {
-      await messageCache.put(testMessages[i])
+      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
     }
 
     messageCache.shift()
     for (let i = 30; i < 40; i++) {
-      await messageCache.put(testMessages[i])
+      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
     }
 
     messageCache.shift()
     for (let i = 40; i < 50; i++) {
-      await messageCache.put(testMessages[i])
+      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
     }
 
     messageCache.shift()
     for (let i = 50; i < 60; i++) {
-      await messageCache.put(testMessages[i])
+      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
     }
 
     expect(messageCache.msgs.size).to.equal(50)

@@ -27,6 +27,7 @@ interface GossipInputOptions {
   floodPublish: boolean
   doPX: boolean
   msgIdFn: MessageIdFunction
+  fastMsgIdFn: FastMsgIdFn
   messageCache: MessageCache
   globalSignaturePolicy: 'StrictSign' | 'StrictNoSign' | undefined
   scoreParams: Partial<PeerScoreParams>
@@ -92,10 +93,12 @@ interface AcceptFromWhitelistEntry {
   acceptUntil: number
 }
 
+type FastMsgIdFn = (msg: InMessage) => string;
+
 class Gossipsub extends Pubsub {
   peers: Map<string, PeerStreams>
   direct: Set<string>
-  seenCache: SimpleTimeCache
+  seenCache: SimpleTimeCache<void>
   acceptFromWhitelist: Map<string, AcceptFromWhitelistEntry>
   topics: Map<string, Set<string>>
   mesh: Map<string, Set<string>>
@@ -108,7 +111,8 @@ class Gossipsub extends Pubsub {
   backoff: Map<string, Map<string, number>>
   outbound: Map<string, boolean>
   defaultMsgIdFn: MessageIdFunction
-  _msgIdFn: MessageIdFunction
+  getFastMsgIdStr: FastMsgIdFn | undefined
+  fastMsgIdCache: SimpleTimeCache<string> | undefined
   messageCache: MessageCache
   score: PeerScore
   heartbeat: Heartbeat
@@ -138,6 +142,7 @@ class Gossipsub extends Pubsub {
    * @param {boolean} [options.floodPublish = true] if self-published messages should be sent to all peers
    * @param {boolean} [options.doPX = false] whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes.
    * @param {Object} [options.messageCache] override the default MessageCache
+   * @param {FastMsgIdFn} [options.fastMsgIdFn] fast message id function
    * @param {string} [options.globalSignaturePolicy = "StrictSign"] signing policy to apply across all messages
    * @param {Object} [options.scoreParams] peer score parameters
    * @param {Object} [options.scoreThresholds] peer score thresholds
@@ -208,7 +213,7 @@ class Gossipsub extends Pubsub {
      *
      * @type {SimpleTimeCache}
      */
-    this.seenCache = new SimpleTimeCache({ validityMs: opts.seenTTL })
+    this.seenCache = new SimpleTimeCache<void>({ validityMs: opts.seenTTL })
 
     /**
      * Map of topic meshes
@@ -277,9 +282,18 @@ class Gossipsub extends Pubsub {
 
     /**
      * A message cache that contains the messages for last few hearbeat ticks
-     *
      */
-    this.messageCache = options.messageCache || new MessageCache(opts.mcacheGossip, opts.mcacheLength, this.getMsgId.bind(this))
+    this.messageCache = options.messageCache || new MessageCache(opts.mcacheGossip, opts.mcacheLength)
+
+    /**
+     * A fast message id function used for internal message de-duplication
+     */
+    this.getFastMsgIdStr = options.fastMsgIdFn ?? undefined
+
+    /**
+     * Maps fast message-id to canonical message-id
+     */
+    this.fastMsgIdCache = options.fastMsgIdFn ? new SimpleTimeCache<string>({ validityMs: opts.seenTTL }) : undefined
 
     /**
      * A heartbeat timer that maintains the mesh
@@ -295,7 +309,7 @@ class Gossipsub extends Pubsub {
     /**
      * Tracks IHAVE/IWANT promises broken by peers
      */
-    this.gossipTracer = new IWantTracer(this.getMsgId.bind(this))
+    this.gossipTracer = new IWantTracer()
 
     /**
      * libp2p
@@ -305,7 +319,7 @@ class Gossipsub extends Pubsub {
     /**
      * Peer score tracking
      */
-    this.score = new PeerScore(this._options.scoreParams, libp2p.connectionManager, this.getMsgId.bind(this))
+    this.score = new PeerScore(this._options.scoreParams, libp2p.connectionManager)
   }
 
   /**
@@ -446,17 +460,31 @@ class Gossipsub extends Pubsub {
    * @returns {Promise<void>}
    */
   async _processRpcMessage (msg: InMessage): Promise<void> {
-    const msgID = await this.getMsgId(msg)
-    const msgIdStr = messageIdToString(msgID)
+    let canonicalMsgIdStr
+    if (this.getFastMsgIdStr && this.fastMsgIdCache) {
+      // check duplicate
+      const fastMsgIdStr = await this.getFastMsgIdStr(msg)
+      canonicalMsgIdStr = this.fastMsgIdCache.get(fastMsgIdStr)
+      if (canonicalMsgIdStr !== undefined) {
+        this.score.duplicateMessage(msg, canonicalMsgIdStr)
+        return
+      }
+      canonicalMsgIdStr = messageIdToString(await this.getMsgId(msg))
 
-    // Ignore if we've already seen the message
-    if (this.seenCache.has(msgIdStr)) {
-      this.score.duplicateMessage(msg)
-      return
+      this.fastMsgIdCache.put(fastMsgIdStr, canonicalMsgIdStr)
+    } else {
+      // check duplicate
+      canonicalMsgIdStr = messageIdToString(await this.getMsgId(msg))
+      if (this.seenCache.has(canonicalMsgIdStr)) {
+        this.score.duplicateMessage(msg, canonicalMsgIdStr)
+        return
+      }
     }
-    this.seenCache.put(msgIdStr)
 
-    await this.score.validateMessage(msg)
+    // put in cache
+    this.seenCache.put(canonicalMsgIdStr)
+
+    await this.score.validateMessage(canonicalMsgIdStr)
     await super._processRpcMessage(msg)
   }
 
@@ -499,15 +527,16 @@ class Gossipsub extends Pubsub {
   /**
    * Validate incoming message
    * @override
-   * @param {InMessage} message
+   * @param {InMessage} msg
    * @returns {Promise<void>}
    */
-  async validate (message: InMessage): Promise<void> {
+  async validate (msg: InMessage): Promise<void> {
     try {
-      await super.validate(message)
+      await super.validate(msg)
     } catch (e) {
-      this.score.rejectMessage(message, e.code)
-      this.gossipTracer.rejectMessage(message, e.code)
+      const canonicalMsgIdStr = await this.getCanonicalMsgIdStr(msg)
+      this.score.rejectMessage(msg, canonicalMsgIdStr, e.code)
+      this.gossipTracer.rejectMessage(canonicalMsgIdStr, e.code)
       throw e
     }
   }
@@ -560,12 +589,12 @@ class Gossipsub extends Pubsub {
         return
       }
 
-      messageIDs.forEach((msgID) => {
-        const msgIdStr = messageIdToString(msgID)
+      messageIDs.forEach((msgId) => {
+        const msgIdStr = messageIdToString(msgId)
         if (this.seenCache.has(msgIdStr)) {
           return
         }
-        iwant.set(msgIdStr, msgID)
+        iwant.set(msgIdStr, msgId)
       })
     })
 
@@ -622,8 +651,9 @@ class Gossipsub extends Pubsub {
     const ihave = new Map<string, InMessage>()
 
     iwant.forEach(({ messageIDs }) => {
-      messageIDs && messageIDs.forEach((msgID) => {
-        const [msg, count] = this.messageCache.getForPeer(msgID, id)
+      messageIDs && messageIDs.forEach((msgId) => {
+        const msgIdStr = messageIdToString(msgId)
+        const [msg, count] = this.messageCache.getForPeer(msgIdStr, id)
         if (!msg) {
           return
         }
@@ -631,11 +661,11 @@ class Gossipsub extends Pubsub {
         if (count > constants.GossipsubGossipRetransmission) {
           this.log(
             'IWANT: Peer %s has asked for message %s too many times: ignoring request',
-            id, msgID
+            id, msgId
           )
           return
         }
-        ihave.set(messageIdToString(msgID), msg)
+        ihave.set(msgIdStr, msg)
       })
     })
 
@@ -973,6 +1003,8 @@ class Gossipsub extends Pubsub {
     this.backoff = new Map()
     this.outbound = new Map()
     this.gossipTracer.clear()
+    this.seenCache.clear()
+    if (this.fastMsgIdCache) this.fastMsgIdCache.clear()
     clearTimeout(this._directPeerInitial)
   }
 
@@ -1074,6 +1106,31 @@ class Gossipsub extends Pubsub {
   }
 
   /**
+   * Return the canonical message-id of a message as a string
+   *
+   * If a fast message-id is set: Try 1. the application cache 2. the fast cache 3. `getMsgId()`
+   * If a fast message-id is NOT set: Just `getMsgId()`
+   * @param {InMessage} msg
+   * @returns {Promise<string>}
+   */
+  async getCanonicalMsgIdStr (msg: InMessage): Promise<string> {
+    return (this.fastMsgIdCache && this.getFastMsgIdStr)
+      ? this.getCachedMsgIdStr(msg) ?? this.fastMsgIdCache.get(this.getFastMsgIdStr(msg)) ?? messageIdToString(await this.getMsgId(msg))
+      : messageIdToString(await this.getMsgId(msg))
+  }
+
+  /**
+   * An application should override this function to return its cached message id string without computing it.
+   * Return undefined if message id is not found.
+   * If a fast message id function is not defined, this function is ignored.
+   * @param {InMessage} msg
+   * @returns {string | undefined}
+   */
+  getCachedMsgIdStr (msg: InMessage): string | undefined {
+    return undefined
+  }
+
+  /**
    * Publish messages
    *
    * @override
@@ -1081,17 +1138,16 @@ class Gossipsub extends Pubsub {
    * @returns {void}
    */
   async _publish (msg: InMessage): Promise<void> {
+    const msgIdStr = await this.getCanonicalMsgIdStr(msg)
     if (msg.receivedFrom !== this.peerId.toB58String()) {
-      this.score.deliverMessage(msg)
-      this.gossipTracer.deliverMessage(msg)
+      this.score.deliverMessage(msg, msgIdStr)
+      this.gossipTracer.deliverMessage(msgIdStr)
     }
 
-    const msgID = await this.getMsgId(msg)
-    const msgIdStr = messageIdToString(msgID)
     // put in seen cache
     this.seenCache.put(msgIdStr)
 
-    this.messageCache.put(msg)
+    this.messageCache.put(msg, msgIdStr)
 
     const tosend = new Set<string>()
     msg.topicIDs.forEach((topic) => {

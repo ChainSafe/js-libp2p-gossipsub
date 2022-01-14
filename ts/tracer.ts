@@ -1,6 +1,4 @@
 import { GossipsubIWantFollowupTime } from './constants'
-import { InMessage } from 'libp2p-interfaces/src/pubsub'
-import { MessageIdFunction } from './interfaces'
 import { messageIdToString } from './utils'
 import pubsubErrors = require('libp2p-interfaces/src/pubsub/errors')
 
@@ -18,19 +16,17 @@ const {
  * These 'promises' are merely expectations of a peer's behavior.
  */
 export class IWantTracer {
-  getMsgId: MessageIdFunction
   /**
    * Promises to deliver a message
    * Map per message id, per peer, promise expiration time
    */
   promises: Map<string, Map<string, number>>
-  constructor (getMsgId: MessageIdFunction) {
-    this.getMsgId = getMsgId
+  constructor () {
     this.promises = new Map()
   }
 
   /**
-   * Track a promise to deliver a message from a list of msgIDs we are requesting
+   * Track a promise to deliver a message from a list of msgIds we are requesting
    * @param {string} p peer id
    * @param {string[]} msgIds
    * @returns {void}
@@ -81,31 +77,27 @@ export class IWantTracer {
 
   /**
    * Someone delivered a message, stop tracking promises for it
-   * @param {InMessage} msg
+   * @param {string} msgIdStr
    * @returns {Promise<void>}
    */
-  async deliverMessage (msg: InMessage): Promise<void> {
-    const msgId = await this.getMsgId(msg)
-    const msgIdStr = messageIdToString(msgId)
+  async deliverMessage (msgIdStr: string): Promise<void> {
     this.promises.delete(msgIdStr)
   }
 
   /**
    * A message got rejected, so we can stop tracking promises and let the score penalty apply from invalid message delivery,
    * unless its an obviously invalid message.
-   * @param {InMessage} msg
+   * @param {string} msgIdStr
    * @param {string} reason
    * @returns {Promise<void>}
    */
-  async rejectMessage (msg: InMessage, reason: string): Promise<void> {
+  async rejectMessage (msgIdStr: string, reason: string): Promise<void> {
     switch (reason) {
       case ERR_INVALID_SIGNATURE:
       case ERR_MISSING_SIGNATURE:
         return
     }
 
-    const msgId = await this.getMsgId(msg)
-    const msgIdStr = messageIdToString(msgId)
     this.promises.delete(msgIdStr)
   }
 

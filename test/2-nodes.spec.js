@@ -152,7 +152,7 @@ describe('2 nodes', () => {
       nodes[0].on(topic, receivedMsg)
 
       function receivedMsg (msg) {
-        expect(msg.data.toString()).to.equal('banana')
+        expect(msg.data.toString().startsWith('banana')).to.be.true
         expect(msg.from).to.be.eql(nodes[1].peerId.toB58String())
         expect(msg.seqno).to.be.a('Uint8Array')
         expect(msg.topicIDs).to.be.eql([topic])
@@ -164,8 +164,8 @@ describe('2 nodes', () => {
         }
       }
 
-      Array.from({ length: 10 }).forEach(() => {
-        nodes[1].publish(topic, uint8ArrayFromString('banana'))
+      Array.from({ length: 10 }).forEach((_, i) => {
+        nodes[1].publish(topic, uint8ArrayFromString('banana' + i))
       })
     })
   })
