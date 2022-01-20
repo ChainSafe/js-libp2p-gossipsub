@@ -12,7 +12,7 @@ const {
  */
 async function startNode(gs) {
   await gs._libp2p.start()
-  gs.start()
+  await gs.start()
 }
 
 /**
@@ -20,7 +20,7 @@ async function startNode(gs) {
  */
 async function stopNode(gs) {
   await gs._libp2p.stop()
-  gs.stop()
+  await gs.stop()
 }
 
 async function connectGossipsub (gs1, gs2) {

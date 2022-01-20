@@ -15,7 +15,6 @@ describe("SimpleTimeCache", () => {
     sandbox.restore()
   })
 
-
   it("should delete items after 1sec", () => {
     timeCache.put("aFirst")
     timeCache.put("bFirst")
@@ -25,7 +24,7 @@ describe("SimpleTimeCache", () => {
     expect(timeCache.has("bFirst")).to.be.true
     expect(timeCache.has("cFirst")).to.be.true
 
-    sandbox.clock.tick(validityMs)
+    sandbox.clock.tick(validityMs + 1)
 
     timeCache.put("aSecond")
     timeCache.put("bSecond")
