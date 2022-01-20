@@ -1,3 +1,7 @@
+## [0.12.3](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.12.1...v0.12.3) (2022-01-20)
+
+
+
 ## [0.12.2](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.12.1...v0.12.2) (2022-01-20)
 
 
