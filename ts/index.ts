@@ -1461,24 +1461,28 @@ class Gossipsub extends Pubsub {
     // backoff is measured in seconds
     // GossipsubPruneBackoff is measured in milliseconds
     const backoff = constants.GossipsubPruneBackoff / 1000
-    const px: RPC.IPeerInfo[] = []
-    if (doPX) {
-      // select peers for Peer eXchange
-      const peers = getGossipPeers(this, topic, constants.GossipsubPrunePeers, (xid: string): boolean => {
-        return xid !== id && this.score.score(xid) >= 0
-      })
-      for (const p of peers) {
-        // see if we have a signed record to send back; if we don't, just send
-        // the peer ID and let the pruned peer find them in the DHT -- we can't trust
-        // unsigned address records through PX anyways
-        // Finding signed records in the DHT is not supported at the time of writing in js-libp2p
-        const peerId = PeerId.createFromB58String(p)
-        px.push({
-          peerID: peerId.toBytes(),
-          signedPeerRecord: await this._libp2p.peerStore.addressBook.getRawEnvelope(peerId)
-        })
+    if (!doPX) {
+      return {
+        topicID: topic,
+        peers: [],
+        backoff: backoff
       }
     }
+    // select peers for Peer eXchange
+    const peers = getGossipPeers(this, topic, constants.GossipsubPrunePeers, (xid: string): boolean => {
+      return xid !== id && this.score.score(xid) >= 0
+    })
+    const px = await Promise.all(Array.from(peers).map(async (p) => {
+      // see if we have a signed record to send back; if we don't, just send
+      // the peer ID and let the pruned peer find them in the DHT -- we can't trust
+      // unsigned address records through PX anyways
+      // Finding signed records in the DHT is not supported at the time of writing in js-libp2p
+      const peerId = PeerId.createFromB58String(p)
+      return {
+        peerID: peerId.toBytes(),
+        signedPeerRecord: await this._libp2p.peerStore.addressBook.getRawEnvelope(peerId)
+      }
+    }))
     return {
       topicID: topic,
       peers: px,
