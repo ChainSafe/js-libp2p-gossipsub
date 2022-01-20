@@ -1,3 +1,17 @@
+## [0.12.2](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.12.1...v0.12.2) (2022-01-20)
+
+
+### Features
+
+* async peerstore ([5c3491c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/5c3491cc352670b32226e9d13e4289a473fa31d2))
+
+
+### BREAKING CHANGES
+
+* peerstore methods and pubsub start/stop are now all async
+
+
+
 ### Features
 
 * Add optional fast message id cache via the `fastMsgIdFn` option
