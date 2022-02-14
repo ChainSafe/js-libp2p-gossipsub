@@ -463,7 +463,7 @@ class Gossipsub extends Pubsub {
     let canonicalMsgIdStr
     if (this.getFastMsgIdStr && this.fastMsgIdCache) {
       // check duplicate
-      const fastMsgIdStr = await this.getFastMsgIdStr(msg)
+      const fastMsgIdStr = this.getFastMsgIdStr(msg)
       canonicalMsgIdStr = this.fastMsgIdCache.get(fastMsgIdStr)
       if (canonicalMsgIdStr !== undefined) {
         this.score.duplicateMessage(msg, canonicalMsgIdStr)
