@@ -467,7 +467,7 @@ class Gossipsub extends Pubsub {
    * @returns {Promise<void>}
    */
   async _processRpcMessage(msg: InMessage): Promise<void> {
-    const canonicalMsgIdStr = await this.isSeen(msg)
+    const canonicalMsgIdStr = await this.getMsgIdIfNotSeen(msg)
     // if not seen
     if (canonicalMsgIdStr) {
       // put in cache
@@ -478,8 +478,8 @@ class Gossipsub extends Pubsub {
     }
   }
 
-  /** Return undefined if we've seen the message, fastMsgIdStr if not seen */
-  async isSeen(msg: InMessage): Promise<string | undefined> {
+  /** Return canonicalMsgIdStr if not seen, undefined otherwise */
+  async getMsgIdIfNotSeen(msg: InMessage): Promise<string | undefined> {
     let canonicalMsgIdStr
 
     if (this.getFastMsgIdStr && this.fastMsgIdCache) {
