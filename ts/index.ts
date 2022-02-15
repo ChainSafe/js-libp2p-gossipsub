@@ -467,14 +467,28 @@ class Gossipsub extends Pubsub {
    * @returns {Promise<void>}
    */
   async _processRpcMessage(msg: InMessage): Promise<void> {
+    const canonicalMsgIdStr = await this.isSeen(msg)
+    // if not seen
+    if (canonicalMsgIdStr) {
+      // put in cache
+      this.seenCache.put(canonicalMsgIdStr)
+
+      await this.score.validateMessage(canonicalMsgIdStr)
+      await super._processRpcMessage(msg)
+    }
+  }
+
+  /** Return undefined if we've seen the message, fastMsgIdStr if not seen */
+  async isSeen(msg: InMessage): Promise<string | undefined> {
     let canonicalMsgIdStr
+
     if (this.getFastMsgIdStr && this.fastMsgIdCache) {
       // check duplicate
       const fastMsgIdStr = this.getFastMsgIdStr(msg)
       canonicalMsgIdStr = this.fastMsgIdCache.get(fastMsgIdStr)
       if (canonicalMsgIdStr !== undefined) {
         this.score.duplicateMessage(msg, canonicalMsgIdStr)
-        return
+        return undefined
       }
       canonicalMsgIdStr = messageIdToString(await this.getMsgId(msg))
 
@@ -484,15 +498,11 @@ class Gossipsub extends Pubsub {
       canonicalMsgIdStr = messageIdToString(await this.getMsgId(msg))
       if (this.seenCache.has(canonicalMsgIdStr)) {
         this.score.duplicateMessage(msg, canonicalMsgIdStr)
-        return
+        return undefined
       }
     }
 
-    // put in cache
-    this.seenCache.put(canonicalMsgIdStr)
-
-    await this.score.validateMessage(canonicalMsgIdStr)
-    await super._processRpcMessage(msg)
+    return canonicalMsgIdStr
   }
 
   /**
