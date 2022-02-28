@@ -1176,12 +1176,11 @@ class Gossipsub extends Pubsub {
 
         // floodsub peers
         peersInTopic.forEach((id) => {
-          const score = this.score.score(id)
           const peerStreams = this.peers.get(id)
           if (!peerStreams) {
             return
           }
-          if (peerStreams.protocol === constants.FloodsubID && score >= this._options.scoreThresholds.publishThreshold) {
+          if (peerStreams.protocol === constants.FloodsubID && this.score.score(id) >= this._options.scoreThresholds.publishThreshold) {
             tosend.add(id)
           }
         })
