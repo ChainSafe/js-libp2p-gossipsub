@@ -10,9 +10,11 @@ module.exports = {
     'standard' // Out of the box StandardJS rules
   ],
   'plugins': [
-    '@typescript-eslint' // Let's us override rules below.
+    '@typescript-eslint', // Let's us override rules below.
+    'prettier'
   ],
   'rules': {
+    'prettier/prettier': 'error',
     '@typescript-eslint/member-delimiter-style': ['error', { // Prevents us from using any delimiter for interface properties.
       'multiline': {
         'delimiter': 'none',
