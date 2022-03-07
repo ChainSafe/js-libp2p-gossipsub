@@ -150,7 +150,7 @@ export const defaultPeerScoreParams: PeerScoreParams = {
   behaviourPenaltyDecay: 0.2,
   decayInterval: 1000,
   decayToZero: 0.1,
-  retainScore: 3600 * 1000
+  retainScore: 3600 * 1000,
 }
 
 export const defaultTopicScoreParams: TopicScoreParams = {
@@ -174,32 +174,31 @@ export const defaultTopicScoreParams: TopicScoreParams = {
   meshFailurePenaltyDecay: 0.5,
 
   invalidMessageDeliveriesWeight: -1,
-  invalidMessageDeliveriesDecay: 0.3
+  invalidMessageDeliveriesDecay: 0.3,
 }
 
-export function createPeerScoreParams (p: Partial<PeerScoreParams> = {}): PeerScoreParams {
+export function createPeerScoreParams(p: Partial<PeerScoreParams> = {}): PeerScoreParams {
   return {
     ...defaultPeerScoreParams,
     ...p,
     topics: p.topics
-      ? Object.entries(p.topics)
-        .reduce((topics, [topic, topicScoreParams]) => {
+      ? Object.entries(p.topics).reduce((topics, [topic, topicScoreParams]) => {
           topics[topic] = createTopicScoreParams(topicScoreParams)
           return topics
         }, {} as Record<string, TopicScoreParams>)
-      : {}
+      : {},
   }
 }
 
-export function createTopicScoreParams (p: Partial<TopicScoreParams> = {}): TopicScoreParams {
+export function createTopicScoreParams(p: Partial<TopicScoreParams> = {}): TopicScoreParams {
   return {
     ...defaultTopicScoreParams,
-    ...p
+    ...p,
   }
 }
 
 // peer score parameter validation
-export function validatePeerScoreParams (p: PeerScoreParams): void {
+export function validatePeerScoreParams(p: PeerScoreParams): void {
   for (const [topic, params] of Object.entries(p.topics)) {
     try {
       validateTopicScoreParams(params)
@@ -221,10 +220,7 @@ export function validatePeerScoreParams (p: PeerScoreParams): void {
 
   // check that we have an app specific score; the weight can be anything (but expected positive)
   if (p.appSpecificScore === null || p.appSpecificScore === undefined) {
-    throw errcode(
-      new Error('missing application specific score function'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('missing application specific score function'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
 
   // check the IP colocation factor
@@ -235,10 +231,7 @@ export function validatePeerScoreParams (p: PeerScoreParams): void {
     )
   }
   if (p.IPColocationFactorWeight !== 0 && p.IPColocationFactorThreshold < 1) {
-    throw errcode(
-      new Error('invalid IPColocationFactorThreshold; must be at least 1'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('invalid IPColocationFactorThreshold; must be at least 1'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
 
   // check the behaviour penalty
@@ -249,44 +242,29 @@ export function validatePeerScoreParams (p: PeerScoreParams): void {
     )
   }
   if (p.behaviourPenaltyWeight !== 0 && (p.behaviourPenaltyDecay <= 0 || p.behaviourPenaltyDecay >= 1)) {
-    throw errcode(
-      new Error('invalid BehaviourPenaltyDecay; must be between 0 and 1'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('invalid BehaviourPenaltyDecay; must be between 0 and 1'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
 
   // check the decay parameters
   if (p.decayInterval < 1000) {
-    throw errcode(
-      new Error('invalid DecayInterval; must be at least 1s'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('invalid DecayInterval; must be at least 1s'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
   if (p.decayToZero <= 0 || p.decayToZero >= 1) {
-    throw errcode(
-      new Error('invalid DecayToZero; must be between 0 and 1'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('invalid DecayToZero; must be between 0 and 1'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
 
   // no need to check the score retention; a value of 0 means that we don't retain scores
 }
 
-export function validateTopicScoreParams (p: TopicScoreParams): void {
+export function validateTopicScoreParams(p: TopicScoreParams): void {
   // make sure we have a sane topic weight
   if (p.topicWeight < 0) {
-    throw errcode(
-      new Error('invalid topic weight; must be >= 0'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('invalid topic weight; must be >= 0'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
 
   // check P1
   if (p.timeInMeshQuantum === 0) {
-    throw errcode(
-      new Error('invalid TimeInMeshQuantum; must be non zero'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('invalid TimeInMeshQuantum; must be non zero'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
   if (p.timeInMeshWeight < 0) {
     throw errcode(
@@ -295,16 +273,10 @@ export function validateTopicScoreParams (p: TopicScoreParams): void {
     )
   }
   if (p.timeInMeshWeight !== 0 && p.timeInMeshQuantum <= 0) {
-    throw errcode(
-      new Error('invalid TimeInMeshQuantum; must be positive'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('invalid TimeInMeshQuantum; must be positive'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
   if (p.timeInMeshWeight !== 0 && p.timeInMeshCap <= 0) {
-    throw errcode(
-      new Error('invalid TimeInMeshCap; must be positive'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('invalid TimeInMeshCap; must be positive'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
 
   // check P2
@@ -314,17 +286,17 @@ export function validateTopicScoreParams (p: TopicScoreParams): void {
       ERR_INVALID_PEER_SCORE_PARAMS
     )
   }
-  if (p.firstMessageDeliveriesWeight !== 0 && (p.firstMessageDeliveriesDecay <= 0 || p.firstMessageDeliveriesDecay >= 1)) {
+  if (
+    p.firstMessageDeliveriesWeight !== 0 &&
+    (p.firstMessageDeliveriesDecay <= 0 || p.firstMessageDeliveriesDecay >= 1)
+  ) {
     throw errcode(
       new Error('invalid FirstMessageDeliveriesDecay; must be between 0 and 1'),
       ERR_INVALID_PEER_SCORE_PARAMS
     )
   }
   if (p.firstMessageDeliveriesWeight !== 0 && p.firstMessageDeliveriesCap <= 0) {
-    throw errcode(
-      new Error('invalid FirstMessageDeliveriesCap; must be positive'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('invalid FirstMessageDeliveriesCap; must be positive'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
 
   // check P3
@@ -341,22 +313,13 @@ export function validateTopicScoreParams (p: TopicScoreParams): void {
     )
   }
   if (p.meshMessageDeliveriesWeight !== 0 && p.meshMessageDeliveriesCap <= 0) {
-    throw errcode(
-      new Error('invalid MeshMessageDeliveriesCap; must be positive'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('invalid MeshMessageDeliveriesCap; must be positive'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
   if (p.meshMessageDeliveriesWeight !== 0 && p.meshMessageDeliveriesThreshold <= 0) {
-    throw errcode(
-      new Error('invalid MeshMessageDeliveriesThreshold; must be positive'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('invalid MeshMessageDeliveriesThreshold; must be positive'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
   if (p.meshMessageDeliveriesWindow < 0) {
-    throw errcode(
-      new Error('invalid MeshMessageDeliveriesWindow; must be non-negative'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('invalid MeshMessageDeliveriesWindow; must be non-negative'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
   if (p.meshMessageDeliveriesWeight !== 0 && p.meshMessageDeliveriesActivation < 1000) {
     throw errcode(
@@ -373,10 +336,7 @@ export function validateTopicScoreParams (p: TopicScoreParams): void {
     )
   }
   if (p.meshFailurePenaltyWeight !== 0 && (p.meshFailurePenaltyDecay <= 0 || p.meshFailurePenaltyDecay >= 1)) {
-    throw errcode(
-      new Error('invalid MeshFailurePenaltyDecay; must be between 0 and 1'),
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw errcode(new Error('invalid MeshFailurePenaltyDecay; must be between 0 and 1'), ERR_INVALID_PEER_SCORE_PARAMS)
   }
 
   // check P4

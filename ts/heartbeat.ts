@@ -8,19 +8,19 @@ export class Heartbeat {
   gossipsub: Gossipsub
   _heartbeatTimer: {
     _intervalId: NodeJS.Timeout | undefined
-    runPeriodically (fn: () => void, period: number): void
-    cancel (): void
+    runPeriodically(fn: () => void, period: number): void
+    cancel(): void
   } | null
 
   /**
    * @param {Object} gossipsub
    * @constructor
    */
-  constructor (gossipsub: Gossipsub) {
+  constructor(gossipsub: Gossipsub) {
     this.gossipsub = gossipsub
   }
 
-  start (): void {
+  start(): void {
     if (this._heartbeatTimer) {
       return
     }
@@ -40,7 +40,7 @@ export class Heartbeat {
       cancel: () => {
         clearTimeout(timeout)
         clearInterval(this._heartbeatTimer!._intervalId as NodeJS.Timeout)
-      }
+      },
     }
   }
 
@@ -49,7 +49,7 @@ export class Heartbeat {
    * @override
    * @returns {void}
    */
-  stop (): void {
+  stop(): void {
     if (!this._heartbeatTimer) {
       return
     }
@@ -63,15 +63,8 @@ export class Heartbeat {
    *
    * @returns {void}
    */
-  _heartbeat (): void {
-    const {
-      D,
-      Dlo,
-      Dhi,
-      Dscore,
-      Dout,
-      fanoutTTL
-    } = this.gossipsub._options
+  _heartbeat(): void {
+    const { D, Dlo, Dhi, Dscore, Dout, fanoutTTL } = this.gossipsub._options
     this.gossipsub.heartbeatTicks++
 
     // cache scores throught the heartbeat
@@ -109,10 +102,7 @@ export class Heartbeat {
     this.gossipsub.mesh.forEach((peers, topic) => {
       // prune/graft helper functions (defined per topic)
       const prunePeer = (id: string): void => {
-        this.gossipsub.log(
-          'HEARTBEAT: Remove mesh link to %s in %s',
-          id, topic
-        )
+        this.gossipsub.log('HEARTBEAT: Remove mesh link to %s in %s', id, topic)
         // update peer score
         this.gossipsub.score.prune(id, topic)
         // add prune backoff record
@@ -128,10 +118,7 @@ export class Heartbeat {
         }
       }
       const graftPeer = (id: string): void => {
-        this.gossipsub.log(
-          'HEARTBEAT: Add mesh link to %s in %s',
-          id, topic
-        )
+        this.gossipsub.log('HEARTBEAT: Add mesh link to %s in %s', id, topic)
         // update peer score
         this.gossipsub.score.graft(id, topic)
         // add peer to mesh
@@ -146,13 +133,10 @@ export class Heartbeat {
       }
 
       // drop all peers with negative score, without PX
-      peers.forEach(id => {
+      peers.forEach((id) => {
         const score = getScore(id)
         if (score < 0) {
-          this.gossipsub.log(
-            'HEARTBEAT: Prune peer %s with negative score: score=%d, topic=%s',
-            id, score, topic
-          )
+          this.gossipsub.log('HEARTBEAT: Prune peer %s with negative score: score=%d, topic=%s', id, score, topic)
           prunePeer(id)
           noPX.set(id, true)
         }
@@ -162,7 +146,7 @@ export class Heartbeat {
       if (peers.size < Dlo) {
         const backoff = this.gossipsub.backoff.get(topic)
         const ineed = D - peers.size
-        const peersSet = getGossipPeers(this.gossipsub, topic, ineed, id => {
+        const peersSet = getGossipPeers(this.gossipsub, topic, ineed, (id) => {
           // filter out mesh peers, direct peers, peers we are backing off, peers with negative score
           return !peers.has(id) && !this.gossipsub.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
         })
@@ -177,13 +161,11 @@ export class Heartbeat {
         peersArray.sort((a, b) => getScore(b) - getScore(a))
         // We keep the first D_score peers by score and the remaining up to D randomly
         // under the constraint that we keep D_out peers in the mesh (if we have that many)
-        peersArray = peersArray.slice(0, Dscore).concat(
-          shuffle(peersArray.slice(Dscore))
-        )
+        peersArray = peersArray.slice(0, Dscore).concat(shuffle(peersArray.slice(Dscore)))
 
         // count the outbound peers we are keeping
         let outbound = 0
-        peersArray.slice(0, D).forEach(p => {
+        peersArray.slice(0, D).forEach((p) => {
           if (this.gossipsub.outbound.get(p)) {
             outbound++
           }
@@ -229,7 +211,7 @@ export class Heartbeat {
       if (peers.size >= Dlo) {
         // count the outbound peers we have
         let outbound = 0
-        peers.forEach(p => {
+        peers.forEach((p) => {
           if (this.gossipsub.outbound.get(p)) {
             outbound++
           }
@@ -241,7 +223,9 @@ export class Heartbeat {
           const backoff = this.gossipsub.backoff.get(topic)
           getGossipPeers(this.gossipsub, topic, ineed, (id: string): boolean => {
             // filter our current mesh peers, direct peers, peers we are backing off, peers with negative score
-            return !peers.has(id) && !this.gossipsub.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
+            return (
+              !peers.has(id) && !this.gossipsub.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
+            )
           }).forEach(graftPeer)
         }
       }
@@ -256,23 +240,29 @@ export class Heartbeat {
         // situations where we are stuck with poor peers and also recover from churn of good peers.
 
         // now compute the median peer score in the mesh
-        const peersList = Array.from(peers)
-          .sort((a, b) => getScore(a) - getScore(b))
+        const peersList = Array.from(peers).sort((a, b) => getScore(a) - getScore(b))
         const medianIndex = Math.floor(peers.size / 2)
         const medianScore = getScore(peersList[medianIndex])
 
         // if the median score is below the threshold, select a better peer (if any) and GRAFT
         if (medianScore < this.gossipsub._options.scoreThresholds.opportunisticGraftThreshold) {
           const backoff = this.gossipsub.backoff.get(topic)
-          const peersToGraft = getGossipPeers(this.gossipsub, topic, constants.GossipsubOpportunisticGraftPeers, (id: string): boolean => {
-            // filter out current mesh peers, direct peers, peers we are backing off, peers below or at threshold
-            return peers.has(id) && !this.gossipsub.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) > medianScore
-          })
-          peersToGraft.forEach(id => {
-            this.gossipsub.log(
-              'HEARTBEAT: Opportunistically graft peer %s on topic %s',
-              id, topic
-            )
+          const peersToGraft = getGossipPeers(
+            this.gossipsub,
+            topic,
+            constants.GossipsubOpportunisticGraftPeers,
+            (id: string): boolean => {
+              // filter out current mesh peers, direct peers, peers we are backing off, peers below or at threshold
+              return (
+                peers.has(id) &&
+                !this.gossipsub.direct.has(id) &&
+                (!backoff || !backoff.has(id)) &&
+                getScore(id) > medianScore
+              )
+            }
+          )
+          peersToGraft.forEach((id) => {
+            this.gossipsub.log('HEARTBEAT: Opportunistically graft peer %s on topic %s', id, topic)
             graftPeer(id)
           })
         }
@@ -286,7 +276,7 @@ export class Heartbeat {
     // expire fanout for topics we haven't published to in a while
     const now = this.gossipsub._now()
     this.gossipsub.lastpub.forEach((lastpb, topic) => {
-      if ((lastpb + fanoutTTL) < now) {
+      if (lastpb + fanoutTTL < now) {
         this.gossipsub.fanout.delete(topic)
         this.gossipsub.lastpub.delete(topic)
       }
@@ -296,11 +286,8 @@ export class Heartbeat {
     this.gossipsub.fanout.forEach((fanoutPeers, topic) => {
       // checks whether our peers are still in the topic and have a score above the publish threshold
       const topicPeers = this.gossipsub.topics.get(topic)
-      fanoutPeers.forEach(id => {
-        if (
-          !topicPeers!.has(id) ||
-          getScore(id) < this.gossipsub._options.scoreThresholds.publishThreshold
-        ) {
+      fanoutPeers.forEach((id) => {
+        if (!topicPeers!.has(id) || getScore(id) < this.gossipsub._options.scoreThresholds.publishThreshold) {
           fanoutPeers.delete(id)
         }
       })
@@ -310,11 +297,13 @@ export class Heartbeat {
         const ineed = D - fanoutPeers.size
         const peersSet = getGossipPeers(this.gossipsub, topic, ineed, (id: string): boolean => {
           // filter out existing fanout peers, direct peers, and peers with score above the publish threshold
-          return !fanoutPeers.has(id) &&
+          return (
+            !fanoutPeers.has(id) &&
             !this.gossipsub.direct.has(id) &&
             getScore(id) >= this.gossipsub._options.scoreThresholds.publishThreshold
+          )
         })
-        peersSet.forEach(id => {
+        peersSet.forEach((id) => {
           fanoutPeers.add(id)
         })
       }

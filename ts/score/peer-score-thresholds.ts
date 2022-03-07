@@ -44,22 +44,19 @@ export const defaultPeerScoreThresholds: PeerScoreThresholds = {
   publishThreshold: -50,
   graylistThreshold: -80,
   acceptPXThreshold: 10,
-  opportunisticGraftThreshold: 20
+  opportunisticGraftThreshold: 20,
 }
 
-export function createPeerScoreThresholds (p: Partial<PeerScoreThresholds> = {}): PeerScoreThresholds {
+export function createPeerScoreThresholds(p: Partial<PeerScoreThresholds> = {}): PeerScoreThresholds {
   return {
     ...defaultPeerScoreThresholds,
-    ...p
+    ...p,
   }
 }
 
-export function validatePeerScoreThresholds (p: PeerScoreThresholds): void {
+export function validatePeerScoreThresholds(p: PeerScoreThresholds): void {
   if (p.gossipThreshold > 0) {
-    throw errcode(
-      new Error('invalid gossip threshold; it must be <= 0'),
-      ERR_INVALID_PEER_SCORE_THRESHOLDS
-    )
+    throw errcode(new Error('invalid gossip threshold; it must be <= 0'), ERR_INVALID_PEER_SCORE_THRESHOLDS)
   }
   if (p.publishThreshold > 0 || p.publishThreshold > p.gossipThreshold) {
     throw errcode(
@@ -74,10 +71,7 @@ export function validatePeerScoreThresholds (p: PeerScoreThresholds): void {
     )
   }
   if (p.acceptPXThreshold < 0) {
-    throw errcode(
-      new Error('invalid accept PX threshold; it must be >= 0'),
-      ERR_INVALID_PEER_SCORE_THRESHOLDS
-    )
+    throw errcode(new Error('invalid accept PX threshold; it must be >= 0'), ERR_INVALID_PEER_SCORE_THRESHOLDS)
   }
   if (p.opportunisticGraftThreshold < 0) {
     throw errcode(

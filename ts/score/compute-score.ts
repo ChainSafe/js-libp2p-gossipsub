@@ -1,7 +1,7 @@
 import { PeerStats } from './peer-stats'
 import { PeerScoreParams } from './peer-score-params'
 
-export function computeScore (
+export function computeScore(
   peer: string,
   pstats: PeerStats,
   params: PeerScoreParams,
@@ -66,7 +66,7 @@ export function computeScore (
   score += p5 * params.appSpecificWeight
 
   // P6: IP colocation factor
-  pstats.ips.forEach(ip => {
+  pstats.ips.forEach((ip) => {
     if (params.IPColocationFactorWhitelist.has(ip)) {
       return
     }

@@ -21,7 +21,7 @@ export class MessageCache {
    *
    * @constructor
    */
-  constructor (gossip: number, history: number) {
+  constructor(gossip: number, history: number) {
     /**
      * @type {Map<string, RPC.Message>}
      */
@@ -50,7 +50,7 @@ export class MessageCache {
    * @param {RPC.Message} msg
    * @returns {Promise<void>}
    */
-  async put (msg: InMessage, msgIdStr: string): Promise<void> {
+  async put(msg: InMessage, msgIdStr: string): Promise<void> {
     this.msgs.set(msgIdStr, msg)
     const msgId = messageIdFromString(msgIdStr)
     this.history[0].push({ msgId: msgId, topics: msg.topicIDs })
@@ -62,7 +62,7 @@ export class MessageCache {
    * @param {Uint8Array} msgId
    * @returns {Message}
    */
-  get (msgId: Uint8Array): InMessage | undefined {
+  get(msgId: Uint8Array): InMessage | undefined {
     return this.msgs.get(messageIdToString(msgId))
   }
 
@@ -75,7 +75,7 @@ export class MessageCache {
    * @param {string} p
    * @returns {[InMessage | undefined, number]}
    */
-  getForPeer (msgIdStr: string, p: string): [InMessage | undefined, number] {
+  getForPeer(msgIdStr: string, p: string): [InMessage | undefined, number] {
     const msg = this.msgs.get(msgIdStr)
     if (!msg) {
       return [undefined, 0]
@@ -99,7 +99,7 @@ export class MessageCache {
    *
    * @returns {Array<Uint8Array>}
    */
-  getGossipIDs (topic: string): Uint8Array[] {
+  getGossipIDs(topic: string): Uint8Array[] {
     const msgIds: Uint8Array[] = []
     for (let i = 0; i < this.gossip; i++) {
       this.history[i].forEach((entry) => {
@@ -120,7 +120,7 @@ export class MessageCache {
    *
    * @returns {void}
    */
-  shift (): void {
+  shift(): void {
     const last = this.history[this.history.length - 1]
     last.forEach((entry) => {
       const msgIdStr = messageIdToString(entry.msgId)

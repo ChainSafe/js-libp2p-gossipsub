@@ -5,7 +5,13 @@ import * as constants from './constants'
 import { Heartbeat } from './heartbeat'
 import { getGossipPeers } from './get-gossip-peers'
 import { createGossipRpc, shuffle, hasGossipProtocol, messageIdToString } from './utils'
-import { PeerScore, PeerScoreParams, PeerScoreThresholds, createPeerScoreParams, createPeerScoreThresholds } from './score'
+import {
+  PeerScore,
+  PeerScoreParams,
+  PeerScoreThresholds,
+  createPeerScoreParams,
+  createPeerScoreThresholds,
+} from './score'
 import { IWantTracer } from './tracer'
 import { AddrInfo, MessageIdFunction } from './interfaces'
 import { SimpleTimeCache } from './utils/time-cache'
@@ -17,7 +23,11 @@ import PeerId = require('peer-id')
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import Envelope = require('libp2p/src/record/envelope')
-import { ACCEPT_FROM_WHITELIST_DURATION_MS, ACCEPT_FROM_WHITELIST_MAX_MESSAGES, ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE } from './constants'
+import {
+  ACCEPT_FROM_WHITELIST_DURATION_MS,
+  ACCEPT_FROM_WHITELIST_MAX_MESSAGES,
+  ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE,
+} from './constants'
 
 interface GossipInputOptions {
   emitSelf: boolean
@@ -93,7 +103,7 @@ interface AcceptFromWhitelistEntry {
   acceptUntil: number
 }
 
-type FastMsgIdFn = (msg: InMessage) => string;
+type FastMsgIdFn = (msg: InMessage) => string
 
 class Gossipsub extends Pubsub {
   peers: Map<string, PeerStreams>
@@ -106,8 +116,8 @@ class Gossipsub extends Pubsub {
   lastpub: Map<string, number>
   gossip: Map<string, RPC.IControlIHave[]>
   control: Map<string, RPC.IControlMessage>
-  peerhave:Map<string, number>
-  iasked:Map<string, number>
+  peerhave: Map<string, number>
+  iasked: Map<string, number>
   backoff: Map<string, Map<string, number>>
   outbound: Map<string, boolean>
   defaultMsgIdFn: MessageIdFunction
@@ -149,10 +159,7 @@ class Gossipsub extends Pubsub {
    * @param {AddrInfo[]} [options.directPeers] peers with which we will maintain direct connections
    * @constructor
    */
-  constructor (
-    libp2p: Libp2p,
-    options: Partial<GossipInputOptions> = {}
-  ) {
+  constructor(libp2p: Libp2p, options: Partial<GossipInputOptions> = {}) {
     const multicodecs = [constants.GossipsubIDv11, constants.GossipsubIDv10]
     const opts = {
       gossipIncoming: true,
@@ -173,7 +180,7 @@ class Gossipsub extends Pubsub {
       seenTTL: constants.GossipsubSeenTTL,
       ...options,
       scoreParams: createPeerScoreParams(options.scoreParams),
-      scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
+      scoreThresholds: createPeerScoreThresholds(options.scoreThresholds),
     } as GossipOptions
 
     // Also wants to get notified of peers connected using floodsub
@@ -185,7 +192,7 @@ class Gossipsub extends Pubsub {
       debugName: 'libp2p:gossipsub',
       multicodecs,
       libp2p,
-      ...opts
+      ...opts,
     })
 
     this._options = opts
@@ -194,7 +201,7 @@ class Gossipsub extends Pubsub {
      * Direct peers
      * @type {Set<string>}
      */
-    this.direct = new Set(opts.directPeers.map(p => p.id.toB58String()))
+    this.direct = new Set(opts.directPeers.map((p) => p.id.toB58String()))
 
     /**
      * Map of peer id and AcceptRequestWhileListEntry
@@ -204,7 +211,7 @@ class Gossipsub extends Pubsub {
     this.acceptFromWhitelist = new Map()
 
     // set direct peer addresses in the address book
-    opts.directPeers.forEach(p => {
+    opts.directPeers.forEach((p) => {
       libp2p.peerStore.addressBook.add(p.id, p.addrs)
     })
 
@@ -329,7 +336,7 @@ class Gossipsub extends Pubsub {
    * @param {Uint8Array} bytes
    * @returns {RPC}
    */
-  _decodeRpc (bytes: Uint8Array) {
+  _decodeRpc(bytes: Uint8Array) {
     return RPC.decode(bytes)
   }
 
@@ -340,7 +347,7 @@ class Gossipsub extends Pubsub {
    * @param {RPC} rpc
    * @returns {Uint8Array}
    */
-  _encodeRpc (rpc: RPC) {
+  _encodeRpc(rpc: RPC) {
     return RPC.encode(rpc).finish()
   }
 
@@ -351,7 +358,7 @@ class Gossipsub extends Pubsub {
    * @param {string} protocol
    * @returns {PeerStreams}
    */
-  _addPeer (peerId: PeerId, protocol: string): PeerStreams {
+  _addPeer(peerId: PeerId, protocol: string): PeerStreams {
     const p = super._addPeer(peerId, protocol)
 
     // Add to peer scoring
@@ -361,7 +368,7 @@ class Gossipsub extends Pubsub {
     let outbound = false
     for (const c of this._libp2p.connectionManager.getAll(peerId)) {
       if (c.stat.direction === 'outbound') {
-        if (Array.from(c.registry.values()).some(rvalue => protocol === rvalue.protocol)) {
+        if (Array.from(c.registry.values()).some((rvalue) => protocol === rvalue.protocol)) {
           outbound = true
           break
         }
@@ -378,7 +385,7 @@ class Gossipsub extends Pubsub {
    * @param {PeerId} peer
    * @returns {PeerStreams | undefined}
    */
-  _removePeer (peerId: PeerId): PeerStreams | undefined {
+  _removePeer(peerId: PeerId): PeerStreams | undefined {
     const peerStreams = super._removePeer(peerId)
     const id = peerId.toB58String()
 
@@ -418,7 +425,7 @@ class Gossipsub extends Pubsub {
    * @param {RPC} rpc
    * @returns {Promise<boolean>}
    */
-  async _processRpc (id: string, peerStreams: PeerStreams, rpc: RPC): Promise<boolean> {
+  async _processRpc(id: string, peerStreams: PeerStreams, rpc: RPC): Promise<boolean> {
     if (await super._processRpc(id, peerStreams, rpc)) {
       if (rpc.control) {
         await this._processRpcControlMessage(id, rpc.control)
@@ -434,7 +441,7 @@ class Gossipsub extends Pubsub {
    * @param {RPC.IControlMessage} controlMsg
    * @returns {void}
    */
-  async _processRpcControlMessage (id: string, controlMsg: RPC.IControlMessage): Promise<void> {
+  async _processRpcControlMessage(id: string, controlMsg: RPC.IControlMessage): Promise<void> {
     if (!controlMsg) {
       return
     }
@@ -459,7 +466,7 @@ class Gossipsub extends Pubsub {
    * @param {InMessage} msg
    * @returns {Promise<void>}
    */
-  async _processRpcMessage (msg: InMessage): Promise<void> {
+  async _processRpcMessage(msg: InMessage): Promise<void> {
     let canonicalMsgIdStr
     if (this.getFastMsgIdStr && this.fastMsgIdCache) {
       // check duplicate
@@ -494,7 +501,7 @@ class Gossipsub extends Pubsub {
    * @param {string} id
    * @returns {boolean}
    */
-  _acceptFrom (id: string): boolean {
+  _acceptFrom(id: string): boolean {
     if (this.direct.has(id)) {
       return true
     }
@@ -502,9 +509,7 @@ class Gossipsub extends Pubsub {
     const now = Date.now()
     const entry = this.acceptFromWhitelist.get(id)
 
-    if (entry &&
-      entry.messagesAccepted < ACCEPT_FROM_WHITELIST_MAX_MESSAGES &&
-      entry.acceptUntil >= now) {
+    if (entry && entry.messagesAccepted < ACCEPT_FROM_WHITELIST_MAX_MESSAGES && entry.acceptUntil >= now) {
       entry.messagesAccepted += 1
       return true
     }
@@ -515,7 +520,7 @@ class Gossipsub extends Pubsub {
       // after 128 messages or 1s
       this.acceptFromWhitelist.set(id, {
         messagesAccepted: 0,
-        acceptUntil: now + ACCEPT_FROM_WHITELIST_DURATION_MS
+        acceptUntil: now + ACCEPT_FROM_WHITELIST_DURATION_MS,
       })
     } else {
       this.acceptFromWhitelist.delete(id)
@@ -530,7 +535,7 @@ class Gossipsub extends Pubsub {
    * @param {InMessage} msg
    * @returns {Promise<void>}
    */
-  async validate (msg: InMessage): Promise<void> {
+  async validate(msg: InMessage): Promise<void> {
     try {
       await super.validate(msg)
     } catch (e) {
@@ -547,17 +552,14 @@ class Gossipsub extends Pubsub {
    * @param {Array<RPC.IControlIHave>} ihave
    * @returns {RPC.IControlIWant}
    */
-  _handleIHave (id: string, ihave: RPC.IControlIHave[]): RPC.IControlIWant[] {
+  _handleIHave(id: string, ihave: RPC.IControlIHave[]): RPC.IControlIWant[] {
     if (!ihave.length) {
       return []
     }
     // we ignore IHAVE gossip from any peer whose score is below the gossips threshold
     const score = this.score.score(id)
     if (score < this._options.scoreThresholds.gossipThreshold) {
-      this.log(
-        'IHAVE: ignoring peer %s with score below threshold [ score = %d ]',
-        id, score
-      )
+      this.log('IHAVE: ignoring peer %s with score below threshold [ score = %d ]', id, score)
       return []
     }
 
@@ -567,17 +569,15 @@ class Gossipsub extends Pubsub {
     if (peerhave > constants.GossipsubMaxIHaveMessages) {
       this.log(
         'IHAVE: peer %s has advertised too many times (%d) within this heartbeat interval; ignoring',
-        id, peerhave
+        id,
+        peerhave
       )
       return []
     }
 
     const iasked = this.iasked.get(id) || 0
     if (iasked >= constants.GossipsubMaxIHaveLength) {
-      this.log(
-        'IHAVE: peer %s has already advertised too many messages (%d); ignoring',
-        id, iasked
-      )
+      this.log('IHAVE: peer %s has already advertised too many messages (%d); ignoring', id, iasked)
       return []
     }
 
@@ -607,10 +607,7 @@ class Gossipsub extends Pubsub {
       iask = constants.GossipsubMaxIHaveLength - iasked
     }
 
-    this.log(
-      'IHAVE: Asking for %d out of %d messages from %s',
-      iask, iwant.size, id
-    )
+    this.log('IHAVE: Asking for %d out of %d messages from %s', iask, iwant.size, id)
 
     let iwantList = Array.from(iwant.values())
     // ask in random order
@@ -622,9 +619,11 @@ class Gossipsub extends Pubsub {
 
     this.gossipTracer.addPromise(id, iwantList)
 
-    return [{
-      messageIDs: iwantList
-    }]
+    return [
+      {
+        messageIDs: iwantList,
+      },
+    ]
   }
 
   /**
@@ -634,39 +633,34 @@ class Gossipsub extends Pubsub {
    * @param {Array<RPC.IControlIWant>} iwant
    * @returns {Array<RPC.IMessage>}
    */
-  _handleIWant (id: string, iwant: RPC.IControlIWant[]): RPC.IMessage[] {
+  _handleIWant(id: string, iwant: RPC.IControlIWant[]): RPC.IMessage[] {
     if (!iwant.length) {
       return []
     }
     // we don't respond to IWANT requests from any per whose score is below the gossip threshold
     const score = this.score.score(id)
     if (score < this._options.scoreThresholds.gossipThreshold) {
-      this.log(
-        'IWANT: ignoring peer %s with score below threshold [score = %d]',
-        id, score
-      )
+      this.log('IWANT: ignoring peer %s with score below threshold [score = %d]', id, score)
       return []
     }
     // @type {Map<string, Message>}
     const ihave = new Map<string, InMessage>()
 
     iwant.forEach(({ messageIDs }) => {
-      messageIDs && messageIDs.forEach((msgId) => {
-        const msgIdStr = messageIdToString(msgId)
-        const [msg, count] = this.messageCache.getForPeer(msgIdStr, id)
-        if (!msg) {
-          return
-        }
+      messageIDs &&
+        messageIDs.forEach((msgId) => {
+          const msgIdStr = messageIdToString(msgId)
+          const [msg, count] = this.messageCache.getForPeer(msgIdStr, id)
+          if (!msg) {
+            return
+          }
 
-        if (count > constants.GossipsubGossipRetransmission) {
-          this.log(
-            'IWANT: Peer %s has asked for message %s too many times: ignoring request',
-            id, msgId
-          )
-          return
-        }
-        ihave.set(msgIdStr, msg)
-      })
+          if (count > constants.GossipsubGossipRetransmission) {
+            this.log('IWANT: Peer %s has asked for message %s too many times: ignoring request', id, msgId)
+            return
+          }
+          ihave.set(msgIdStr, msg)
+        })
     })
 
     if (!ihave.size) {
@@ -684,7 +678,7 @@ class Gossipsub extends Pubsub {
    * @param {Array<RPC.IControlGraft>} graft
    * @return {Promise<RPC.IControlPrune[]>}
    */
-  async _handleGraft (id: string, graft: RPC.IControlGraft[]): Promise<RPC.IControlPrune[]> {
+  async _handleGraft(id: string, graft: RPC.IControlGraft[]): Promise<RPC.IControlPrune[]> {
     const prune: string[] = []
     const score = this.score.score(id)
     const now = this._now()
@@ -740,10 +734,7 @@ class Gossipsub extends Pubsub {
       // check the score
       if (score < 0) {
         // we don't GRAFT peers with negative score
-        this.log(
-          'GRAFT: ignoring peer %s with negative score: score=%d, topic=%s',
-          id, score, topicID
-        )
+        this.log('GRAFT: ignoring peer %s with negative score: score=%d, topic=%s', id, score, topicID)
         // we do send them PRUNE however, because it's a matter of protocol correctness
         prune.push(topicID)
         // but we won't PX to them
@@ -771,7 +762,7 @@ class Gossipsub extends Pubsub {
       return []
     }
 
-    return Promise.all(prune.map(topic => this._makePrune(id, topic, doPX)))
+    return Promise.all(prune.map((topic) => this._makePrune(id, topic, doPX)))
   }
 
   /**
@@ -780,7 +771,7 @@ class Gossipsub extends Pubsub {
    * @param {Array<RPC.IControlPrune>} prune
    * @returns {void}
    */
-  _handlePrune (id: string, prune: RPC.IControlPrune[]): void {
+  _handlePrune(id: string, prune: RPC.IControlPrune[]): void {
     const score = this.score.score(id)
     prune.forEach(({ topicID, backoff, peers }) => {
       if (!topicID) {
@@ -806,7 +797,9 @@ class Gossipsub extends Pubsub {
         if (score < this._options.scoreThresholds.acceptPXThreshold) {
           this.log(
             'PRUNE: ignoring PX from peer %s with insufficient score [score = %d, topic = %s]',
-            id, score, topicID
+            id,
+            score,
+            topicID
           )
           return
         }
@@ -821,7 +814,7 @@ class Gossipsub extends Pubsub {
    * @param {string} topic
    * @returns {void}
    */
-  _addBackoff (id: string, topic: string): void {
+  _addBackoff(id: string, topic: string): void {
     this._doAddBackoff(id, topic, constants.GossipsubPruneBackoff)
   }
 
@@ -832,7 +825,7 @@ class Gossipsub extends Pubsub {
    * @param {number} interval backoff duration in milliseconds
    * @returns {void}
    */
-  _doAddBackoff (id: string, topic: string, interval: number): void {
+  _doAddBackoff(id: string, topic: string, interval: number): void {
     let backoff = this.backoff.get(topic)
     if (!backoff) {
       backoff = new Map()
@@ -849,9 +842,9 @@ class Gossipsub extends Pubsub {
    * Apply penalties from broken IHAVE/IWANT promises
    * @returns {void}
    */
-  _applyIwantPenalties (): void {
+  _applyIwantPenalties(): void {
     this.gossipTracer.getBrokenPromises().forEach((count, p) => {
-      this.log('peer %s didn\'t follow up in %d IWANT requests; adding penalty', p, count)
+      this.log("peer %s didn't follow up in %d IWANT requests; adding penalty", p, count)
       this.score.addPenalty(p, count)
     })
   }
@@ -860,7 +853,7 @@ class Gossipsub extends Pubsub {
    * Clear expired backoff expiries
    * @returns {void}
    */
-  _clearBackoff (): void {
+  _clearBackoff(): void {
     // we only clear once every GossipsubPruneBackoffTicks ticks to avoid iterating over the maps too much
     if (this.heartbeatTicks % constants.GossipsubPruneBackoffTicks !== 0) {
       return
@@ -883,7 +876,7 @@ class Gossipsub extends Pubsub {
    * Maybe reconnect to direct peers
    * @returns {void}
    */
-  _directConnect (): void {
+  _directConnect(): void {
     // we only do this every few ticks to allow pending connections to complete and account for
     // restarts/downtime
     if (this.heartbeatTicks % constants.GossipsubDirectConnectTicks !== 0) {
@@ -891,14 +884,14 @@ class Gossipsub extends Pubsub {
     }
 
     const toconnect: string[] = []
-    this.direct.forEach(id => {
+    this.direct.forEach((id) => {
       const peer = this.peers.get(id)
       if (!peer || !peer.isWritable) {
         toconnect.push(id)
       }
     })
     if (toconnect.length) {
-      toconnect.forEach(id => {
+      toconnect.forEach((id) => {
         this._connect(id)
       })
     }
@@ -909,60 +902,57 @@ class Gossipsub extends Pubsub {
    * @param {RPC.IPeerInfo[]} peers
    * @returns {Promise<void>}
    */
-  async _pxConnect (peers: RPC.IPeerInfo[]): Promise<void> {
+  async _pxConnect(peers: RPC.IPeerInfo[]): Promise<void> {
     if (peers.length > constants.GossipsubPrunePeers) {
       shuffle(peers)
       peers = peers.slice(0, constants.GossipsubPrunePeers)
     }
     const toconnect: string[] = []
 
-    await Promise.all(peers.map(async pi => {
-      if (!pi.peerID) {
-        return
-      }
-
-      const p = PeerId.createFromBytes(pi.peerID)
-      const id = p.toB58String()
-
-      if (this.peers.has(id)) {
-        return
-      }
-
-      if (!pi.signedPeerRecord) {
-        toconnect.push(id)
-        return
-      }
-
-      // The peer sent us a signed record
-      // This is not a record from the peer who sent the record, but another peer who is connected with it
-      // Ensure that it is valid
-      try {
-        const envelope = await Envelope.openAndCertify(pi.signedPeerRecord, 'libp2p-peer-record')
-        const eid = envelope.peerId.toB58String()
-        if (id !== eid) {
-          this.log(
-            'bogus peer record obtained through px: peer ID %s doesn\'t match expected peer %s',
-            eid, id
-          )
+    await Promise.all(
+      peers.map(async (pi) => {
+        if (!pi.peerID) {
           return
         }
-        if (!this._libp2p.peerStore.addressBook.consumePeerRecord(envelope)) {
-          this.log(
-            'bogus peer record obtained through px: could not add peer record to address book'
-          )
+
+        const p = PeerId.createFromBytes(pi.peerID)
+        const id = p.toB58String()
+
+        if (this.peers.has(id)) {
           return
         }
-        toconnect.push(id)
-      } catch (e) {
-        this.log('bogus peer record obtained through px: invalid signature or not a peer record')
-      }
-    }))
+
+        if (!pi.signedPeerRecord) {
+          toconnect.push(id)
+          return
+        }
+
+        // The peer sent us a signed record
+        // This is not a record from the peer who sent the record, but another peer who is connected with it
+        // Ensure that it is valid
+        try {
+          const envelope = await Envelope.openAndCertify(pi.signedPeerRecord, 'libp2p-peer-record')
+          const eid = envelope.peerId.toB58String()
+          if (id !== eid) {
+            this.log("bogus peer record obtained through px: peer ID %s doesn't match expected peer %s", eid, id)
+            return
+          }
+          if (!this._libp2p.peerStore.addressBook.consumePeerRecord(envelope)) {
+            this.log('bogus peer record obtained through px: could not add peer record to address book')
+            return
+          }
+          toconnect.push(id)
+        } catch (e) {
+          this.log('bogus peer record obtained through px: invalid signature or not a peer record')
+        }
+      })
+    )
 
     if (!toconnect.length) {
       return
     }
 
-    toconnect.forEach(id => this._connect(id))
+    toconnect.forEach((id) => this._connect(id))
   }
 
   /**
@@ -971,13 +961,13 @@ class Gossipsub extends Pubsub {
    * @override
    * @returns {Promise<void>}
    */
-  async start (): Promise<void> {
+  async start(): Promise<void> {
     await super.start()
     this.heartbeat.start()
     this.score.start()
     // connect to direct peers
     this._directPeerInitial = setTimeout(() => {
-      this.direct.forEach(id => {
+      this.direct.forEach((id) => {
         this._connect(id)
       })
     }, constants.GossipsubDirectConnectInitialDelay)
@@ -988,7 +978,7 @@ class Gossipsub extends Pubsub {
    * @override
    * @returns {Promise<void>}
    */
-  async stop (): Promise<void> {
+  async stop(): Promise<void> {
     await super.stop()
     this.heartbeat.stop()
     this.score.stop()
@@ -1013,7 +1003,7 @@ class Gossipsub extends Pubsub {
    * @param {string} id
    * @returns {void}
    */
-  _connect (id: string): void {
+  _connect(id: string): void {
     this.log('Initiating connection with %s', id)
     this._libp2p.dialProtocol(PeerId.createFromB58String(id), this.multicodecs)
   }
@@ -1024,7 +1014,7 @@ class Gossipsub extends Pubsub {
    * @param {string} topic
    * @returns {void}
    */
-  subscribe (topic: string): void {
+  subscribe(topic: string): void {
     super.subscribe(topic)
     this.join(topic)
   }
@@ -1035,7 +1025,7 @@ class Gossipsub extends Pubsub {
    * @param {string} topic
    * @returns {void}
    */
-  unsubscribe (topic: string): void {
+  unsubscribe(topic: string): void {
     super.unsubscribe(topic)
     this.leave(topic)
   }
@@ -1045,7 +1035,7 @@ class Gossipsub extends Pubsub {
    * @param {string} topic
    * @returns {void}
    */
-  join (topic: string): void {
+  join(topic: string): void {
     if (!this.started) {
       throw new Error('Gossipsub has not started')
     }
@@ -1055,7 +1045,7 @@ class Gossipsub extends Pubsub {
     if (fanoutPeers) {
       // these peers have a score above the publish threshold, which may be negative
       // so drop the ones with a negative score
-      fanoutPeers.forEach(id => {
+      fanoutPeers.forEach((id) => {
         if (this.score.score(id) < 0) {
           fanoutPeers.delete(id)
         }
@@ -1065,7 +1055,7 @@ class Gossipsub extends Pubsub {
         getGossipPeers(this, topic, this._options.D - fanoutPeers.size, (id: string): boolean => {
           // filter our current peers, direct peers, and peers with negative scores
           return !fanoutPeers.has(id) && !this.direct.has(id) && this.score.score(id) >= 0
-        }).forEach(id => fanoutPeers.add(id))
+        }).forEach((id) => fanoutPeers.add(id))
       }
       this.mesh.set(topic, fanoutPeers)
       this.fanout.delete(topic)
@@ -1088,7 +1078,7 @@ class Gossipsub extends Pubsub {
    * @param {string} topic
    * @returns {void}
    */
-  leave (topic: string): void {
+  leave(topic: string): void {
     if (!this.started) {
       throw new Error('Gossipsub has not started')
     }
@@ -1113,9 +1103,11 @@ class Gossipsub extends Pubsub {
    * @param {InMessage} msg
    * @returns {Promise<string>}
    */
-  async getCanonicalMsgIdStr (msg: InMessage): Promise<string> {
-    return (this.fastMsgIdCache && this.getFastMsgIdStr)
-      ? this.getCachedMsgIdStr(msg) ?? this.fastMsgIdCache.get(this.getFastMsgIdStr(msg)) ?? messageIdToString(await this.getMsgId(msg))
+  async getCanonicalMsgIdStr(msg: InMessage): Promise<string> {
+    return this.fastMsgIdCache && this.getFastMsgIdStr
+      ? this.getCachedMsgIdStr(msg) ??
+          this.fastMsgIdCache.get(this.getFastMsgIdStr(msg)) ??
+          messageIdToString(await this.getMsgId(msg))
       : messageIdToString(await this.getMsgId(msg))
   }
 
@@ -1126,7 +1118,7 @@ class Gossipsub extends Pubsub {
    * @param {InMessage} msg
    * @returns {string | undefined}
    */
-  getCachedMsgIdStr (msg: InMessage): string | undefined {
+  getCachedMsgIdStr(msg: InMessage): string | undefined {
     return undefined
   }
 
@@ -1137,7 +1129,7 @@ class Gossipsub extends Pubsub {
    * @param {InMessage} msg
    * @returns {void}
    */
-  async _publish (msg: InMessage): Promise<void> {
+  async _publish(msg: InMessage): Promise<void> {
     const msgIdStr = await this.getCanonicalMsgIdStr(msg)
     if (msg.receivedFrom !== this.peerId.toB58String()) {
       this.score.deliverMessage(msg, msgIdStr)
@@ -1159,7 +1151,7 @@ class Gossipsub extends Pubsub {
       if (this._options.floodPublish && msg.from === this.peerId.toB58String()) {
         // flood-publish behavior
         // send to direct peers and _all_ peers meeting the publishThreshold
-        peersInTopic.forEach(id => {
+        peersInTopic.forEach((id) => {
           if (this.direct.has(id) || this.score.score(id) >= this._options.scoreThresholds.publishThreshold) {
             tosend.add(id)
           }
@@ -1170,7 +1162,7 @@ class Gossipsub extends Pubsub {
         // and some mesh peers above publishThreshold
 
         // direct peers
-        this.direct.forEach(id => {
+        this.direct.forEach((id) => {
           tosend.add(id)
         })
 
@@ -1180,7 +1172,10 @@ class Gossipsub extends Pubsub {
           if (!peerStreams) {
             return
           }
-          if (peerStreams.protocol === constants.FloodsubID && this.score.score(id) >= this._options.scoreThresholds.publishThreshold) {
+          if (
+            peerStreams.protocol === constants.FloodsubID &&
+            this.score.score(id) >= this._options.scoreThresholds.publishThreshold
+          ) {
             tosend.add(id)
           }
         })
@@ -1192,7 +1187,7 @@ class Gossipsub extends Pubsub {
           meshPeers = this.fanout.get(topic)
           if (!meshPeers) {
             // If we are not in the fanout, then pick peers in topic above the publishThreshold
-            const peers = getGossipPeers(this, topic, this._options.D, id => {
+            const peers = getGossipPeers(this, topic, this._options.D, (id) => {
               return this.score.score(id) >= this._options.scoreThresholds.publishThreshold
             })
 
@@ -1213,9 +1208,7 @@ class Gossipsub extends Pubsub {
       }
     })
     // Publish messages to peers
-    const rpc = createGossipRpc([
-      utils.normalizeOutRpcMessage(msg)
-    ])
+    const rpc = createGossipRpc([utils.normalizeOutRpcMessage(msg)])
     tosend.forEach((id) => {
       if (id === msg.from) {
         return
@@ -1230,10 +1223,12 @@ class Gossipsub extends Pubsub {
    * @param {string} topic
    * @returns {void}
    */
-  _sendGraft (id: string, topic: string): void {
-    const graft = [{
-      topicID: topic
-    }]
+  _sendGraft(id: string, topic: string): void {
+    const graft = [
+      {
+        topicID: topic,
+      },
+    ]
 
     const out = createGossipRpc([], { graft })
     this._sendRpc(id, out)
@@ -1245,10 +1240,8 @@ class Gossipsub extends Pubsub {
    * @param {string} topic
    * @returns {Promise<void>}
    */
-  async _sendPrune (id: string, topic: string): Promise<void> {
-    const prune = [
-      await this._makePrune(id, topic, this._options.doPX)
-    ]
+  async _sendPrune(id: string, topic: string): Promise<void> {
+    const prune = [await this._makePrune(id, topic, this._options.doPX)]
 
     const out = createGossipRpc([], { prune })
     this._sendRpc(id, out)
@@ -1257,7 +1250,7 @@ class Gossipsub extends Pubsub {
   /**
    * @override
    */
-  _sendRpc (id: string, outRpc: IRPC): void {
+  _sendRpc(id: string, outRpc: IRPC): void {
     const peerStreams = this.peers.get(id)
     if (!peerStreams || !peerStreams.isWritable) {
       return
@@ -1280,11 +1273,13 @@ class Gossipsub extends Pubsub {
     peerStreams.write(RPC.encode(outRpc).finish())
   }
 
-  _piggybackControl (id: string, outRpc: IRPC, ctrl: RPC.IControlMessage): void {
-    const tograft = (ctrl.graft || [])
-      .filter(({ topicID }) => (topicID && this.mesh.get(topicID) || new Set()).has(id))
-    const toprune = (ctrl.prune || [])
-      .filter(({ topicID }) => !(topicID && this.mesh.get(topicID) || new Set()).has(id))
+  _piggybackControl(id: string, outRpc: IRPC, ctrl: RPC.IControlMessage): void {
+    const tograft = (ctrl.graft || []).filter(({ topicID }) =>
+      ((topicID && this.mesh.get(topicID)) || new Set()).has(id)
+    )
+    const toprune = (ctrl.prune || []).filter(
+      ({ topicID }) => !((topicID && this.mesh.get(topicID)) || new Set()).has(id)
+    )
 
     if (!tograft.length && !toprune.length) {
       return
@@ -1298,7 +1293,7 @@ class Gossipsub extends Pubsub {
     }
   }
 
-  _piggybackGossip (id: string, outRpc: IRPC, ihave: RPC.IControlIHave[]): void {
+  _piggybackGossip(id: string, outRpc: IRPC, ihave: RPC.IControlIHave[]): void {
     if (!outRpc.control) {
       outRpc.control = { ihave: [], iwant: [], graft: [], prune: [] }
     }
@@ -1310,7 +1305,11 @@ class Gossipsub extends Pubsub {
    * @param {Map<string, Array<string>>} tograft peer id => topic[]
    * @param {Map<string, Array<string>>} toprune peer id => topic[]
    */
-  async _sendGraftPrune (tograft: Map<string, string[]>, toprune: Map<string, string[]>, noPX: Map<string, boolean>): Promise<void> {
+  async _sendGraftPrune(
+    tograft: Map<string, string[]>,
+    toprune: Map<string, string[]>,
+    noPX: Map<string, boolean>
+  ): Promise<void> {
     const doPX = this._options.doPX
     for (const [id, topics] of tograft) {
       const graft = topics.map((topicID) => ({ topicID }))
@@ -1338,7 +1337,7 @@ class Gossipsub extends Pubsub {
    * @param {Set<string>} exclude peers to exclude
    * @returns {void}
    */
-  _emitGossip (topic: string, exclude: Set<string>): void {
+  _emitGossip(topic: string, exclude: Set<string>): void {
     const messageIDs = this.messageCache.getGossipIDs(topic)
     if (!messageIDs.length) {
       return
@@ -1363,7 +1362,7 @@ class Gossipsub extends Pubsub {
       // no topic peers, no gossip
       return
     }
-    topicPeers.forEach(id => {
+    topicPeers.forEach((id) => {
       const peerStreams = this.peers.get(id)
       if (!peerStreams) {
         return
@@ -1389,7 +1388,7 @@ class Gossipsub extends Pubsub {
       shuffle(peersToGossip)
     }
     // Emit the IHAVE gossip to the selected peers up to the target
-    peersToGossip.slice(0, target).forEach(id => {
+    peersToGossip.slice(0, target).forEach((id) => {
       let peerMessageIDs = messageIDs
       if (messageIDs.length > constants.GossipsubMaxIHaveLength) {
         // shuffle and slice message IDs per peer so that we emit a different set for each peer
@@ -1399,7 +1398,7 @@ class Gossipsub extends Pubsub {
       }
       this._pushGossip(id, {
         topicID: topic,
-        messageIDs: peerMessageIDs
+        messageIDs: peerMessageIDs,
       })
     })
   }
@@ -1407,7 +1406,7 @@ class Gossipsub extends Pubsub {
   /**
    * Flush gossip and control messages
    */
-  _flush (): void {
+  _flush(): void {
     // send gossip first, which will also piggyback control
     for (const [peer, ihave] of this.gossip.entries()) {
       this.gossip.delete(peer)
@@ -1428,7 +1427,7 @@ class Gossipsub extends Pubsub {
    * @param {Array<RPC.IControlIHave>} controlIHaveMsgs
    * @returns {void}
    */
-  _pushGossip (id: string, controlIHaveMsgs: RPC.IControlIHave): void {
+  _pushGossip(id: string, controlIHaveMsgs: RPC.IControlIHave): void {
     this.log('Add gossip to %s', id)
     const gossip = this.gossip.get(id) || []
     this.gossip.set(id, gossip.concat(controlIHaveMsgs))
@@ -1438,7 +1437,7 @@ class Gossipsub extends Pubsub {
    * Returns the current time in milliseconds
    * @returns {number}
    */
-  _now (): number {
+  _now(): number {
     return Date.now()
   }
 
@@ -1449,12 +1448,12 @@ class Gossipsub extends Pubsub {
    * @param {boolean} doPX
    * @returns {Promise<RPC.IControlPrune>}
    */
-  async _makePrune (id: string, topic: string, doPX: boolean): Promise<RPC.IControlPrune> {
+  async _makePrune(id: string, topic: string, doPX: boolean): Promise<RPC.IControlPrune> {
     if (this.peers.get(id)!.protocol === constants.GossipsubIDv10) {
       // Gossipsub v1.0 -- no backoff, the peer won't be able to parse it anyway
       return {
         topicID: topic,
-        peers: []
+        peers: [],
       }
     }
     // backoff is measured in seconds
@@ -1464,28 +1463,30 @@ class Gossipsub extends Pubsub {
       return {
         topicID: topic,
         peers: [],
-        backoff: backoff
+        backoff: backoff,
       }
     }
     // select peers for Peer eXchange
     const peers = getGossipPeers(this, topic, constants.GossipsubPrunePeers, (xid: string): boolean => {
       return xid !== id && this.score.score(xid) >= 0
     })
-    const px = await Promise.all(Array.from(peers).map(async (p) => {
-      // see if we have a signed record to send back; if we don't, just send
-      // the peer ID and let the pruned peer find them in the DHT -- we can't trust
-      // unsigned address records through PX anyways
-      // Finding signed records in the DHT is not supported at the time of writing in js-libp2p
-      const peerId = PeerId.createFromB58String(p)
-      return {
-        peerID: peerId.toBytes(),
-        signedPeerRecord: await this._libp2p.peerStore.addressBook.getRawEnvelope(peerId)
-      }
-    }))
+    const px = await Promise.all(
+      Array.from(peers).map(async (p) => {
+        // see if we have a signed record to send back; if we don't, just send
+        // the peer ID and let the pruned peer find them in the DHT -- we can't trust
+        // unsigned address records through PX anyways
+        // Finding signed records in the DHT is not supported at the time of writing in js-libp2p
+        const peerId = PeerId.createFromB58String(p)
+        return {
+          peerID: peerId.toBytes(),
+          signedPeerRecord: await this._libp2p.peerStore.addressBook.getRawEnvelope(peerId),
+        }
+      })
+    )
     return {
       topicID: topic,
       peers: px,
-      backoff: backoff
+      backoff: backoff,
     }
   }
 }

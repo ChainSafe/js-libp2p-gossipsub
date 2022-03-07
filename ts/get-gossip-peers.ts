@@ -12,7 +12,7 @@ import Gossipsub = require('./index')
  * @returns {Set<string>}
  *
  */
-export function getGossipPeers (
+export function getGossipPeers(
   router: Gossipsub,
   topic: string,
   count: number,
@@ -31,10 +31,7 @@ export function getGossipPeers (
     if (!peerStreams) {
       return
     }
-    if (
-      hasGossipProtocol(peerStreams.protocol) &&
-      filter(id)
-    ) {
+    if (hasGossipProtocol(peerStreams.protocol) && filter(id)) {
       peers.push(id)
     }
   })
