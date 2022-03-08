@@ -43,48 +43,59 @@ interface GossipInputOptions {
   scoreParams: Partial<PeerScoreParams>
   scoreThresholds: Partial<PeerScoreThresholds>
   directPeers: AddrInfo[]
+
   /**
    * D sets the optimal degree for a Gossipsub topic mesh.
    */
   D: number
+
   /**
    * Dlo sets the lower bound on the number of peers we keep in a Gossipsub topic mesh.
    */
   Dlo: number
+
   /**
    * Dhi sets the upper bound on the number of peers we keep in a Gossipsub topic mesh.
    */
   Dhi: number
+
   /**
    * Dscore affects how peers are selected when pruning a mesh due to over subscription.
    */
   Dscore: number
+
   /**
    * Dout sets the quota for the number of outbound connections to maintain in a topic mesh.
    */
   Dout: number
+
   /**
    * Dlazy affects how many peers we will emit gossip to at each heartbeat.
    */
   Dlazy: number
+
   /**
    * heartbeatInterval is the time between heartbeats in milliseconds
    */
   heartbeatInterval: number
+
   /**
    * fanoutTTL controls how long we keep track of the fanout state. If it's been
    * fanoutTTL milliseconds since we've published to a topic that we're not subscribed to,
    * we'll delete the fanout map for that topic.
    */
   fanoutTTL: number
+
   /**
    * mcacheLength is the number of windows to retain full messages for IWANT responses
    */
   mcacheLength: number
+
   /**
    * mcacheGossip is the number of windows to gossip about
    */
   mcacheGossip: number
+
   /**
    * seenTTL is the number of milliseconds to retain message IDs in the seen cache
    */
@@ -107,27 +118,98 @@ type FastMsgIdFn = (msg: InMessage) => string
 
 class Gossipsub extends Pubsub {
   peers: Map<string, PeerStreams>
+
+  /** Direct peers */
   direct: Set<string>
+
+  /** Cache of seen messages */
   seenCache: SimpleTimeCache<void>
-  acceptFromWhitelist: Map<string, AcceptFromWhitelistEntry>
+
+  /**
+   * Map of peer id and AcceptRequestWhileListEntry
+   */
+  acceptFromWhitelist = new Map<string, AcceptFromWhitelistEntry>()
+
   topics: Map<string, Set<string>>
-  mesh: Map<string, Set<string>>
-  fanout: Map<string, Set<string>>
-  lastpub: Map<string, number>
-  gossip: Map<string, RPC.IControlIHave[]>
-  control: Map<string, RPC.IControlMessage>
-  peerhave: Map<string, number>
-  iasked: Map<string, number>
-  backoff: Map<string, Map<string, number>>
-  outbound: Map<string, boolean>
+
+  /**
+   * Map of topic meshes
+   * topic => peer id set
+   */
+  mesh = new Map<string, Set<string>>()
+
+  /**
+   * Map of topics to set of peers. These mesh peers are the ones to which we are publishing without a topic membership
+   * topic => peer id set
+   */
+  fanout = new Map<string, Set<string>>()
+
+  /**
+   * Map of last publish time for fanout topics
+   * topic => last publish time
+   */
+  lastpub = new Map<string, number>()
+
+  /**
+   * Map of pending messages to gossip
+   * peer id => control messages
+   */
+  gossip = new Map<string, RPC.IControlIHave[]>()
+
+  /**
+   * Map of control messages
+   * peer id => control message
+   */
+  control = new Map<string, RPC.IControlMessage>()
+
+  /**
+   * Number of IHAVEs received from peer in the last heartbeat
+   */
+  peerhave = new Map<string, number>()
+
+  /** Number of messages we have asked from peer in the last heartbeat */
+  iasked = new Map<string, number>()
+
+  /** Prune backoff map */
+  backoff = new Map<string, Map<string, number>>()
+
+  /**
+   * Connection direction cache, marks peers with outbound connections
+   * peer id => direction
+   */
+  outbound = new Map<string, boolean>()
   defaultMsgIdFn: MessageIdFunction
+
+  /**
+   * A fast message id function used for internal message de-duplication
+   */
   getFastMsgIdStr: FastMsgIdFn | undefined
+
+  /** Maps fast message-id to canonical message-id */
   fastMsgIdCache: SimpleTimeCache<string> | undefined
+
+  /**
+   * A message cache that contains the messages for last few hearbeat ticks
+   */
   messageCache: MessageCache
+
+  /** Peer score tracking */
   score: PeerScore
+
+  /** A heartbeat timer that maintains the mesh */
   heartbeat: Heartbeat
-  heartbeatTicks: number
-  gossipTracer: IWantTracer
+
+  /**
+   * Number of heartbeats since the beginning of time
+   * This allows us to amortize some resource cleanup -- eg: backoff cleanup
+   */
+  heartbeatTicks = 0
+
+  /**
+   * Tracks IHAVE/IWANT promises broken by peers
+   */
+  gossipTracer = new IWantTracer()
+
   multicodecs: string[]
   started: boolean
   peerId: PeerId
@@ -197,135 +279,28 @@ class Gossipsub extends Pubsub {
 
     this._options = opts
 
-    /**
-     * Direct peers
-     * @type {Set<string>}
-     */
     this.direct = new Set(opts.directPeers.map((p) => p.id.toB58String()))
-
-    /**
-     * Map of peer id and AcceptRequestWhileListEntry
-     *
-     * @type {Map<string, AcceptFromWhitelistEntry}
-     */
-    this.acceptFromWhitelist = new Map()
 
     // set direct peer addresses in the address book
     opts.directPeers.forEach((p) => {
       libp2p.peerStore.addressBook.add(p.id, p.addrs)
     })
 
-    /**
-     * Cache of seen messages
-     *
-     * @type {SimpleTimeCache}
-     */
     this.seenCache = new SimpleTimeCache<void>({ validityMs: opts.seenTTL })
 
-    /**
-     * Map of topic meshes
-     * topic => peer id set
-     *
-     * @type {Map<string, Set<string>>}
-     */
-    this.mesh = new Map()
-
-    /**
-     * Map of topics to set of peers. These mesh peers are the ones to which we are publishing without a topic membership
-     * topic => peer id set
-     *
-     * @type {Map<string, Set<string>>}
-     */
-    this.fanout = new Map()
-
-    /**
-     * Map of last publish time for fanout topics
-     * topic => last publish time
-     *
-     * @type {Map<string, number>}
-     */
-    this.lastpub = new Map()
-
-    /**
-     * Map of pending messages to gossip
-     * peer id => control messages
-     *
-     * @type {Map<string, Array<RPC.IControlIHave object>> }
-     */
-    this.gossip = new Map()
-
-    /**
-     * Map of control messages
-     * peer id => control message
-     *
-     * @type {Map<string, RPC.IControlMessage object>}
-     */
-    this.control = new Map()
-
-    /**
-     * Number of IHAVEs received from peer in the last heartbeat
-     * @type {Map<string, number>}
-     */
-    this.peerhave = new Map()
-
-    /**
-     * Number of messages we have asked from peer in the last heartbeat
-     * @type {Map<string, number>}
-     */
-    this.iasked = new Map()
-
-    /**
-     * Prune backoff map
-     */
-    this.backoff = new Map()
-
-    /**
-     * Connection direction cache, marks peers with outbound connections
-     * peer id => direction
-     *
-     * @type {Map<string, boolean>}
-     */
-    this.outbound = new Map()
-
-    /**
-     * A message cache that contains the messages for last few hearbeat ticks
-     */
     this.messageCache = options.messageCache || new MessageCache(opts.mcacheGossip, opts.mcacheLength)
 
-    /**
-     * A fast message id function used for internal message de-duplication
-     */
     this.getFastMsgIdStr = options.fastMsgIdFn ?? undefined
 
-    /**
-     * Maps fast message-id to canonical message-id
-     */
     this.fastMsgIdCache = options.fastMsgIdFn ? new SimpleTimeCache<string>({ validityMs: opts.seenTTL }) : undefined
 
-    /**
-     * A heartbeat timer that maintains the mesh
-     */
     this.heartbeat = new Heartbeat(this)
-
-    /**
-     * Number of heartbeats since the beginning of time
-     * This allows us to amortize some resource cleanup -- eg: backoff cleanup
-     */
-    this.heartbeatTicks = 0
-
-    /**
-     * Tracks IHAVE/IWANT promises broken by peers
-     */
-    this.gossipTracer = new IWantTracer()
 
     /**
      * libp2p
      */
     this._libp2p = libp2p
 
-    /**
-     * Peer score tracking
-     */
     this.score = new PeerScore(this._options.scoreParams, libp2p.connectionManager)
   }
 
@@ -333,8 +308,6 @@ class Gossipsub extends Pubsub {
    * Decode a Uint8Array into an RPC object
    * Overrided to use an extended protocol-specific protobuf decoder
    * @override
-   * @param {Uint8Array} bytes
-   * @returns {RPC}
    */
   _decodeRpc(bytes: Uint8Array) {
     return RPC.decode(bytes)
@@ -344,8 +317,6 @@ class Gossipsub extends Pubsub {
    * Encode an RPC object into a Uint8Array
    * Overrided to use an extended protocol-specific protobuf encoder
    * @override
-   * @param {RPC} rpc
-   * @returns {Uint8Array}
    */
   _encodeRpc(rpc: RPC) {
     return RPC.encode(rpc).finish()
@@ -354,9 +325,6 @@ class Gossipsub extends Pubsub {
   /**
    * Add a peer to the router
    * @override
-   * @param {PeerId} peerId
-   * @param {string} protocol
-   * @returns {PeerStreams}
    */
   _addPeer(peerId: PeerId, protocol: string): PeerStreams {
     const p = super._addPeer(peerId, protocol)
@@ -382,8 +350,6 @@ class Gossipsub extends Pubsub {
   /**
    * Removes a peer from the router
    * @override
-   * @param {PeerId} peer
-   * @returns {PeerStreams | undefined}
    */
   _removePeer(peerId: PeerId): PeerStreams | undefined {
     const peerStreams = super._removePeer(peerId)
@@ -420,10 +386,6 @@ class Gossipsub extends Pubsub {
    * Handles an rpc request from a peer
    *
    * @override
-   * @param {String} idB58Str
-   * @param {PeerStreams} peerStreams
-   * @param {RPC} rpc
-   * @returns {Promise<boolean>}
    */
   async _processRpc(id: string, peerStreams: PeerStreams, rpc: RPC): Promise<boolean> {
     if (await super._processRpc(id, peerStreams, rpc)) {
@@ -437,9 +399,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Handles an rpc control message from a peer
-   * @param {string} id peer id
-   * @param {RPC.IControlMessage} controlMsg
-   * @returns {void}
    */
   async _processRpcControlMessage(id: string, controlMsg: RPC.IControlMessage): Promise<void> {
     if (!controlMsg) {
@@ -463,8 +422,6 @@ class Gossipsub extends Pubsub {
    * Process incoming message,
    * emitting locally and forwarding on to relevant floodsub and gossipsub peers
    * @override
-   * @param {InMessage} msg
-   * @returns {Promise<void>}
    */
   async _processRpcMessage(msg: InMessage): Promise<void> {
     let canonicalMsgIdStr
@@ -498,8 +455,6 @@ class Gossipsub extends Pubsub {
   /**
    * Whether to accept a message from a peer
    * @override
-   * @param {string} id
-   * @returns {boolean}
    */
   _acceptFrom(id: string): boolean {
     if (this.direct.has(id)) {
@@ -532,8 +487,6 @@ class Gossipsub extends Pubsub {
   /**
    * Validate incoming message
    * @override
-   * @param {InMessage} msg
-   * @returns {Promise<void>}
    */
   async validate(msg: InMessage): Promise<void> {
     try {
@@ -548,9 +501,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Handles IHAVE messages
-   * @param {string} id peer id
-   * @param {Array<RPC.IControlIHave>} ihave
-   * @returns {RPC.IControlIWant}
    */
   _handleIHave(id: string, ihave: RPC.IControlIHave[]): RPC.IControlIWant[] {
     if (!ihave.length) {
@@ -629,9 +579,6 @@ class Gossipsub extends Pubsub {
   /**
    * Handles IWANT messages
    * Returns messages to send back to peer
-   * @param {string} id peer id
-   * @param {Array<RPC.IControlIWant>} iwant
-   * @returns {Array<RPC.IMessage>}
    */
   _handleIWant(id: string, iwant: RPC.IControlIWant[]): RPC.IMessage[] {
     if (!iwant.length) {
@@ -674,9 +621,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Handles Graft messages
-   * @param {string} id peer id
-   * @param {Array<RPC.IControlGraft>} graft
-   * @return {Promise<RPC.IControlPrune[]>}
    */
   async _handleGraft(id: string, graft: RPC.IControlGraft[]): Promise<RPC.IControlPrune[]> {
     const prune: string[] = []
@@ -767,9 +711,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Handles Prune messages
-   * @param {string} id peer id
-   * @param {Array<RPC.IControlPrune>} prune
-   * @returns {void}
    */
   _handlePrune(id: string, prune: RPC.IControlPrune[]): void {
     const score = this.score.score(id)
@@ -810,9 +751,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Add standard backoff log for a peer in a topic
-   * @param {string} id
-   * @param {string} topic
-   * @returns {void}
    */
   _addBackoff(id: string, topic: string): void {
     this._doAddBackoff(id, topic, constants.GossipsubPruneBackoff)
@@ -820,10 +758,7 @@ class Gossipsub extends Pubsub {
 
   /**
    * Add backoff expiry interval for a peer in a topic
-   * @param {string} id
-   * @param {string} topic
-   * @param {number} interval backoff duration in milliseconds
-   * @returns {void}
+   * @param interval backoff duration in milliseconds
    */
   _doAddBackoff(id: string, topic: string, interval: number): void {
     let backoff = this.backoff.get(topic)
@@ -840,7 +775,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Apply penalties from broken IHAVE/IWANT promises
-   * @returns {void}
    */
   _applyIwantPenalties(): void {
     this.gossipTracer.getBrokenPromises().forEach((count, p) => {
@@ -851,7 +785,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Clear expired backoff expiries
-   * @returns {void}
    */
   _clearBackoff(): void {
     // we only clear once every GossipsubPruneBackoffTicks ticks to avoid iterating over the maps too much
@@ -874,7 +807,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Maybe reconnect to direct peers
-   * @returns {void}
    */
   _directConnect(): void {
     // we only do this every few ticks to allow pending connections to complete and account for
@@ -899,8 +831,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Maybe attempt connection given signed peer records
-   * @param {RPC.IPeerInfo[]} peers
-   * @returns {Promise<void>}
    */
   async _pxConnect(peers: RPC.IPeerInfo[]): Promise<void> {
     if (peers.length > constants.GossipsubPrunePeers) {
@@ -959,7 +889,6 @@ class Gossipsub extends Pubsub {
    * Mounts the gossipsub protocol onto the libp2p node and sends our
    * our subscriptions to every peer connected
    * @override
-   * @returns {Promise<void>}
    */
   async start(): Promise<void> {
     await super.start()
@@ -976,7 +905,6 @@ class Gossipsub extends Pubsub {
   /**
    * Unmounts the gossipsub protocol and shuts down every connection
    * @override
-   * @returns {Promise<void>}
    */
   async stop(): Promise<void> {
     await super.stop()
@@ -1000,8 +928,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Connect to a peer using the gossipsub protocol
-   * @param {string} id
-   * @returns {void}
    */
   _connect(id: string): void {
     this.log('Initiating connection with %s', id)
@@ -1011,8 +937,6 @@ class Gossipsub extends Pubsub {
   /**
    * Subscribes to a topic
    * @override
-   * @param {string} topic
-   * @returns {void}
    */
   subscribe(topic: string): void {
     super.subscribe(topic)
@@ -1022,8 +946,6 @@ class Gossipsub extends Pubsub {
   /**
    * Unsubscribe to a topic
    * @override
-   * @param {string} topic
-   * @returns {void}
    */
   unsubscribe(topic: string): void {
     super.unsubscribe(topic)
@@ -1032,8 +954,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Join topic
-   * @param {string} topic
-   * @returns {void}
    */
   join(topic: string): void {
     if (!this.started) {
@@ -1075,8 +995,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Leave topic
-   * @param {string} topic
-   * @returns {void}
    */
   leave(topic: string): void {
     if (!this.started) {
@@ -1100,8 +1018,6 @@ class Gossipsub extends Pubsub {
    *
    * If a fast message-id is set: Try 1. the application cache 2. the fast cache 3. `getMsgId()`
    * If a fast message-id is NOT set: Just `getMsgId()`
-   * @param {InMessage} msg
-   * @returns {Promise<string>}
    */
   async getCanonicalMsgIdStr(msg: InMessage): Promise<string> {
     return this.fastMsgIdCache && this.getFastMsgIdStr
@@ -1115,8 +1031,6 @@ class Gossipsub extends Pubsub {
    * An application should override this function to return its cached message id string without computing it.
    * Return undefined if message id is not found.
    * If a fast message id function is not defined, this function is ignored.
-   * @param {InMessage} msg
-   * @returns {string | undefined}
    */
   getCachedMsgIdStr(msg: InMessage): string | undefined {
     return undefined
@@ -1126,8 +1040,6 @@ class Gossipsub extends Pubsub {
    * Publish messages
    *
    * @override
-   * @param {InMessage} msg
-   * @returns {void}
    */
   async _publish(msg: InMessage): Promise<void> {
     const msgIdStr = await this.getCanonicalMsgIdStr(msg)
@@ -1219,9 +1131,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Sends a GRAFT message to a peer
-   * @param {string} id peer id
-   * @param {string} topic
-   * @returns {void}
    */
   _sendGraft(id: string, topic: string): void {
     const graft = [
@@ -1236,9 +1145,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Sends a PRUNE message to a peer
-   * @param {string} id peer id
-   * @param {string} topic
-   * @returns {Promise<void>}
    */
   async _sendPrune(id: string, topic: string): Promise<void> {
     const prune = [await this._makePrune(id, topic, this._options.doPX)]
@@ -1302,8 +1208,8 @@ class Gossipsub extends Pubsub {
 
   /**
    * Send graft and prune messages
-   * @param {Map<string, Array<string>>} tograft peer id => topic[]
-   * @param {Map<string, Array<string>>} toprune peer id => topic[]
+   * @param tograft peer id => topic[]
+   * @param toprune peer id => topic[]
    */
   async _sendGraftPrune(
     tograft: Map<string, string[]>,
@@ -1333,9 +1239,7 @@ class Gossipsub extends Pubsub {
 
   /**
    * Emits gossip to peers in a particular topic
-   * @param {string} topic
-   * @param {Set<string>} exclude peers to exclude
-   * @returns {void}
+   * @param exclude peers to exclude
    */
   _emitGossip(topic: string, exclude: Set<string>): void {
     const messageIDs = this.messageCache.getGossipIDs(topic)
@@ -1423,9 +1327,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Adds new IHAVE messages to pending gossip
-   * @param {PeerStreams} peerStreams
-   * @param {Array<RPC.IControlIHave>} controlIHaveMsgs
-   * @returns {void}
    */
   _pushGossip(id: string, controlIHaveMsgs: RPC.IControlIHave): void {
     this.log('Add gossip to %s', id)
@@ -1435,7 +1336,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Returns the current time in milliseconds
-   * @returns {number}
    */
   _now(): number {
     return Date.now()
@@ -1443,10 +1343,6 @@ class Gossipsub extends Pubsub {
 
   /**
    * Make a PRUNE control message for a peer in a topic
-   * @param {string} id
-   * @param {string} topic
-   * @param {boolean} doPX
-   * @returns {Promise<RPC.IControlPrune>}
    */
   async _makePrune(id: string, topic: string, doPX: boolean): Promise<RPC.IControlPrune> {
     if (this.peers.get(id)!.protocol === constants.GossipsubIDv10) {

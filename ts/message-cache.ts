@@ -8,47 +8,22 @@ export interface CacheEntry {
 }
 
 export class MessageCache {
-  msgs: Map<string, InMessage>
-  peertx: Map<string, Map<string, number>>
-  history: CacheEntry[][]
+  msgs = new Map<string, InMessage>()
+  peertx = new Map<string, Map<string, number>>()
+  history: CacheEntry[][] = []
   gossip: number
   msgIdFn: MessageIdFunction
 
-  /**
-   * @param {Number} gossip
-   * @param {Number} history
-   * @param {msgIdFn} msgIdFn a function that returns message id from a message
-   *
-   * @constructor
-   */
   constructor(gossip: number, history: number) {
-    /**
-     * @type {Map<string, RPC.Message>}
-     */
-    this.msgs = new Map()
-
-    this.peertx = new Map()
-
-    /**
-     * @type {Array<Array<CacheEntry>>}
-     */
-    this.history = []
     for (let i = 0; i < history; i++) {
       this.history[i] = []
     }
 
-    /**
-     * @type {Number}
-     */
     this.gossip = gossip
   }
 
   /**
    * Adds a message to the current window and the cache
-   *
-   * @param {string} msgIdStr
-   * @param {RPC.Message} msg
-   * @returns {Promise<void>}
    */
   async put(msg: InMessage, msgIdStr: string): Promise<void> {
     this.msgs.set(msgIdStr, msg)
@@ -58,9 +33,6 @@ export class MessageCache {
 
   /**
    * Retrieves a message from the cache by its ID, if it is still present
-   *
-   * @param {Uint8Array} msgId
-   * @returns {Message}
    */
   get(msgId: Uint8Array): InMessage | undefined {
     return this.msgs.get(messageIdToString(msgId))
@@ -70,10 +42,6 @@ export class MessageCache {
    * Retrieves a message from the cache by its ID, if it is present
    * for a specific peer.
    * Returns the message and the number of times the peer has requested the message
-   *
-   * @param {string} msgIdStr
-   * @param {string} p
-   * @returns {[InMessage | undefined, number]}
    */
   getForPeer(msgIdStr: string, p: string): [InMessage | undefined, number] {
     const msg = this.msgs.get(msgIdStr)
@@ -94,10 +62,6 @@ export class MessageCache {
 
   /**
    * Retrieves a list of message IDs for a given topic
-   *
-   * @param {String} topic
-   *
-   * @returns {Array<Uint8Array>}
    */
   getGossipIDs(topic: string): Uint8Array[] {
     const msgIds: Uint8Array[] = []
@@ -117,8 +81,6 @@ export class MessageCache {
 
   /**
    * Shifts the current window, discarding messages older than this.history.length of the cache
-   *
-   * @returns {void}
    */
   shift(): void {
     const last = this.history[this.history.length - 1]

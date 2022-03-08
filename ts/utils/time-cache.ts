@@ -13,12 +13,11 @@ type CacheValue<T> = {
  * This gives 4x - 5x performance gain compared to npm TimeCache
  */
 export class SimpleTimeCache<T> {
-  private entries: Map<string, CacheValue<T>>
+  private entries = new Map<string, CacheValue<T>>()
   private validityMs: number
   private lastPruneTime = 0
 
   constructor(options: SimpleTimeCacheOpts) {
-    this.entries = new Map()
     this.validityMs = options.validityMs
 
     // allow negative validityMs so that this does not cache anything, spec test compliance.spec.js
