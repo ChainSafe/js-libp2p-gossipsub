@@ -2,6 +2,7 @@ import Gossipsub, { GossipInputOptions } from '../../ts'
 import { fastMsgIdFn } from './msgId'
 import { createPeers } from './create-peer'
 import PubsubBaseProtocol from 'libp2p-interfaces/src/pubsub'
+import { FloodsubID } from '../../ts/constants'
 
 /**
  * Start node - gossipsub + libp2p
@@ -43,6 +44,32 @@ export async function createGossipsubs({
   }
 
   return gss
+}
+
+export async function createPubsubs({
+  number = 1,
+  started = true,
+  options = {}
+}: {
+  number?: number
+  started?: boolean
+  options?: Partial<GossipInputOptions>
+} = {}) {
+  const libp2ps = await createPeers({ number, started })
+  const pubsubs = libp2ps.map(
+    (libp2p) =>
+      new PubsubBaseProtocol({
+        debugName: 'pubsub',
+        multicodecs: FloodsubID,
+        libp2p
+      })
+  )
+
+  if (started) {
+    await Promise.all(pubsubs.map((gs) => gs.start()))
+  }
+
+  return pubsubs
 }
 
 /**

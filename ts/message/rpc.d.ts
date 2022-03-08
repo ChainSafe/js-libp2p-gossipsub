@@ -5,8 +5,8 @@ export interface IRPC {
     /** RPC subscriptions */
     subscriptions?: (RPC.ISubOpts[]|null);
 
-    /** RPC msgs */
-    msgs?: (RPC.IMessage[]|null);
+    /** RPC messages */
+    messages?: (RPC.IMessage[]|null);
 
     /** RPC control */
     control?: (RPC.IControlMessage|null);
@@ -24,8 +24,8 @@ export class RPC implements IRPC {
     /** RPC subscriptions. */
     public subscriptions: RPC.ISubOpts[];
 
-    /** RPC msgs. */
-    public msgs: RPC.IMessage[];
+    /** RPC messages. */
+    public messages: RPC.IMessage[];
 
     /** RPC control. */
     public control?: (RPC.IControlMessage|null);
@@ -158,8 +158,8 @@ export namespace RPC {
         /** Message seqno */
         seqno?: (Uint8Array|null);
 
-        /** Message topicIDs */
-        topicIDs?: (string[]|null);
+        /** Message topic */
+        topic: string;
 
         /** Message signature */
         signature?: (Uint8Array|null);
@@ -186,8 +186,8 @@ export namespace RPC {
         /** Message seqno. */
         public seqno?: (Uint8Array|null);
 
-        /** Message topicIDs. */
-        public topicIDs: string[];
+        /** Message topic. */
+        public topic: string;
 
         /** Message signature. */
         public signature?: (Uint8Array|null);

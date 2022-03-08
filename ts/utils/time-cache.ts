@@ -24,6 +24,10 @@ export class SimpleTimeCache<T> {
     // sends duplicate messages and expect peer to receive all. Application likely uses positive validityMs
   }
 
+  get size(): number {
+    return this.entries.size
+  }
+
   put(key: string, value: T): void {
     this.entries.set(key, { value, validUntilMs: Date.now() + this.validityMs })
     this.prune()

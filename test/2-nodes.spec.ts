@@ -2,7 +2,7 @@ import chai from 'chai'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import delay from 'delay'
 import Gossipsub, { multicodec } from '../ts'
-import { createGossipsubs, createConnectedGossipsubs, expectSet, stopNode, first } from './utils'
+import { createGossipsubs, createPubsubs, createConnectedGossipsubs, expectSet, stopNode, first } from './utils'
 import { RPC } from '../ts/message/rpc'
 import { InMessage, PeerId } from 'libp2p-interfaces/src/pubsub'
 
@@ -13,6 +13,28 @@ const expect = chai.expect
 const shouldNotHappen = () => expect.fail()
 
 describe('2 nodes', () => {
+  describe('Pubsub dial', () => {
+    let nodes
+
+    // Create pubsub nodes
+    before(async () => {
+      nodes = await createPubsubs({ number: 2 })
+    })
+
+    after(() => Promise.all(nodes.map(stopNode)))
+
+    it('Dial from nodeA to nodeB happened with pubsub', async () => {
+      await nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, FloodsubID)
+
+      while (nodes[0].peers.size === 0 || nodes[1].peers.size === 0) {
+        await delay(10)
+      }
+
+      expect(nodes[0].peers.size).to.be.eql(1)
+      expect(nodes[1].peers.size).to.be.eql(1)
+    })
+  })
+
   describe('basics', () => {
     let nodes: Gossipsub[] = []
 
@@ -24,12 +46,11 @@ describe('2 nodes', () => {
     after(() => Promise.all(nodes.map(stopNode)))
 
     it('Dial from nodeA to nodeB happened with pubsub', async () => {
-      await nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, multicodec)
-      await delay(10)
-      await Promise.all([
-        new Promise((resolve) => nodes[0].once('gossipsub:heartbeat', resolve)),
-        new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
-      ])
+      await nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, GossipsubIDv11)
+
+      while (nodes[0].peers.size === 0 || nodes[1].peers.size === 0) {
+        await delay(10)
+      }
 
       expect(nodes[0].peers.size).to.be.eql(1)
       expect(nodes[1].peers.size).to.be.eql(1)
@@ -47,7 +68,14 @@ describe('2 nodes', () => {
     after(() => Promise.all(nodes.map(stopNode)))
 
     it('Subscribe to a topic', async () => {
-      const topic = 'Z'
+      const topic = 'test_topic'
+
+      // await subscription change, after calling subscribe
+      const subscriptionEventPromise = Promise.all([
+        new Promise((resolve) => nodes[0].once('pubsub:subscription-change', (...args) => resolve(args))),
+        new Promise((resolve) => nodes[1].once('pubsub:subscription-change', (...args) => resolve(args)))
+      ])
+
       nodes[0].subscribe(topic)
       nodes[1].subscribe(topic)
 
@@ -117,7 +145,7 @@ describe('2 nodes', () => {
       const msg = await promise
 
       expect(msg.data.toString()).to.equal('hey')
-      expect(msg.from).to.be.eql(nodes[0].peerId.toB58String())
+      expect(msg.from).to.be.eql(nodes[0].peerId.toBytes())
 
       nodes[0].removeListener(topic, shouldNotHappen)
     })
@@ -131,7 +159,7 @@ describe('2 nodes', () => {
       const msg = await promise
 
       expect(msg.data.toString()).to.equal('banana')
-      expect(msg.from).to.be.eql(nodes[1].peerId.toB58String())
+      expect(msg.from).to.be.eql(nodes[1].peerId.toBytes())
 
       nodes[1].removeListener(topic, shouldNotHappen)
     })
@@ -145,9 +173,9 @@ describe('2 nodes', () => {
 
       function receivedMsg(msg: InMessage) {
         expect(msg.data.toString().startsWith('banana')).to.be.true
-        expect(msg.from).to.be.eql(nodes[1].peerId.toB58String())
+        expect(msg.from).to.be.eql(nodes[1].peerId.toBytes())
         expect(msg.seqno).to.be.a('Uint8Array')
-        expect(msg.topicIDs).to.be.eql([topic])
+        expect(msg.topic).to.be.eql(topic)
 
         if (++counter === 10) {
           nodes[0].removeListener(topic, receivedMsg)
@@ -257,7 +285,7 @@ describe('2 nodes', () => {
       this.timeout(5000)
 
       await Promise.all([
-        nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, multicodec),
+        nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, GossipsubIDv11),
         new Promise((resolve) => nodes[0].once('pubsub:subscription-change', resolve)),
         new Promise((resolve) => nodes[1].once('pubsub:subscription-change', resolve))
       ])

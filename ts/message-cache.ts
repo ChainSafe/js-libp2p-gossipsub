@@ -1,63 +1,111 @@
-import { InMessage } from 'libp2p-interfaces/src/pubsub'
-import { MessageIdFunction } from './interfaces'
+import { RPC } from './message/rpc'
+import { MsgIdStr, PeerIdStr, TopicStr } from './types'
 import { messageIdFromString, messageIdToString } from './utils'
 
 export interface CacheEntry {
   msgId: Uint8Array
-  topics: string[]
+  topic: TopicStr
+}
+
+type MessageCacheEntry = {
+  message: RPC.IMessage
+  /**
+   * Tracks if the message has been validated by the app layer and thus forwarded
+   */
+  validated: boolean
+  /**
+   * Tracks peers that sent this message before it has been validated by the app layer
+   */
+  originatingPeers: Set<PeerIdStr>
+  /**
+   * For every message and peer the number of times this peer asked for the message
+   */
+  iwantCounts: Map<PeerIdStr, number>
 }
 
 export class MessageCache {
-  msgs = new Map<string, InMessage>()
-  peertx = new Map<string, Map<string, number>>()
-  history: CacheEntry[][] = []
-  gossip: number
-  msgIdFn: MessageIdFunction
+  msgs = new Map<MsgIdStr, MessageCacheEntry>()
 
-  constructor(gossip: number, history: number) {
-    for (let i = 0; i < history; i++) {
+  history: CacheEntry[][] = []
+
+  /**
+   * Holds history of messages in timebounded history arrays
+   */
+  constructor(
+    /**
+     * he number of indices in the cache history used for gossiping. That means that a message
+     * won't get gossiped anymore when shift got called `gossip` many times after inserting the
+     * message in the cache.
+     */
+    private readonly gossip: number,
+    historyCapacity: number
+  ) {
+    for (let i = 0; i < historyCapacity; i++) {
       this.history[i] = []
     }
+  }
 
-    this.gossip = gossip
+  get size(): number {
+    return this.msgs.size
   }
 
   /**
    * Adds a message to the current window and the cache
+   * Returns true if the message is not known and is inserted in the cache
    */
-  async put(msg: InMessage, msgIdStr: string): Promise<void> {
-    this.msgs.set(msgIdStr, msg)
+  put(msgIdStr: MsgIdStr, msg: RPC.IMessage): boolean {
+    // Don't add duplicate entries to the cache.
+    if (this.msgs.has(msgIdStr)) {
+      return false
+    }
+
+    this.msgs.set(msgIdStr, {
+      message: msg,
+      validated: false,
+      originatingPeers: new Set(),
+      iwantCounts: new Map(),
+    })
+
     const msgId = messageIdFromString(msgIdStr)
-    this.history[0].push({ msgId: msgId, topics: msg.topicIDs })
+    this.history[0].push({ msgId: msgId, topic: msg.topic })
+
+    return true
+  }
+
+  observeDuplicate(msgId: MsgIdStr, fromPeerIdStr: PeerIdStr): void {
+    const entry = this.msgs.get(msgId)
+
+    if (
+      entry &&
+      // if the message is already validated, we don't need to store extra peers sending us
+      // duplicates as the message has already been forwarded
+      !entry.validated
+    ) {
+      entry.originatingPeers.add(fromPeerIdStr)
+    }
   }
 
   /**
    * Retrieves a message from the cache by its ID, if it is still present
    */
-  get(msgId: Uint8Array): InMessage | undefined {
-    return this.msgs.get(messageIdToString(msgId))
+  get(msgId: Uint8Array): RPC.IMessage | undefined {
+    return this.msgs.get(messageIdToString(msgId))?.message
   }
 
   /**
-   * Retrieves a message from the cache by its ID, if it is present
-   * for a specific peer.
-   * Returns the message and the number of times the peer has requested the message
+   * Increases the iwant count for the given message by one and returns the message together
+   * with the iwant if the message exists.
    */
-  getForPeer(msgIdStr: string, p: string): [InMessage | undefined, number] {
+  getWithIWantCount(msgIdStr: string, p: string): { msg: RPC.IMessage; count: number } | null {
     const msg = this.msgs.get(msgIdStr)
     if (!msg) {
-      return [undefined, 0]
+      return null
     }
 
-    let peertx = this.peertx.get(msgIdStr)
-    if (!peertx) {
-      peertx = new Map()
-      this.peertx.set(msgIdStr, peertx)
-    }
-    const count = (peertx.get(p) || 0) + 1
-    peertx.set(p, count)
+    const count = (msg.iwantCounts.get(p) || 0) + 1
+    msg.iwantCounts.set(p, count)
 
-    return [msg, count]
+    return { msg: msg.message, count }
   }
 
   /**
@@ -67,16 +115,32 @@ export class MessageCache {
     const msgIds: Uint8Array[] = []
     for (let i = 0; i < this.gossip; i++) {
       this.history[i].forEach((entry) => {
-        for (const t of entry.topics) {
-          if (t === topic) {
-            msgIds.push(entry.msgId)
-            break
-          }
+        if (entry.topic === topic) {
+          msgIds.push(entry.msgId)
         }
       })
     }
 
     return msgIds
+  }
+
+  /**
+   * Gets a message with msgId and tags it as validated.
+   * This function also returns the known peers that have sent us this message. This is used to
+   * prevent us sending redundant messages to peers who have already propagated it.
+   */
+  validate(msgId: MsgIdStr): { message: RPC.IMessage; originatingPeers: Set<PeerIdStr> } | null {
+    const entry = this.msgs.get(msgId)
+    if (!entry) {
+      return null
+    }
+
+    const { message, originatingPeers } = entry
+    entry.validated = true
+    // Clear the known peers list (after a message is validated, it is forwarded and we no
+    // longer need to store the originating peers).
+    entry.originatingPeers = new Set()
+    return { message, originatingPeers }
   }
 
   /**
@@ -87,10 +151,20 @@ export class MessageCache {
     last.forEach((entry) => {
       const msgIdStr = messageIdToString(entry.msgId)
       this.msgs.delete(msgIdStr)
-      this.peertx.delete(msgIdStr)
     })
 
     this.history.pop()
     this.history.unshift([])
+  }
+
+  remove(msgId: MsgIdStr): MessageCacheEntry | null {
+    const entry = this.msgs.get(msgId)
+    if (!entry) {
+      return null
+    }
+
+    // Keep the message on the history vector, it will be dropped on a shift()
+    this.msgs.delete(msgId)
+    return entry
   }
 }

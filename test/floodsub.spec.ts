@@ -153,7 +153,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       const msg = await promise
 
       expect(msg.data.toString()).to.equal('banana')
-      expect(msg.from).to.be.eql(nodeFs.peerId.toB58String())
+      expect(msg.from).to.be.eql(nodeFs.peerId.toBytes())
     })
   })
 

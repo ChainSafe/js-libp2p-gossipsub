@@ -26,7 +26,7 @@ describe('Testing Message Cache Operations', () => {
         from: 'test',
         data: uint8ArrayFromString(n.toString()),
         seqno: utils.randomSeqno(),
-        topicIDs: ['test']
+        topic: 'test',
       }
     }
 
@@ -35,7 +35,7 @@ describe('Testing Message Cache Operations', () => {
     }
 
     for (let i = 0; i < 10; i++) {
-      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
+      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
     }
   })
 
@@ -60,7 +60,7 @@ describe('Testing Message Cache Operations', () => {
   it('Shift message cache', async () => {
     messageCache.shift()
     for (let i = 10; i < 20; i++) {
-      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
+      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
     }
 
     for (let i = 0; i < 20; i++) {
@@ -84,22 +84,22 @@ describe('Testing Message Cache Operations', () => {
 
     messageCache.shift()
     for (let i = 20; i < 30; i++) {
-      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
+      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
     }
 
     messageCache.shift()
     for (let i = 30; i < 40; i++) {
-      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
+      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
     }
 
     messageCache.shift()
     for (let i = 40; i < 50; i++) {
-      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
+      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
     }
 
     messageCache.shift()
     for (let i = 50; i < 60; i++) {
-      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
+      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
     }
 
     expect(messageCache.msgs.size).to.equal(50)

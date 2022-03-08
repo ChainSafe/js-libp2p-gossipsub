@@ -6,11 +6,11 @@ module.exports = {
   },
   extends: [
     'plugin:@typescript-eslint/recommended', // Out of the box Typescript rules
-    'standard' // Out of the box StandardJS rules
+    'standard', // Out of the box StandardJS rules
   ],
   plugins: [
     '@typescript-eslint', // Let's us override rules below.
-    'prettier'
+    'prettier',
   ],
   rules: {
     'prettier/prettier': 'error',

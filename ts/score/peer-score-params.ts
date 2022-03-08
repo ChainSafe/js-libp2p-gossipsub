@@ -1,7 +1,7 @@
 import { ERR_INVALID_PEER_SCORE_PARAMS } from './constants'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import errcode = require('err-code')
+import errcode from 'err-code'
 
 // This file defines PeerScoreParams and TopicScoreParams interfaces
 // as well as constructors, default constructors, and validation functions
@@ -204,7 +204,7 @@ export function validatePeerScoreParams(p: PeerScoreParams): void {
       validateTopicScoreParams(params)
     } catch (e) {
       throw errcode(
-        new Error(`invalid score parameters for topic ${topic}: ${e.message}`),
+        new Error(`invalid score parameters for topic ${topic}: ${(e as Error).message}`),
         ERR_INVALID_PEER_SCORE_PARAMS
       )
     }

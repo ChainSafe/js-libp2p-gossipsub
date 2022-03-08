@@ -34,12 +34,13 @@ export function computeScore(
     topicScore += p2 * topicParams.firstMessageDeliveriesWeight
 
     // P3: mesh message deliveries
-    if (tstats.meshMessageDeliveriesActive) {
-      if (tstats.meshMessageDeliveries < topicParams.meshMessageDeliveriesThreshold) {
-        const deficit = topicParams.meshMessageDeliveriesThreshold - tstats.meshMessageDeliveries
-        const p3 = deficit * deficit
-        topicScore += p3 * topicParams.meshMessageDeliveriesWeight
-      }
+    if (
+      tstats.meshMessageDeliveriesActive &&
+      tstats.meshMessageDeliveries < topicParams.meshMessageDeliveriesThreshold
+    ) {
+      const deficit = topicParams.meshMessageDeliveriesThreshold - tstats.meshMessageDeliveries
+      const p3 = deficit * deficit
+      topicScore += p3 * topicParams.meshMessageDeliveriesWeight
     }
 
     // P3b:

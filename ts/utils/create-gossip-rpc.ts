@@ -5,16 +5,15 @@ import { RPC, IRPC } from '../message/rpc'
 /**
  * Create a gossipsub RPC object
  */
-export function createGossipRpc(msgs: RPC.IMessage[] = [], control: Partial<RPC.IControlMessage> = {}): IRPC {
+export function createGossipRpc(messages: RPC.IMessage[] = [], control: Partial<RPC.IControlMessage> = {}): IRPC {
   return {
     subscriptions: [],
-    msgs: msgs,
+    messages,
     control: {
-      ihave: [],
-      iwant: [],
-      graft: [],
-      prune: [],
-      ...control
+      ihave: control.ihave ?? [],
+      iwant: control.iwant ?? [],
+      graft: control.graft ?? [],
+      prune: control.prune ?? []
     }
   }
 }

@@ -37,13 +37,13 @@ describe('gossip', () => {
     await Promise.all(nodes.map((n) => new Promise((resolve) => n.once('gossipsub:heartbeat', resolve))))
     await delay(500)
     // set spy
-    sinon.spy(nodeA, '_pushGossip')
+    sinon.spy(nodeA, 'pushGossip')
 
     await nodeA.publish(topic, uint8ArrayFromString('hey'))
 
     await new Promise((resolve) => nodeA.once('gossipsub:heartbeat', resolve))
 
-    nodeA._pushGossip
+    nodeA.pushGossip
       .getCalls()
       .map((call) => call.args[0])
       .forEach((peerId) => {
@@ -53,7 +53,7 @@ describe('gossip', () => {
       })
 
     // unset spy
-    nodeA._pushGossip.restore()
+    nodeA.pushGossip.restore()
   })
 
   it('should send piggyback control into other sent messages', async function () {
@@ -76,7 +76,7 @@ describe('gossip', () => {
     const nodeB = nodes.find((n) => n.peerId.toB58String() === peerB)
 
     // set spy
-    sinon.spy(nodeA, '_piggybackControl')
+    sinon.spy(nodeA, 'piggybackControl')
 
     // manually add control message to be sent to peerB
     const graft = { graft: [{ topicID: topic }] }
@@ -84,12 +84,12 @@ describe('gossip', () => {
 
     await nodeA.publish(topic, uint8ArrayFromString('hey'))
 
-    expect(nodeA._piggybackControl.callCount).to.be.equal(1)
+    expect(nodeA.piggybackControl.callCount).to.be.equal(1)
     // expect control message to be sent alongside published message
-    const call = nodeA._piggybackControl.getCalls()[0]
+    const call = nodeA.piggybackControl.getCalls()[0]
     expect(call.args[2].graft).to.deep.equal(graft.graft)
 
     // unset spy
-    nodeA._piggybackControl.restore()
+    nodeA.piggybackControl.restore()
   })
 })
