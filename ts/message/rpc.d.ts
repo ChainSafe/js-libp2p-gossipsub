@@ -158,8 +158,8 @@ export namespace RPC {
         /** Message seqno */
         seqno?: (Uint8Array|null);
 
-        /** Message topicIDs */
-        topicIDs?: (string[]|null);
+        /** Message topic */
+        topic: string;
 
         /** Message signature */
         signature?: (Uint8Array|null);
@@ -186,8 +186,8 @@ export namespace RPC {
         /** Message seqno. */
         public seqno?: (Uint8Array|null);
 
-        /** Message topicIDs. */
-        public topicIDs: string[];
+        /** Message topic. */
+        public topic: string;
 
         /** Message signature. */
         public signature?: (Uint8Array|null);
