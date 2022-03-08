@@ -8,7 +8,7 @@ import { RPC, IRPC } from '../message/rpc'
  * @param {Partial<RPC.IControlMessage>} control
  * @returns {IRPC}
  */
-export function createGossipRpc (msgs: RPC.IMessage[] = [], control: Partial<RPC.IControlMessage> = {}): IRPC {
+export function createGossipRpc(msgs: RPC.IMessage[] = [], control: Partial<RPC.IControlMessage> = {}): IRPC {
   return {
     subscriptions: [],
     msgs: msgs,
@@ -17,7 +17,7 @@ export function createGossipRpc (msgs: RPC.IMessage[] = [], control: Partial<RPC
       iwant: [],
       graft: [],
       prune: [],
-      ...control
-    }
+      ...control,
+    },
   }
 }

@@ -8,7 +8,7 @@
  * @param {Array} arr
  * @returns {Array}
  */
-export function shuffle<T> (arr: T[]): T[] {
+export function shuffle<T>(arr: T[]): T[] {
   if (arr.length <= 1) {
     return arr
   }

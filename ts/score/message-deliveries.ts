@@ -17,7 +17,7 @@ export enum DeliveryRecordStatus {
   /**
    * we were instructed by the validator to ignore the message
    */
-  ignored
+  ignored,
 }
 
 export interface DeliveryRecord {
@@ -41,12 +41,12 @@ export class MessageDeliveries {
   private records: Map<string, DeliveryRecord>
   private queue: Denque<DeliveryQueueEntry>
 
-  constructor () {
+  constructor() {
     this.records = new Map()
     this.queue = new Denque()
   }
 
-  ensureRecord (msgIdStr: string): DeliveryRecord {
+  ensureRecord(msgIdStr: string): DeliveryRecord {
     let drec = this.records.get(msgIdStr)
     if (drec) {
       return drec
@@ -58,21 +58,21 @@ export class MessageDeliveries {
       status: DeliveryRecordStatus.unknown,
       firstSeen: Date.now(),
       validated: 0,
-      peers: new Set()
+      peers: new Set(),
     }
     this.records.set(msgIdStr, drec)
 
     // and add msgId to the queue
     const entry: DeliveryQueueEntry = {
       msgId: msgIdStr,
-      expire: Date.now() + TimeCacheDuration
+      expire: Date.now() + TimeCacheDuration,
     }
     this.queue.push(entry)
 
     return drec
   }
 
-  gc (): void {
+  gc(): void {
     const now = Date.now()
     // queue is sorted by expiry time
     // remove expired messages, remove from queue until first un-expired message found
@@ -84,7 +84,7 @@ export class MessageDeliveries {
     }
   }
 
-  clear (): void {
+  clear(): void {
     this.records.clear()
     this.queue.clear()
   }

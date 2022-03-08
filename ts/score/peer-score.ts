@@ -9,10 +9,7 @@ import { InMessage } from 'libp2p-interfaces/src/pubsub'
 import debug = require('debug')
 import pubsubErrors = require('libp2p-interfaces/src/pubsub/errors')
 
-const {
-  ERR_INVALID_SIGNATURE,
-  ERR_MISSING_SIGNATURE
-} = pubsubErrors.codes
+const { ERR_INVALID_SIGNATURE, ERR_MISSING_SIGNATURE } = pubsubErrors.codes
 
 const log = debug('libp2p:gossipsub:score')
 
@@ -47,7 +44,7 @@ export class PeerScore {
   _connectionManager: ConnectionManager
   _backgroundInterval?: NodeJS.Timeout
 
-  constructor (params: PeerScoreParams, connectionManager: ConnectionManager) {
+  constructor(params: PeerScoreParams, connectionManager: ConnectionManager) {
     validatePeerScoreParams(params)
     this.params = params
     this._connectionManager = connectionManager
@@ -61,7 +58,7 @@ export class PeerScore {
    * Start PeerScore instance
    * @returns {void}
    */
-  start (): void {
+  start(): void {
     if (this._backgroundInterval) {
       log('Peer score already running')
       return
@@ -74,7 +71,7 @@ export class PeerScore {
    * Stop PeerScore instance
    * @returns {void}
    */
-  stop (): void {
+  stop(): void {
     if (!this._backgroundInterval) {
       log('Peer score already stopped')
       return
@@ -91,7 +88,7 @@ export class PeerScore {
    * Periodic maintenance
    * @returns {void}
    */
-  background (): void {
+  background(): void {
     this._refreshScores()
     this._updateIPs()
     this.deliveryRecords.gc()
@@ -101,7 +98,7 @@ export class PeerScore {
    * Decays scores, and purges score records for disconnected peers once their expiry has elapsed.
    * @returns {void}
    */
-  _refreshScores (): void {
+  _refreshScores(): void {
     const now = Date.now()
     const decayToZero = this.params.decayToZero
 
@@ -169,7 +166,7 @@ export class PeerScore {
    * @param {string} id
    * @returns {Number}
    */
-  score (id: string): number {
+  score(id: string): number {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return 0
@@ -197,7 +194,7 @@ export class PeerScore {
    * @param {Number} penalty
    * @returns {void}
    */
-  addPenalty (id: string, penalty: number): void {
+  addPenalty(id: string, penalty: number): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -210,11 +207,11 @@ export class PeerScore {
    * @param {string} id
    * @returns {void}
    */
-  addPeer (id: string): void {
+  addPeer(id: string): void {
     // create peer stats (not including topic stats for each topic to be scored)
     // topic stats will be added as needed
     const pstats = createPeerStats({
-      connected: true
+      connected: true,
     })
     this.peerStats.set(id, pstats)
 
@@ -228,7 +225,7 @@ export class PeerScore {
    * @param {string} id
    * @returns {void}
    */
-  removePeer (id: string): void {
+  removePeer(id: string): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -268,7 +265,7 @@ export class PeerScore {
    * @param {String} topic
    * @returns {void}
    */
-  graft (id: string, topic: string): void {
+  graft(id: string, topic: string): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -291,7 +288,7 @@ export class PeerScore {
    * @param {string} topic
    * @returns {void}
    */
-  prune (id: string, topic: string): void {
+  prune(id: string, topic: string): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -316,7 +313,7 @@ export class PeerScore {
    * @param {InMessage} message
    * @returns {Promise<void>}
    */
-  async validateMessage (msgIdStr: string): Promise<void> {
+  async validateMessage(msgIdStr: string): Promise<void> {
     this.deliveryRecords.ensureRecord(msgIdStr)
   }
 
@@ -324,7 +321,7 @@ export class PeerScore {
    * @param {InMessage} msg
    * @returns {Promise<void>}
    */
-  async deliverMessage (msg: InMessage, msgIdStr: string): Promise<void> {
+  async deliverMessage(msg: InMessage, msgIdStr: string): Promise<void> {
     const id = msg.receivedFrom
     this._markFirstMessageDelivery(id, msg)
 
@@ -335,7 +332,9 @@ export class PeerScore {
     if (drec.status !== DeliveryRecordStatus.unknown) {
       log(
         'unexpected delivery: message from %s was first seen %s ago and has delivery status %d',
-        id, now - drec.firstSeen, DeliveryRecordStatus[drec.status]
+        id,
+        now - drec.firstSeen,
+        DeliveryRecordStatus[drec.status]
       )
       return
     }
@@ -343,7 +342,7 @@ export class PeerScore {
     // mark the message as valid and reward mesh peers that have already forwarded it to us
     drec.status = DeliveryRecordStatus.valid
     drec.validated = now
-    drec.peers.forEach(p => {
+    drec.peers.forEach((p) => {
       // this check is to make sure a peer can't send us a message twice and get a double count
       // if it is a first delivery.
       if (p !== id) {
@@ -357,7 +356,7 @@ export class PeerScore {
    * @param {string} reason
    * @returns {Promise<void>}
    */
-  async rejectMessage (msg: InMessage, msgIdStr: string, reason: string): Promise<void> {
+  async rejectMessage(msg: InMessage, msgIdStr: string, reason: string): Promise<void> {
     const id = msg.receivedFrom
     switch (reason) {
       case ERR_MISSING_SIGNATURE:
@@ -372,7 +371,9 @@ export class PeerScore {
     if (drec.status !== DeliveryRecordStatus.unknown) {
       log(
         'unexpected rejection: message from %s was first seen %s ago and has delivery status %d',
-        id, Date.now() - drec.firstSeen, DeliveryRecordStatus[drec.status]
+        id,
+        Date.now() - drec.firstSeen,
+        DeliveryRecordStatus[drec.status]
       )
       return
     }
@@ -388,7 +389,7 @@ export class PeerScore {
     drec.status = DeliveryRecordStatus.invalid
 
     this._markInvalidMessageDelivery(id, msg)
-    drec.peers.forEach(p => {
+    drec.peers.forEach((p) => {
       this._markInvalidMessageDelivery(p, msg)
     })
   }
@@ -397,7 +398,7 @@ export class PeerScore {
    * @param {InMessage} msg
    * @returns {Promise<void>}
    */
-  async duplicateMessage (msg: InMessage, msgIdStr: string): Promise<void> {
+  async duplicateMessage(msg: InMessage, msgIdStr: string): Promise<void> {
     const id = msg.receivedFrom
     const drec = this.deliveryRecords.ensureRecord(msgIdStr)
 
@@ -430,13 +431,13 @@ export class PeerScore {
    * @param {InMessage} msg
    * @returns {void}
    */
-  _markInvalidMessageDelivery (id: string, msg: InMessage): void {
+  _markInvalidMessageDelivery(id: string, msg: InMessage): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
     }
 
-    msg.topicIDs.forEach(topic => {
+    msg.topicIDs.forEach((topic) => {
       const tstats = ensureTopicStats(topic, pstats, this.params)
       if (!tstats) {
         return
@@ -454,13 +455,13 @@ export class PeerScore {
    * @param {InMessage} msg
    * @returns {void}
    */
-  _markFirstMessageDelivery (id: string, msg: InMessage): void {
+  _markFirstMessageDelivery(id: string, msg: InMessage): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
     }
 
-    msg.topicIDs.forEach(topic => {
+    msg.topicIDs.forEach((topic) => {
       const tstats = ensureTopicStats(topic, pstats, this.params)
       if (!tstats) {
         return
@@ -493,7 +494,7 @@ export class PeerScore {
    * @param {number} validatedTime
    * @returns {void}
    */
-  _markDuplicateMessageDelivery (id: string, msg: InMessage, validatedTime = 0): void {
+  _markDuplicateMessageDelivery(id: string, msg: InMessage, validatedTime = 0): void {
     const pstats = this.peerStats.get(id)
     if (!pstats) {
       return
@@ -501,7 +502,7 @@ export class PeerScore {
 
     const now = validatedTime ? Date.now() : 0
 
-    msg.topicIDs.forEach(topic => {
+    msg.topicIDs.forEach((topic) => {
       const tstats = ensureTopicStats(topic, pstats, this.params)
       if (!tstats) {
         return
@@ -534,9 +535,8 @@ export class PeerScore {
    * @param {string} id
    * @returns {Array<string>}
    */
-  _getIPs (id: string): string[] {
-    return this._connectionManager.getAll(PeerId.createFromB58String(id))
-      .map(c => c.remoteAddr.toOptions().host)
+  _getIPs(id: string): string[] {
+    return this._connectionManager.getAll(PeerId.createFromB58String(id)).map((c) => c.remoteAddr.toOptions().host)
   }
 
   /**
@@ -546,11 +546,10 @@ export class PeerScore {
    * @param {Array<string>} oldIPs
    * @returns {void}
    */
-  _setIPs (id: string, newIPs: string[], oldIPs: string[]): void {
+  _setIPs(id: string, newIPs: string[], oldIPs: string[]): void {
     // add the new IPs to the tracking
     // eslint-disable-next-line no-labels
-    addNewIPs:
-    for (const ip of newIPs) {
+    addNewIPs: for (const ip of newIPs) {
       // check if it is in the old ips list
       for (const xip of oldIPs) {
         if (ip === xip) {
@@ -568,8 +567,7 @@ export class PeerScore {
     }
     // remove the obsolete old IPs from the tracking
     // eslint-disable-next-line no-labels
-    removeOldIPs:
-    for (const ip of oldIPs) {
+    removeOldIPs: for (const ip of oldIPs) {
       // check if it is in the new ips list
       for (const xip of newIPs) {
         if (ip === xip) {
@@ -597,8 +595,8 @@ export class PeerScore {
    * @param {Array<string>} ips
    * @returns {void}
    */
-  _removeIPs (id: string, ips: string[]): void {
-    ips.forEach(ip => {
+  _removeIPs(id: string, ips: string[]): void {
+    ips.forEach((ip) => {
       const peers = this.peerIPs.get(ip)
       if (!peers) {
         return
@@ -617,7 +615,7 @@ export class PeerScore {
    * Update all peer IPs to currently open connections
    * @returns {void}
    */
-  _updateIPs (): void {
+  _updateIPs(): void {
     this.peerStats.forEach((pstats, id) => {
       const newIPs = this._getIPs(id)
       this._setIPs(id, newIPs, pstats.ips)

@@ -7,5 +7,5 @@ export interface AddrInfo {
   addrs: Multiaddr[]
 }
 
-export type MessageIdFunction = (msg: InMessage) => Promise<Uint8Array> | Uint8Array;
-export type MessageIdStrFunction = (msg: InMessage) => Promise<string>;
+export type MessageIdFunction = (msg: InMessage) => Promise<Uint8Array> | Uint8Array
+export type MessageIdStrFunction = (msg: InMessage) => Promise<string>

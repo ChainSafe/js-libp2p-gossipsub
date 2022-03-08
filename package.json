@@ -51,8 +51,8 @@
     "uint8arrays": "^3.0.0"
   },
   "devDependencies": {
-    "@chainsafe/libp2p-noise": "^4.1.1",
     "@chainsafe/as-sha256": "^0.2.4",
+    "@chainsafe/libp2p-noise": "^4.1.1",
     "@dapplion/benchmark": "^0.1.6",
     "@types/chai": "^4.2.3",
     "@types/mocha": "^8.2.2",
@@ -69,6 +69,7 @@
     "eslint-config-standard": "^14.1.1",
     "eslint-plugin-import": "^2.20.2",
     "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
     "it-pair": "^1.0.0",
@@ -83,6 +84,7 @@
     "p-retry": "^4.2.0",
     "p-times": "^2.1.0",
     "p-wait-for": "^3.1.0",
+    "prettier": "^2.0.5",
     "promisify-es6": "^1.0.3",
     "sinon": "^11.1.1",
     "time-cache": "^0.3.0",

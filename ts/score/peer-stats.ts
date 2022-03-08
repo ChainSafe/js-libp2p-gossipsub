@@ -70,7 +70,7 @@ export interface TopicStats {
   invalidMessageDeliveries: number
 }
 
-export function createPeerStats (ps: Partial<PeerStats> = {}): PeerStats {
+export function createPeerStats(ps: Partial<PeerStats> = {}): PeerStats {
   return {
     connected: false,
     expire: 0,
@@ -78,16 +78,15 @@ export function createPeerStats (ps: Partial<PeerStats> = {}): PeerStats {
     behaviourPenalty: 0,
     ...ps,
     topics: ps.topics
-      ? Object.entries(ps.topics)
-        .reduce((topics, [topic, topicStats]) => {
+      ? Object.entries(ps.topics).reduce((topics, [topic, topicStats]) => {
           topics[topic] = createTopicStats(topicStats)
           return topics
         }, {} as Record<string, TopicStats>)
-      : {}
+      : {},
   }
 }
 
-export function createTopicStats (ts: Partial<TopicStats> = {}): TopicStats {
+export function createTopicStats(ts: Partial<TopicStats> = {}): TopicStats {
   return {
     inMesh: false,
     graftTime: 0,
@@ -97,11 +96,11 @@ export function createTopicStats (ts: Partial<TopicStats> = {}): TopicStats {
     meshMessageDeliveriesActive: false,
     meshFailurePenalty: 0,
     invalidMessageDeliveries: 0,
-    ...ts
+    ...ts,
   }
 }
 
-export function ensureTopicStats (topic: string, ps: PeerStats, params: PeerScoreParams): TopicStats | undefined {
+export function ensureTopicStats(topic: string, ps: PeerStats, params: PeerScoreParams): TopicStats | undefined {
   let ts = ps.topics[topic]
   if (ts) {
     return ts

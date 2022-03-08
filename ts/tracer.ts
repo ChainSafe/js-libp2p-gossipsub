@@ -2,10 +2,7 @@ import { GossipsubIWantFollowupTime } from './constants'
 import { messageIdToString } from './utils'
 import pubsubErrors = require('libp2p-interfaces/src/pubsub/errors')
 
-const {
-  ERR_INVALID_SIGNATURE,
-  ERR_MISSING_SIGNATURE
-} = pubsubErrors.codes
+const { ERR_INVALID_SIGNATURE, ERR_MISSING_SIGNATURE } = pubsubErrors.codes
 
 /**
  * IWantTracer is an internal tracer that tracks IWANT requests in order to penalize
@@ -21,7 +18,7 @@ export class IWantTracer {
    * Map per message id, per peer, promise expiration time
    */
   promises: Map<string, Map<string, number>>
-  constructor () {
+  constructor() {
     this.promises = new Map()
   }
 
@@ -31,7 +28,7 @@ export class IWantTracer {
    * @param {string[]} msgIds
    * @returns {void}
    */
-  addPromise (p: string, msgIds: Uint8Array[]): void {
+  addPromise(p: string, msgIds: Uint8Array[]): void {
     // pick msgId randomly from the list
     const ix = Math.floor(Math.random() * msgIds.length)
     const msgId = msgIds[ix]
@@ -52,7 +49,7 @@ export class IWantTracer {
    * Returns the number of broken promises for each peer who didn't follow up on an IWANT request.
    * @returns {Map<string, number>}
    */
-  getBrokenPromises (): Map<string, number> {
+  getBrokenPromises(): Map<string, number> {
     const now = Date.now()
     const result = new Map<string, number>()
 
@@ -80,7 +77,7 @@ export class IWantTracer {
    * @param {string} msgIdStr
    * @returns {Promise<void>}
    */
-  async deliverMessage (msgIdStr: string): Promise<void> {
+  async deliverMessage(msgIdStr: string): Promise<void> {
     this.promises.delete(msgIdStr)
   }
 
@@ -91,7 +88,7 @@ export class IWantTracer {
    * @param {string} reason
    * @returns {Promise<void>}
    */
-  async rejectMessage (msgIdStr: string, reason: string): Promise<void> {
+  async rejectMessage(msgIdStr: string, reason: string): Promise<void> {
     switch (reason) {
       case ERR_INVALID_SIGNATURE:
       case ERR_MISSING_SIGNATURE:
@@ -101,7 +98,7 @@ export class IWantTracer {
     this.promises.delete(msgIdStr)
   }
 
-  clear (): void {
+  clear(): void {
     this.promises.clear()
   }
 }

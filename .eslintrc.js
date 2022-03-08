@@ -10,9 +10,11 @@ module.exports = {
     'standard' // Out of the box StandardJS rules
   ],
   'plugins': [
-    '@typescript-eslint' // Let's us override rules below.
+    '@typescript-eslint', // Let's us override rules below.
+    'prettier'
   ],
   'rules': {
+    'prettier/prettier': 'error',
     '@typescript-eslint/member-delimiter-style': ['error', { // Prevents us from using any delimiter for interface properties.
       'multiline': {
         'delimiter': 'none',
@@ -26,6 +28,9 @@ module.exports = {
     '@typescript-eslint/indent': 'off', // This is the job of StandardJS, they are competing rules so we turn off the Typescript one.
     'node/no-unsupported-features/es-syntax': 'off', // Allows us to use Import and Export keywords.
     '@typescript-eslint/no-non-null-assertion': 'off',
-    'no-mixed-operators': 'off'
+    'no-mixed-operators': 'off',
+    'space-before-function-paren': 'off',
+    'comma-dangle': 'off',
+    'indent': 'off'
   }
 }
