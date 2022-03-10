@@ -11,6 +11,9 @@ export class Heartbeat {
     cancel(): void
   } | null
 
+  // TODO: Bump eslint, since current version complains with 'no-useless-constructor'
+  // When this constructor is necessary to declare private arg gossipsub
+  // eslint-disable-next-line no-useless-constructor
   constructor(private readonly gossipsub: Gossipsub) {}
 
   start(): void {
