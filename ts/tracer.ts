@@ -17,16 +17,10 @@ export class IWantTracer {
    * Promises to deliver a message
    * Map per message id, per peer, promise expiration time
    */
-  promises: Map<string, Map<string, number>>
-  constructor() {
-    this.promises = new Map()
-  }
+  promises = new Map<string, Map<string, number>>()
 
   /**
    * Track a promise to deliver a message from a list of msgIds we are requesting
-   * @param {string} p peer id
-   * @param {string[]} msgIds
-   * @returns {void}
    */
   addPromise(p: string, msgIds: Uint8Array[]): void {
     // pick msgId randomly from the list
@@ -47,7 +41,6 @@ export class IWantTracer {
 
   /**
    * Returns the number of broken promises for each peer who didn't follow up on an IWANT request.
-   * @returns {Map<string, number>}
    */
   getBrokenPromises(): Map<string, number> {
     const now = Date.now()
@@ -74,8 +67,6 @@ export class IWantTracer {
 
   /**
    * Someone delivered a message, stop tracking promises for it
-   * @param {string} msgIdStr
-   * @returns {Promise<void>}
    */
   async deliverMessage(msgIdStr: string): Promise<void> {
     this.promises.delete(msgIdStr)
@@ -84,9 +75,6 @@ export class IWantTracer {
   /**
    * A message got rejected, so we can stop tracking promises and let the score penalty apply from invalid message delivery,
    * unless its an obviously invalid message.
-   * @param {string} msgIdStr
-   * @param {string} reason
-   * @returns {Promise<void>}
    */
   async rejectMessage(msgIdStr: string, reason: string): Promise<void> {
     switch (reason) {

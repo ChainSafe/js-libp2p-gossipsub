@@ -5,20 +5,16 @@ import Gossipsub = require('./index')
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 
 export class Heartbeat {
-  gossipsub: Gossipsub
   _heartbeatTimer: {
     _intervalId: NodeJS.Timeout | undefined
     runPeriodically(fn: () => void, period: number): void
     cancel(): void
   } | null
 
-  /**
-   * @param {Object} gossipsub
-   * @constructor
-   */
-  constructor(gossipsub: Gossipsub) {
-    this.gossipsub = gossipsub
-  }
+  // TODO: Bump eslint, since current version complains with 'no-useless-constructor'
+  // When this constructor is necessary to declare private arg gossipsub
+  // eslint-disable-next-line no-useless-constructor
+  constructor(private readonly gossipsub: Gossipsub) {}
 
   start(): void {
     if (this._heartbeatTimer) {
@@ -46,8 +42,6 @@ export class Heartbeat {
 
   /**
    * Unmounts the gossipsub protocol and shuts down every connection
-   * @override
-   * @returns {void}
    */
   stop(): void {
     if (!this._heartbeatTimer) {
@@ -60,8 +54,6 @@ export class Heartbeat {
 
   /**
    * Maintains the mesh and fanout maps in gossipsub.
-   *
-   * @returns {void}
    */
   _heartbeat(): void {
     const { D, Dlo, Dhi, Dscore, Dout, fanoutTTL } = this.gossipsub._options

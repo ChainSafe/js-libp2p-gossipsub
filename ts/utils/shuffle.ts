@@ -4,9 +4,6 @@
  * Pseudo-randomly shuffles an array
  *
  * Mutates the input array
- *
- * @param {Array} arr
- * @returns {Array}
  */
 export function shuffle<T>(arr: T[]): T[] {
   if (arr.length <= 1) {
