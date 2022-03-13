@@ -214,7 +214,7 @@ export const GossipsubIWantFollowupTime = 3 * second
 /**
  * Time in milliseconds to keep message ids in the seen cache
  */
-export const GossipsubSeenTTL = 30 * second
+export const GossipsubSeenTTL = 2 * minute
 
 export const TimeCacheDuration = 120 * 1000
 
