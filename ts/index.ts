@@ -1084,7 +1084,7 @@ class Gossipsub extends Pubsub {
         return
       }
 
-      if (this._options.floodPublish && msg.from === this.peerId.toB58String()) {
+      if (this._options.floodPublish && msg.receivedFrom === this.peerId.toB58String()) {
         // flood-publish behavior
         // send to direct peers and _all_ peers meeting the publishThreshold
         peersInTopic.forEach((id) => {
@@ -1146,7 +1146,7 @@ class Gossipsub extends Pubsub {
     // Publish messages to peers
     const rpc = createGossipRpc([utils.normalizeOutRpcMessage(msg)])
     tosend.forEach((id) => {
-      if (id === msg.from) {
+      if (id === msg.receivedFrom || id === msg.from) {
         return
       }
       this._sendRpc(id, rpc)
