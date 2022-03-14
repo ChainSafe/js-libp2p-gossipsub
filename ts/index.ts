@@ -1122,7 +1122,7 @@ class Gossipsub extends Pubsub {
     // Publish messages to peers
     const rpc = createGossipRpc([utils.normalizeOutRpcMessage(msg)])
     tosend.forEach((id) => {
-      if (id === msg.receivedFrom) {
+      if (id === msg.receivedFrom || id === msg.from) {
         return
       }
       this._sendRpc(id, rpc)
