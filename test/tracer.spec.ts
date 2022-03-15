@@ -16,7 +16,7 @@ describe('IWantTracer', () => {
     const msgIds = []
     for (let i = 0; i < 100; i++) {
       const m = makeTestMessage(i)
-      m.from = uint8ArrayFromString(peerA)
+      m.from = peerA
       msgIds.push(getMsgId(m))
     }
 
@@ -46,7 +46,7 @@ describe('IWantTracer', () => {
     const msgIds = []
     for (let i = 0; i < 100; i++) {
       const m = makeTestMessage(i)
-      m.from = uint8ArrayFromString(peerA)
+      m.from = peerA
       msgs.push(m)
       msgIds.push(getMsgId(m))
     }

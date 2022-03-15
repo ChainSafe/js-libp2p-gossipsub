@@ -4,7 +4,7 @@ import sinon from 'sinon'
 
 describe('SimpleTimeCache', () => {
   const validityMs = 1000
-  const timeCache = new SimpleTimeCache({ validityMs })
+  const timeCache = new SimpleTimeCache<void>({ validityMs })
   const sandbox = sinon.createSandbox()
 
   beforeEach(() => {

@@ -29,7 +29,7 @@ import {
 
 export const multicodec: string = constants.GossipsubIDv11
 
-interface GossipInputOptions {
+export interface GossipInputOptions {
   emitSelf: boolean
   canRelayMessage: boolean
   gossipIncoming: boolean

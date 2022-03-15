@@ -1,15 +1,15 @@
-/* eslint-env mocha */
-/* eslint-disable no-unused-expressions */
-'use strict'
-
 import chai from 'chai'
+// @ts-ignore
 import dirtyChai from 'dirty-chai'
+// @ts-ignore
 import chaiSpies from 'chai-spies'
 import { messageIdToString } from '../ts/utils/messageIdToString'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { MessageCache } from '../ts/message-cache'
-import { utils } from 'libp2p-interfaces/src/pubsub'
+import { InMessage, utils } from 'libp2p-interfaces/src/pubsub'
 import { getMsgId } from './utils'
+
+/* eslint-disable no-unused-expressions */
 
 chai.use(dirtyChai)
 chai.use(chaiSpies)
@@ -17,11 +17,12 @@ const expect = chai.expect
 
 describe('Testing Message Cache Operations', () => {
   const messageCache = new MessageCache(3, 5)
-  const testMessages = []
+  const testMessages: InMessage[] = []
 
   before(async () => {
-    const makeTestMessage = (n) => {
+    const makeTestMessage = (n: number): InMessage => {
       return {
+        receivedFrom: '',
         from: 'test',
         data: uint8ArrayFromString(n.toString()),
         seqno: utils.randomSeqno(),

@@ -2,16 +2,19 @@ import chai from 'chai'
 import delay from 'delay'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import PeerId from 'peer-id'
+import FloodSub from 'libp2p-floodsub'
 import Gossipsub from '../ts'
 import { createPeer, createFloodsubNode, expectSet, first, startNode, stopNode } from './utils'
+import { RPC } from '../ts/message/rpc'
+import { InMessage } from 'libp2p-interfaces/src/pubsub'
 
 const expect = chai.expect
 chai.use(require('dirty-chai'))
 
 describe('gossipsub fallbacks to floodsub', () => {
   describe('basics', () => {
-    let nodeGs
-    let nodeFs
+    let nodeGs: Gossipsub
+    let nodeFs: FloodSub
 
     beforeEach(async () => {
       nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
@@ -34,8 +37,8 @@ describe('gossipsub fallbacks to floodsub', () => {
   })
 
   describe('should not be added if fallback disabled', () => {
-    let nodeGs
-    let nodeFs
+    let nodeGs: Gossipsub
+    let nodeFs: FloodSub
 
     before(async () => {
       nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: false })
@@ -61,8 +64,8 @@ describe('gossipsub fallbacks to floodsub', () => {
   })
 
   describe('subscription functionality', () => {
-    let nodeGs
-    let nodeFs
+    let nodeGs: Gossipsub
+    let nodeFs: FloodSub
 
     before(async () => {
       nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
@@ -85,8 +88,8 @@ describe('gossipsub fallbacks to floodsub', () => {
       nodeFs.subscribe(topic)
 
       // await subscription change
-      const [changedPeerId, changedSubs] = await new Promise((resolve) => {
-        nodeGs.once('pubsub:subscription-change', (...args) => resolve(args))
+      const [changedPeerId, changedSubs] = await new Promise<[PeerId, RPC.ISubOpts[]]>((resolve) => {
+        nodeGs.once('pubsub:subscription-change', resolve)
       })
       await delay(1000)
 
@@ -105,8 +108,8 @@ describe('gossipsub fallbacks to floodsub', () => {
   })
 
   describe('publish functionality', () => {
-    let nodeGs
-    let nodeFs
+    let nodeGs: Gossipsub
+    let nodeFs: FloodSub
     const topic = 'Z'
 
     beforeEach(async () => {
@@ -132,12 +135,12 @@ describe('gossipsub fallbacks to floodsub', () => {
       await Promise.all([stopNode(nodeGs), stopNode(nodeFs)])
     })
 
-    it('Publish to a topic - nodeGs', async () => {
+    it('Publish to a topic - nodeGs', async (done) => {
       const shouldNotHappen = () => {
         done(new Error('Should not be here'))
       }
 
-      const promise = new Promise((resolve) => nodeFs.once(topic, resolve))
+      const promise = new Promise<InMessage>((resolve) => nodeFs.once(topic, resolve))
       nodeGs.once(topic, (m) => shouldNotHappen)
 
       nodeGs.publish(topic, uint8ArrayFromString('hey'))
@@ -150,7 +153,7 @@ describe('gossipsub fallbacks to floodsub', () => {
     })
 
     it('Publish to a topic - nodeFs', async () => {
-      const promise = new Promise((resolve) => nodeGs.once(topic, resolve))
+      const promise = new Promise<InMessage>((resolve) => nodeGs.once(topic, resolve))
 
       nodeFs.publish(topic, uint8ArrayFromString('banana'))
 
@@ -162,8 +165,8 @@ describe('gossipsub fallbacks to floodsub', () => {
   })
 
   describe('publish after unsubscribe', () => {
-    let nodeGs
-    let nodeFs
+    let nodeGs: Gossipsub
+    let nodeFs: FloodSub
     const topic = 'Z'
 
     beforeEach(async () => {
@@ -195,8 +198,8 @@ describe('gossipsub fallbacks to floodsub', () => {
       nodeGs.unsubscribe(topic)
       expect(nodeGs.subscriptions.size).to.equal(0)
 
-      const [changedPeerId, changedSubs] = await new Promise((resolve) => {
-        nodeFs.once('pubsub:subscription-change', (...args) => resolve(args))
+      const [changedPeerId, changedSubs] = await new Promise<[PeerId, RPC.ISubOpts[]]>((resolve) => {
+        nodeFs.once('pubsub:subscription-change', resolve)
       })
 
       expect(nodeFs.peers.size).to.equal(1)
@@ -211,7 +214,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       nodeGs.unsubscribe(topic)
       await new Promise((resolve) => nodeFs.once('pubsub:subscription-change', resolve))
 
-      const promise = new Promise((resolve, reject) => {
+      const promise = new Promise<void>((resolve, reject) => {
         nodeGs.once(topic, reject)
         setTimeout(() => {
           nodeGs.removeListener(topic, reject)

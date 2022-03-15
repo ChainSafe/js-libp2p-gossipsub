@@ -3,8 +3,8 @@
   "compilerOptions": {
     "outDir": "./src",
     "module": "commonjs",
-    "lib": ["es6", "dom"],
-    "target": "es6",
+    "lib": ["es2020", "dom"],
+    "target": "es2020",
     "noImplicitAny": true,
     "noImplicitThis": true,
     "strictFunctionTypes": true,
@@ -12,6 +12,6 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "declaration": true,
-    "types": ["node"]
+    "types": ["node", "mocha"]
   }
 }

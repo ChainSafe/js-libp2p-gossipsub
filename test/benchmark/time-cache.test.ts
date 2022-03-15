@@ -1,6 +1,6 @@
 import { itBench, setBenchOpts } from '@dapplion/benchmark'
 import TimeCache from 'time-cache'
-import { SimpleTimeCache } from '../../src/utils/time-cache'
+import { SimpleTimeCache } from '../../ts/utils/time-cache'
 
 describe('npm TimeCache vs SimpleTimeCache', () => {
   setBenchOpts({

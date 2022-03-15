@@ -1,8 +1,10 @@
+'use strict'
+
 /**
  * These peer id / keypairs are used across tests to seed peers
  */
 
-export default [
+module.exports = [
   {
     id: 'QmNMMAqSxPetRS1cVMmutW5BCN1qQQyEr4u98kUvZjcfEw',
     privKey:

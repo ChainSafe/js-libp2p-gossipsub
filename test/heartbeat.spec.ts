@@ -7,7 +7,7 @@ import { GossipsubHeartbeatInterval } from '../ts/constants'
 import { createPeer, startNode, stopNode } from './utils'
 
 describe('heartbeat', () => {
-  let gossipsub
+  let gossipsub: Gossipsub
 
   before(async () => {
     gossipsub = new Gossipsub(await createPeer({ started: false }), { emitSelf: true })
