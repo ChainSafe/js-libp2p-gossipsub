@@ -9,10 +9,7 @@ const expect = chai.expect
 const delay = require('delay')
 const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
 
-const {
-  createConnectedGossipsubs,
-  stopNode
-} = require('./utils')
+const { createConnectedGossipsubs, stopNode } = require('./utils')
 
 const shouldNotHappen = (msg) => expect.fail()
 

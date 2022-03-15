@@ -44,13 +44,13 @@ export const defaultPeerScoreThresholds: PeerScoreThresholds = {
   publishThreshold: -50,
   graylistThreshold: -80,
   acceptPXThreshold: 10,
-  opportunisticGraftThreshold: 20,
+  opportunisticGraftThreshold: 20
 }
 
 export function createPeerScoreThresholds(p: Partial<PeerScoreThresholds> = {}): PeerScoreThresholds {
   return {
     ...defaultPeerScoreThresholds,
-    ...p,
+    ...p
   }
 }
 

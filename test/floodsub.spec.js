@@ -11,14 +11,7 @@ const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
 const PeerId = require('peer-id')
 
 const Gossipsub = require('../src')
-const {
-  createPeer,
-  createFloodsubNode,
-  expectSet,
-  first,
-  startNode,
-  stopNode
-} = require('./utils')
+const { createPeer, createFloodsubNode, expectSet, first, startNode, stopNode } = require('./utils')
 
 describe('gossipsub fallbacks to floodsub', () => {
   describe('basics', () => {
@@ -29,19 +22,13 @@ describe('gossipsub fallbacks to floodsub', () => {
       nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
       nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
-      await Promise.all([
-        startNode(nodeGs),
-        startNode(nodeFs)
-      ])
+      await Promise.all([startNode(nodeGs), startNode(nodeFs)])
       nodeGs._libp2p.peerStore.addressBook.set(nodeFs._libp2p.peerId, nodeFs._libp2p.multiaddrs)
     })
 
     afterEach(async function () {
       this.timeout(4000)
-      await Promise.all([
-        stopNode(nodeGs),
-        stopNode(nodeFs)
-      ])
+      await Promise.all([stopNode(nodeGs), stopNode(nodeFs)])
     })
 
     it('Dial event happened from nodeGs to nodeFs', async () => {
@@ -59,19 +46,13 @@ describe('gossipsub fallbacks to floodsub', () => {
       nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: false })
       nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
-      await Promise.all([
-        startNode(nodeGs),
-        startNode(nodeFs)
-      ])
+      await Promise.all([startNode(nodeGs), startNode(nodeFs)])
       nodeGs._libp2p.peerStore.addressBook.set(nodeFs._libp2p.peerId, nodeFs._libp2p.multiaddrs)
     })
 
     after(async function () {
       this.timeout(4000)
-      await Promise.all([
-        stopNode(nodeGs),
-        stopNode(nodeFs)
-      ])
+      await Promise.all([stopNode(nodeGs), stopNode(nodeFs)])
     })
 
     it('Dial event happened from nodeGs to nodeFs, but NodeGs does not support floodsub', async () => {
@@ -92,20 +73,14 @@ describe('gossipsub fallbacks to floodsub', () => {
       nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
       nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
-      await Promise.all([
-        startNode(nodeGs),
-        startNode(nodeFs)
-      ])
+      await Promise.all([startNode(nodeGs), startNode(nodeFs)])
       nodeGs._libp2p.peerStore.addressBook.set(nodeFs._libp2p.peerId, nodeFs._libp2p.multiaddrs)
       await nodeGs._libp2p.dialProtocol(nodeFs._libp2p.peerId, nodeGs.multicodecs)
     })
 
     after(async function () {
       this.timeout(4000)
-      await Promise.all([
-        stopNode(nodeGs),
-        stopNode(nodeFs)
-      ])
+      await Promise.all([stopNode(nodeGs), stopNode(nodeFs)])
     })
 
     it('Subscribe to a topic', async function () {
@@ -143,10 +118,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
       nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
-      await Promise.all([
-        startNode(nodeGs),
-        startNode(nodeFs)
-      ])
+      await Promise.all([startNode(nodeGs), startNode(nodeFs)])
       nodeGs._libp2p.peerStore.addressBook.set(nodeFs._libp2p.peerId, nodeFs._libp2p.multiaddrs)
       await nodeGs._libp2p.dialProtocol(nodeFs._libp2p.peerId, nodeGs.multicodecs)
 
@@ -162,10 +134,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
     afterEach(async function () {
       this.timeout(4000)
-      await Promise.all([
-        stopNode(nodeGs),
-        stopNode(nodeFs)
-      ])
+      await Promise.all([stopNode(nodeGs), stopNode(nodeFs)])
     })
 
     it('Publish to a topic - nodeGs', async () => {
@@ -206,10 +175,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
       nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
 
-      await Promise.all([
-        startNode(nodeGs),
-        startNode(nodeFs)
-      ])
+      await Promise.all([startNode(nodeGs), startNode(nodeFs)])
       nodeGs._libp2p.peerStore.addressBook.set(nodeFs._libp2p.peerId, nodeFs._libp2p.multiaddrs)
       await nodeGs._libp2p.dialProtocol(nodeFs._libp2p.peerId, nodeGs.multicodecs)
 
@@ -227,10 +193,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
     afterEach(async function () {
       this.timeout(4000)
-      await Promise.all([
-        stopNode(nodeGs),
-        stopNode(nodeFs)
-      ])
+      await Promise.all([stopNode(nodeGs), stopNode(nodeFs)])
     })
 
     it('Unsubscribe from a topic', async () => {

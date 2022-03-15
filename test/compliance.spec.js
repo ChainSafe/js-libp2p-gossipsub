@@ -30,8 +30,8 @@ describe('interface compliance', function () {
       return pubsubNodes
     },
     async teardown() {
-      await Promise.all(pubsubNodes.map(ps => ps.stop()))
-      peers.length && await Promise.all(peers.map(peer => peer.stop()))
+      await Promise.all(pubsubNodes.map((ps) => ps.stop()))
+      peers.length && (await Promise.all(peers.map((peer) => peer.stop())))
 
       peers = undefined
       pubsubNodes = []

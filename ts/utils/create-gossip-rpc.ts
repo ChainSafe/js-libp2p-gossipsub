@@ -14,7 +14,7 @@ export function createGossipRpc(msgs: RPC.IMessage[] = [], control: Partial<RPC.
       iwant: [],
       graft: [],
       prune: [],
-      ...control,
-    },
+      ...control
+    }
   }
 }

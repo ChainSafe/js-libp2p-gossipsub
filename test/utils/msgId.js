@@ -18,5 +18,5 @@ const fastMsgIdFn = (msg) => messageIdToString(SHA256.default.digest(msg.data))
 module.exports = {
   getMsgId,
   getMsgIdStr,
-  fastMsgIdFn,
+  fastMsgIdFn
 }

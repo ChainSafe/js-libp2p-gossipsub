@@ -10,13 +10,7 @@ const delay = require('delay')
 
 const { multicodec } = require('../src')
 
-const {
-  createGossipsubs,
-  createConnectedGossipsubs,
-  expectSet,
-  stopNode,
-  first
-} = require('./utils')
+const { createGossipsubs, createConnectedGossipsubs, expectSet, stopNode, first } = require('./utils')
 
 const shouldNotHappen = (msg) => expect.fail()
 
@@ -61,8 +55,8 @@ describe('2 nodes', () => {
 
       // await subscription change
       const [evt0] = await Promise.all([
-        new Promise(resolve => nodes[0].once('pubsub:subscription-change', (...args) => resolve(args))),
-        new Promise(resolve => nodes[1].once('pubsub:subscription-change', (...args) => resolve(args)))
+        new Promise((resolve) => nodes[0].once('pubsub:subscription-change', (...args) => resolve(args))),
+        new Promise((resolve) => nodes[1].once('pubsub:subscription-change', (...args) => resolve(args)))
       ])
 
       const [changedPeerId, changedSubs] = evt0
@@ -105,9 +99,7 @@ describe('2 nodes', () => {
       nodes[1].subscribe(topic)
 
       // await subscription change and heartbeat
-      await Promise.all(
-        nodes.map(n => new Promise(resolve => n.once('pubsub:subscription-change', resolve)))
-      )
+      await Promise.all(nodes.map((n) => new Promise((resolve) => n.once('pubsub:subscription-change', resolve))))
       await Promise.all([
         new Promise((resolve) => nodes[0].once('gossipsub:heartbeat', resolve)),
         new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
@@ -151,7 +143,7 @@ describe('2 nodes', () => {
 
       nodes[0].on(topic, receivedMsg)
 
-      function receivedMsg (msg) {
+      function receivedMsg(msg) {
         expect(msg.data.toString().startsWith('banana')).to.be.true
         expect(msg.from).to.be.eql(nodes[1].peerId.toB58String())
         expect(msg.seqno).to.be.a('Uint8Array')
@@ -290,7 +282,7 @@ describe('2 nodes', () => {
       nodes = await createConnectedGossipsubs({ number: 2 })
     })
 
-    it('nodes don\'t have peers after stopped', async () => {
+    it("nodes don't have peers after stopped", async () => {
       await Promise.all(nodes.map(stopNode))
       expect(nodes[0].peers.size).to.equal(0)
       expect(nodes[1].peers.size).to.equal(0)

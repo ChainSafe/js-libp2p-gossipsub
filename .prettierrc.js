@@ -4,8 +4,8 @@ module.exports = {
   useTabs: false,
   semi: false,
   singleQuote: true,
-  quoteProps: "as-needed",
-  trailingComma: "es5",
+  quoteProps: 'as-needed',
+  trailingComma: 'none',
   bracketSpacing: true,
-  arrowParens: "always",
-};
+  arrowParens: 'always'
+}

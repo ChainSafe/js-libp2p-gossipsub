@@ -5,11 +5,7 @@ const { expect } = require('chai')
 
 const Gossipsub = require('../src')
 const { GossipsubHeartbeatInterval } = require('../src/constants')
-const {
-  createPeer,
-  startNode,
-  stopNode
-} = require('./utils')
+const { createPeer, startNode, stopNode } = require('./utils')
 
 describe('heartbeat', () => {
   let gossipsub

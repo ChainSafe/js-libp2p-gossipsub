@@ -1,9 +1,7 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "lib": [
-      "es6", "dom"
-    ],
+    "lib": ["es6", "dom"],
     "target": "es6",
     "noImplicitAny": true,
     "noImplicitThis": true,
@@ -13,11 +11,7 @@
     "esModuleInterop": true,
     "outDir": "./src",
     "declaration": true,
-    "types": [
-      "node"
-    ]
+    "types": ["node"]
   },
-  "include": [
-    "./ts"
-  ]
+  "include": ["./ts"]
 }

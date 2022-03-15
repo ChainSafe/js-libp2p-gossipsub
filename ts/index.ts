@@ -9,7 +9,7 @@ import {
   PeerScoreParams,
   PeerScoreThresholds,
   createPeerScoreParams,
-  createPeerScoreThresholds,
+  createPeerScoreThresholds
 } from './score'
 import { IWantTracer } from './tracer'
 import { AddrInfo, MessageIdFunction } from './interfaces'
@@ -25,7 +25,7 @@ import Envelope = require('libp2p/src/record/envelope')
 import {
   ACCEPT_FROM_WHITELIST_DURATION_MS,
   ACCEPT_FROM_WHITELIST_MAX_MESSAGES,
-  ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE,
+  ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE
 } from './constants'
 
 interface GossipInputOptions {
@@ -264,7 +264,7 @@ class Gossipsub extends Pubsub {
       seenTTL: constants.GossipsubSeenTTL,
       ...options,
       scoreParams: createPeerScoreParams(options.scoreParams),
-      scoreThresholds: createPeerScoreThresholds(options.scoreThresholds),
+      scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
     } as GossipOptions
 
     // Also wants to get notified of peers connected using floodsub
@@ -276,7 +276,7 @@ class Gossipsub extends Pubsub {
       debugName: 'libp2p:gossipsub',
       multicodecs,
       libp2p,
-      ...opts,
+      ...opts
     })
 
     this._options = opts
@@ -475,7 +475,7 @@ class Gossipsub extends Pubsub {
       // after 128 messages or 1s
       this.acceptFromWhitelist.set(id, {
         messagesAccepted: 0,
-        acceptUntil: now + ACCEPT_FROM_WHITELIST_DURATION_MS,
+        acceptUntil: now + ACCEPT_FROM_WHITELIST_DURATION_MS
       })
     } else {
       this.acceptFromWhitelist.delete(id)
@@ -571,8 +571,8 @@ class Gossipsub extends Pubsub {
 
     return [
       {
-        messageIDs: iwantList,
-      },
+        messageIDs: iwantList
+      }
     ]
   }
 
@@ -916,7 +916,7 @@ class Gossipsub extends Pubsub {
         cancel: () => {
           clearTimeout(timeout)
           clearInterval(this._heartbeatTimer!._intervalId as NodeJS.Timeout)
-        },
+        }
       }
     }
   }
@@ -1159,8 +1159,8 @@ class Gossipsub extends Pubsub {
   _sendGraft(id: string, topic: string): void {
     const graft = [
       {
-        topicID: topic,
-      },
+        topicID: topic
+      }
     ]
 
     const out = createGossipRpc([], { graft })
@@ -1326,7 +1326,7 @@ class Gossipsub extends Pubsub {
       }
       this._pushGossip(id, {
         topicID: topic,
-        messageIDs: peerMessageIDs,
+        messageIDs: peerMessageIDs
       })
     })
   }
@@ -1373,7 +1373,7 @@ class Gossipsub extends Pubsub {
       // Gossipsub v1.0 -- no backoff, the peer won't be able to parse it anyway
       return {
         topicID: topic,
-        peers: [],
+        peers: []
       }
     }
     // backoff is measured in seconds
@@ -1383,7 +1383,7 @@ class Gossipsub extends Pubsub {
       return {
         topicID: topic,
         peers: [],
-        backoff: backoff,
+        backoff: backoff
       }
     }
     // select peers for Peer eXchange
@@ -1399,14 +1399,14 @@ class Gossipsub extends Pubsub {
         const peerId = PeerId.createFromB58String(p)
         return {
           peerID: peerId.toBytes(),
-          signedPeerRecord: await this._libp2p.peerStore.addressBook.getRawEnvelope(peerId),
+          signedPeerRecord: await this._libp2p.peerStore.addressBook.getRawEnvelope(peerId)
         }
       })
     )
     return {
       topicID: topic,
       peers: px,
-      backoff: backoff,
+      backoff: backoff
     }
   }
 

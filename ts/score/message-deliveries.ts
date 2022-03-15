@@ -17,7 +17,7 @@ export enum DeliveryRecordStatus {
   /**
    * we were instructed by the validator to ignore the message
    */
-  ignored,
+  ignored
 }
 
 export interface DeliveryRecord {
@@ -58,14 +58,14 @@ export class MessageDeliveries {
       status: DeliveryRecordStatus.unknown,
       firstSeen: Date.now(),
       validated: 0,
-      peers: new Set(),
+      peers: new Set()
     }
     this.records.set(msgIdStr, drec)
 
     // and add msgId to the queue
     const entry: DeliveryQueueEntry = {
       msgId: msgIdStr,
-      expire: Date.now() + TimeCacheDuration,
+      expire: Date.now() + TimeCacheDuration
     }
     this.queue.push(entry)
 

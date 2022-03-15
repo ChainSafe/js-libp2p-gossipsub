@@ -17,12 +17,16 @@ const suite = new Benchmark.Suite('gossipsub')
 
   // benchmark definition
   suite
-    .add('publish and receive', (deferred) => {
-      peers[1].once('Z', (msg) => deferred.resolve(msg))
-      peers[0].publish('Z', new Uint8Array(1024))
-    }, {
-      defer: true
-    })
+    .add(
+      'publish and receive',
+      (deferred) => {
+        peers[1].once('Z', (msg) => deferred.resolve(msg))
+        peers[0].publish('Z', new Uint8Array(1024))
+      },
+      {
+        defer: true
+      }
+    )
     .on('cycle', (event) => {
       console.log(String(event.target)) // eslint-disable-line
     })
