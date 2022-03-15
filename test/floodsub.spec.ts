@@ -135,21 +135,14 @@ describe('gossipsub fallbacks to floodsub', () => {
       await Promise.all([stopNode(nodeGs), stopNode(nodeFs)])
     })
 
-    it('Publish to a topic - nodeGs', async (done) => {
-      const shouldNotHappen = () => {
-        done(new Error('Should not be here'))
-      }
-
+    it('Publish to a topic - nodeGs', async () => {
       const promise = new Promise<InMessage>((resolve) => nodeFs.once(topic, resolve))
-      nodeGs.once(topic, (m) => shouldNotHappen)
 
       nodeGs.publish(topic, uint8ArrayFromString('hey'))
 
       const msg = await promise
       expect(msg.data.toString()).to.equal('hey')
       expect(msg.from).to.be.eql(nodeGs.peerId.toB58String())
-
-      nodeGs.removeListener(topic, shouldNotHappen)
     })
 
     it('Publish to a topic - nodeFs', async () => {
