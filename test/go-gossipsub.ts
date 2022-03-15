@@ -6,11 +6,12 @@ import pRetry from 'p-retry'
 import { EventEmitter } from 'events'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
-import PubsubBaseProtocol, { InMessage } from 'libp2p-interfaces/src/pubsub'
+import { InMessage } from 'libp2p-interfaces/src/pubsub'
 import { IRPC, RPC } from '../ts/message/rpc'
 import { TopicScoreParams } from '../ts/score'
 import Floodsub from 'libp2p-floodsub'
 import Gossipsub from '../ts'
+import { MessageAcceptance } from '../ts/types'
 import * as constants from '../ts/constants'
 import { GossipsubD } from '../ts/constants'
 import {
@@ -23,7 +24,8 @@ import {
   expectSet,
   fastMsgIdFn,
   tearDownGossipsubs,
-  createPeers
+  createPeers,
+  PubsubBaseMinimal
 } from './utils'
 
 /**
@@ -305,12 +307,12 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     }
     await Promise.all(sendRecv)
 
-    expect(psubs[0].fanout.size).to.be.gt(0)
+    expect(psubs[0]['fanout'].size).to.be.gt(0)
 
     // wait for TTL to expore fanout peers in owner
     await delay(2000)
 
-    expect(psubs[0].fanout.size).to.be.eql(0)
+    expect(psubs[0]['fanout'].size).to.be.eql(0)
     await tearDownGossipsubs(psubs)
   })
   it('test gossipsub gossip', async function () {
@@ -631,7 +633,7 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     // Publish 100 messages, each from a random node
     // Assert that the subscribed nodes receive every message
     const libp2ps = await createPeers({ number: 30 })
-    const gsubs: PubsubBaseProtocol[] = libp2ps.slice(0, 20).map((libp2p) => {
+    const gsubs: PubsubBaseMinimal[] = libp2ps.slice(0, 20).map((libp2p) => {
       return new Gossipsub(libp2p, { scoreParams: { IPColocationFactorThreshold: 20 }, fastMsgIdFn })
     })
     const fsubs = libp2ps.slice(20).map((libp2p) => {
@@ -729,13 +731,13 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     // wait for heartbeats to build mesh
     await Promise.all(psubs.map((ps) => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
 
-    expectSet(new Set(psubs[0].peers.keys()), [psubs[1].peerId.toB58String(), psubs[5].peerId.toB58String()])
-    expectSet(new Set(psubs[1].peers.keys()), [
+    expectSet(new Set(psubs[0]['peers'].keys()), [psubs[1].peerId.toB58String(), psubs[5].peerId.toB58String()])
+    expectSet(new Set(psubs[1]['peers'].keys()), [
       psubs[0].peerId.toB58String(),
       psubs[2].peerId.toB58String(),
       psubs[4].peerId.toB58String()
     ])
-    expectSet(new Set(psubs[2].peers.keys()), [psubs[1].peerId.toB58String(), psubs[3].peerId.toB58String()])
+    expectSet(new Set(psubs[2]['peers'].keys()), [psubs[1].peerId.toB58String(), psubs[3].peerId.toB58String()])
 
     let sendRecv = []
     for (const owner of [9, 3]) {
@@ -770,10 +772,10 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     })
 
     // configure the center of the star with very low D
-    psubs[0]._options.D = 0
-    psubs[0]._options.Dhi = 0
-    psubs[0]._options.Dlo = 0
-    psubs[0]._options.Dscore = 0
+    psubs[0].opts.D = 0
+    psubs[0].opts.Dhi = 0
+    psubs[0].opts.Dlo = 0
+    psubs[0].opts.Dscore = 0
 
     // build the star
     await psubs.slice(1).map((ps) => psubs[0]._libp2p.dialProtocol(ps._libp2p.peerId, ps.multicodecs))
@@ -1007,13 +1009,10 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     await psubs[1]._libp2p.dialProtocol(psubs[2].peerId, multicodecs)
     await psubs[0]._libp2p.dialProtocol(psubs[2].peerId, multicodecs)
 
-    psubs[0].topicValidators.set(topic, async (topic, m) => {
-      if (m.receivedFrom === psubs[1].peerId.toB58String()) {
-        throw errcode(new Error(), constants.ERR_TOPIC_VALIDATOR_IGNORE)
-      }
-      if (m.receivedFrom === psubs[2].peerId.toB58String()) {
-        throw errcode(new Error(), constants.ERR_TOPIC_VALIDATOR_REJECT)
-      }
+    psubs[0]['topicValidators'].set(topic, async (topic, m, propagationSource) => {
+      if (propagationSource.equals(psubs[1].peerId)) return MessageAcceptance.Ignore
+      if (propagationSource.equals(psubs[2].peerId)) return MessageAcceptance.Reject
+      throw Error('Unknown PeerId')
     })
 
     psubs[0].subscribe(topic)
@@ -1029,8 +1028,8 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
 
     await Promise.all(psubs.map((ps) => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
 
-    expect(psubs[0].score.score(psubs[1].peerId.toB58String())).to.be.eql(0)
-    expect(psubs[0].score.score(psubs[2].peerId.toB58String())).to.be.lt(0)
+    expect(psubs[0]['score'].score(psubs[1].peerId.toB58String())).to.be.eql(0)
+    expect(psubs[0]['score'].score(psubs[2].peerId.toB58String())).to.be.lt(0)
 
     await tearDownGossipsubs(psubs)
   })
@@ -1043,11 +1042,11 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     const test1 = 'test1'
     const test2 = 'test2'
     const test3 = 'test3'
-    psub.mesh.set(test1, new Set([otherId]))
-    psub.mesh.set(test2, new Set())
+    psub['mesh'].set(test1, new Set([otherId]))
+    psub['mesh'].set(test2, new Set())
 
     const rpc: IRPC = {}
-    psub._piggybackControl(otherId, rpc, {
+    psub['piggybackControl'](otherId, rpc, {
       graft: [{ topicID: test1 }, { topicID: test2 }, { topicID: test3 }],
       prune: [{ topicID: test1 }, { topicID: test2 }, { topicID: test3 }]
     })
@@ -1110,9 +1109,7 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     await connectSome(real, 5)
 
     sybils.forEach((s) => {
-      s._processRpc = async function () {
-        return true
-      }
+      s['handleReceivedRpc'] = async function () {}
     })
 
     for (let i = 0; i < sybils.length; i++) {
@@ -1143,7 +1140,7 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
       () =>
         new Promise<void>((resolve, reject) => {
           real.forEach(async (r, i) => {
-            const meshPeers = r.mesh.get(topic)
+            const meshPeers = r['mesh'].get(topic)
             let count = 0
             realPeerIds.forEach((p) => {
               if (meshPeers!.has(p)) {

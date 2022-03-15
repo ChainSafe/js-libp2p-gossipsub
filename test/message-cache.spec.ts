@@ -6,8 +6,9 @@ import chaiSpies from 'chai-spies'
 import { messageIdToString } from '../ts/utils/messageIdToString'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { MessageCache } from '../ts/message-cache'
-import { InMessage, utils } from 'libp2p-interfaces/src/pubsub'
+import { utils } from 'libp2p-interfaces/src/pubsub'
 import { getMsgId } from './utils'
+import { GossipsubMessage } from '../ts/types'
 
 /* eslint-disable no-unused-expressions */
 
@@ -17,16 +18,15 @@ const expect = chai.expect
 
 describe('Testing Message Cache Operations', () => {
   const messageCache = new MessageCache(3, 5)
-  const testMessages: InMessage[] = []
+  const testMessages: GossipsubMessage[] = []
 
   before(async () => {
-    const makeTestMessage = (n: number): InMessage => {
+    const makeTestMessage = (n: number): GossipsubMessage => {
       return {
-        receivedFrom: '',
-        from: 'test',
+        from: new Uint8Array(0),
         data: uint8ArrayFromString(n.toString()),
         seqno: utils.randomSeqno(),
-        topic: 'test',
+        topic: 'test'
       }
     }
 

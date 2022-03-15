@@ -1,8 +1,5 @@
-'use strict'
-/* eslint-env mocha */
-
 import { expect } from 'chai'
-import sinon from 'sinon'
+import sinon, { SinonStubbedInstance } from 'sinon'
 import delay from 'delay'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { GossipsubDhi } from '../ts/constants'
@@ -36,24 +33,28 @@ describe('gossip', () => {
     // await mesh rebalancing
     await Promise.all(nodes.map((n) => new Promise((resolve) => n.once('gossipsub:heartbeat', resolve))))
     await delay(500)
-    // set spy
-    sinon.spy(nodeA, 'pushGossip')
+
+    // set spy. NOTE: Forcing private property to be public
+    const nodeASpy = nodeA as Partial<Gossipsub> as SinonStubbedInstance<{
+      pushGossip: Gossipsub['pushGossip']
+    }>
+    sinon.spy(nodeASpy, 'pushGossip')
 
     await nodeA.publish(topic, uint8ArrayFromString('hey'))
 
     await new Promise((resolve) => nodeA.once('gossipsub:heartbeat', resolve))
 
-    nodeA.pushGossip
+    nodeASpy.pushGossip
       .getCalls()
       .map((call) => call.args[0])
       .forEach((peerId) => {
-        nodeA.mesh.get(topic)!.forEach((meshPeerId) => {
+        nodeA['mesh'].get(topic)!.forEach((meshPeerId) => {
           expect(meshPeerId).to.not.equal(peerId)
         })
       })
 
     // unset spy
-    nodeA.pushGossip.restore()
+    nodeASpy.pushGossip.restore()
   })
 
   it('should send piggyback control into other sent messages', async function () {
@@ -72,24 +73,27 @@ describe('gossip', () => {
     await Promise.all(nodes.map((n) => new Promise((resolve) => n.once('gossipsub:heartbeat', resolve))))
     await delay(500)
 
-    const peerB = first(nodeA.mesh.get(topic))
+    const peerB = first(nodeA['mesh'].get(topic))
     const nodeB = nodes.find((n) => n.peerId.toB58String() === peerB)
 
-    // set spy
-    sinon.spy(nodeA, 'piggybackControl')
+    // set spy. NOTE: Forcing private property to be public
+    const nodeASpy = nodeA as Partial<Gossipsub> as SinonStubbedInstance<{
+      piggybackControl: Gossipsub['piggybackGossip']
+    }>
+    sinon.spy(nodeASpy, 'piggybackControl')
 
     // manually add control message to be sent to peerB
     const graft = { graft: [{ topicID: topic }] }
-    nodeA.control.set(peerB, graft)
+    nodeA['control'].set(peerB, graft)
 
     await nodeA.publish(topic, uint8ArrayFromString('hey'))
 
-    expect(nodeA.piggybackControl.callCount).to.be.equal(1)
+    expect(nodeASpy.piggybackControl.callCount).to.be.equal(1)
     // expect control message to be sent alongside published message
-    const call = nodeA.piggybackControl.getCalls()[0]
-    expect(call.args[2].graft).to.deep.equal(graft.graft)
+    const call = nodeASpy.piggybackControl.getCalls()[0]
+    expect(call.args[1].control!.graft).to.deep.equal(graft.graft)
 
     // unset spy
-    nodeA.piggybackControl.restore()
+    nodeASpy.piggybackControl.restore()
   })
 })

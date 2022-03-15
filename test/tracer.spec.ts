@@ -1,6 +1,5 @@
 import { expect } from 'chai'
 import delay from 'delay'
-import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { IWantTracer } from '../ts/tracer'
 import * as constants from '../ts/constants'
 import { makeTestMessage, getMsgId, getMsgIdStr } from './utils'
@@ -15,8 +14,7 @@ describe('IWantTracer', () => {
 
     const msgIds = []
     for (let i = 0; i < 100; i++) {
-      const m = makeTestMessage(i)
-      m.from = peerA
+      const m = makeTestMessage(i, 'test_topic')
       msgIds.push(getMsgId(m))
     }
 
@@ -45,8 +43,7 @@ describe('IWantTracer', () => {
     const msgs = []
     const msgIds = []
     for (let i = 0; i < 100; i++) {
-      const m = makeTestMessage(i)
-      m.from = peerA
+      const m = makeTestMessage(i, 'test_topic')
       msgs.push(m)
       msgIds.push(getMsgId(m))
     }

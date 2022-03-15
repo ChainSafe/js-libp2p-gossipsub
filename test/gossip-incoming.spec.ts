@@ -2,9 +2,9 @@
 
 import chai from 'chai'
 import delay from 'delay'
-import { InMessage } from 'libp2p-interfaces/src/pubsub'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import Gossipsub from '../ts'
+import { GossipsubMessage } from '../ts/types'
 import { createConnectedGossipsubs, stopNode } from './utils'
 
 const expect = chai.expect
@@ -40,7 +40,7 @@ describe('gossip incoming', () => {
     after(() => Promise.all(nodes.map(stopNode)))
 
     it('should gossip incoming messages', async () => {
-      const promise = new Promise<InMessage>((resolve) => nodes[2].once(topic, resolve))
+      const promise = new Promise<GossipsubMessage>((resolve) => nodes[2].once(topic, resolve))
       nodes[0].once(topic, (m) => shouldNotHappen)
 
       nodes[0].publish(topic, uint8ArrayFromString('hey'))

@@ -1,6 +1,3 @@
-'use strict'
-/* eslint-env mocha */
-
 import { expect } from 'chai'
 import Gossipsub from '../ts'
 import { GossipsubHeartbeatInterval } from '../ts/constants'

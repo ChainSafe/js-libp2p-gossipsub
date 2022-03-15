@@ -44,6 +44,18 @@ export interface DataTransform {
   outboundTransform(topic: TopicStr, data: Uint8Array): Uint8Array
 }
 
+/**
+ * Custom validator function per topic.
+ * Must return or resolve quickly (< 100ms) to prevent causing penalties for late messages.
+ * If you need to apply validation that may require longer times use `asyncValidation` option and callback the
+ * validation result through `Gossipsub.reportValidationResult`
+ */
+export type TopicValidatorFn = (
+  topic: TopicStr,
+  msg: GossipsubMessage,
+  propagationSource: PeerId
+) => MessageAcceptance | Promise<MessageAcceptance>
+
 export enum SignaturePolicy {
   /**
    * On the producing side:
@@ -64,13 +76,13 @@ export enum SignaturePolicy {
    * - Propagate only if the fields are absent, reject otherwise.
    * - A message_id function will not be able to use the above fields, and should instead rely on the data field. A commonplace strategy is to calculate a hash.
    */
-  StrictNoSign = 'StrictNoSign',
+  StrictNoSign = 'StrictNoSign'
 }
 
 export enum PublishConfigType {
   Signing,
   Author,
-  Anonymous,
+  Anonymous
 }
 
 export type PublishConfig =
@@ -90,7 +102,7 @@ export enum MessageAcceptance {
   /// trigger the P₄ penalty.
   Ignore = 'ignore',
   /// The message is considered invalid, and it should be rejected and trigger the P₄ penalty.
-  Reject = 'reject',
+  Reject = 'reject'
 }
 
 export type RejectReasonObj =
@@ -115,7 +127,7 @@ export enum RejectReason {
    * The peer that sent the message OR the source from field is blacklisted.
    * Causes messages to be ignored, not penalized, neither do score record creation.
    */
-  Blacklisted = 'blacklisted',
+  Blacklisted = 'blacklisted'
 }
 
 export enum ValidateError {
@@ -135,13 +147,13 @@ export enum ValidateError {
   /// [`crate::behaviour::MessageAuthenticity::Anonymous`].
   FromPresent = 'from_present',
   /// The data transformation failed.
-  TransformFailed = 'transform_failed',
+  TransformFailed = 'transform_failed'
 }
 
 export enum MessageStatus {
   duplicate = 'duplicate',
   invalid = 'invalid',
-  valid = 'valid',
+  valid = 'valid'
 }
 
 /**
@@ -160,4 +172,18 @@ export type GossipsubMessage = {
 
   /// The topic this message belongs to
   topic: TopicStr
+}
+
+/**
+ * Typesafe conversion of MessageAcceptance -> RejectReason. TS ensures all values covered
+ */
+export function rejectReasonFromAcceptance(
+  acceptance: Exclude<MessageAcceptance, MessageAcceptance.Accept>
+): RejectReason.Ignore | RejectReason.Reject {
+  switch (acceptance) {
+    case MessageAcceptance.Ignore:
+      return RejectReason.Ignore
+    case MessageAcceptance.Reject:
+      return RejectReason.Reject
+  }
 }

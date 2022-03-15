@@ -34,7 +34,7 @@ import {
   MetricsRegister,
   ScorePenalty,
   TopicStrToLabel,
-  ToSendGroupCount,
+  ToSendGroupCount
 } from './metrics'
 import {
   GossipsubMessage,
@@ -52,6 +52,8 @@ import {
   FastMsgIdFn,
   AddrInfo,
   DataTransform,
+  TopicValidatorFn,
+  rejectReasonFromAcceptance
 } from './types'
 import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage'
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn'
@@ -175,7 +177,7 @@ export interface GossipInputOptions {
 
 enum GossipStatusCode {
   started,
-  stopped,
+  stopped
 }
 
 type GossipStatus =
@@ -314,6 +316,8 @@ export default class Gossipsub extends EventEmitter {
   /** Peer score tracking */
   private readonly score: PeerScore
 
+  private readonly topicValidators = new Map<TopicStr, TopicValidatorFn>()
+
   /**
    * Number of heartbeats since the beginning of time
    * This allows us to amortize some resource cleanup -- eg: backoff cleanup
@@ -325,10 +329,11 @@ export default class Gossipsub extends EventEmitter {
    */
   readonly gossipTracer = new IWantTracer()
 
-  private multicodecs: string[] = [constants.GossipsubIDv11, constants.GossipsubIDv10]
+  // Public for go-gossipsub tests
+  readonly _libp2p: Libp2p
+  readonly peerId: PeerId
+  readonly multicodecs: string[] = [constants.GossipsubIDv11, constants.GossipsubIDv10]
 
-  private readonly peerId: PeerId | undefined
-  private readonly _libp2p: Libp2p
   private directPeerInitial: NodeJS.Timeout | null = null
   private log: Debugger
 
@@ -491,8 +496,8 @@ export default class Gossipsub extends EventEmitter {
       multicodecs: this.multicodecs,
       handlers: {
         onConnect: this.onPeerConnected.bind(this),
-        onDisconnect: this.onPeerDisconnected.bind(this),
-      },
+        onDisconnect: this.onPeerDisconnected.bind(this)
+      }
     })
     const registrarTopologyId = await this.registrar.register(topology)
 
@@ -500,7 +505,7 @@ export default class Gossipsub extends EventEmitter {
     this.status = {
       code: GossipStatusCode.started,
       registrarHandlerId: 'TODO',
-      registrarTopologyId,
+      registrarTopologyId
     }
 
     // Gossipsub
@@ -521,7 +526,7 @@ export default class Gossipsub extends EventEmitter {
         cancel: () => {
           clearTimeout(timeout)
           clearInterval(this.heartbeatTimer!._intervalId as NodeJS.Timeout)
-        },
+        }
       }
     }
 
@@ -635,7 +640,7 @@ export default class Gossipsub extends EventEmitter {
 
       peerStreams = new PeerStreams({
         id: peerId as any,
-        protocol,
+        protocol
       })
 
       this.peers.set(peerId.toB58String(), peerStreams)
@@ -753,7 +758,7 @@ export default class Gossipsub extends EventEmitter {
    */
   async handleReceivedRpc(from: PeerId, rpc: IRPC): Promise<void> {
     // Check if peer is graylisted in which case we ignore the event
-    if (!this.acceptFrom(from)) {
+    if (!this.acceptFrom(from.toB58String())) {
       this.log('received message from unacceptable peer %s', from.toB58String())
       this.metrics?.rpcRecvNotAccepted.inc()
       return
@@ -871,7 +876,7 @@ export default class Gossipsub extends EventEmitter {
             super.emit('gossipsub:message', {
               propagationSource: from,
               msgId: msgIdStr,
-              msg,
+              msg
             })
 
             // TODO: Add option to switch between emit per topic or all messages in one
@@ -957,14 +962,30 @@ export default class Gossipsub extends EventEmitter {
       from: rpcMsg.from === null ? undefined : rpcMsg.from,
       data: data,
       seqno: rpcMsg.seqno === null ? undefined : rpcMsg.seqno,
-      topic: rpcMsg.topic,
+      topic: rpcMsg.topic
     }
 
-    // TODO: Provide custom validation here with dynamic validators per topic
-    // const validatorFn = this.topicValidators.get(message.topic)
-    // if (validatorFn != null) {
-    //   return await validatorFn(message.topic, message)
-    // }
+    // (Optional) Provide custom validation here with dynamic validators per topic
+    // NOTE: This custom topicValidator() must resolve fast (< 100ms) to allow scores
+    // to not penalize peers for long validation times.
+    const topicValidator = this.topicValidators.get(rpcMsg.topic)
+    if (topicValidator != null) {
+      let acceptance: MessageAcceptance
+      // Use try {} catch {} in case topicValidator() is syncronous
+      try {
+        acceptance = await topicValidator(msg.topic, msg, propagationSource)
+      } catch (e) {
+        // TODO: Handle error for backwards compatibility
+        const errCode = (e as { code: string }).code
+        if (errCode === constants.ERR_TOPIC_VALIDATOR_IGNORE) acceptance = MessageAcceptance.Ignore
+        if (errCode === constants.ERR_TOPIC_VALIDATOR_REJECT) acceptance = MessageAcceptance.Reject
+        else acceptance = MessageAcceptance.Ignore
+      }
+
+      if (acceptance !== MessageAcceptance.Accept) {
+        return { code: MessageStatus.invalid, reason: rejectReasonFromAcceptance(acceptance) }
+      }
+    }
 
     // TODO: Check if message is from a blacklisted source or propagation origin
     // - Reject any message from a blacklisted peer
@@ -992,7 +1013,7 @@ export default class Gossipsub extends EventEmitter {
   private sendSubscriptions(toPeer: PeerIdStr, topics: string[], subscribe: boolean): void {
     this.sendRpc(toPeer, {
       subscriptions: topics.map((topic) => ({ topicID: topic, subscribe })),
-      messages: [],
+      messages: []
     })
   }
 
@@ -1019,9 +1040,7 @@ export default class Gossipsub extends EventEmitter {
   /**
    * Whether to accept a message from a peer
    */
-  private acceptFrom(peerId: PeerId): boolean {
-    const id = peerId.toB58String()
-
+  private acceptFrom(id: PeerIdStr): boolean {
     if (this.direct.has(id)) {
       return true
     }
@@ -1632,7 +1651,7 @@ export default class Gossipsub extends EventEmitter {
       direct: 0,
       floodsub: 0,
       mesh: 0,
-      fanout: 0,
+      fanout: 0
     }
 
     const peersInTopic = this.topics.get(topic)
@@ -1770,7 +1789,7 @@ export default class Gossipsub extends EventEmitter {
       from: rawMsg.from === null ? undefined : rawMsg.from,
       data, // the uncompressed form
       seqno: rawMsg.seqno === null ? undefined : rawMsg.seqno,
-      topic,
+      topic
     })
     const msgIdStr = messageIdToString(msgId)
 
@@ -1846,18 +1865,9 @@ export default class Gossipsub extends EventEmitter {
       this.metrics?.onReportValidationMcacheHit(cacheEntry !== null)
 
       if (cacheEntry) {
-        // Typesafe conversion of MessageAcceptance -> RejectReason. TS ensures all values covered
-        let rejectReason: RejectReason
-        switch (acceptance) {
-          case MessageAcceptance.Ignore:
-            rejectReason = RejectReason.Ignore
-            break
-          case MessageAcceptance.Reject:
-            rejectReason = RejectReason.Reject
-            break
-        }
-
+        const rejectReason = rejectReasonFromAcceptance(acceptance)
         const { message: rawMsg, originatingPeers } = cacheEntry
+
         // Tell peer_score about reject
         // Reject the original source, and any duplicates we've seen from other peers.
         this.score.rejectMessage(propagationSource.toB58String(), msgId, rawMsg.topic, rejectReason)
@@ -2486,40 +2496,5 @@ export default class Gossipsub extends EventEmitter {
     )
 
     metrics.registerScoreWeights(sw)
-  }
-}
-
-  /**
-   * Given a topic, returns up to count peers subscribed to that topic
-   * that pass an optional filter function
-   *
-   * @param filter a function to filter acceptable peers
-   */
-  private getGossipPeers(topic: string, count: number, filter: (id: string) => boolean = () => true): Set<string> {
-    const peersInTopic = this.topics.get(topic)
-    if (!peersInTopic) {
-      return new Set()
-    }
-
-    // Adds all peers using our protocol
-    // that also pass the filter function
-    let peers: string[] = []
-    peersInTopic.forEach((id) => {
-      const peerStreams = this.peers.get(id)
-      if (!peerStreams) {
-        return
-      }
-      if (hasGossipProtocol(peerStreams.protocol) && filter(id)) {
-        peers.push(id)
-      }
-    })
-
-    // Pseudo-randomly shuffles peers
-    peers = shuffle(peers)
-    if (count > 0 && peers.length > count) {
-      peers = peers.slice(0, count)
-    }
-
-    return new Set(peers)
   }
 }

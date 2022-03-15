@@ -4,10 +4,10 @@ import PeerId from 'peer-id'
 import delay from 'delay'
 import Libp2p from 'libp2p'
 import Gossipsub from '../../ts'
+import { GossipsubMessage, TopicStr } from '../../ts/types'
 
 export * from './create-peer'
 export * from './create-gossipsub'
-export * from './make-test-message'
 export * from './msgId'
 
 export const first = <T>(map: Map<unknown, T> | Set<T> | undefined): T => {
@@ -44,14 +44,14 @@ export const createFloodsubNode = async (libp2p: Libp2p, shouldStart = false) =>
 }
 
 export const waitForAllNodesToBePeered = async (peers: Gossipsub[], attempts = 10, delayMs = 100) => {
-  const nodeIds = peers.map((peer) => peer.peerId.toB58String())
+  const nodeIds = peers.map((peer) => peer.peerId!.toB58String())
 
   for (let i = 0; i < attempts; i++) {
     for (const node of peers) {
-      const nodeId = node.peerId.toB58String()
+      const nodeId = node.peerId!.toB58String()
       const others = nodeIds.filter((peerId) => peerId !== nodeId)
 
-      const missing = others.some((other) => !node.peers.has(other))
+      const missing = others.some((other) => !node['peers'].has(other))
 
       if (!missing) {
         return
@@ -59,5 +59,14 @@ export const waitForAllNodesToBePeered = async (peers: Gossipsub[], attempts = 1
     }
 
     await delay(delayMs)
+  }
+}
+
+export function makeTestMessage(i: number, topic: TopicStr): GossipsubMessage {
+  return {
+    seqno: Uint8Array.from(new Array(8).fill(i)),
+    data: Uint8Array.from([i]),
+    from: new Uint8Array(0),
+    topic
   }
 }

@@ -1,6 +1,3 @@
-'use strict'
-/* eslint-env mocha */
-
 import { expect } from 'chai'
 import delay from 'delay'
 import Gossipsub from '../ts'
@@ -38,7 +35,7 @@ describe('mesh overlay', () => {
     // await mesh rebalancing
     await new Promise((resolve) => node0.once('gossipsub:heartbeat', resolve))
 
-    expect(node0.mesh.get(topic)!.size).to.equal(N)
+    expect(node0['mesh'].get(topic)!.size).to.equal(N)
   })
 
   it('should remove mesh peers once above threshold', async function () {
@@ -55,6 +52,6 @@ describe('mesh overlay', () => {
     await delay(500)
     // await mesh rebalancing
     await new Promise((resolve) => node0.once('gossipsub:heartbeat', resolve))
-    expect(node0.mesh.get(topic)!.size).to.be.lte(GossipsubDhi)
+    expect(node0['mesh'].get(topic)!.size).to.be.lte(GossipsubDhi)
   })
 })
