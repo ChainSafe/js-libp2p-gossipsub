@@ -19,7 +19,7 @@ export async function stopNode(gs: PubsubBaseProtocol) {
   await gs.stop()
 }
 
-export async function connectGossipsub(gs1: Gossipsub, gs2: Gossipsub) {
+export async function connectGossipsub(gs1: PubsubBaseProtocol, gs2: PubsubBaseProtocol) {
   await gs1._libp2p.dialProtocol(gs2._libp2p.peerId, gs1.multicodecs)
 }
 
@@ -48,7 +48,7 @@ export async function createGossipsubs({
 /**
  * Stop gossipsub nodes
  */
-export async function tearDownGossipsubs(gss: Gossipsub[]) {
+export async function tearDownGossipsubs(gss: PubsubBaseProtocol[]) {
   await Promise.all(
     gss.map(async (p) => {
       await p.stop()
@@ -62,7 +62,7 @@ export async function tearDownGossipsubs(gss: Gossipsub[]) {
  * @param {Gossipsub[]} gss
  * @param {number} num number of peers to connect
  */
-export async function connectSome(gss: Gossipsub[], num: number) {
+export async function connectSome(gss: PubsubBaseProtocol[], num: number) {
   for (let i = 0; i < gss.length; i++) {
     for (let j = 0; j < num; j++) {
       const n = Math.floor(Math.random() * gss.length)
@@ -75,11 +75,11 @@ export async function connectSome(gss: Gossipsub[], num: number) {
   }
 }
 
-export async function sparseConnect(gss: Gossipsub[]) {
+export async function sparseConnect(gss: PubsubBaseProtocol[]) {
   await connectSome(gss, 3)
 }
 
-export async function denseConnect(gss: Gossipsub[]) {
+export async function denseConnect(gss: PubsubBaseProtocol[]) {
   await connectSome(gss, 10)
 }
 
@@ -87,7 +87,7 @@ export async function denseConnect(gss: Gossipsub[]) {
  * Connect every gossipsub node to every other
  * @param {Gossipsub[]} gss
  */
-export async function connectGossipsubs(gss: Gossipsub[]) {
+export async function connectGossipsubs(gss: PubsubBaseProtocol[]) {
   for (let i = 0; i < gss.length; i++) {
     for (let j = i + 1; j < gss.length; j++) {
       await connectGossipsub(gss[i], gss[j])

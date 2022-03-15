@@ -6,7 +6,9 @@ import pRetry from 'p-retry'
 import { EventEmitter } from 'events'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
-
+import PubsubBaseProtocol, { InMessage } from 'libp2p-interfaces/src/pubsub'
+import { IRPC, RPC } from '../ts/message/rpc'
+import { TopicScoreParams } from '../ts/score'
 import Floodsub from 'libp2p-floodsub'
 import Gossipsub from '../ts'
 import * as constants from '../ts/constants'
@@ -40,26 +42,27 @@ EventEmitter.defaultMaxListeners = 100
  * that returns a Promise that awaits the message being received
  * and checks that the received message equals the given message
  */
-const checkReceivedMessage = (topic, data, senderIx, msgIx) => (psub, receiverIx) =>
-  new Promise((resolve, reject) => {
-    let cb
-    const t = setTimeout(() => {
-      psub.off(topic, cb)
-      reject(new Error(`Message never received, sender ${senderIx}, receiver ${receiverIx}, index ${msgIx}`))
-    }, 20000)
-    cb = (msg) => {
-      if (uint8ArrayEquals(data, msg.data)) {
-        clearTimeout(t)
+const checkReceivedMessage =
+  (topic: string, data: Uint8Array, senderIx: number, msgIx: number) => (psub: EventEmitter, receiverIx: number) =>
+    new Promise<void>((resolve, reject) => {
+      let cb: (msg: InMessage) => void
+      const t = setTimeout(() => {
         psub.off(topic, cb)
-        resolve()
+        reject(new Error(`Message never received, sender ${senderIx}, receiver ${receiverIx}, index ${msgIx}`))
+      }, 20000)
+      cb = (msg: InMessage) => {
+        if (uint8ArrayEquals(data, msg.data)) {
+          clearTimeout(t)
+          psub.off(topic, cb)
+          resolve()
+        }
       }
-    }
-    psub.on(topic, cb)
-  })
+      psub.on(topic, cb)
+    })
 
-const awaitEvents = (emitter, event, number, timeout = 10000) => {
-  return new Promise((resolve, reject) => {
-    let cb
+const awaitEvents = (emitter: EventEmitter, event: string, number: number, timeout = 10000) => {
+  return new Promise<void>((resolve, reject) => {
+    let cb: () => void
     let counter = 0
     const t = setTimeout(() => {
       emitter.off(event, cb)
@@ -228,8 +231,8 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     // wait for heartbeats to build mesh
     await Promise.all(psubs.map((ps) => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
 
-    let sendRecv = []
-    const sendMessages = (time) => {
+    let sendRecv: Promise<unknown>[] = []
+    const sendMessages = (time: number) => {
       for (let i = 0; i < 100; i++) {
         const msg = uint8ArrayFromString(`${time} ${i} its not a flooooood ${i}`)
 
@@ -384,13 +387,13 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
 
     psubs.slice(GossipsubD + 1).forEach((ps) => ps.subscribe(topic))
 
-    const received = Array.from({ length: psubs.length - (GossipsubD + 1) }, () => [])
+    const received: InMessage[][] = Array.from({ length: psubs.length - (GossipsubD + 1) }, () => [])
     const results = Promise.all(
       group2.slice(1).map(
         (ps, ix) =>
-          new Promise((resolve, reject) => {
+          new Promise<void>((resolve, reject) => {
             const t = setTimeout(reject, 10000)
-            ps.on(topic, (m) => {
+            ps.on(topic, (m: InMessage) => {
               received[ix].push(m)
               if (received[ix].length >= 10) {
                 clearTimeout(t)
@@ -587,7 +590,7 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     // create a background flood of messages that overloads the queues
     const floodOwner = Math.floor(Math.random() * psubs.length)
     const floodMsg = uint8ArrayFromString('background flooooood')
-    const backgroundFlood = new Promise(async (resolve) => {
+    const backgroundFlood = new Promise<void>(async (resolve) => {
       for (let i = 0; i < 10000; i++) {
         await psubs[floodOwner].publish(floodTopic, floodMsg)
       }
@@ -607,7 +610,7 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     await backgroundFlood
 
     // and test that we have functional overlays
-    let sendRecv = []
+    let sendRecv: Promise<unknown>[] = []
     for (let i = 0; i < 5; i++) {
       const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = Math.floor(Math.random() * psubs.length)
@@ -615,7 +618,7 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
         psubs.filter((psub, j) => j !== owner).map(checkReceivedMessage(topic + i, msg, owner, i))
       )
       sendRecv.push(psubs[owner].publish(topic + i, msg))
-      sendRecv.push(esults)
+      sendRecv.push(results)
     }
     await Promise.all(sendRecv)
     await tearDownGossipsubs(psubs)
@@ -628,7 +631,7 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     // Publish 100 messages, each from a random node
     // Assert that the subscribed nodes receive every message
     const libp2ps = await createPeers({ number: 30 })
-    const gsubs = libp2ps.slice(0, 20).map((libp2p) => {
+    const gsubs: PubsubBaseProtocol[] = libp2ps.slice(0, 20).map((libp2p) => {
       return new Gossipsub(libp2p, { scoreParams: { IPColocationFactorThreshold: 20 }, fastMsgIdFn })
     })
     const fsubs = libp2ps.slice(20).map((libp2p) => {
@@ -767,10 +770,10 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     })
 
     // configure the center of the star with very low D
-    psubs[0].D = 0
-    psubs[0].Dhi = 0
-    psubs[0].Dlo = 0
-    psubs[0].Dscore = 0
+    psubs[0]._options.D = 0
+    psubs[0]._options.Dhi = 0
+    psubs[0]._options.Dlo = 0
+    psubs[0]._options.Dscore = 0
 
     // build the star
     await psubs.slice(1).map((ps) => psubs[0]._libp2p.dialProtocol(ps._libp2p.peerId, ps.multicodecs))
@@ -815,7 +818,7 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     // Assert peers reconnect
     // Publish a message from each node
     // Assert that all nodes receive the messages
-    sinon.replace(constants, 'GossipsubDirectConnectTicks', 2)
+    sinon.replace(constants, 'GossipsubDirectConnectTicks', 2 as 300)
     const libp2ps = await createPeers({ number: 3 })
     const psubs = [
       new Gossipsub(libp2ps[0], { scoreParams: { IPColocationFactorThreshold: 20 }, fastMsgIdFn }),
@@ -847,7 +850,7 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
 
     // verify that the direct peers connected
     await delay(2000)
-    expect(libp2ps[1].connectionManager.get(libp2ps[2].peerId)).to.exist()
+    expect(libp2ps[1].connectionManager.get(libp2ps[2].peerId)).to.be.ok
 
     const topic = 'foobar'
     psubs.forEach((ps) => ps.subscribe(topic))
@@ -871,7 +874,7 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
 
     await Promise.all(psubs.map((ps) => awaitEvents(ps, 'gossipsub:heartbeat', 5)))
 
-    expect(libp2ps[1].connectionManager.get(libp2ps[2].peerId)).to.exist()
+    expect(libp2ps[1].connectionManager.get(libp2ps[2].peerId)).to.be.ok
 
     sendRecv = []
     for (let i = 0; i < 3; i++) {
@@ -993,7 +996,7 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
               timeInMeshQuantum: 1000,
               invalidMessageDeliveriesWeight: -1,
               invalidMessageDeliveriesDecay: 0.9999
-            }
+            } as TopicScoreParams
           }
         }
       }
@@ -1004,7 +1007,7 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     await psubs[1]._libp2p.dialProtocol(psubs[2].peerId, multicodecs)
     await psubs[0]._libp2p.dialProtocol(psubs[2].peerId, multicodecs)
 
-    psubs[0].topicValidators.set(topic, (topic, m) => {
+    psubs[0].topicValidators.set(topic, async (topic, m) => {
       if (m.receivedFrom === psubs[1].peerId.toB58String()) {
         throw errcode(new Error(), constants.ERR_TOPIC_VALIDATOR_IGNORE)
       }
@@ -1043,18 +1046,18 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     psub.mesh.set(test1, new Set([otherId]))
     psub.mesh.set(test2, new Set())
 
-    const rpc = {}
+    const rpc: IRPC = {}
     psub._piggybackControl(otherId, rpc, {
       graft: [{ topicID: test1 }, { topicID: test2 }, { topicID: test3 }],
       prune: [{ topicID: test1 }, { topicID: test2 }, { topicID: test3 }]
     })
 
-    expect(rpc.control).to.exist()
-    expect(rpc.control.graft.length).to.be.eql(1)
-    expect(rpc.control.graft[0].topicID).to.be.eql(test1)
-    expect(rpc.control.prune.length).to.be.eql(2)
-    expect(rpc.control.prune[0].topicID).to.be.eql(test2)
-    expect(rpc.control.prune[1].topicID).to.be.eql(test3)
+    expect(rpc.control).to.be.ok
+    expect(rpc.control!.graft!.length).to.be.eql(1)
+    expect(rpc.control!.graft![0].topicID).to.be.eql(test1)
+    expect(rpc.control!.prune!.length).to.be.eql(2)
+    expect(rpc.control!.prune![0].topicID).to.be.eql(test2)
+    expect(rpc.control!.prune![1].topicID).to.be.eql(test3)
 
     await psub.stop()
     await Promise.all(libp2ps.map((libp2p) => libp2p.stop()))
@@ -1070,8 +1073,8 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     // Assert the real peer meshes have at least 3 honest peers
     sinon.replace(constants, 'GossipsubPruneBackoff', 500)
     sinon.replace(constants, 'GossipsubGraftFloodThreshold', 100)
-    sinon.replace(constants, 'GossipsubOpportunisticGraftPeers', 3)
-    sinon.replace(constants, 'GossipsubOpportunisticGraftTicks', 1)
+    sinon.replace(constants, 'GossipsubOpportunisticGraftPeers', 3 as 2)
+    sinon.replace(constants, 'GossipsubOpportunisticGraftTicks', 1 as 60)
     const topic = 'test'
     const psubs = await createGossipsubs({
       number: 20,
@@ -1090,7 +1093,7 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
               firstMessageDeliveriesCap: 1000,
               meshMessageDeliveriesWeight: 0,
               invalidMessageDeliveriesDecay: 0.99997
-            }
+            } as TopicScoreParams
           }
         },
         scoreThresholds: {
@@ -1107,7 +1110,9 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
     await connectSome(real, 5)
 
     sybils.forEach((s) => {
-      s._processRpc = function () {}
+      s._processRpc = async function () {
+        return true
+      }
     })
 
     for (let i = 0; i < sybils.length; i++) {
@@ -1136,12 +1141,12 @@ describe.skip('go-libp2p-pubsub gossipsub tests', function () {
 
     await pRetry(
       () =>
-        new Promise((resolve, reject) => {
+        new Promise<void>((resolve, reject) => {
           real.forEach(async (r, i) => {
             const meshPeers = r.mesh.get(topic)
             let count = 0
             realPeerIds.forEach((p) => {
-              if (meshPeers.has(p)) {
+              if (meshPeers!.has(p)) {
                 count++
               }
             })
