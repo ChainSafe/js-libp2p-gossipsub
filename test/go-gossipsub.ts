@@ -868,7 +868,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await tearDownGossipsubs(psubs)
   })
 
-  it.only('test gossipsub direct peers', async function () {
+  it('test gossipsub direct peers', async function () {
     // Create 3 gossipsub nodes
     // 2 and 3 with direct peer connections with each other
     // Connect nodes: 2 <- 1 -> 3
@@ -960,14 +960,16 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await Promise.all(sendRecv)
     await tearDownGossipsubs(psubs)
   })
+
   it('test gossipsub flood publish', async function () {
     // Create 30 gossipsub nodes
     // Connect in star topology
     // Subscribe to the topic, all nodes
     // Publish 20 messages, each from the center node
     // Assert that the other nodes receive the message
+    const numPeers = 30;
     const psubs = await createGossipsubs({
-      number: 30,
+      number: numPeers,
       options: { scoreParams: { IPColocationFactorThreshold: 30 } }
     })
 
@@ -977,17 +979,21 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       })
     )
 
+    const owner = 0
+    const psub0 = psubs[owner]
+    const peerIdStrs = psubs.filter((_, j) => j !== owner).map(psub => psub.peerId.toB58String())
     // build the (partial, unstable) mesh
     const topic = 'foobar'
+    const subscriptionPromise = checkReceivedSubscriptions(psub0, peerIdStrs, topic)
     psubs.forEach((ps) => ps.subscribe(topic))
 
     await Promise.all(psubs.map((ps) => awaitEvents(ps, 'gossipsub:heartbeat', 1)))
+    await subscriptionPromise
 
     // send messages from the star and assert they were received
     let sendRecv = []
     for (let i = 0; i < 20; i++) {
       const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
-      const owner = 0
       const results = Promise.all(
         psubs.filter((psub, j) => j !== owner).map(checkReceivedMessage(topic, msg, owner, i))
       )
@@ -997,6 +1003,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await Promise.all(sendRecv)
     await tearDownGossipsubs(psubs)
   })
+
   it('test gossipsub negative score', async function () {
     // Create 20 gossipsub nodes, with scoring params to quickly lower node 0's score
     // Connect densely
