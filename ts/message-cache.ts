@@ -63,7 +63,7 @@ export class MessageCache {
       message: msg,
       validated: false,
       originatingPeers: new Set(),
-      iwantCounts: new Map(),
+      iwantCounts: new Map()
     })
 
     const msgId = messageIdFromString(msgIdStr)

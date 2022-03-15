@@ -42,7 +42,7 @@ export function computeScoreWeights(
         p2w: 0,
         p3w: 0,
         p3bw: 0,
-        p4w: 0,
+        p4w: 0
       }
       byTopic.set(topicType, topicScores)
     }
@@ -144,7 +144,7 @@ export function computeScoreWeights(
     p5w,
     p6w,
     p7w,
-    score,
+    score
   }
 }
 
@@ -160,7 +160,7 @@ export function computeAllPeersScoreWeights(
     p5w: [],
     p6w: [],
     p7w: [],
-    score: [],
+    score: []
   }
 
   for (const peerIdStr of peerIdStrs) {
@@ -176,7 +176,7 @@ export function computeAllPeersScoreWeights(
             p2w: [],
             p3w: [],
             p3bw: [],
-            p4w: [],
+            p4w: []
           }
         }
 

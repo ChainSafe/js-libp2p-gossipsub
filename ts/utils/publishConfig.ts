@@ -28,13 +28,13 @@ export function getPublishConfigFromPeerId(signaturePolicy: SignaturePolicy, pee
         type: PublishConfigType.Signing,
         author: peerId,
         key: peerId.pubKey.bytes,
-        privateKey,
+        privateKey
       }
     }
 
     case SignaturePolicy.StrictNoSign:
       return {
-        type: PublishConfigType.Anonymous,
+        type: PublishConfigType.Anonymous
       }
   }
 }

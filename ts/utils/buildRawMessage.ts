@@ -22,7 +22,7 @@ export async function buildRawMessage(
         seqno: randomBytes(8),
         topic,
         signature: undefined, // Exclude signature field for signing
-        key: undefined, // Exclude key field for signing
+        key: undefined // Exclude key field for signing
       }
 
       // Get the message in bytes, and prepend with the pubsub prefix
@@ -42,7 +42,7 @@ export async function buildRawMessage(
         seqno: randomBytes(8),
         topic,
         signature: undefined,
-        key: undefined,
+        key: undefined
       }
     }
 
@@ -53,7 +53,7 @@ export async function buildRawMessage(
         seqno: undefined,
         topic,
         signature: undefined,
-        key: undefined,
+        key: undefined
       }
     }
   }
@@ -121,7 +121,7 @@ export async function validateToRawMessage(
         seqno: msg.seqno,
         topic: msg.topic,
         signature: undefined, // Exclude signature field for signing
-        key: undefined, // Exclude key field for signing
+        key: undefined // Exclude key field for signing
       }
 
       // Get the message in bytes, and prepend with the pubsub prefix
