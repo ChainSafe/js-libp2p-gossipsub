@@ -1,17 +1,18 @@
-const { expect } = require('chai')
-const sinon = require('sinon')
-const Gossipsub = require('../src')
-const { fastMsgIdFn } = require('./utils/msgId')
+import { expect } from 'chai'
+import { Libp2p } from 'libp2p-interfaces/src/pubsub'
+import sinon from 'sinon'
+import Gossipsub from '../ts'
+import { fastMsgIdFn } from './utils/msgId'
 
 describe('Gossipsub acceptFrom', () => {
-  let gossipsub
-  let sandbox
-  let scoreSpy
+  let gossipsub: Gossipsub
+  let sandbox: sinon.SinonSandbox
+  let scoreSpy: sinon.SinonSpy<[id: string], number>
 
   beforeEach(async () => {
     sandbox = sinon.createSandbox()
     sandbox.useFakeTimers(Date.now())
-    gossipsub = new Gossipsub({}, { emitSelf: false, fastMsgIdFn })
+    gossipsub = new Gossipsub({} as Libp2p, { emitSelf: false, fastMsgIdFn })
     // stubbing PeerScore causes some pending issue in firefox browser environment
     // we can only spy it
     // using scoreSpy.withArgs("peerA").calledOnce causes the pending issue in firefox
@@ -73,14 +74,14 @@ describe('Gossipsub acceptFrom', () => {
 
   // TODO: run this in a unit test setup
   // this causes the test to not finish in firefox environment
-  it.skip('should NOT white list peer with negative score', () => {
-    // peerB is not white listed since score is negative
-    scoreStub.score.withArgs('peerB').returns(-1)
-    gossipsub._acceptFrom('peerB')
-    // 1st time, we have to compute score
-    expect(scoreStub.score.withArgs('peerB').calledOnce).to.be.true
-    // 2nd time, still have to compute score since it's NOT white listed
-    gossipsub._acceptFrom('peerB')
-    expect(scoreStub.score.withArgs('peerB').calledTwice).to.be.true
-  })
+  // it.skip('should NOT white list peer with negative score', () => {
+  //   // peerB is not white listed since score is negative
+  //   scoreStub.score.withArgs('peerB').returns(-1)
+  //   gossipsub._acceptFrom('peerB')
+  //   // 1st time, we have to compute score
+  //   expect(scoreStub.score.withArgs('peerB').calledOnce).to.be.true
+  //   // 2nd time, still have to compute score since it's NOT white listed
+  //   gossipsub._acceptFrom('peerB')
+  //   expect(scoreStub.score.withArgs('peerB').calledTwice).to.be.true
+  // })
 })

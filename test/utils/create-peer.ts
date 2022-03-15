@@ -1,4 +1,17 @@
-'use strict'
+import Libp2p from 'libp2p'
+import { Multiaddr } from 'multiaddr'
+import PeerId from 'peer-id'
+import { NOISE } from '@chainsafe/libp2p-noise'
+// @ts-ignore
+import WS from 'libp2p-websockets'
+// @ts-ignore
+import filters from 'libp2p-websockets/src/filters'
+// @ts-ignore
+import MPLEX from 'libp2p-mplex'
+// @ts-ignore
+import Peers = require('../fixtures/peers')
+// @ts-ignore
+import RelayPeer = require('../fixtures/relay')
 
 /**
  * These utilities rely on the fixtures defined in test/fixtures
@@ -7,18 +20,6 @@
  * configured to either connect directly (websocket listening multiaddr)
  * or connecting through a well-known relay
  */
-
-const Libp2p = require('libp2p')
-const { Multiaddr } = require('multiaddr')
-const PeerId = require('peer-id')
-
-const WS = require('libp2p-websockets')
-const filters = require('libp2p-websockets/src/filters')
-const MPLEX = require('libp2p-mplex')
-const { NOISE } = require('@chainsafe/libp2p-noise')
-
-const Peers = require('../fixtures/peers')
-const RelayPeer = require('../fixtures/relay')
 
 const transportKey = WS.prototype[Symbol.toStringTag]
 
@@ -53,7 +54,7 @@ function isBrowser() {
  * If in node, use websocket address
  * If in browser, use relay address
  */
-function getListenAddress(peerId) {
+function getListenAddress(peerId: PeerId) {
   if (isBrowser()) {
     // browser
     return new Multiaddr(`${RelayPeer.multiaddr}/p2p-circuit/p2p/${peerId.toB58String()}`)
@@ -67,14 +68,19 @@ function getListenAddress(peerId) {
  * Create libp2p node, selectively determining the listen address based on the operating environment
  * If no peerId is given, default to the first peer in the fixtures peer list
  */
-async function createPeer({ peerId, started = true, config = {} } = {}) {
+export async function createPeer({
+  peerId,
+  started = true,
+  config
+}: { peerId?: PeerId; started?: boolean; config?: Parameters<typeof Libp2p.create>[0] } = {}) {
   if (!peerId) {
     peerId = await PeerId.createFromJSON(Peers[0])
   }
   const libp2p = await Libp2p.create({
     peerId: peerId,
     addresses: {
-      listen: [getListenAddress(peerId)]
+      // types say string is required but it actually needs a MultiAddr
+      listen: [getListenAddress(peerId) as any]
     },
     ...defaultConfig,
     ...config
@@ -87,7 +93,7 @@ async function createPeer({ peerId, started = true, config = {} } = {}) {
   return libp2p
 }
 
-function addPeersToAddressBook(peers) {
+function addPeersToAddressBook(peers: Libp2p[]) {
   for (let i = 0; i < peers.length; i++) {
     for (let j = 0; j < peers.length; j++) {
       if (i !== j) {
@@ -106,12 +112,22 @@ function addPeersToAddressBook(peers) {
  * @param {boolean} [properties.seedAddressBook] nodes should have each other in their addressbook
  * @return {Promise<Array<Libp2p>>}
  */
-async function createPeers({ number = 1, started = true, seedAddressBook = true, config = {} } = {}) {
+export async function createPeers({
+  number = 1,
+  started = true,
+  seedAddressBook = true,
+  config
+}: {
+  number?: number
+  started?: boolean
+  seedAddressBook?: boolean
+  config?: Parameters<typeof Libp2p.create>[0]
+} = {}) {
   const peerIds = await Promise.all(
     Array.from({ length: number }, (_, i) => (Peers[i] ? PeerId.createFromJSON(Peers[i]) : PeerId.create()))
   )
   const peers = await Promise.all(
-    Array.from({ length: number }, (_, i) => createPeer({ peerId: peerIds[i], started: false, config: config }))
+    Array.from({ length: number }, (_, i) => createPeer({ peerId: peerIds[i], started: false, config }))
   )
 
   if (started) {
@@ -123,9 +139,4 @@ async function createPeers({ number = 1, started = true, seedAddressBook = true,
   }
 
   return peers
-}
-
-module.exports = {
-  createPeer,
-  createPeers
 }

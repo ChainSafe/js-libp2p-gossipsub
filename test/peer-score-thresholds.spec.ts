@@ -1,5 +1,5 @@
-const { expect } = require('chai')
-const { createPeerScoreThresholds, validatePeerScoreThresholds } = require('../src/score')
+import { expect } from 'chai'
+import { createPeerScoreThresholds, validatePeerScoreThresholds } from '../ts/score'
 
 describe('PeerScoreThresholds validation', () => {
   it('should throw on invalid PeerScoreThresholds', () => {

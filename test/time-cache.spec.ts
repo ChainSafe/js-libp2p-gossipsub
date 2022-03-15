@@ -1,10 +1,10 @@
-const { expect } = require('chai')
-const { SimpleTimeCache } = require('../src/utils/time-cache')
-const sinon = require('sinon')
+import { expect } from 'chai'
+import { SimpleTimeCache } from '../ts/utils/time-cache'
+import sinon from 'sinon'
 
 describe('SimpleTimeCache', () => {
   const validityMs = 1000
-  const timeCache = new SimpleTimeCache({ validityMs })
+  const timeCache = new SimpleTimeCache<void>({ validityMs })
   const sandbox = sinon.createSandbox()
 
   beforeEach(() => {

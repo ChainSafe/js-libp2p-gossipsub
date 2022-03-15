@@ -1,23 +1,23 @@
 'use strict'
 /* eslint-env mocha */
 
-const { expect } = require('chai')
-const sinon = require('sinon')
-const delay = require('delay')
-const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
-
-const { GossipsubDhi } = require('../src/constants')
-const { first, createGossipsubs, connectGossipsubs, stopNode, waitForAllNodesToBePeered } = require('./utils')
+import { expect } from 'chai'
+import sinon from 'sinon'
+import delay from 'delay'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { GossipsubDhi } from '../ts/constants'
+import Gossipsub from '../ts'
+import { first, createGossipsubs, connectGossipsubs, stopNode, waitForAllNodesToBePeered } from './utils'
 
 describe('gossip', () => {
-  let nodes
+  let nodes: sinon.SinonStubbedInstance<Gossipsub>[]
 
   // Create pubsub nodes
   beforeEach(async () => {
-    nodes = await createGossipsubs({
+    nodes = (await createGossipsubs({
       number: GossipsubDhi + 2,
       options: { scoreParams: { IPColocationFactorThreshold: GossipsubDhi + 3 } }
-    })
+    })) as sinon.SinonStubbedInstance<Gossipsub>[]
   })
 
   afterEach(() => Promise.all(nodes.map(stopNode)))
@@ -47,7 +47,7 @@ describe('gossip', () => {
       .getCalls()
       .map((call) => call.args[0])
       .forEach((peerId) => {
-        nodeA.mesh.get(topic).forEach((meshPeerId) => {
+        nodeA.mesh.get(topic)!.forEach((meshPeerId) => {
           expect(meshPeerId).to.not.equal(peerId)
         })
       })

@@ -1,10 +1,11 @@
-const { expect } = require('chai')
-const {
+import { expect } from 'chai'
+import {
   createTopicScoreParams,
   validateTopicScoreParams,
   createPeerScoreParams,
   validatePeerScoreParams
-} = require('../src/score')
+} from '../ts/score'
+import * as constants from '../ts/constants'
 
 describe('TopicScoreParams validation', () => {
   it('should throw on invalid TopicScoreParams', () => {
@@ -352,7 +353,7 @@ describe('PeerScoreParams validation', () => {
             test: {
               topicWeight: -1,
               timeInMeshWeight: 0.01,
-              timeInMeshQuantum: time.Second,
+              timeInMeshQuantum: 1 * constants.second,
               timeInMeshCap: 10,
               firstMessageDeliveriesWeight: 1,
               firstMessageDeliveriesDecay: 0.5,
@@ -406,7 +407,7 @@ describe('PeerScoreParams validation', () => {
         createPeerScoreParams({
           topicScoreCap: 1,
           appSpecificScore: appScore,
-          decayInterval: time.Second,
+          decayInterval: 1 * constants.second,
           decayToZero: 0.01,
           IPColocationFactorWeight: -1,
           IPColocationFactorThreshold: 1,

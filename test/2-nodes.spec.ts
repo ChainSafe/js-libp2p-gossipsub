@@ -1,22 +1,20 @@
-/* eslint-env mocha */
-'use strict'
+import chai from 'chai'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import delay from 'delay'
+import Gossipsub, { multicodec } from '../ts'
+import { createGossipsubs, createConnectedGossipsubs, expectSet, stopNode, first } from './utils'
+import { RPC } from '../ts/message/rpc'
+import { InMessage, PeerId } from 'libp2p-interfaces/src/pubsub'
 
-const chai = require('chai')
 chai.use(require('dirty-chai'))
 chai.use(require('chai-spies'))
 const expect = chai.expect
-const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
-const delay = require('delay')
 
-const { multicodec } = require('../src')
-
-const { createGossipsubs, createConnectedGossipsubs, expectSet, stopNode, first } = require('./utils')
-
-const shouldNotHappen = (msg) => expect.fail()
+const shouldNotHappen = () => expect.fail()
 
 describe('2 nodes', () => {
   describe('basics', () => {
-    let nodes
+    let nodes: Gossipsub[] = []
 
     // Create pubsub nodes
     before(async () => {
@@ -39,7 +37,7 @@ describe('2 nodes', () => {
   })
 
   describe('subscription functionality', () => {
-    let nodes
+    let nodes: Gossipsub[] = []
 
     // Create pubsub nodes
     before(async () => {
@@ -55,11 +53,13 @@ describe('2 nodes', () => {
 
       // await subscription change
       const [evt0] = await Promise.all([
-        new Promise((resolve) => nodes[0].once('pubsub:subscription-change', (...args) => resolve(args))),
-        new Promise((resolve) => nodes[1].once('pubsub:subscription-change', (...args) => resolve(args)))
+        new Promise<[PeerId, RPC.ISubOpts[]]>((resolve) =>
+          nodes[0].once('pubsub:subscription-change', (...args: [PeerId, RPC.ISubOpts[]]) => resolve(args))
+        ),
+        new Promise((resolve) => nodes[1].once('pubsub:subscription-change', resolve))
       ])
 
-      const [changedPeerId, changedSubs] = evt0
+      const [changedPeerId, changedSubs] = evt0 as [PeerId, RPC.ISubOpts[]]
 
       expectSet(nodes[0].subscriptions, [topic])
       expectSet(nodes[1].subscriptions, [topic])
@@ -86,7 +86,7 @@ describe('2 nodes', () => {
 
   describe('publish functionality', () => {
     const topic = 'Z'
-    let nodes
+    let nodes: Gossipsub[] = []
 
     // Create pubsub nodes
     beforeEach(async () => {
@@ -109,7 +109,7 @@ describe('2 nodes', () => {
     afterEach(() => Promise.all(nodes.map(stopNode)))
 
     it('Publish to a topic - nodeA', async () => {
-      const promise = new Promise((resolve) => nodes[1].once(topic, resolve))
+      const promise = new Promise<InMessage>((resolve) => nodes[1].once(topic, resolve))
       nodes[0].once(topic, (m) => shouldNotHappen)
 
       nodes[0].publish(topic, uint8ArrayFromString('hey'))
@@ -123,7 +123,7 @@ describe('2 nodes', () => {
     })
 
     it('Publish to a topic - nodeB', async () => {
-      const promise = new Promise((resolve) => nodes[0].once(topic, resolve))
+      const promise = new Promise<InMessage>((resolve) => nodes[0].once(topic, resolve))
       nodes[1].once(topic, shouldNotHappen)
 
       nodes[1].publish(topic, uint8ArrayFromString('banana'))
@@ -143,7 +143,7 @@ describe('2 nodes', () => {
 
       nodes[0].on(topic, receivedMsg)
 
-      function receivedMsg(msg) {
+      function receivedMsg(msg: InMessage) {
         expect(msg.data.toString().startsWith('banana')).to.be.true
         expect(msg.from).to.be.eql(nodes[1].peerId.toB58String())
         expect(msg.seqno).to.be.a('Uint8Array')
@@ -164,7 +164,7 @@ describe('2 nodes', () => {
 
   describe('publish after unsubscribe', () => {
     const topic = 'Z'
-    let nodes
+    let nodes: Gossipsub[] = []
 
     // Create pubsub nodes
     beforeEach(async () => {
@@ -190,8 +190,8 @@ describe('2 nodes', () => {
       nodes[0].unsubscribe(topic)
       expect(nodes[0].subscriptions.size).to.equal(0)
 
-      const [changedPeerId, changedSubs] = await new Promise((resolve) => {
-        nodes[1].once('pubsub:subscription-change', (...args) => resolve(args))
+      const [changedPeerId, changedSubs] = await new Promise<[PeerId, RPC.ISubOpts[]]>((resolve) => {
+        nodes[1].once('pubsub:subscription-change', (...args: [PeerId, RPC.ISubOpts[]]) => resolve(args))
       })
       await new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
 
@@ -213,7 +213,7 @@ describe('2 nodes', () => {
 
       await Promise.all(promises)
 
-      const promise = new Promise((resolve, reject) => {
+      const promise = new Promise<void>((resolve, reject) => {
         nodes[0].once(topic, reject)
         setTimeout(() => {
           nodes[0].removeListener(topic, reject)
@@ -233,7 +233,7 @@ describe('2 nodes', () => {
   })
 
   describe('nodes send state on connection', () => {
-    let nodes
+    let nodes: Gossipsub[] = []
 
     // Create pubsub nodes
     before(async () => {
@@ -275,7 +275,7 @@ describe('2 nodes', () => {
   })
 
   describe('nodes handle stopping', () => {
-    let nodes
+    let nodes: Gossipsub[] = []
 
     // Create pubsub nodes
     before(async () => {

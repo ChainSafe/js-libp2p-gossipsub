@@ -2,8 +2,7 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
   parserOptions: {
-    project: './tsconfig.json', // Required to have rules that rely on Types.
-    tsconfigRootDir: './'
+    project: './tsconfig.json' // Required to have rules that rely on Types.
   },
   extends: [
     'plugin:@typescript-eslint/recommended', // Out of the box Typescript rules

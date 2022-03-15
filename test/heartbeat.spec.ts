@@ -1,14 +1,13 @@
 'use strict'
 /* eslint-env mocha */
 
-const { expect } = require('chai')
-
-const Gossipsub = require('../src')
-const { GossipsubHeartbeatInterval } = require('../src/constants')
-const { createPeer, startNode, stopNode } = require('./utils')
+import { expect } from 'chai'
+import Gossipsub from '../ts'
+import { GossipsubHeartbeatInterval } from '../ts/constants'
+import { createPeer, startNode, stopNode } from './utils'
 
 describe('heartbeat', () => {
-  let gossipsub
+  let gossipsub: Gossipsub
 
   before(async () => {
     gossipsub = new Gossipsub(await createPeer({ started: false }), { emitSelf: true })

@@ -1,24 +1,22 @@
-const { expect } = require('chai')
-const delay = require('delay')
-const { messageIdToString } = require('../src/utils/messageIdToString')
-const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
-
-const { IWantTracer } = require('../src/tracer')
-const constants = require('../src/constants')
-const { makeTestMessage, getMsgId, getMsgIdStr } = require('./utils')
+import { expect } from 'chai'
+import delay from 'delay'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { IWantTracer } from '../ts/tracer'
+import * as constants from '../ts/constants'
+import { makeTestMessage, getMsgId, getMsgIdStr } from './utils'
 
 describe('IWantTracer', () => {
   it('should track broken promises', async function () {
     // tests that unfullfilled promises are tracked correctly
     this.timeout(6000)
-    const t = new IWantTracer(getMsgId)
+    const t = new IWantTracer()
     const peerA = 'A'
     const peerB = 'B'
 
     const msgIds = []
     for (let i = 0; i < 100; i++) {
       const m = makeTestMessage(i)
-      m.from = uint8ArrayFromString(peerA)
+      m.from = peerA
       msgIds.push(getMsgId(m))
     }
 
@@ -48,7 +46,7 @@ describe('IWantTracer', () => {
     const msgIds = []
     for (let i = 0; i < 100; i++) {
       const m = makeTestMessage(i)
-      m.from = uint8ArrayFromString(peerA)
+      m.from = peerA
       msgs.push(m)
       msgIds.push(getMsgId(m))
     }

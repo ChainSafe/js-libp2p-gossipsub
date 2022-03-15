@@ -1,14 +1,14 @@
 'use strict'
 /* eslint-env mocha */
 
-const { expect } = require('chai')
-const delay = require('delay')
-
-const { GossipsubDhi, GossipsubIDv11: multicodec } = require('../src/constants')
-const { createGossipsubs, connectGossipsubs, stopNode } = require('./utils')
+import { expect } from 'chai'
+import delay from 'delay'
+import Gossipsub from '../ts'
+import { GossipsubDhi } from '../ts/constants'
+import { createGossipsubs, connectGossipsubs, stopNode } from './utils'
 
 describe('mesh overlay', () => {
-  let nodes
+  let nodes: Gossipsub[]
 
   // Create pubsub nodes
   beforeEach(async () => {
@@ -38,7 +38,7 @@ describe('mesh overlay', () => {
     // await mesh rebalancing
     await new Promise((resolve) => node0.once('gossipsub:heartbeat', resolve))
 
-    expect(node0.mesh.get(topic).size).to.equal(N)
+    expect(node0.mesh.get(topic)!.size).to.equal(N)
   })
 
   it('should remove mesh peers once above threshold', async function () {
@@ -55,6 +55,6 @@ describe('mesh overlay', () => {
     await delay(500)
     // await mesh rebalancing
     await new Promise((resolve) => node0.once('gossipsub:heartbeat', resolve))
-    expect(node0.mesh.get(topic).size).to.be.lte(GossipsubDhi)
+    expect(node0.mesh.get(topic)!.size).to.be.lte(GossipsubDhi)
   })
 })

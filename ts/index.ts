@@ -27,7 +27,9 @@ import {
   ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE
 } from './constants'
 
-interface GossipInputOptions {
+export const multicodec: string = constants.GossipsubIDv11
+
+export interface GossipInputOptions {
   emitSelf: boolean
   canRelayMessage: boolean
   gossipIncoming: boolean
@@ -114,7 +116,7 @@ interface AcceptFromWhitelistEntry {
 
 type FastMsgIdFn = (msg: InMessage) => string
 
-class Gossipsub extends Pubsub {
+export default class Gossipsub extends Pubsub {
   peers: Map<string, PeerStreams>
 
   /** Direct peers */
@@ -1702,5 +1704,3 @@ class Gossipsub extends Pubsub {
     return new Set(peers)
   }
 }
-
-export = Gossipsub
