@@ -1,4 +1,4 @@
-const makeTestMessage = (i, topicIDs = []) => {
+export const makeTestMessage = (i, topicIDs = []) => {
   return {
     seqno: Uint8Array.from(new Array(8).fill(i)),
     data: Uint8Array.from([i]),
@@ -6,5 +6,3 @@ const makeTestMessage = (i, topicIDs = []) => {
     topicIDs
   }
 }
-
-module.exports.makeTestMessage = makeTestMessage

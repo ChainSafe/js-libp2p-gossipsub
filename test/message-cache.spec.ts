@@ -2,18 +2,18 @@
 /* eslint-disable no-unused-expressions */
 'use strict'
 
-const chai = require('chai')
-const dirtyChai = require('dirty-chai')
+import chai from 'chai'
+import dirtyChai from 'dirty-chai'
+import chaiSpies from 'chai-spies'
+import { messageIdToString } from '../ts/utils/messageIdToString'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { MessageCache } from '../ts/message-cache'
+import { utils } from 'libp2p-interfaces/src/pubsub'
+import { getMsgId } from './utils'
+
 chai.use(dirtyChai)
-const chaiSpies = require('chai-spies')
 chai.use(chaiSpies)
 const expect = chai.expect
-const { messageIdToString } = require('../src/utils/messageIdToString')
-const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
-
-const { MessageCache } = require('../src/message-cache')
-const { utils } = require('libp2p-interfaces/src/pubsub')
-const { getMsgId } = require('./utils')
 
 describe('Testing Message Cache Operations', () => {
   const messageCache = new MessageCache(3, 5)

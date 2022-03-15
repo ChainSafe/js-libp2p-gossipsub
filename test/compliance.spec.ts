@@ -1,10 +1,6 @@
-/* eslint-env mocha */
-'use strict'
-
-const tests = require('libp2p-interfaces-compliance-tests/src/pubsub')
-
-const Gossipsub = require('../src')
-const { createPeers } = require('./utils/create-peer')
+import tests from 'libp2p-interfaces-compliance-tests/src/pubsub'
+import Gossipsub from '../ts'
+import { createPeers } from './utils/create-peer'
 
 describe('interface compliance', function () {
   this.timeout(3000)

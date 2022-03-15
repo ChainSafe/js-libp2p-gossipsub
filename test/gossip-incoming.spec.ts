@@ -1,16 +1,13 @@
 /* eslint-env mocha */
-'use strict'
 
-const chai = require('chai')
+import chai from 'chai'
+import delay from 'delay'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { createConnectedGossipsubs, stopNode } from './utils'
+
+const expect = chai.expect
 chai.use(require('dirty-chai'))
 chai.use(require('chai-spies'))
-const expect = chai.expect
-
-const delay = require('delay')
-const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
-
-const { createConnectedGossipsubs, stopNode } = require('./utils')
-
 const shouldNotHappen = (msg) => expect.fail()
 
 describe('gossip incoming', () => {

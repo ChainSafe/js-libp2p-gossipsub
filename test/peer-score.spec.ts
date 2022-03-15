@@ -1,12 +1,11 @@
-const sinon = require('sinon')
-const { expect } = require('chai')
-const PeerId = require('peer-id')
-const delay = require('delay')
-
-const { PeerScore, createPeerScoreParams, createTopicScoreParams } = require('../src/score')
-const computeScoreModule = require('../src/score/compute-score')
-const { ERR_TOPIC_VALIDATOR_IGNORE, ERR_TOPIC_VALIDATOR_REJECT } = require('../src/constants')
-const { makeTestMessage, getMsgId, getMsgIdStr } = require('./utils')
+import sinon from 'sinon'
+import { expect } from 'chai'
+import PeerId from 'peer-id'
+import delay from 'delay'
+import { PeerScore, createPeerScoreParams, createTopicScoreParams } from '../ts/score'
+import * as computeScoreModule from '../ts/score/compute-score'
+import { ERR_TOPIC_VALIDATOR_IGNORE, ERR_TOPIC_VALIDATOR_REJECT } from '../ts/constants'
+import { makeTestMessage, getMsgId, getMsgIdStr } from './utils'
 
 const connectionManager = new Map()
 connectionManager.getAll = () => []

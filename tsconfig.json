@@ -1,17 +1,8 @@
 {
+  "extends": "./tsconfig.build.json",
   "compilerOptions": {
-    "module": "commonjs",
-    "lib": ["es6", "dom"],
-    "target": "es6",
-    "noImplicitAny": true,
-    "noImplicitThis": true,
-    "strictFunctionTypes": true,
-    "strictNullChecks": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "outDir": "./src",
-    "declaration": true,
-    "types": ["node"]
-  },
-  "include": ["./ts"]
+    "emitDeclarationOnly": false,
+    "incremental": false,
+    "noEmit": true
+  }
 }

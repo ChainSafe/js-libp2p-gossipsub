@@ -1,0 +1,17 @@
+{
+  "include": ["./ts"],
+  "compilerOptions": {
+    "outDir": "./src",
+    "module": "commonjs",
+    "lib": ["es6", "dom"],
+    "target": "es6",
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "declaration": true,
+    "types": ["node"]
+  }
+}

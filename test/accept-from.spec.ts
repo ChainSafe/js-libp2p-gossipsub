@@ -1,7 +1,7 @@
-const { expect } = require('chai')
-const sinon = require('sinon')
-const Gossipsub = require('../src')
-const { fastMsgIdFn } = require('./utils/msgId')
+import { expect } from 'chai'
+import sinon from 'sinon'
+import Gossipsub from '../src'
+import { fastMsgIdFn } from './utils/msgId'
 
 describe('Gossipsub acceptFrom', () => {
   let gossipsub

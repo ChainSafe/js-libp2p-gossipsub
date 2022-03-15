@@ -1,11 +1,10 @@
 'use strict'
 /* eslint-env mocha */
 
-const { expect } = require('chai')
-const delay = require('delay')
-
-const { GossipsubDhi, GossipsubIDv11: multicodec } = require('../src/constants')
-const { createGossipsubs, connectGossipsubs, stopNode } = require('./utils')
+import { expect } from 'chai'
+import delay from 'delay'
+import { GossipsubDhi } from '../ts/constants'
+import { createGossipsubs, connectGossipsubs, stopNode } from './utils'
 
 describe('mesh overlay', () => {
   let nodes

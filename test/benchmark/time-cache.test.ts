@@ -1,6 +1,6 @@
-const { itBench, setBenchOpts } = require('@dapplion/benchmark')
-const TimeCache = require('time-cache')
-const { SimpleTimeCache } = require('../../src/utils/time-cache')
+import { itBench, setBenchOpts } from '@dapplion/benchmark'
+import TimeCache from 'time-cache'
+import { SimpleTimeCache } from '../../src/utils/time-cache'
 
 describe('npm TimeCache vs SimpleTimeCache', () => {
   setBenchOpts({

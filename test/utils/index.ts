@@ -1,28 +1,29 @@
-'use strict'
+import { expect } from 'chai'
+import FloodSub from 'libp2p-floodsub'
+import PeerId from 'peer-id'
+import delay from 'delay'
 
-const { expect } = require('chai')
-const FloodSub = require('libp2p-floodsub')
-const PeerId = require('peer-id')
-const delay = require('delay')
+export * from './create-peer'
+export * from './create-gossipsub'
+export * from './make-test-message'
+export * from './msgId'
 
-exports.first = (map) => map.values().next().value
+export const first = (map) => map.values().next().value
 
-exports.expectSet = (set, list) => {
+export const expectSet = (set, list) => {
   expect(set.size).to.eql(list.length)
   list.forEach((item) => {
     expect(set.has(item)).to.eql(true)
   })
 }
 
-const createPeerId = async () => {
+export const createPeerId = async () => {
   const peerId = await PeerId.create({ bits: 1024 })
 
   return peerId
 }
 
-exports.createPeerId = createPeerId
-
-const createFloodsubNode = async (libp2p, shouldStart = false, options) => {
+export const createFloodsubNode = async (libp2p, shouldStart = false, options) => {
   const fs = new FloodSub(libp2p, options)
   fs._libp2p = libp2p
 
@@ -34,18 +35,7 @@ const createFloodsubNode = async (libp2p, shouldStart = false, options) => {
   return fs
 }
 
-exports.createFloodsubNode = createFloodsubNode
-
-for (const [k, v] of Object.entries({
-  ...require('./create-peer'),
-  ...require('./create-gossipsub'),
-  ...require('./make-test-message'),
-  ...require('./msgId')
-})) {
-  exports[k] = v
-}
-
-exports.waitForAllNodesToBePeered = async (peers, attempts = 10, delayMs = 100) => {
+export const waitForAllNodesToBePeered = async (peers, attempts = 10, delayMs = 100) => {
   const nodeIds = peers.map((peer) => peer.peerId.toB58String())
 
   for (let i = 0; i < attempts; i++) {

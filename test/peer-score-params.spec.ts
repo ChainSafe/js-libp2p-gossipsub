@@ -1,10 +1,10 @@
-const { expect } = require('chai')
-const {
+import { expect } from 'chai'
+import {
   createTopicScoreParams,
   validateTopicScoreParams,
   createPeerScoreParams,
   validatePeerScoreParams
-} = require('../src/score')
+} from '../ts/score'
 
 describe('TopicScoreParams validation', () => {
   it('should throw on invalid TopicScoreParams', () => {

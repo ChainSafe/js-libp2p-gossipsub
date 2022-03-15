@@ -1,23 +1,17 @@
-/**
- * These tests were translated from:
- *   https://github.com/libp2p/go-libp2p-pubsub/blob/master/gossipsub_test.go
- */
-const chai = require('chai')
-chai.use(require('dirty-chai'))
-const expect = chai.expect
-const delay = require('delay')
-const errcode = require('err-code')
-const sinon = require('sinon')
-const pRetry = require('p-retry')
-const { EventEmitter } = require('events')
-const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
-const { equals: uint8ArrayEquals } = require('uint8arrays/equals')
+import chai from 'chai'
+import delay from 'delay'
+import errcode from 'err-code'
+import sinon from 'sinon'
+import pRetry from 'p-retry'
+import { EventEmitter } from 'events'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
 
-const Floodsub = require('libp2p-floodsub')
-const Gossipsub = require('../src')
-const constants = require('../src/constants')
-const { GossipsubD } = require('../src/constants')
-const {
+import Floodsub from 'libp2p-floodsub'
+import Gossipsub from '../ts'
+import * as constants from '../ts/constants'
+import { GossipsubD } from '../ts/constants'
+import {
   createGossipsubs,
   sparseConnect,
   denseConnect,
@@ -28,7 +22,15 @@ const {
   fastMsgIdFn,
   tearDownGossipsubs,
   createPeers
-} = require('./utils')
+} from './utils'
+
+/**
+ * These tests were translated from:
+ *   https://github.com/libp2p/go-libp2p-pubsub/blob/master/gossipsub_test.go
+ */
+
+const expect = chai.expect
+chai.use(require('dirty-chai'))
 
 EventEmitter.defaultMaxListeners = 100
 

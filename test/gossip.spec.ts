@@ -1,13 +1,12 @@
 'use strict'
 /* eslint-env mocha */
 
-const { expect } = require('chai')
-const sinon = require('sinon')
-const delay = require('delay')
-const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
-
-const { GossipsubDhi } = require('../src/constants')
-const { first, createGossipsubs, connectGossipsubs, stopNode, waitForAllNodesToBePeered } = require('./utils')
+import { expect } from 'chai'
+import sinon from 'sinon'
+import delay from 'delay'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { GossipsubDhi } from '../ts/constants'
+import { first, createGossipsubs, connectGossipsubs, stopNode, waitForAllNodesToBePeered } from './utils'
 
 describe('gossip', () => {
   let nodes

@@ -1,17 +1,12 @@
-/* eslint-env mocha */
-'use strict'
+import chai from 'chai'
+import delay from 'delay'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import PeerId from 'peer-id'
+import Gossipsub from '../ts'
+import { createPeer, createFloodsubNode, expectSet, first, startNode, stopNode } from './utils'
 
-const chai = require('chai')
-chai.use(require('dirty-chai'))
 const expect = chai.expect
-
-const delay = require('delay')
-const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
-
-const PeerId = require('peer-id')
-
-const Gossipsub = require('../src')
-const { createPeer, createFloodsubNode, expectSet, first, startNode, stopNode } = require('./utils')
+chai.use(require('dirty-chai'))
 
 describe('gossipsub fallbacks to floodsub', () => {
   describe('basics', () => {
