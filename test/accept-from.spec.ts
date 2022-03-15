@@ -1,7 +1,8 @@
 import { expect } from 'chai'
-import { Libp2p } from 'libp2p-interfaces/src/pubsub'
+import Libp2p from 'libp2p'
 import sinon from 'sinon'
 import Gossipsub from '../ts'
+import { createPeerId } from './utils'
 import { fastMsgIdFn } from './utils/msgId'
 
 describe('Gossipsub acceptFrom', () => {
@@ -12,7 +13,10 @@ describe('Gossipsub acceptFrom', () => {
   beforeEach(async () => {
     sandbox = sinon.createSandbox()
     sandbox.useFakeTimers(Date.now())
-    gossipsub = new Gossipsub({} as Libp2p, { emitSelf: false, fastMsgIdFn })
+
+    const peerId = await createPeerId()
+    gossipsub = new Gossipsub({ peerId } as Libp2p, { emitSelf: false, fastMsgIdFn })
+
     // stubbing PeerScore causes some pending issue in firefox browser environment
     // we can only spy it
     // using scoreSpy.withArgs("peerA").calledOnce causes the pending issue in firefox
@@ -30,10 +34,10 @@ describe('Gossipsub acceptFrom', () => {
     // 1st time, we have to compute score
     expect(scoreSpy.getCall(0).args[0]).to.be.equal('peerA')
     expect(scoreSpy.getCall(0).returnValue).to.be.equal(0)
-    expect(scoreSpy.getCall(1)).to.be.undefined
+    expect(scoreSpy.getCall(1)).to.not.be.ok
     // 2nd time, use a cached score since it's white listed
     gossipsub['acceptFrom']('peerA')
-    expect(scoreSpy.getCall(1)).to.be.undefined
+    expect(scoreSpy.getCall(1)).to.not.be.ok
   })
 
   it('should recompute score after 1s', () => {
@@ -41,17 +45,17 @@ describe('Gossipsub acceptFrom', () => {
     gossipsub['acceptFrom']('peerA')
     // 1st time, we have to compute score
     expect(scoreSpy.getCall(0).args[0]).to.be.equal('peerA')
-    expect(scoreSpy.getCall(1)).to.be.undefined
+    expect(scoreSpy.getCall(1)).to.not.be.ok
     gossipsub['acceptFrom']('peerA')
     // score is cached
-    expect(scoreSpy.getCall(1)).to.be.undefined
+    expect(scoreSpy.getCall(1)).to.not.be.ok
 
     // after 1s
     sandbox.clock.tick(1001)
 
     gossipsub['acceptFrom']('peerA')
     expect(scoreSpy.getCall(1).args[0]).to.be.equal('peerA')
-    expect(scoreSpy.getCall(2)).to.be.undefined
+    expect(scoreSpy.getCall(2)).to.not.be.ok
   })
 
   it('should recompute score after max messages accepted', () => {
@@ -59,17 +63,17 @@ describe('Gossipsub acceptFrom', () => {
     gossipsub['acceptFrom']('peerA')
     // 1st time, we have to compute score
     expect(scoreSpy.getCall(0).args[0]).to.be.equal('peerA')
-    expect(scoreSpy.getCall(1)).to.be.undefined
+    expect(scoreSpy.getCall(1)).to.not.be.ok
 
     for (let i = 0; i < 128; i++) {
       gossipsub['acceptFrom']('peerA')
     }
-    expect(scoreSpy.getCall(1)).to.be.undefined
+    expect(scoreSpy.getCall(1)).to.not.be.ok
 
     // max messages reached
     gossipsub['acceptFrom']('peerA')
     expect(scoreSpy.getCall(1).args[0]).to.be.equal('peerA')
-    expect(scoreSpy.getCall(2)).to.be.undefined
+    expect(scoreSpy.getCall(2)).to.not.be.ok
   })
 
   // TODO: run this in a unit test setup

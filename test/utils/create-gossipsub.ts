@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events'
 import PubsubBaseProtocol from 'libp2p-interfaces/src/pubsub'
-import Gossipsub, { GossipInputOptions } from '../../ts'
+import Gossipsub, { GossipsubOpts } from '../../ts'
 import { fastMsgIdFn } from './msgId'
 import { createPeers } from './create-peer'
 import { FloodsubID } from '../../ts/constants'
@@ -38,7 +38,7 @@ export async function createGossipsubs({
 }: {
   number?: number
   started?: boolean
-  options?: Partial<GossipInputOptions>
+  options?: Partial<GossipsubOpts>
 } = {}) {
   const libp2ps = await createPeers({ number, started })
   const gss = libp2ps.map((libp2p) => new Gossipsub(libp2p, { ...options, fastMsgIdFn: fastMsgIdFn }))
@@ -57,7 +57,7 @@ export async function createPubsubs({
 }: {
   number?: number
   started?: boolean
-  options?: Partial<GossipInputOptions>
+  options?: Partial<GossipsubOpts>
 } = {}) {
   const libp2ps = await createPeers({ number, started })
   const pubsubs = libp2ps.map(
@@ -132,7 +132,7 @@ export async function connectGossipsubs(gss: PubsubBaseMinimal[]) {
 export async function createConnectedGossipsubs({
   number = 2,
   options = {}
-}: { number?: number; options?: Partial<GossipInputOptions> } = {}) {
+}: { number?: number; options?: Partial<GossipsubOpts> } = {}) {
   const gss = await createGossipsubs({ number, started: true, options })
   await connectGossipsubs(gss)
   return gss

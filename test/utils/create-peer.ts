@@ -64,6 +64,10 @@ function getListenAddress(peerId: PeerId) {
   }
 }
 
+export async function createPeerId() {
+  return await PeerId.createFromJSON(Peers[0])
+}
+
 /**
  * Create libp2p node, selectively determining the listen address based on the operating environment
  * If no peerId is given, default to the first peer in the fixtures peer list

@@ -3,7 +3,6 @@
 /**
  * These peer id / keypairs are used across tests to seed peers
  */
-
 module.exports = [
   {
     id: 'QmNMMAqSxPetRS1cVMmutW5BCN1qQQyEr4u98kUvZjcfEw',

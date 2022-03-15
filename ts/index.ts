@@ -59,6 +59,7 @@ import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage'
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn'
 import { computeAllPeersScoreWeights } from './score/scoreMetrics'
 import { getPublishConfigFromPeerId } from './utils/publishConfig'
+import { GossipsubOptsSpec } from './config'
 
 // From 'bl' library
 interface BufferList {
@@ -78,7 +79,8 @@ type ReceivedMessageResult =
 
 export const multicodec: string = constants.GossipsubIDv11
 
-export interface GossipInputOptions {
+export type GossipsubOpts = GossipsubOptsSpec & {
+  // Behaviour
   emitSelf: boolean
   /** if can relay messages not subscribed */
   canRelayMessage: boolean
@@ -90,6 +92,18 @@ export interface GossipInputOptions {
   floodPublish: boolean
   /** whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes. */
   doPX: boolean
+  /** peers with which we will maintain direct connections */
+  directPeers: AddrInfo[]
+  /**
+   * If true will not forward messages to mesh peers until reportMessageValidationResult() is called.
+   * Messages will be cached in mcache for some time after which they are evicted. Calling
+   * reportMessageValidationResult() after the message is dropped from mcache won't forward the message.
+   */
+  asyncValidation: boolean
+  /** Do not throw `InsufficientPeers` error if publishing to zero peers */
+  allowPublishToZeroPeers: boolean
+
+  // Extra modules, config
   msgIdFn: MsgIdFn
   /** fast message id function */
   fastMsgIdFn: FastMsgIdFn
@@ -101,78 +115,14 @@ export interface GossipInputOptions {
   scoreParams: Partial<PeerScoreParams>
   /** peer score thresholds */
   scoreThresholds: Partial<PeerScoreThresholds>
-  /** peers with which we will maintain direct connections */
-  directPeers: AddrInfo[]
-  /**
-   * If true will not forward messages to mesh peers until reportMessageValidationResult() is called.
-   * Messages will be cached in mcache for some time after which they are evicted. Calling
-   * reportMessageValidationResult() after the message is dropped from mcache won't forward the message.
-   */
-  asyncValidation: boolean
 
   dataTransform?: DataTransform
   metricsRegister?: MetricsRegister | null
   metricsTopicStrToLabel?: TopicStrToLabel
 
+  // Debug
   /** Prefix tag for debug logs */
   debugName?: string
-
-  /**
-   * D sets the optimal degree for a Gossipsub topic mesh.
-   */
-  D: number
-
-  /**
-   * Dlo sets the lower bound on the number of peers we keep in a Gossipsub topic mesh.
-   */
-  Dlo: number
-
-  /**
-   * Dhi sets the upper bound on the number of peers we keep in a Gossipsub topic mesh.
-   */
-  Dhi: number
-
-  /**
-   * Dscore affects how peers are selected when pruning a mesh due to over subscription.
-   */
-  Dscore: number
-
-  /**
-   * Dout sets the quota for the number of outbound connections to maintain in a topic mesh.
-   */
-  Dout: number
-
-  /**
-   * Dlazy affects how many peers we will emit gossip to at each heartbeat.
-   */
-  Dlazy: number
-
-  /**
-   * heartbeatInterval is the time between heartbeats in milliseconds
-   */
-  heartbeatInterval: number
-
-  /**
-   * fanoutTTL controls how long we keep track of the fanout state. If it's been
-   * fanoutTTL milliseconds since we've published to a topic that we're not subscribed to,
-   * we'll delete the fanout map for that topic.
-   */
-  fanoutTTL: number
-
-  /**
-   * mcacheLength is the number of windows to retain full messages for IWANT responses
-   */
-  mcacheLength: number
-
-  /**
-   * mcacheGossip is the number of windows to gossip about
-   */
-  mcacheGossip: number
-
-  /**
-   * seenTTL is the number of milliseconds to retain message IDs in the seen cache
-   */
-  seenTTL: number
 }
 
 enum GossipStatusCode {
@@ -190,7 +140,7 @@ type GossipStatus =
       code: GossipStatusCode.stopped
     }
 
-interface GossipOptions extends GossipInputOptions {
+interface GossipOptions extends GossipsubOpts {
   scoreParams: PeerScoreParams
   scoreThresholds: PeerScoreThresholds
 }
@@ -350,7 +300,7 @@ export default class Gossipsub extends EventEmitter {
     cancel(): void
   } | null = null
 
-  constructor(libp2p: Libp2p, options: Partial<GossipInputOptions> = {}) {
+  constructor(libp2p: Libp2p, options: Partial<GossipsubOpts> = {}) {
     super()
 
     const opts = {
@@ -549,9 +499,13 @@ export default class Gossipsub extends EventEmitter {
       return
     }
 
+    const { registrarTopologyId } = this.status
+    this.status = { code: GossipStatusCode.stopped }
+
     // unregister protocol and handlers
-    this.registrar.unregister(this.status.registrarTopologyId)
-    this.registrar.unregister(this.status.registrarHandlerId)
+    this.registrar.unregister(registrarTopologyId)
+    // TODO: Uncomment on new libp2p version
+    // this.registrar.unregister(registrarHandlerId)
 
     this.log('stopping')
     for (const peerStreams of this.peers.values()) {
@@ -709,6 +663,28 @@ export default class Gossipsub extends EventEmitter {
   }
 
   // API METHODS
+
+  get started(): boolean {
+    return this.status.code === GossipStatusCode.started
+  }
+
+  /**
+   * Get a list of the peer-ids that are subscribed to one topic.
+   */
+  getSubscribers(topic: TopicStr): PeerIdStr[] {
+    const peersInTopic = this.topics.get(topic)
+    if (!peersInTopic) {
+      return []
+    }
+    return Array.from(peersInTopic)
+  }
+
+  /**
+   * Get the list of topics which the peer is subscribed to.
+   */
+  getTopics(): TopicStr[] {
+    return Array.from(this.subscriptions)
+  }
 
   // TODO: Reviewing Pubsub API
 
@@ -878,7 +854,6 @@ export default class Gossipsub extends EventEmitter {
               msgId: msgIdStr,
               msg
             })
-
             // TODO: Add option to switch between emit per topic or all messages in one
             super.emit(rpcMsg.topic, msg)
           }
@@ -1785,12 +1760,13 @@ export default class Gossipsub extends EventEmitter {
     const rawMsg = await buildRawMessage(this.publishConfig, topic, transformedData)
 
     // calculate the message id from the un-transformed data
-    const msgId = await this.msgIdFn({
+    const msg: GossipsubMessage = {
       from: rawMsg.from === null ? undefined : rawMsg.from,
       data, // the uncompressed form
       seqno: rawMsg.seqno === null ? undefined : rawMsg.seqno,
       topic
-    })
+    }
+    const msgId = await this.msgIdFn(msg)
     const msgIdStr = messageIdToString(msgId)
 
     if (this.seenCache.has(msgIdStr)) {
@@ -1801,7 +1777,7 @@ export default class Gossipsub extends EventEmitter {
 
     const { tosend, tosendCount } = this.selectPeersToPublish(rawMsg.topic)
 
-    if (tosend.size === 0) {
+    if (tosend.size === 0 && !this.opts.allowPublishToZeroPeers) {
       throw Error('PublishError.InsufficientPeers')
     }
 
@@ -1821,6 +1797,17 @@ export default class Gossipsub extends EventEmitter {
     })
 
     this.metrics?.onPublishMsg(topic, tosendCount, tosend.size, rawMsg.data ? rawMsg.data.length : 0)
+
+    // Dispatch the message to the user if we are subscribed to the topic
+    if (this.opts.emitSelf && this.subscriptions.has(topic)) {
+      super.emit('gossipsub:message', {
+        propagationSource: this.peerId.toB58String(),
+        msgId: msgIdStr,
+        msg
+      })
+      // TODO: Add option to switch between emit per topic or all messages in one
+      super.emit(topic, msg)
+    }
   }
 
   /// This function should be called when [`GossipsubConfig::validate_messages()`] is `true` after
