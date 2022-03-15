@@ -16,9 +16,9 @@ jobs:
         id: tag
         uses: butlerlogic/action-autotag@1.1.1
         with:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
           strategy: package # Optional, since "package" is the default strategy
-          tag_prefix: "v"
+          tag_prefix: 'v'
     outputs:
       tag: ${{ steps.tag.outputs.tagname }}
       version: ${{ steps.tag.outputs.version }}
@@ -56,17 +56,17 @@ jobs:
         uses: heinrichreimer/github-changelog-generator-action@v2.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          issues: "false"
-          pullRequests: "true"
-          prWoLabels: "true"
-          author: "true"
-          usernamesAsGithubLogins: "true"
-          compareLink: "true"
-          filterByMilestone: "false"
-          unreleased: "false"
-          sinceTag: "${{ needs.tag.outputs.previous_tag }}"
-          maxIssues: "0"
-          stripGeneratorNotice: "true"
+          issues: 'false'
+          pullRequests: 'true'
+          prWoLabels: 'true'
+          author: 'true'
+          usernamesAsGithubLogins: 'true'
+          compareLink: 'true'
+          filterByMilestone: 'false'
+          unreleased: 'false'
+          sinceTag: '${{ needs.tag.outputs.previous_tag }}'
+          maxIssues: '0'
+          stripGeneratorNotice: 'true'
 
       - name: Create Release
         id: create_release
@@ -75,7 +75,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.tag.outputs.tag }}
-          body_path: "CHANGELOG.md"
+          body_path: 'CHANGELOG.md'
           release_name: Release ${{ needs.tag.outputs.tag }}
           prerelease: false # Note: if prerelease, will be hidden from view in the main page
 

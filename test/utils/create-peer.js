@@ -53,7 +53,7 @@ function isBrowser() {
  * If in node, use websocket address
  * If in browser, use relay address
  */
-function getListenAddress (peerId) {
+function getListenAddress(peerId) {
   if (isBrowser()) {
     // browser
     return new Multiaddr(`${RelayPeer.multiaddr}/p2p-circuit/p2p/${peerId.toB58String()}`)
@@ -67,7 +67,7 @@ function getListenAddress (peerId) {
  * Create libp2p node, selectively determining the listen address based on the operating environment
  * If no peerId is given, default to the first peer in the fixtures peer list
  */
-async function createPeer ({ peerId, started = true, config = {} } = {}) {
+async function createPeer({ peerId, started = true, config = {} } = {}) {
   if (!peerId) {
     peerId = await PeerId.createFromJSON(Peers[0])
   }
@@ -106,18 +106,16 @@ function addPeersToAddressBook(peers) {
  * @param {boolean} [properties.seedAddressBook] nodes should have each other in their addressbook
  * @return {Promise<Array<Libp2p>>}
  */
-async function createPeers ({ number = 1, started = true, seedAddressBook = true, config = {} } = {}) {
+async function createPeers({ number = 1, started = true, seedAddressBook = true, config = {} } = {}) {
   const peerIds = await Promise.all(
-    Array.from({ length: number }, (_, i) => Peers[i] ? PeerId.createFromJSON(Peers[i]) : PeerId.create())
+    Array.from({ length: number }, (_, i) => (Peers[i] ? PeerId.createFromJSON(Peers[i]) : PeerId.create()))
   )
   const peers = await Promise.all(
     Array.from({ length: number }, (_, i) => createPeer({ peerId: peerIds[i], started: false, config: config }))
   )
 
   if (started) {
-    await Promise.all(
-      peers.map((p) => p.start())
-    )
+    await Promise.all(peers.map((p) => p.start()))
 
     if (seedAddressBook) {
       addPeersToAddressBook(peers)

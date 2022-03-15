@@ -7,20 +7,17 @@ const delay = require('delay')
 const { fromString: uint8ArrayFromString } = require('uint8arrays/from-string')
 
 const { GossipsubDhi } = require('../src/constants')
-const {
-  first,
-  createGossipsubs,
-  connectGossipsubs,
-  stopNode,
-  waitForAllNodesToBePeered
-} = require('./utils')
+const { first, createGossipsubs, connectGossipsubs, stopNode, waitForAllNodesToBePeered } = require('./utils')
 
 describe('gossip', () => {
   let nodes
 
   // Create pubsub nodes
   beforeEach(async () => {
-    nodes = await createGossipsubs({ number: GossipsubDhi + 2, options: { scoreParams: { IPColocationFactorThreshold: GossipsubDhi + 3 } } })
+    nodes = await createGossipsubs({
+      number: GossipsubDhi + 2,
+      options: { scoreParams: { IPColocationFactorThreshold: GossipsubDhi + 3 } }
+    })
   })
 
   afterEach(() => Promise.all(nodes.map(stopNode)))
@@ -46,7 +43,8 @@ describe('gossip', () => {
 
     await new Promise((resolve) => nodeA.once('gossipsub:heartbeat', resolve))
 
-    nodeA._pushGossip.getCalls()
+    nodeA._pushGossip
+      .getCalls()
       .map((call) => call.args[0])
       .forEach((peerId) => {
         nodeA.mesh.get(topic).forEach((meshPeerId) => {

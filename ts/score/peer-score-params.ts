@@ -150,7 +150,7 @@ export const defaultPeerScoreParams: PeerScoreParams = {
   behaviourPenaltyDecay: 0.2,
   decayInterval: 1000,
   decayToZero: 0.1,
-  retainScore: 3600 * 1000,
+  retainScore: 3600 * 1000
 }
 
 export const defaultTopicScoreParams: TopicScoreParams = {
@@ -174,7 +174,7 @@ export const defaultTopicScoreParams: TopicScoreParams = {
   meshFailurePenaltyDecay: 0.5,
 
   invalidMessageDeliveriesWeight: -1,
-  invalidMessageDeliveriesDecay: 0.3,
+  invalidMessageDeliveriesDecay: 0.3
 }
 
 export function createPeerScoreParams(p: Partial<PeerScoreParams> = {}): PeerScoreParams {
@@ -186,14 +186,14 @@ export function createPeerScoreParams(p: Partial<PeerScoreParams> = {}): PeerSco
           topics[topic] = createTopicScoreParams(topicScoreParams)
           return topics
         }, {} as Record<string, TopicScoreParams>)
-      : {},
+      : {}
   }
 }
 
 export function createTopicScoreParams(p: Partial<TopicScoreParams> = {}): TopicScoreParams {
   return {
     ...defaultTopicScoreParams,
-    ...p,
+    ...p
   }
 }
 

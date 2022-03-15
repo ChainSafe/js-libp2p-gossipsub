@@ -82,7 +82,7 @@ export function createPeerStats(ps: Partial<PeerStats> = {}): PeerStats {
           topics[topic] = createTopicStats(topicStats)
           return topics
         }, {} as Record<string, TopicStats>)
-      : {},
+      : {}
   }
 }
 
@@ -96,7 +96,7 @@ export function createTopicStats(ts: Partial<TopicStats> = {}): TopicStats {
     meshMessageDeliveriesActive: false,
     meshFailurePenalty: 0,
     invalidMessageDeliveries: 0,
-    ...ts,
+    ...ts
   }
 }
 

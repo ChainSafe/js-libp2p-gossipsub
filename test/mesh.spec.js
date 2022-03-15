@@ -5,11 +5,7 @@ const { expect } = require('chai')
 const delay = require('delay')
 
 const { GossipsubDhi, GossipsubIDv11: multicodec } = require('../src/constants')
-const {
-  createGossipsubs,
-  connectGossipsubs,
-  stopNode
-} = require('./utils')
+const { createGossipsubs, connectGossipsubs, stopNode } = require('./utils')
 
 describe('mesh overlay', () => {
   let nodes
