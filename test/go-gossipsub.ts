@@ -728,7 +728,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await results
     await tearDownGossipsubs(psubs)
   })
-  it('test gossipsub tree topology', async function () {
+
+  it.only('test gossipsub tree topology', async function () {
     // Create 10 gossipsub nodes
     // Connect nodes in a tree, diagram below
     // Subscribe to the topic, all nodes
@@ -751,20 +752,39 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
      [8] -> [9]
     */
     const multicodecs = psubs[0].multicodecs
-    await psubs[0]._libp2p.dialProtocol(psubs[1]._libp2p.peerId, multicodecs)
-    await psubs[1]._libp2p.dialProtocol(psubs[2]._libp2p.peerId, multicodecs)
-    await psubs[1]._libp2p.dialProtocol(psubs[4]._libp2p.peerId, multicodecs)
-    await psubs[2]._libp2p.dialProtocol(psubs[3]._libp2p.peerId, multicodecs)
-    await psubs[0]._libp2p.dialProtocol(psubs[5]._libp2p.peerId, multicodecs)
-    await psubs[5]._libp2p.dialProtocol(psubs[6]._libp2p.peerId, multicodecs)
-    await psubs[5]._libp2p.dialProtocol(psubs[8]._libp2p.peerId, multicodecs)
-    await psubs[6]._libp2p.dialProtocol(psubs[7]._libp2p.peerId, multicodecs)
-    await psubs[8]._libp2p.dialProtocol(psubs[9]._libp2p.peerId, multicodecs)
+    const treeTopology = [
+      [1, 5], // 0
+      [2, 4], // 1
+      [3], // 2
+      [], // 3 leaf
+      [], // 4 leaf
+      [6, 8], // 5
+      [7], // 6
+      [], // 7 leaf
+      [9], // 8
+      [], // 9 leaf
+    ]
+    for (let from = 0; from < treeTopology.length; from++) {
+      for (let to of treeTopology[from]) {
+        await psubs[from]._libp2p.dialProtocol(psubs[to]._libp2p.peerId, multicodecs)
+      }
+    }
 
+    const getPeerIdStrs = (idx: number): string[] => {
+      const outbounds = treeTopology[idx]
+      const inbounds = []
+      for (let i = 0; i < treeTopology.length; i++) {
+        if (treeTopology[i].includes(idx)) inbounds.push(i)
+      }
+      return Array.from(new Set([...inbounds, ...outbounds])).map((i) => psubs[i].peerId.toB58String())
+    }
+
+    const subscriptionPromises = psubs.map((psub, i) => checkReceivedSubscriptions(psub, getPeerIdStrs(i), topic))
     psubs.forEach((ps) => ps.subscribe(topic))
 
     // wait for heartbeats to build mesh
     await Promise.all(psubs.map((ps) => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
+    await Promise.all(subscriptionPromises)
 
     expectSet(new Set(psubs[0].peers.keys()), [psubs[1].peerId.toB58String(), psubs[5].peerId.toB58String()])
     expectSet(new Set(psubs[1].peers.keys()), [
