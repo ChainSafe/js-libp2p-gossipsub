@@ -89,7 +89,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       // await subscription change
       const [changedPeerId, changedSubs] = await new Promise<[PeerId, RPC.ISubOpts[]]>((resolve) => {
-        nodeGs.once('pubsub:subscription-change', resolve)
+        nodeGs.once('pubsub:subscription-change', (...args: [PeerId, RPC.ISubOpts[]]) => resolve(args))
       })
       await delay(1000)
 
@@ -199,7 +199,7 @@ describe('gossipsub fallbacks to floodsub', () => {
       expect(nodeGs.subscriptions.size).to.equal(0)
 
       const [changedPeerId, changedSubs] = await new Promise<[PeerId, RPC.ISubOpts[]]>((resolve) => {
-        nodeFs.once('pubsub:subscription-change', resolve)
+        nodeFs.once('pubsub:subscription-change', (...args: [PeerId, RPC.ISubOpts[]]) => resolve(args))
       })
 
       expect(nodeFs.peers.size).to.equal(1)

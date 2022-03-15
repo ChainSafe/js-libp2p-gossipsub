@@ -53,8 +53,10 @@ describe('2 nodes', () => {
 
       // await subscription change
       const [evt0] = await Promise.all([
-        new Promise((resolve) => nodes[0].once('pubsub:subscription-change', (...args) => resolve(args))),
-        new Promise((resolve) => nodes[1].once('pubsub:subscription-change', (...args) => resolve(args)))
+        new Promise<[PeerId, RPC.ISubOpts[]]>((resolve) =>
+          nodes[0].once('pubsub:subscription-change', (...args: [PeerId, RPC.ISubOpts[]]) => resolve(args))
+        ),
+        new Promise((resolve) => nodes[1].once('pubsub:subscription-change', resolve))
       ])
 
       const [changedPeerId, changedSubs] = evt0 as [PeerId, RPC.ISubOpts[]]
@@ -188,8 +190,8 @@ describe('2 nodes', () => {
       nodes[0].unsubscribe(topic)
       expect(nodes[0].subscriptions.size).to.equal(0)
 
-      const [changedPeerId, changedSubs] = await new Promise((resolve) => {
-        nodes[1].once('pubsub:subscription-change', resolve)
+      const [changedPeerId, changedSubs] = await new Promise<[PeerId, RPC.ISubOpts[]]>((resolve) => {
+        nodes[1].once('pubsub:subscription-change', (...args: [PeerId, RPC.ISubOpts[]]) => resolve(args))
       })
       await new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
 
