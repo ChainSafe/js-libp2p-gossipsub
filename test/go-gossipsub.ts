@@ -25,6 +25,7 @@ import {
   tearDownGossipsubs,
   createPeers
 } from './utils'
+import PeerId from 'peer-id'
 
 /**
  * These tests were translated from:
@@ -35,6 +36,28 @@ const expect = chai.expect
 chai.use(require('dirty-chai'))
 
 EventEmitter.defaultMaxListeners = 100
+
+const checkReceivedSubscription = (psub: Gossipsub, peerIdStr: string, topic: string, peerIdx: number) => new Promise<void> ((resolve, reject) => {
+  const event = 'pubsub:subscription-change'
+  let cb: (peerId: PeerId) => void
+  const t = setTimeout(() => reject(`Not received subscriptions of psub ${peerIdx}`), 1000)
+  cb = (peerId) => {
+    if (peerId.toB58String() === peerIdStr) {
+      clearTimeout(t)
+      psub.off(event, cb)
+      expect(Array.from(psub.topics.get(topic) || []).includes(peerIdStr), "topics should include the peerId").to.be.true
+      resolve()
+    }
+  }
+  psub.on(event, cb);
+});
+
+const checkReceivedSubscriptions = async (psub: Gossipsub, peerIdStrs: string[], topic: string) => {
+  const recvPeerIdStrs = peerIdStrs.filter((peerIdStr) => peerIdStr !== psub.peerId.toB58String())
+  const promises = recvPeerIdStrs.map((peerIdStr, idx) => checkReceivedSubscription(psub, peerIdStr, topic, idx))
+  await Promise.all(promises)
+  expect(Array.from(psub.topics.get(topic) || []).sort()).to.be.deep.equal(recvPeerIdStrs.sort())
+}
 
 /**
  * Given a topic and data (and debug metadata -- sender index and msg index)
@@ -80,7 +103,7 @@ const awaitEvents = (emitter: EventEmitter, event: string, number: number, timeo
   })
 }
 
-describe.skip('go-libp2p-pubsub gossipsub tests', function () {
+describe('go-libp2p-pubsub gossipsub tests', function () {
   this.timeout(100000)
   afterEach(() => {
     sinon.restore()
