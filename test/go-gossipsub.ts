@@ -867,7 +867,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await Promise.all(sendRecv)
     await tearDownGossipsubs(psubs)
   })
-  it('test gossipsub direct peers', async function () {
+
+  it.only('test gossipsub direct peers', async function () {
     // Create 3 gossipsub nodes
     // 2 and 3 with direct peer connections with each other
     // Connect nodes: 2 <- 1 -> 3
@@ -914,9 +915,11 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     expect(libp2ps[1].connectionManager.get(libp2ps[2].peerId)).to.be.ok
 
     const topic = 'foobar'
-    psubs.forEach((ps) => ps.subscribe(topic))
-
-    await Promise.all(psubs.map((ps) => awaitEvents(ps, 'gossipsub:heartbeat', 1)))
+    const peerIdStrs = libp2ps.map((libp2p) => libp2p.peerId.toB58String())
+    const subscriptionPromises = psubs.map((psub) => checkReceivedSubscriptions(psub, peerIdStrs, topic))
+    psubs.forEach(ps => ps.subscribe(topic))
+    await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 1)))
+    await subscriptionPromises
 
     let sendRecv = []
     for (let i = 0; i < 3; i++) {
@@ -930,11 +933,18 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     }
     await Promise.all(sendRecv)
 
+    const connectPromises = [1,2].map((i) => new Promise<void>((resolve, reject) => {
+      const t = setTimeout(reject, 3000)
+      libp2ps[i].connectionManager.once('peer:connect', () => {
+        clearTimeout(t)
+        resolve()
+      })
+    }))
     // disconnect the direct peers to test reconnection
-    libp2ps[1].connectionManager.getAll(libp2ps[2].peerId).forEach((c) => c.close())
+    await libp2ps[1].hangUp(libp2ps[2].peerId);
 
     await Promise.all(psubs.map((ps) => awaitEvents(ps, 'gossipsub:heartbeat', 5)))
-
+    await Promise.all(connectPromises)
     expect(libp2ps[1].connectionManager.get(libp2ps[2].peerId)).to.be.ok
 
     sendRecv = []
