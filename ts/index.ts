@@ -102,6 +102,10 @@ export type GossipsubOpts = GossipsubOptsSpec & {
   asyncValidation: boolean
   /** Do not throw `InsufficientPeers` error if publishing to zero peers */
   allowPublishToZeroPeers: boolean
+  /** For a single stream, await processing each RPC before processing the next */
+  awaitRpcHandler: boolean
+  /** For a single RPC, await processing each message before processing the next */
+  awaitRpcMessageHandler: boolean
 
   // Extra modules, config
   msgIdFn: MsgIdFn
@@ -718,7 +722,11 @@ export default class Gossipsub extends EventEmitter {
             // the simplest/safest option here is to wrap in a function and capture all errors
             // to prevent a top-level unhandled exception
             // This processing of rpc messages should happen without awaiting full validation/execution of prior messages
-            this.handleReceivedRpc(peerId, rpc).catch((err) => this.log(err))
+            if (this.opts.awaitRpcHandler) {
+              await this.handleReceivedRpc(peerId, rpc)
+            } else {
+              this.handleReceivedRpc(peerId, rpc).catch((err) => this.log(err))
+            }
           } catch (e) {
             this.log(e as Error)
           }
@@ -756,10 +764,13 @@ export default class Gossipsub extends EventEmitter {
     // TODO: (up to limit)
     if (rpc.messages) {
       for (const message of rpc.messages) {
-        // TODO: Should await?
-        await this.handleReceivedMessage(from, message)
+        const handleReceivedMessagePromise = this.handleReceivedMessage(from, message)
           // Should never throw, but handle just in case
           .catch((err) => this.log(err))
+
+        if (this.opts.awaitRpcMessageHandler) {
+          await handleReceivedMessagePromise
+        }
       }
     }
 
