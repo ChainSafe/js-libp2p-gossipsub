@@ -2,7 +2,6 @@ import Pubsub, { InMessage, utils } from 'libp2p-interfaces/src/pubsub'
 import { MessageCache } from './message-cache'
 import { RPC, IRPC } from './message/rpc'
 import * as constants from './constants'
-import { getGossipPeers } from './get-gossip-peers'
 import { createGossipRpc, shuffle, hasGossipProtocol, messageIdToString } from './utils'
 import {
   PeerScore,
@@ -996,7 +995,7 @@ class Gossipsub extends Pubsub {
       })
       if (fanoutPeers.size < this._options.D) {
         // we need more peers; eager, as this would get fixed in the next heartbeat
-        getGossipPeers(this, topic, this._options.D - fanoutPeers.size, (id: string): boolean => {
+        this.getGossipPeers(topic, this._options.D - fanoutPeers.size, (id: string): boolean => {
           // filter our current peers, direct peers, and peers with negative scores
           return !fanoutPeers.has(id) && !this.direct.has(id) && this.score.score(id) >= 0
         }).forEach((id) => fanoutPeers.add(id))
@@ -1005,7 +1004,7 @@ class Gossipsub extends Pubsub {
       this.fanout.delete(topic)
       this.lastpub.delete(topic)
     } else {
-      const peers = getGossipPeers(this, topic, this._options.D, (id: string): boolean => {
+      const peers = this.getGossipPeers(topic, this._options.D, (id: string): boolean => {
         // filter direct peers and peers with negative score
         return !this.direct.has(id) && this.score.score(id) >= 0
       })
@@ -1123,7 +1122,7 @@ class Gossipsub extends Pubsub {
           meshPeers = this.fanout.get(topic)
           if (!meshPeers) {
             // If we are not in the fanout, then pick peers in topic above the publishThreshold
-            const peers = getGossipPeers(this, topic, this._options.D, (id) => {
+            const peers = this.getGossipPeers(topic, this._options.D, (id) => {
               return this.score.score(id) >= this._options.scoreThresholds.publishThreshold
             })
 
@@ -1387,7 +1386,7 @@ class Gossipsub extends Pubsub {
       }
     }
     // select peers for Peer eXchange
-    const peers = getGossipPeers(this, topic, constants.GossipsubPrunePeers, (xid: string): boolean => {
+    const peers = this.getGossipPeers(topic, constants.GossipsubPrunePeers, (xid: string): boolean => {
       return xid !== id && this.score.score(xid) >= 0
     })
     const px = await Promise.all(
@@ -1496,7 +1495,7 @@ class Gossipsub extends Pubsub {
       if (peers.size < Dlo) {
         const backoff = this.backoff.get(topic)
         const ineed = D - peers.size
-        const peersSet = getGossipPeers(this, topic, ineed, (id) => {
+        const peersSet = this.getGossipPeers(topic, ineed, (id) => {
           // filter out mesh peers, direct peers, peers we are backing off, peers with negative score
           return !peers.has(id) && !this.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
         })
@@ -1571,7 +1570,7 @@ class Gossipsub extends Pubsub {
         if (outbound < Dout) {
           const ineed = Dout - outbound
           const backoff = this.backoff.get(topic)
-          getGossipPeers(this, topic, ineed, (id: string): boolean => {
+          this.getGossipPeers(topic, ineed, (id: string): boolean => {
             // filter our current mesh peers, direct peers, peers we are backing off, peers with negative score
             return !peers.has(id) && !this.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
           }).forEach(graftPeer)
@@ -1595,8 +1594,7 @@ class Gossipsub extends Pubsub {
         // if the median score is below the threshold, select a better peer (if any) and GRAFT
         if (medianScore < this._options.scoreThresholds.opportunisticGraftThreshold) {
           const backoff = this.backoff.get(topic)
-          const peersToGraft = getGossipPeers(
-            this,
+          const peersToGraft = this.getGossipPeers(
             topic,
             constants.GossipsubOpportunisticGraftPeers,
             (id: string): boolean => {
@@ -1640,7 +1638,7 @@ class Gossipsub extends Pubsub {
       // do we need more peers?
       if (fanoutPeers.size < D) {
         const ineed = D - fanoutPeers.size
-        const peersSet = getGossipPeers(this, topic, ineed, (id: string): boolean => {
+        const peersSet = this.getGossipPeers(topic, ineed, (id: string): boolean => {
           // filter out existing fanout peers, direct peers, and peers with score above the publish threshold
           return (
             !fanoutPeers.has(id) &&
@@ -1668,6 +1666,40 @@ class Gossipsub extends Pubsub {
     this.messageCache.shift()
 
     this.emit('gossipsub:heartbeat')
+  }
+
+  /**
+   * Given a topic, returns up to count peers subscribed to that topic
+   * that pass an optional filter function
+   *
+   * @param filter a function to filter acceptable peers
+   */
+  private getGossipPeers(topic: string, count: number, filter: (id: string) => boolean = () => true): Set<string> {
+    const peersInTopic = this.topics.get(topic)
+    if (!peersInTopic) {
+      return new Set()
+    }
+
+    // Adds all peers using our protocol
+    // that also pass the filter function
+    let peers: string[] = []
+    peersInTopic.forEach((id) => {
+      const peerStreams = this.peers.get(id)
+      if (!peerStreams) {
+        return
+      }
+      if (hasGossipProtocol(peerStreams.protocol) && filter(id)) {
+        peers.push(id)
+      }
+    })
+
+    // Pseudo-randomly shuffles peers
+    peers = shuffle(peers)
+    if (count > 0 && peers.length > count) {
+      peers = peers.slice(0, count)
+    }
+
+    return new Set(peers)
   }
 }
 
