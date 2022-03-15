@@ -45,7 +45,7 @@ const checkReceivedSubscription = (psub: Gossipsub, peerIdStr: string, topic: st
     if (peerId.toB58String() === peerIdStr) {
       clearTimeout(t)
       psub.off(event, cb)
-      expect(Array.from(psub.topics.get(topic) || []).includes(peerIdStr), "topics should include the peerId").to.be.true
+      expect(Array.from(psub.topics.get(topic) || []).includes(peerIdStr), 'topics should include the peerId').to.be.true
       resolve()
     }
   }
@@ -686,26 +686,40 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await Promise.all(sendRecv)
     await tearDownGossipsubs(psubs)
   })
+
   it('test gossipsub multihops', async function () {
     // Create 6 gossipsub nodes
     // Connect nodes in a line (eg: 0 -> 1 -> 2 -> 3 ...)
     // Subscribe to the topic, all nodes
     // Publish a message from node 0
     // Assert that the last node receives the message
+    const numPeers = 6
     const psubs = await createGossipsubs({
-      number: 6,
+      number: numPeers,
       options: { scoreParams: { IPColocationFactorThreshold: 20 } }
     })
     const topic = 'foobar'
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < numPeers - 1; i++) {
       await psubs[i]._libp2p.dialProtocol(psubs[i + 1]._libp2p.peerId, psubs[i].multicodecs)
     }
+    const peerIdStrsByIdx: string[][] = []
+    for (let i = 0; i < numPeers; i++) {
+      if (i === 0) { // first
+        peerIdStrsByIdx[i] = [psubs[i + 1].peerId.toB58String()]
+      } else if (i > 0 && i < numPeers - 1) { // middle
+        peerIdStrsByIdx[i] = [psubs[i + 1].peerId.toB58String(), psubs[i - 1].peerId.toB58String()]
+      } else if (i === numPeers - 1) { // last
+        peerIdStrsByIdx[i] = [psubs[i - 1].peerId.toB58String()]
+      }
+    }
 
-    psubs.forEach((ps) => ps.subscribe(topic))
+    const subscriptionPromises = psubs.map((psub, i) => checkReceivedSubscriptions(psub, peerIdStrsByIdx[i], topic))
+    psubs.forEach(ps => ps.subscribe(topic))
 
     // wait for heartbeats to build mesh
     await Promise.all(psubs.map((ps) => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
+    await Promise.all(subscriptionPromises)
 
     const msg = uint8ArrayFromString(`${0} its not a flooooood ${0}`)
     const owner = 0
