@@ -729,7 +729,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await tearDownGossipsubs(psubs)
   })
 
-  it.only('test gossipsub tree topology', async function () {
+  it('test gossipsub tree topology', async function () {
     // Create 10 gossipsub nodes
     // Connect nodes in a tree, diagram below
     // Subscribe to the topic, all nodes
@@ -806,6 +806,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await Promise.all(sendRecv)
     await tearDownGossipsubs(psubs)
   })
+
   it('test gossipsub star topology with signed peer records', async function () {
     // Create 20 gossipsub nodes with lower degrees
     // Connect nodes to a center node, with the center having very low degree
@@ -839,10 +840,13 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
 
     // build the mesh
     const topic = 'foobar'
+    const peerIdStrs = psubs.map((psub) => psub.peerId.toB58String())
+    const subscriptionPromise = checkReceivedSubscriptions(psubs[0], peerIdStrs, topic)
     psubs.forEach((ps) => ps.subscribe(topic))
 
     // wait a bit for the mesh to build
     await Promise.all(psubs.map((ps) => awaitEvents(ps, 'gossipsub:heartbeat', 15, 25000)))
+    await subscriptionPromise
 
     // check that all peers have > 1 connection
     psubs.forEach((ps) => {
