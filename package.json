@@ -48,8 +48,6 @@
     "it-pipe": "^1.1.0",
     "libp2p-crypto": "^0.21.2",
     "libp2p-interfaces": "4.0.4",
-    "libp2p-pubsub": "^0.9.1",
-    "libp2p-topology": "^0.3.1",
     "multiformats": "^9.6.4",
     "peer-id": "^0.16.0",
     "protobufjs": "^6.11.2",

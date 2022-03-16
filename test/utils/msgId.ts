@@ -1,5 +1,5 @@
 import SHA256 from '@chainsafe/as-sha256'
-import { RPC } from 'libp2p-pubsub/message/rpc'
+import { RPC } from '../../ts/message/rpc'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { messageIdToString } from '../../ts/utils/messageIdToString'
 
