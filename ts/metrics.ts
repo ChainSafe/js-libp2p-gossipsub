@@ -246,13 +246,13 @@ export function getMetrics(register: MetricsRegister, topicStrToLabel: TopicStrT
     // RPC outgoing. Track byte length + data structure sizes
     rpcRecvBytes: register.gauge({ name: 'gossipsub_rpc_recv_bytes_total', help: 'RPC recv' }),
     rpcRecvCount: register.gauge({ name: 'gossipsub_rpc_recv_count_total', help: 'RPC recv' }),
-    rpcRecvSubscription: register.gauge({ name: 'gossipsub_rcp_recv_subscription_total', help: 'RPC recv' }),
-    rpcRecvMessage: register.gauge({ name: 'gossipsub_rcp_recv_message_total', help: 'RPC recv' }),
-    rpcRecvControl: register.gauge({ name: 'gossipsub_rcp_recv_control_total', help: 'RPC recv' }),
-    rpcRecvIHave: register.gauge({ name: 'gossipsub_rcp_recv_ihave_total', help: 'RPC recv' }),
-    rpcRecvIWant: register.gauge({ name: 'gossipsub_rcp_recv_iwant_total', help: 'RPC recv' }),
-    rpcRecvGraft: register.gauge({ name: 'gossipsub_rcp_recv_graft_total', help: 'RPC recv' }),
-    rpcRecvPrune: register.gauge({ name: 'gossipsub_rcp_recv_prune_total', help: 'RPC recv' }),
+    rpcRecvSubscription: register.gauge({ name: 'gossipsub_rpc_recv_subscription_total', help: 'RPC recv' }),
+    rpcRecvMessage: register.gauge({ name: 'gossipsub_rpc_recv_message_total', help: 'RPC recv' }),
+    rpcRecvControl: register.gauge({ name: 'gossipsub_rpc_recv_control_total', help: 'RPC recv' }),
+    rpcRecvIHave: register.gauge({ name: 'gossipsub_rpc_recv_ihave_total', help: 'RPC recv' }),
+    rpcRecvIWant: register.gauge({ name: 'gossipsub_rpc_recv_iwant_total', help: 'RPC recv' }),
+    rpcRecvGraft: register.gauge({ name: 'gossipsub_rpc_recv_graft_total', help: 'RPC recv' }),
+    rpcRecvPrune: register.gauge({ name: 'gossipsub_rpc_recv_prune_total', help: 'RPC recv' }),
 
     /** Total count of RPC dropped because acceptFrom() == false */
     rpcRecvNotAccepted: register.gauge({
@@ -263,13 +263,13 @@ export function getMetrics(register: MetricsRegister, topicStrToLabel: TopicStrT
     // RPC incoming. Track byte length + data structure sizes
     rpcSentBytes: register.gauge({ name: 'gossipsub_rpc_sent_bytes_total', help: 'RPC sent' }),
     rpcSentCount: register.gauge({ name: 'gossipsub_rpc_sent_count_total', help: 'RPC sent' }),
-    rpcSentSubscription: register.gauge({ name: 'gossipsub_rcp_sent_subscription_total', help: 'RPC sent' }),
-    rpcSentMessage: register.gauge({ name: 'gossipsub_rcp_sent_message_total', help: 'RPC sent' }),
-    rpcSentControl: register.gauge({ name: 'gossipsub_rcp_sent_control_total', help: 'RPC sent' }),
-    rpcSentIHave: register.gauge({ name: 'gossipsub_rcp_sent_ihave_total', help: 'RPC sent' }),
-    rpcSentIWant: register.gauge({ name: 'gossipsub_rcp_sent_iwant_total', help: 'RPC sent' }),
-    rpcSentGraft: register.gauge({ name: 'gossipsub_rcp_sent_graft_total', help: 'RPC sent' }),
-    rpcSentPrune: register.gauge({ name: 'gossipsub_rcp_sent_prune_total', help: 'RPC sent' }),
+    rpcSentSubscription: register.gauge({ name: 'gossipsub_rpc_sent_subscription_total', help: 'RPC sent' }),
+    rpcSentMessage: register.gauge({ name: 'gossipsub_rpc_sent_message_total', help: 'RPC sent' }),
+    rpcSentControl: register.gauge({ name: 'gossipsub_rpc_sent_control_total', help: 'RPC sent' }),
+    rpcSentIHave: register.gauge({ name: 'gossipsub_rpc_sent_ihave_total', help: 'RPC sent' }),
+    rpcSentIWant: register.gauge({ name: 'gossipsub_rpc_sent_iwant_total', help: 'RPC sent' }),
+    rpcSentGraft: register.gauge({ name: 'gossipsub_rpc_sent_graft_total', help: 'RPC sent' }),
+    rpcSentPrune: register.gauge({ name: 'gossipsub_rpc_sent_prune_total', help: 'RPC sent' }),
 
     // publish message. Track peers sent to and bytes
     /** Total count of msg published by topic */
