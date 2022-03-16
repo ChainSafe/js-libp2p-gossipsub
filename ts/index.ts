@@ -673,14 +673,19 @@ export default class Gossipsub extends EventEmitter {
   }
 
   /**
+   * Get a the peer-ids in a topic mesh
+   */
+  getMeshPeers(topic: TopicStr): PeerIdStr[] {
+    const peersInTopic = this.mesh.get(topic)
+    return peersInTopic ? Array.from(peersInTopic) : []
+  }
+
+  /**
    * Get a list of the peer-ids that are subscribed to one topic.
    */
   getSubscribers(topic: TopicStr): PeerIdStr[] {
     const peersInTopic = this.topics.get(topic)
-    if (!peersInTopic) {
-      return []
-    }
-    return Array.from(peersInTopic)
+    return peersInTopic ? Array.from(peersInTopic) : []
   }
 
   /**
