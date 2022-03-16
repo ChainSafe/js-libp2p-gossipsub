@@ -814,6 +814,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     // Assert that all nodes have > 1 connection
     // Publish one message per node
     // Assert that the subscribed nodes receive every message
+    sinon.replace(constants, 'GossipsubPrunePeers', 5 as 16)
     const psubs = await createGossipsubs({
       number: 20,
       options: {
