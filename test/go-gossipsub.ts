@@ -37,10 +37,10 @@ chai.use(require('dirty-chai'))
 
 EventEmitter.defaultMaxListeners = 100
 
-const checkReceivedSubscription = (psub: Gossipsub, peerIdStr: string, topic: string, peerIdx: number) => new Promise<void> ((resolve, reject) => {
+const checkReceivedSubscription = (psub: Gossipsub, peerIdStr: string, topic: string, peerIdx: number, timeout = 1000) => new Promise<void> ((resolve, reject) => {
   const event = 'pubsub:subscription-change'
   let cb: (peerId: PeerId) => void
-  const t = setTimeout(() => reject(`Not received subscriptions of psub ${peerIdx}`), 1000)
+  const t = setTimeout(() => reject(`Not received subscriptions of psub ${peerIdx}`), timeout)
   cb = (peerId) => {
     if (peerId.toB58String() === peerIdStr) {
       clearTimeout(t)
@@ -917,7 +917,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
 
     const topic = 'foobar'
     const peerIdStrs = libp2ps.map((libp2p) => libp2p.peerId.toB58String())
-    const subscriptionPromises = psubs.map((psub) => checkReceivedSubscriptions(psub, peerIdStrs, topic))
+    let subscriptionPromises = psubs.map((psub) => checkReceivedSubscriptions(psub, peerIdStrs, topic))
     psubs.forEach(ps => ps.subscribe(topic))
     await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 1)))
     await subscriptionPromises
@@ -942,10 +942,16 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       })
     }))
     // disconnect the direct peers to test reconnection
+    // need more time to disconnect/connect/send subscriptions again
+    subscriptionPromises = [
+      checkReceivedSubscription(psubs[1], peerIdStrs[2], topic, 2, 10000),
+      checkReceivedSubscription(psubs[2], peerIdStrs[1], topic, 1, 10000),
+    ]
     await libp2ps[1].hangUp(libp2ps[2].peerId);
 
     await Promise.all(psubs.map((ps) => awaitEvents(ps, 'gossipsub:heartbeat', 5)))
     await Promise.all(connectPromises)
+    await Promise.all(subscriptionPromises)
     expect(libp2ps[1].connectionManager.get(libp2ps[2].peerId)).to.be.ok
 
     sendRecv = []
