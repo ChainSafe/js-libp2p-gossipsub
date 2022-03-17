@@ -39,10 +39,10 @@ EventEmitter.defaultMaxListeners = 100
 
 const checkReceivedSubscription = (psub: Gossipsub, peerIdStr: string, topic: string, peerIdx: number, timeout = 1000) => new Promise<void> ((resolve, reject) => {
   const event = 'pubsub:subscription-change'
-  let cb: (peerId: PeerId) => void
+  let cb: (peerId: PeerId, subs: RPC.ISubOpts[]) => void
   const t = setTimeout(() => reject(`Not received subscriptions of psub ${peerIdx}`), timeout)
-  cb = (peerId) => {
-    if (peerId.toB58String() === peerIdStr) {
+  cb = (peerId, subs) => {
+    if (peerId.toB58String() === peerIdStr && subs[0].topicID === topic && subs[0].subscribe === true) {
       clearTimeout(t)
       psub.off(event, cb)
       expect(Array.from(psub.topics.get(topic) || []).includes(peerIdStr), 'topics should include the peerId').to.be.true
@@ -923,7 +923,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     let subscriptionPromises = psubs.map((psub) => checkReceivedSubscriptions(psub, peerIdStrs, topic))
     psubs.forEach(ps => ps.subscribe(topic))
     await Promise.all(psubs.map(ps => awaitEvents(ps, 'gossipsub:heartbeat', 1)))
-    await subscriptionPromises
+    await Promise.all(subscriptionPromises)
 
     let sendRecv = []
     for (let i = 0; i < 3; i++) {
