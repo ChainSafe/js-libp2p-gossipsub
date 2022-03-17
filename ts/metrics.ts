@@ -615,9 +615,6 @@ export function getMetrics(
 
       // Register full score too
       this.score.set(scores)
-
-      // TODO: Register scores per mesh
-      this.scorePerMesh.set()
     },
 
     registerScoreWeights(sw: ScoreWeights<number[]>): void {
