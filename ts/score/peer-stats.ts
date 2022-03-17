@@ -11,15 +11,15 @@ export type IPeerStats = {
 
 export class PeerStats {
   /** true if the peer is currently connected */
-  connected: boolean
+  connected = false
   /** expiration time of the score stats for disconnected peers */
-  expire: number
+  expire = 0
   /** per topic stats */
-  topics: Map<TopicStr, TopicStats>
+  topics = new Map<TopicStr, TopicStats>()
   /** IP tracking; store as string for easy processing */
-  ips: string[]
+  ips: string[] = []
   /** behavioural pattern penalties (applied by the router) */
-  behaviourPenalty: number
+  behaviourPenalty = 0
 
   // eslint-disable-next-line no-useless-constructor
   constructor(private readonly params: PeerScoreParams, connected: boolean) {
