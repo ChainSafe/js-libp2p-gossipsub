@@ -57,6 +57,10 @@ const checkReceivedSubscriptions = async (psub: Gossipsub, peerIdStrs: string[],
   const promises = recvPeerIdStrs.map((peerIdStr, idx) => checkReceivedSubscription(psub, peerIdStr, topic, idx))
   await Promise.all(promises)
   expect(Array.from(psub.topics.get(topic) || []).sort()).to.be.deep.equal(recvPeerIdStrs.sort())
+  recvPeerIdStrs.forEach((peerIdStr) => {
+    const peerStream = psub.peers.get(peerIdStr)
+    expect(peerStream && peerStream.isWritable, "no peerstream or peerstream is not writable").to.be.true
+  })
 }
 
 /**
@@ -908,12 +912,11 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     ]
     await Promise.all(psubs.map((ps) => ps.start()))
     const multicodecs = psubs[0].multicodecs
+    // each peer connects to 2 other peers
+    let connectPromises = libp2ps.map((libp2p) => awaitEvents(libp2p.connectionManager, 'peer:connect', 2))
     await libp2ps[0].dialProtocol(libp2ps[1].peerId, multicodecs)
     await libp2ps[0].dialProtocol(libp2ps[2].peerId, multicodecs)
-
-    // verify that the direct peers connected
-    await delay(2000)
-    expect(libp2ps[1].connectionManager.get(libp2ps[2].peerId)).to.be.ok
+    await Promise.all(connectPromises)
 
     const topic = 'foobar'
     const peerIdStrs = libp2ps.map((libp2p) => libp2p.peerId.toB58String())
@@ -927,20 +930,14 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
       const owner = i
       const results = Promise.all(
-        psubs.filter((psub, j) => j !== owner).map(checkReceivedMessage(topic, msg, owner, i))
+        psubs.filter((_, j) => j !== owner).map(checkReceivedMessage(topic, msg, owner, i))
       )
       sendRecv.push(psubs[owner].publish(topic, msg))
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
 
-    const connectPromises = [1,2].map((i) => new Promise<void>((resolve, reject) => {
-      const t = setTimeout(reject, 3000)
-      libp2ps[i].connectionManager.once('peer:connect', () => {
-        clearTimeout(t)
-        resolve()
-      })
-    }))
+    connectPromises = [1, 2].map((i) => awaitEvents(libp2ps[i].connectionManager, 'peer:connect', 1))
     // disconnect the direct peers to test reconnection
     // need more time to disconnect/connect/send subscriptions again
     subscriptionPromises = [
