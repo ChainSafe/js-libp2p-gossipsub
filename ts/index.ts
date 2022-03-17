@@ -16,7 +16,8 @@ import {
   PeerScoreParams,
   PeerScoreThresholds,
   createPeerScoreParams,
-  createPeerScoreThresholds
+  createPeerScoreThresholds,
+  PeerScoreStatsDump
 } from './score'
 import { IWantTracer } from './tracer'
 import { SimpleTimeCache } from './utils/time-cache'
@@ -536,6 +537,11 @@ export default class Gossipsub extends EventEmitter {
     this.seenCache.clear()
     if (this.fastMsgIdCache) this.fastMsgIdCache.clear()
     if (this.directPeerInitial) clearTimeout(this.directPeerInitial)
+  }
+
+  /** FOR DEBUG ONLY - Dump peer stats for all peers. Data is cloned, safe to mutate */
+  dumpPeerScoreStats(): PeerScoreStatsDump {
+    return this.score.dumpPeerScoreStats()
   }
 
   /**

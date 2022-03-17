@@ -1,5 +1,5 @@
 import { PeerScoreParams, validatePeerScoreParams } from './peer-score-params'
-import { PeerStats } from './peer-stats'
+import { IPeerStats, PeerStats } from './peer-stats'
 import { computeScore } from './compute-score'
 import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries'
 import PeerId from 'peer-id'
@@ -24,6 +24,8 @@ interface ScoreCacheEntry {
   /** Unix timestamp in miliseconds, the time after which the cached score for a peer is no longer valid */
   cacheUntil: number
 }
+
+export type PeerScoreStatsDump = Record<PeerIdStr, IPeerStats>
 
 export class PeerScore {
   /**
@@ -96,6 +98,23 @@ export class PeerScore {
     this.refreshScores()
     this.updateIPs()
     this.deliveryRecords.gc()
+  }
+
+  dumpPeerScoreStats(): PeerScoreStatsDump {
+    return Object.fromEntries(
+      Array.from(this.peerStats.entries()).map(([peer, stats]) => [
+        peer,
+        {
+          connected: stats.connected,
+          expire: stats.expire,
+          behaviourPenalty: stats.behaviourPenalty,
+          ips: stats.ips.slice(0),
+          topics: Object.fromEntries(
+            Array.from(stats.topics.entries()).map(([topic, tstats]) => [topic, { ...tstats }])
+          )
+        }
+      ])
+    )
   }
 
   /**

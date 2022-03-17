@@ -1,6 +1,14 @@
 import { TopicStr } from '../types'
 import { PeerScoreParams } from './peer-score-params'
 
+export type IPeerStats = {
+  connected: boolean
+  expire: number
+  topics: Record<TopicStr, TopicStats>
+  ips: string[]
+  behaviourPenalty: number
+}
+
 export class PeerStats {
   /** true if the peer is currently connected */
   connected: boolean
