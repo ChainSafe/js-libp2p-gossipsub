@@ -12,8 +12,8 @@ const log = debug('libp2p:gossipsub:score')
 type IPStr = string
 
 interface ScoreCacheEntry {
-  /** The cached score, null if not cached */
-  score: number | null
+  /** The cached score */
+  score: number
   /** Unix timestamp in miliseconds, the time after which the cached score for a peer is no longer valid */
   cacheUntil: number
 }
@@ -153,7 +153,7 @@ export class PeerScore {
         pstats.behaviourPenalty = 0
       }
 
-      this.scoreCache.set(id, { score: null, cacheUntil: 0 })
+      this.scoreCache.delete(id)
     })
   }
 
@@ -169,23 +169,28 @@ export class PeerScore {
     }
 
     const now = Date.now()
-    let cacheEntry = this.scoreCache.get(id)
-    if (cacheEntry === undefined) {
-      cacheEntry = { score: null, cacheUntil: 0 }
-      this.scoreCache.set(id, cacheEntry)
-    }
+    const cacheEntry = this.scoreCache.get(id)
 
-    const { score, cacheUntil } = cacheEntry
-    if (cacheUntil > now && score !== null) {
-      return score
+    // Found cached score within validity period
+    if (cacheEntry && cacheEntry.cacheUntil > now) {
+      return cacheEntry.score
     }
 
     this.metrics?.scoreFnRuns.inc()
 
-    cacheEntry.score = computeScore(id, pstats, this.params, this.peerIPs)
+    const score = computeScore(id, pstats, this.params, this.peerIPs)
     // decayInterval is used to refresh score so we don't want to cache more than that
-    cacheEntry.cacheUntil = now + this.params.decayInterval
-    return cacheEntry.score
+    const cacheUntil = now + this.params.decayInterval
+
+    if (cacheEntry) {
+      this.metrics?.scoreCachedDelta.observe(Math.abs(score - cacheEntry.score))
+      cacheEntry.score = score
+      cacheEntry.cacheUntil = cacheUntil
+    } else {
+      this.scoreCache.set(id, { score, cacheUntil })
+    }
+
+    return score
   }
 
   /**
@@ -197,7 +202,7 @@ export class PeerScore {
       return
     }
     pstats.behaviourPenalty += penalty
-    this.scoreCache.set(id, { score: null, cacheUntil: 0 })
+    this.scoreCache.delete(id)
     this.metrics?.onScorePenalty(penaltyLabel)
   }
 
@@ -265,7 +270,7 @@ export class PeerScore {
     tstats.graftTime = Date.now()
     tstats.meshTime = 0
     tstats.meshMessageDeliveriesActive = false
-    this.scoreCache.set(id, { score: null, cacheUntil: 0 })
+    this.scoreCache.delete(id)
   }
 
   prune(id: PeerIdStr, topic: TopicStr): void {
@@ -286,7 +291,7 @@ export class PeerScore {
       tstats.meshFailurePenalty += deficit * deficit
     }
     tstats.inMesh = false
-    this.scoreCache.set(id, { score: null, cacheUntil: 0 })
+    this.scoreCache.delete(id)
   }
 
   validateMessage(msgIdStr: MsgIdStr): void {
@@ -414,7 +419,7 @@ export class PeerScore {
 
     tstats.invalidMessageDeliveries += 1
 
-    this.scoreCache.set(from, { score: null, cacheUntil: 0 })
+    this.scoreCache.delete(from)
   }
 
   /**
@@ -448,7 +453,7 @@ export class PeerScore {
       tstats.meshMessageDeliveries = cap
     }
 
-    this.scoreCache.set(from, { score: null, cacheUntil: 0 })
+    this.scoreCache.delete(from)
   }
 
   /**
@@ -487,7 +492,7 @@ export class PeerScore {
       tstats.meshMessageDeliveries = cap
     }
 
-    this.scoreCache.set(from, { score: null, cacheUntil: 0 })
+    this.scoreCache.delete(from)
   }
 
   /**
@@ -545,7 +550,7 @@ export class PeerScore {
       }
     }
 
-    this.scoreCache.set(id, { score: null, cacheUntil: 0 })
+    this.scoreCache.delete(id)
   }
 
   /**
@@ -564,7 +569,7 @@ export class PeerScore {
       }
     })
 
-    this.scoreCache.set(id, { score: null, cacheUntil: 0 })
+    this.scoreCache.delete(id)
   }
 
   /**
@@ -575,7 +580,7 @@ export class PeerScore {
       const newIPs = this._getIPs(id)
       this._setIPs(id, newIPs, pstats.ips)
       pstats.ips = newIPs
-      this.scoreCache.set(id, { score: null, cacheUntil: 0 })
+      this.scoreCache.delete(id)
     })
   }
 }
