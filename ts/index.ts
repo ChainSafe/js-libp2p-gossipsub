@@ -283,7 +283,7 @@ export default class Gossipsub extends EventEmitter {
   /**
    * Tracks IHAVE/IWANT promises broken by peers
    */
-  readonly gossipTracer = new IWantTracer()
+  readonly gossipTracer: IWantTracer
 
   // Public for go-gossipsub tests
   readonly _libp2p: Libp2p
@@ -389,7 +389,10 @@ export default class Gossipsub extends EventEmitter {
       if (!options.metricsTopicStrToLabel) {
         throw Error('Must set metricsTopicStrToLabel with metrics')
       }
-      const metrics = getMetrics(options.metricsRegister, options.metricsTopicStrToLabel)
+
+      const metrics = getMetrics(options.metricsRegister, options.metricsTopicStrToLabel, {
+        gossipPromiseExpireSec: constants.GossipsubIWantFollowupTime
+      })
 
       metrics.mcacheSize.addCollect(() => this.onScrapeMetrics(metrics))
       for (const protocol of this.multicodecs) {
@@ -400,6 +403,8 @@ export default class Gossipsub extends EventEmitter {
     } else {
       this.metrics = null
     }
+
+    this.gossipTracer = new IWantTracer(this.metrics)
 
     /**
      * libp2p
@@ -584,7 +589,7 @@ export default class Gossipsub extends EventEmitter {
       this.log('new peer %s', peerId.toB58String())
 
       peerStreams = new PeerStreams({
-        id: peerId as any,
+        id: peerId,
         protocol
       })
 
@@ -594,6 +599,7 @@ export default class Gossipsub extends EventEmitter {
 
     // Add to peer scoring
     this.score.addPeer(peerId.toB58String())
+    this.metrics?.peersPerProtocol.inc({ protocol }, 1)
 
     // track the connection direction. Don't allow to unset outbound
     if (!this.outbound.get(peerId.toB58String())) {
@@ -611,6 +617,8 @@ export default class Gossipsub extends EventEmitter {
     const peerStreams = this.peers.get(id)
 
     if (peerStreams != null) {
+      this.metrics?.peersPerProtocol.inc({ protocol: peerStreams.protocol }, -1)
+
       // delete peer streams. Must delete first to prevent re-entracy loop in .close()
       this.log('delete peer %s', id)
       this.peers.delete(id)
@@ -837,12 +845,7 @@ export default class Gossipsub extends EventEmitter {
         // Tells score that message arrived (but is maybe not fully validated yet).
         // Consider the message as delivered for gossip promises.
         this.score.validateMessage(msgIdStr)
-        const promiseStats = this.gossipTracer.deliverMessage(msgIdStr)
-
-        // This message is (potentially) a response to a promise
-        if (promiseStats) {
-          this.metrics?.onResolvedPromise(rpcMsg.topic, promiseStats)
-        }
+        this.gossipTracer.deliverMessage(msgIdStr)
 
         // Add the message to our memcache
         this.mcache.put(msgIdStr, rpcMsg)
@@ -2195,6 +2198,11 @@ export default class Gossipsub extends EventEmitter {
       this.directConnect()
     }
 
+    // EXTRA: Prune caches
+    this.fastMsgIdCache?.prune()
+    this.seenCache.prune()
+    this.gossipTracer.prune()
+
     // maintain the mesh for topics we have joined
     this.mesh.forEach((peers, topic) => {
       // prune/graft helper functions (defined per topic)
@@ -2463,7 +2471,8 @@ export default class Gossipsub extends EventEmitter {
     metrics.cacheSize.set({ cache: 'publishedMessageIds' }, this.publishedMessageIds.size)
     metrics.cacheSize.set({ cache: 'mcache' }, this.mcache.size)
     metrics.cacheSize.set({ cache: 'score' }, this.score.size)
-    metrics.cacheSize.set({ cache: 'gossipTracer' }, this.gossipTracer.size)
+    metrics.cacheSize.set({ cache: 'gossipTracer.promises' }, this.gossipTracer.size)
+    metrics.cacheSize.set({ cache: 'gossipTracer.requests' }, this.gossipTracer.requestMsByMsgSize)
     // Bounded by topic
     metrics.cacheSize.set({ cache: 'topics' }, this.topics.size)
     metrics.cacheSize.set({ cache: 'subscriptions' }, this.subscriptions.size)
@@ -2498,12 +2507,19 @@ export default class Gossipsub extends EventEmitter {
     // Peer scores
 
     const scores: number[] = []
+    const scoreByPeer = new Map<PeerIdStr, number>()
+
     for (const peerIdStr of this.peers.keys()) {
       const score = this.score.score(peerIdStr)
       scores.push(score)
+      scoreByPeer.set(peerIdStr, score)
     }
 
     metrics.registerScores(scores, this.opts.scoreThresholds)
+
+    // Breakdown score per mesh topicLabel
+
+    metrics.registerScorePerMesh(this.mesh, scoreByPeer)
 
     // Breakdown on each score weight
 

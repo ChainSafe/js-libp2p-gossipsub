@@ -13,12 +13,11 @@ type CacheValue<T> = {
  * This gives 4x - 5x performance gain compared to npm TimeCache
  */
 export class SimpleTimeCache<T> {
-  private entries = new Map<string, CacheValue<T>>()
-  private validityMs: number
-  private lastPruneTime = 0
+  private readonly entries = new Map<string, CacheValue<T>>()
+  private readonly validityMs: number
 
-  constructor(options: SimpleTimeCacheOpts) {
-    this.validityMs = options.validityMs
+  constructor(opts: SimpleTimeCacheOpts) {
+    this.validityMs = opts.validityMs
 
     // allow negative validityMs so that this does not cache anything, spec test compliance.spec.js
     // sends duplicate messages and expect peer to receive all. Application likely uses positive validityMs
@@ -30,15 +29,10 @@ export class SimpleTimeCache<T> {
 
   put(key: string, value: T): void {
     this.entries.set(key, { value, validUntilMs: Date.now() + this.validityMs })
-    this.prune()
   }
 
   prune(): void {
     const now = Date.now()
-    if (now - this.lastPruneTime < 200) {
-      return
-    }
-    this.lastPruneTime = now
 
     for (const [k, v] of this.entries.entries()) {
       if (v.validUntilMs < now) {
@@ -60,7 +54,6 @@ export class SimpleTimeCache<T> {
   }
 
   clear(): void {
-    this.entries = new Map()
-    this.lastPruneTime = 0
+    this.entries.clear()
   }
 }

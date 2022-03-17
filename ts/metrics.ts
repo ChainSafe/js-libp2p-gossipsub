@@ -1,6 +1,14 @@
 import { IRPC } from './message/rpc'
 import { PeerScoreThresholds } from './score/peer-score-thresholds'
-import { MessageAcceptance, MessageStatus, RejectReason, RejectReasonObj, TopicStr, ValidateError } from './types'
+import {
+  MessageAcceptance,
+  MessageStatus,
+  PeerIdStr,
+  RejectReason,
+  RejectReasonObj,
+  TopicStr,
+  ValidateError
+} from './types'
 
 /** Topic label as provided in `topicStrToLabel` */
 export type TopicLabel = string
@@ -104,17 +112,6 @@ export enum ScorePenalty {
   IPColocation = 'IP_colocation'
 }
 
-enum PeerKind {
-  /// A gossipsub 1.1 peer.
-  Gossipsubv11 = 'gossipsub_v1.1',
-  /// A gossipsub 1.0 peer.
-  Gossipsub = 'gossipsub_v1.0',
-  /// A floodsub peer.
-  Floodsub = 'floodsub',
-  /// The peer doesn't support any of the protocols.
-  NotSupported = 'not_supported'
-}
-
 export enum IHaveIgnoreReason {
   LowScore = 'low_score',
   MaxIhave = 'max_ihave',
@@ -142,10 +139,9 @@ export type ToAddGroupCount = {
   random: number
 }
 
-export type PromiseDeliveredStats = {
-  requestedCount: number
-  deliversMs: number[]
-}
+export type PromiseDeliveredStats =
+  | { expired: false; requestedCount: number; maxDeliverMs: number }
+  | { expired: true; maxDeliverMs: number }
 
 export type TopicScoreWeights<T> = { p1w: T; p2w: T; p3w: T; p3bw: T; p4w: T }
 export type ScoreWeights<T> = {
@@ -162,7 +158,11 @@ export type Metrics = ReturnType<typeof getMetrics>
  * A collection of metrics used throughout the Gossipsub behaviour.
  */
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function getMetrics(register: MetricsRegister, topicStrToLabel: TopicStrToLabel) {
+export function getMetrics(
+  register: MetricsRegister,
+  topicStrToLabel: TopicStrToLabel,
+  opts: { gossipPromiseExpireSec: number }
+) {
   // Using function style instead of class to prevent having to re-declare all MetricsPrometheus types.
 
   return {
@@ -218,7 +218,7 @@ export function getMetrics(register: MetricsRegister, topicStrToLabel: TopicStrT
     /** Gossipsub supports floodsub, gossipsub v1.0 and gossipsub v1.1. Peers are classified based
      *  on which protocol they support. This metric keeps track of the number of peers that are
      *  connected of each type. */
-    peersPerProtocol: register.gauge<{ protocol: PeerKind }>({
+    peersPerProtocol: register.gauge<{ protocol: string }>({
       name: 'gossipsub_peers_per_protocol_count',
       help: 'Peers connected for each topic',
       labelNames: ['protocol']
@@ -371,7 +371,7 @@ export function getMetrics(register: MetricsRegister, topicStrToLabel: TopicStrT
     }),
     /** Histogram of the scores for each mesh topic. */
     // TODO: Not implemented
-    scorePerMesh: register.histogram<{ topic: TopicLabel }>({
+    scorePerMesh: register.avgMinMax<{ topic: TopicLabel }>({
       name: 'gossipsub_score_per_mesh',
       help: 'Histogram of the scores for each mesh topic',
       labelNames: ['topic']
@@ -421,23 +421,34 @@ export function getMetrics(register: MetricsRegister, topicStrToLabel: TopicStrT
       name: 'gossipsub_iwant_rcv_dont_have_total',
       help: 'Total requested messageIDs that we do not have'
     }),
+    iwantPromiseStarted: register.gauge({
+      name: 'gossipsub_iwant_promise_sent_total',
+      help: 'Total count of started IWANT promises'
+    }),
     /** Total count of resolved IWANT promises */
-    iwantPromiseResolved: register.gauge<{ topic: TopicLabel }>({
+    iwantPromiseResolved: register.gauge({
       name: 'gossipsub_iwant_promise_resolved_total',
-      help: 'Total count of resolved IWANT promises',
-      labelNames: ['topic']
+      help: 'Total count of resolved IWANT promises'
     }),
     /** Total count of peers we have asked IWANT promises that are resolved */
-    iwantPromiseResolvedPeers: register.gauge<{ topic: TopicLabel }>({
+    iwantPromiseResolvedPeers: register.gauge({
       name: 'gossipsub_iwant_promise_resolved_peers',
-      help: 'Total count of peers we have asked IWANT promises that are resolved',
-      labelNames: ['topic']
+      help: 'Total count of peers we have asked IWANT promises that are resolved'
+    }),
+    iwantPromiseBroken: register.gauge({
+      name: 'gossipsub_iwant_promise_broken',
+      help: 'Total count of broken IWANT promises'
     }),
     /** Histogram of delivery time of resolved IWANT promises */
-    iwantPromiseResolvedDeliveryTime: register.histogram<{ topic: TopicLabel }>({
-      name: 'gossipsub_iwant_promise_resolved_delivery_time',
+    iwantPromiseDeliveryTime: register.histogram({
+      name: 'gossipsub_iwant_promise_delivery_seconds',
       help: 'Histogram of delivery time of resolved IWANT promises',
-      labelNames: ['topic']
+      buckets: [
+        0.5 * opts.gossipPromiseExpireSec,
+        1 * opts.gossipPromiseExpireSec,
+        2 * opts.gossipPromiseExpireSec,
+        4 * opts.gossipPromiseExpireSec
+      ]
     }),
 
     /* Data structure sizes */
@@ -485,15 +496,6 @@ export function getMetrics(register: MetricsRegister, topicStrToLabel: TopicStrT
     onRemoveFromMesh(topicStr: TopicStr, reason: ChurnReason, count: number): void {
       const topic = this.toTopic(topicStr)
       this.meshPeerChurnEvents.inc({ topic, reason }, count)
-    },
-
-    onResolvedPromise(topicStr: string, stats: PromiseDeliveredStats): void {
-      const topic = this.toTopic(topicStr)
-      this.iwantPromiseResolved.inc({ topic }, 1)
-      this.iwantPromiseResolvedPeers.inc({ topic }, stats.requestedCount)
-      for (const deliverMs of stats.deliversMs) {
-        this.iwantPromiseResolvedDeliveryTime.observe({ topic }, deliverMs)
-      }
     },
 
     onReportValidationMcacheHit(hit: boolean): void {
@@ -615,6 +617,7 @@ export function getMetrics(register: MetricsRegister, topicStrToLabel: TopicStrT
       this.score.set(scores)
 
       // TODO: Register scores per mesh
+      this.scorePerMesh.set()
     },
 
     registerScoreWeights(sw: ScoreWeights<number[]>): void {
@@ -629,6 +632,29 @@ export function getMetrics(register: MetricsRegister, topicStrToLabel: TopicStrT
       this.scoreWeights.set({ p: 'p5' }, sw.p5w)
       this.scoreWeights.set({ p: 'p6' }, sw.p6w)
       this.scoreWeights.set({ p: 'p7' }, sw.p7w)
+    },
+
+    registerScorePerMesh(mesh: Map<TopicStr, Set<PeerIdStr>>, scoreByPeer: Map<PeerIdStr, number>): void {
+      const peersPerTopicLabel = new Map<TopicLabel, Set<PeerIdStr>>()
+
+      mesh.forEach((peers, topicStr) => {
+        // Aggregate by known topicLabel or throw to 'unknown'. This prevent too high cardinality
+        const topicLabel = this.topicStrToLabel.get(topicStr) ?? 'unknown'
+        let peersInMesh = peersPerTopicLabel.get(topicLabel)
+        if (!peersInMesh) {
+          peersInMesh = new Set()
+          peersPerTopicLabel.set(topicLabel, peersInMesh)
+        }
+        peers.forEach((p) => peersInMesh?.add(p))
+      })
+
+      for (const [topic, peers] of peersPerTopicLabel) {
+        const meshScores: number[] = []
+        peers.forEach((peer) => {
+          meshScores.push(scoreByPeer.get(peer) ?? 0)
+        })
+        this.scorePerMesh.set({ topic }, meshScores)
+      }
     }
   }
 }

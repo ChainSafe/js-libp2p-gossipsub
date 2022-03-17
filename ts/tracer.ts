@@ -1,7 +1,7 @@
 import { GossipsubIWantFollowupTime } from './constants'
 import { messageIdToString } from './utils'
 import { MsgIdStr, PeerIdStr, RejectReason } from './types'
-import { PromiseDeliveredStats } from './metrics'
+import { Metrics } from './metrics'
 
 /**
  * IWantTracer is an internal tracer that tracks IWANT requests in order to penalize
@@ -17,9 +17,22 @@ export class IWantTracer {
    * Map per message id, per peer, promise expiration time
    */
   private readonly promises = new Map<MsgIdStr, Map<PeerIdStr, number>>()
+  /**
+   * First request time by msgId. Used for metrics to track expire times.
+   * Necessary to know if peers are actually breaking promises or simply sending them a bit later
+   */
+  private readonly requestMsByMsg = new Map<MsgIdStr, number>()
+  private readonly requestMsByMsgExpire = 10 * GossipsubIWantFollowupTime
+
+  // eslint-disable-next-line no-useless-constructor
+  constructor(private readonly metrics: Metrics | null) {}
 
   get size(): number {
     return this.promises.size
+  }
+
+  get requestMsByMsgSize(): number {
+    return this.requestMsByMsg.size
   }
 
   /**
@@ -31,15 +44,24 @@ export class IWantTracer {
     const msgId = msgIds[ix]
     const msgIdStr = messageIdToString(msgId)
 
-    let peers = this.promises.get(msgIdStr)
-    if (!peers) {
-      peers = new Map()
-      this.promises.set(msgIdStr, peers)
+    let expireByPeer = this.promises.get(msgIdStr)
+    if (!expireByPeer) {
+      expireByPeer = new Map()
+      this.promises.set(msgIdStr, expireByPeer)
     }
 
+    const now = Date.now()
+
     // If a promise for this message id and peer already exists we don't update the expiry
-    if (!peers.has(from)) {
-      peers.set(from, Date.now() + GossipsubIWantFollowupTime)
+    if (!expireByPeer.has(from)) {
+      expireByPeer.set(from, now + GossipsubIWantFollowupTime)
+
+      if (this.metrics) {
+        this.metrics.iwantPromiseStarted.inc(1)
+        if (!this.requestMsByMsg.has(msgIdStr)) {
+          this.requestMsByMsg.set(msgIdStr, now)
+        }
+      }
     }
   }
 
@@ -52,21 +74,27 @@ export class IWantTracer {
     const now = Date.now()
     const result = new Map<PeerIdStr, number>()
 
-    this.promises.forEach((peers, msgId) => {
-      peers.forEach((expire, p) => {
+    let brokenPromises = 0
+
+    this.promises.forEach((expireByPeer, msgId) => {
+      expireByPeer.forEach((expire, p) => {
         // the promise has been broken
         if (expire < now) {
           // add 1 to result
           result.set(p, (result.get(p) || 0) + 1)
           // delete from tracked promises
-          peers.delete(p)
+          expireByPeer.delete(p)
+          // for metrics
+          brokenPromises++
         }
       })
       // clean up empty promises for a msgId
-      if (!peers.size) {
+      if (!expireByPeer.size) {
         this.promises.delete(msgId)
       }
     })
+
+    this.metrics?.iwantPromiseBroken.inc(brokenPromises)
 
     return result
   }
@@ -74,24 +102,20 @@ export class IWantTracer {
   /**
    * Someone delivered a message, stop tracking promises for it
    */
-  deliverMessage(msgIdStr: MsgIdStr): PromiseDeliveredStats | null {
+  deliverMessage(msgIdStr: MsgIdStr): void {
+    this.trackMessage(msgIdStr)
+
     const expireByPeer = this.promises.get(msgIdStr)
-    if (!expireByPeer) {
-      return null
+
+    // Expired promise, check requestMsByMsg
+    if (expireByPeer) {
+      this.promises.delete(msgIdStr)
+
+      if (this.metrics) {
+        this.metrics.iwantPromiseResolved.inc(1)
+        this.metrics.iwantPromiseResolvedPeers.inc(expireByPeer.size)
+      }
     }
-
-    this.promises.delete(msgIdStr)
-
-    const now = Date.now()
-    const deliversMs: number[] = []
-
-    for (const expire of expireByPeer.values()) {
-      // time_requested = expire - GossipsubIWantFollowupTime
-      // time_elapsed = now - time_requested
-      deliversMs.push(now - expire - GossipsubIWantFollowupTime)
-    }
-
-    return { requestedCount: expireByPeer.size, deliversMs }
   }
 
   /**
@@ -99,6 +123,8 @@ export class IWantTracer {
    * unless its an obviously invalid message.
    */
   rejectMessage(msgIdStr: MsgIdStr, reason: RejectReason): void {
+    this.trackMessage(msgIdStr)
+
     // A message got rejected, so we can stop tracking promises and let the score penalty apply.
     // With the expection of obvious invalid messages
     switch (reason) {
@@ -111,5 +137,28 @@ export class IWantTracer {
 
   clear(): void {
     this.promises.clear()
+  }
+
+  prune(): void {
+    const maxMs = Date.now() - this.requestMsByMsgExpire
+
+    for (const [k, v] of this.requestMsByMsg.entries()) {
+      if (v < maxMs) {
+        this.requestMsByMsg.delete(k)
+      } else {
+        // sort by insertion order
+        break
+      }
+    }
+  }
+
+  private trackMessage(msgIdStr: MsgIdStr): void {
+    if (this.metrics) {
+      const requestMs = this.requestMsByMsg.get(msgIdStr)
+      if (requestMs !== undefined) {
+        this.metrics.iwantPromiseDeliveryTime.observe((Date.now() - requestMs) / 1000)
+        this.requestMsByMsg.delete(msgIdStr)
+      }
+    }
   }
 }
