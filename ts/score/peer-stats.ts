@@ -1,113 +1,69 @@
+import { TopicStr } from '../types'
 import { PeerScoreParams } from './peer-score-params'
 
-export interface PeerStats {
-  /**
-   * true if the peer is currently connected
-   */
+export class PeerStats {
+  /** true if the peer is currently connected */
   connected: boolean
-
-  /**
-   * expiration time of the score stats for disconnected peers
-   */
+  /** expiration time of the score stats for disconnected peers */
   expire: number
-
-  /**
-   * per topic stats
-   */
-  topics: Record<string, TopicStats>
-
-  /**
-   * IP tracking; store as string for easy processing
-   */
+  /** per topic stats */
+  topics: Map<TopicStr, TopicStats>
+  /** IP tracking; store as string for easy processing */
   ips: string[]
+  /** behavioural pattern penalties (applied by the router) */
+  behaviourPenalty: number
+
+  // eslint-disable-next-line no-useless-constructor
+  constructor(private readonly params: PeerScoreParams, connected: boolean) {
+    this.connected = connected
+  }
 
   /**
-   * behavioural pattern penalties (applied by the router)
+   * Returns topic stats if they exist, otherwise if the supplied parameters score the
+   * topic, inserts the default stats and returns a reference to those. If neither apply, returns None.
    */
-  behaviourPenalty: number
+  topicStats(topic: TopicStr): TopicStats | null {
+    let topicStats = this.topics.get(topic)
+
+    if (topicStats) {
+      return topicStats
+    }
+
+    if (this.params.topics[topic]) {
+      topicStats = {
+        inMesh: false,
+        graftTime: 0,
+        meshTime: 0,
+        firstMessageDeliveries: 0,
+        meshMessageDeliveries: 0,
+        meshMessageDeliveriesActive: false,
+        meshFailurePenalty: 0,
+        invalidMessageDeliveries: 0
+      }
+      this.topics.set(topic, topicStats)
+
+      return topicStats
+    }
+
+    return null
+  }
 }
 
 export interface TopicStats {
-  /**
-   * true if the peer is in the mesh
-   */
+  /** true if the peer is in the mesh */
   inMesh: boolean
-
-  /**
-   * time when the peer was (last) GRAFTed; valid only when in mesh
-   */
+  /** time when the peer was (last) GRAFTed; valid only when in mesh */
   graftTime: number
-
-  /**
-   * time in mesh (updated during refresh/decay to avoid calling gettimeofday on
-   * every score invocation)
-   */
+  /** time in mesh (updated during refresh/decay to avoid calling gettimeofday on every score invocation) */
   meshTime: number
-
-  /**
-   * first message deliveries
-   */
+  /** first message deliveries */
   firstMessageDeliveries: number
-
-  /**
-   * mesh message deliveries
-   */
+  /** mesh message deliveries */
   meshMessageDeliveries: number
-
-  /**
-   * true if the peer has been enough time in the mesh to activate mess message deliveries
-   */
+  /** true if the peer has been enough time in the mesh to activate mess message deliveries */
   meshMessageDeliveriesActive: boolean
-
-  /**
-   * sticky mesh rate failure penalty counter
-   */
+  /** sticky mesh rate failure penalty counter */
   meshFailurePenalty: number
-
-  /**
-   * invalid message counter
-   */
+  /** invalid message counter */
   invalidMessageDeliveries: number
-}
-
-export function createPeerStats(ps: Partial<PeerStats> = {}): PeerStats {
-  return {
-    connected: false,
-    expire: 0,
-    ips: [],
-    behaviourPenalty: 0,
-    ...ps,
-    topics: ps.topics
-      ? Object.entries(ps.topics).reduce((topics, [topic, topicStats]) => {
-          topics[topic] = createTopicStats(topicStats)
-          return topics
-        }, {} as Record<string, TopicStats>)
-      : {}
-  }
-}
-
-export function createTopicStats(ts: Partial<TopicStats> = {}): TopicStats {
-  return {
-    inMesh: false,
-    graftTime: 0,
-    meshTime: 0,
-    firstMessageDeliveries: 0,
-    meshMessageDeliveries: 0,
-    meshMessageDeliveriesActive: false,
-    meshFailurePenalty: 0,
-    invalidMessageDeliveries: 0,
-    ...ts
-  }
-}
-
-export function ensureTopicStats(topic: string, ps: PeerStats, params: PeerScoreParams): TopicStats | undefined {
-  let ts = ps.topics[topic]
-  if (ts) {
-    return ts
-  }
-  if (!params.topics[topic]) {
-    return undefined
-  }
-  ps.topics[topic] = ts = createTopicStats()
-  return ts
 }
