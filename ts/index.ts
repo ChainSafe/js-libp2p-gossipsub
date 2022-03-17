@@ -391,7 +391,7 @@ export default class Gossipsub extends EventEmitter {
       }
 
       const metrics = getMetrics(options.metricsRegister, options.metricsTopicStrToLabel, {
-        gossipPromiseExpireSec: constants.GossipsubIWantFollowupTime
+        gossipPromiseExpireSec: constants.GossipsubIWantFollowupTime / 1000
       })
 
       metrics.mcacheSize.addCollect(() => this.onScrapeMetrics(metrics))
@@ -411,7 +411,9 @@ export default class Gossipsub extends EventEmitter {
      */
     this._libp2p = libp2p
     this.registrar = libp2p.registrar
-    this.score = new PeerScore(this.opts.scoreParams, libp2p.connectionManager, this.metrics)
+    this.score = new PeerScore(this.opts.scoreParams, libp2p.connectionManager, this.metrics, {
+      scoreCacheValidityMs: opts.heartbeatInterval
+    })
   }
 
   // LIFECYCLE METHODS
