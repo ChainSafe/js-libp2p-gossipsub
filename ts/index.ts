@@ -1082,7 +1082,11 @@ export default class Gossipsub extends Pubsub {
     msg.topicIDs.forEach((topic) => {
       const peersInTopic = this.topics.get(topic)
       if (!peersInTopic) {
-        return
+        if (msg.receivedFrom === this.peerId.toB58String()) {
+          throw Error('no peer in topic ' + topic)
+        } else {
+          return
+        }
       }
 
       if (this._options.floodPublish && msg.receivedFrom === this.peerId.toB58String()) {
