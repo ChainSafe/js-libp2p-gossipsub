@@ -139,6 +139,8 @@ type GossipStatus =
       code: GossipStatusCode.started
       registrarHandlerId: string
       registrarTopologyId: string
+      heartbeatTimeout: NodeJS.Timeout
+      hearbeatStartMs: number
     }
   | {
       code: GossipStatusCode.stopped
@@ -263,7 +265,7 @@ export default class Gossipsub extends EventEmitter {
   private readonly publishedMessageIds: SimpleTimeCache<void>
 
   /**
-   * A message cache that contains the messages for last few hearbeat ticks
+   * A message cache that contains the messages for last few heartbeat ticks
    */
   private readonly mcache: MessageCache
 
@@ -455,34 +457,19 @@ export default class Gossipsub extends EventEmitter {
     })
     const registrarTopologyId = await this.registrar.register(topology)
 
-    this.log('started')
+    // Schedule to start heartbeat after `GossipsubHeartbeatInitialDelay`
+    const heartbeatTimeout = setTimeout(this.runHeartbeat, constants.GossipsubHeartbeatInitialDelay)
+    // Then, run heartbeat every `heartbeatInterval` offset by `GossipsubHeartbeatInitialDelay`
+
     this.status = {
       code: GossipStatusCode.started,
       registrarHandlerId: 'TODO',
-      registrarTopologyId
+      registrarTopologyId,
+      heartbeatTimeout: heartbeatTimeout,
+      hearbeatStartMs: Date.now() + constants.GossipsubHeartbeatInitialDelay
     }
 
-    // Gossipsub
-
-    if (!this.heartbeatTimer) {
-      const heartbeat = this.heartbeat.bind(this)
-
-      const timeout = setTimeout(() => {
-        heartbeat()
-        this.heartbeatTimer!.runPeriodically(heartbeat, this.opts.heartbeatInterval)
-      }, constants.GossipsubHeartbeatInitialDelay)
-
-      this.heartbeatTimer = {
-        _intervalId: undefined,
-        runPeriodically: (fn, period) => {
-          this.heartbeatTimer!._intervalId = setInterval(fn, period)
-        },
-        cancel: () => {
-          clearTimeout(timeout)
-          clearInterval(this.heartbeatTimer!._intervalId as NodeJS.Timeout)
-        }
-      }
-    }
+    this.log('started')
 
     this.score.start()
     // connect to direct peers
@@ -1393,12 +1380,6 @@ export default class Gossipsub extends EventEmitter {
    * Maybe reconnect to direct peers
    */
   private directConnect(): void {
-    // we only do this every few ticks to allow pending connections to complete and account for
-    // restarts/downtime
-    if (this.heartbeatTicks % constants.GossipsubDirectConnectTicks !== 0) {
-      return
-    }
-
     const toconnect: PeerIdStr[] = []
     this.direct.forEach((id) => {
       const peer = this.peers.get(id)
@@ -1406,6 +1387,7 @@ export default class Gossipsub extends EventEmitter {
         toconnect.push(id)
       }
     })
+
     if (toconnect.length) {
       toconnect.forEach((id) => {
         this.connect(id)
@@ -2143,11 +2125,40 @@ export default class Gossipsub extends EventEmitter {
     }
   }
 
+  private runHeartbeat = () => {
+    const timer = this.metrics?.heartbeatDuration.startTimer()
+    try {
+      this.heartbeat()
+    } catch (e) {
+      this.log('Error running heartbeat', e as Error)
+    }
+    if (timer) timer()
+
+    // Schedule the next run if still in started status
+    if (this.status.code === GossipStatusCode.started) {
+      // Clear previous timeout before overwriting `status.heartbeatTimeout`, it should be completed tho.
+      clearTimeout(this.status.heartbeatTimeout)
+
+      // NodeJS setInterval function is innexact, calls drift by a few miliseconds on each call.
+      // To run the heartbeat precisely setTimeout() must be used recomputing the delay on every loop.
+      let msToNextHeartbeat = (Date.now() - this.status.hearbeatStartMs) % this.opts.heartbeatInterval
+
+      // If too close to next heartbeat, skip one
+      if (msToNextHeartbeat < this.opts.heartbeatInterval * 0.25) {
+        msToNextHeartbeat += this.opts.heartbeatInterval
+        this.metrics?.heartbeatSkipped.inc()
+      }
+
+      this.status.heartbeatTimeout = setTimeout(this.runHeartbeat, msToNextHeartbeat)
+    }
+  }
+
   /**
    * Maintains the mesh and fanout maps in gossipsub.
    */
   private heartbeat(): void {
     const { D, Dlo, Dhi, Dscore, Dout, fanoutTTL } = this.opts
+
     this.heartbeatTicks++
 
     // cache scores throught the heartbeat
@@ -2179,7 +2190,10 @@ export default class Gossipsub extends EventEmitter {
     this.applyIwantPenalties()
 
     // ensure direct peers are connected
-    this.directConnect()
+    if (this.heartbeatTicks % constants.GossipsubDirectConnectTicks === 0) {
+      // we only do this every few ticks to allow pending connections to complete and account for restarts/downtime
+      this.directConnect()
+    }
 
     // maintain the mesh for topics we have joined
     this.mesh.forEach((peers, topic) => {
@@ -2221,6 +2235,9 @@ export default class Gossipsub extends EventEmitter {
       // drop all peers with negative score, without PX
       peers.forEach((id) => {
         const score = getScore(id)
+
+        // Record the score
+
         if (score < 0) {
           this.log('HEARTBEAT: Prune peer %s with negative score: score=%d, topic=%s', id, score, topic)
           prunePeer(id, ChurnReason.BadScore)
@@ -2237,7 +2254,7 @@ export default class Gossipsub extends EventEmitter {
           return !peers.has(id) && !this.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
         })
 
-        peersSet.forEach((p) => graftPeer(p, InclusionReason.Random))
+        peersSet.forEach((p) => graftPeer(p, InclusionReason.NotEnough))
       }
 
       // do we have to many peers?
@@ -2338,7 +2355,7 @@ export default class Gossipsub extends EventEmitter {
           })
           peersToGraft.forEach((id) => {
             this.log('HEARTBEAT: Opportunistically graft peer %s on topic %s', id, topic)
-            graftPeer(id, InclusionReason.Random)
+            graftPeer(id, InclusionReason.Opportunistic)
           })
         }
       }
@@ -2495,7 +2512,7 @@ export default class Gossipsub extends EventEmitter {
       this.score.peerStats,
       this.score.params,
       this.score.peerIPs,
-      metrics?.topicStrToLabel
+      metrics.topicStrToLabel
     )
 
     metrics.registerScoreWeights(sw)

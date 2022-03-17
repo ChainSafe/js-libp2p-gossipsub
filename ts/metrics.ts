@@ -64,14 +64,18 @@ export interface MetricsRegister {
 }
 
 export enum InclusionReason {
-  /// Peer was a fanaout peer.
+  /** Peer was a fanaout peer. */
   Fanout = 'fanout',
-  /// Included from random selection.
+  /** Included from random selection. */
   Random = 'random',
-  /// Peer subscribed.
+  /** Peer subscribed. */
   Subscribed = 'subscribed',
-  /// Peer was included to fill the outbound quota.
-  Outbound = 'outbound'
+  /** On heartbeat, peer was included to fill the outbound quota. */
+  Outbound = 'outbound',
+  /** On heartbeat, not enough peers in mesh */
+  NotEnough = 'not_enough',
+  /** On heartbeat opportunistic grafting due to low mesh score */
+  Opportunistic = 'opportunistic'
 }
 
 /// Reasons why a peer was removed from the mesh.
@@ -211,18 +215,25 @@ export function getMetrics(register: MetricsRegister, topicStrToLabel: TopicStrT
     }),
 
     /* General Metrics */
-    /// Gossipsub supports floodsub, gossipsub v1.0 and gossipsub v1.1. Peers are classified based
-    /// on which protocol they support. This metric keeps track of the number of peers that are
-    /// connected of each type.
+    /** Gossipsub supports floodsub, gossipsub v1.0 and gossipsub v1.1. Peers are classified based
+     *  on which protocol they support. This metric keeps track of the number of peers that are
+     *  connected of each type. */
     peersPerProtocol: register.gauge<{ protocol: PeerKind }>({
       name: 'gossipsub_peers_per_protocol_count',
       help: 'Peers connected for each topic',
       labelNames: ['protocol']
     }),
-    /// The time it takes to complete one iteration of the heartbeat.
+    /** The time it takes to complete one iteration of the heartbeat. */
     heartbeatDuration: register.histogram({
-      name: 'gossipsub_heartbeat_duration',
-      help: 'The time it takes to complete one iteration of the heartbeat'
+      name: 'gossipsub_heartbeat_duration_seconds',
+      help: 'The time it takes to complete one iteration of the heartbeat',
+      // Should take <10ms, over 1s it's a huge issue that needs debugging, since a heartbeat will be cancelled
+      buckets: [0.01, 0.1, 1]
+    }),
+    /** Heartbeat run took longer than heartbeat interval so next is skipped */
+    heartbeatSkipped: register.gauge({
+      name: 'gossipsub_heartbeat_skipped',
+      help: 'Heartbeat run took longer than heartbeat interval so next is skipped'
     }),
 
     /** Message validation results for each topic.
@@ -285,10 +296,11 @@ export function getMetrics(register: MetricsRegister, topicStrToLabel: TopicStrT
       labelNames: ['topic']
     }),
     /** Total count of peers (by group) that we publish a msg to */
-    msgPublishPeersByGroup: register.gauge<{ topic: TopicLabel; group: keyof ToSendGroupCount }>({
+    // NOTE: Do not use 'group' label since it's a generic already used by Prometheus to group instances
+    msgPublishPeersByGroup: register.gauge<{ topic: TopicLabel; peerGroup: keyof ToSendGroupCount }>({
       name: 'gossipsub_msg_publish_peers_by_group',
       help: 'Total count of peers (by group) that we publish a msg to',
-      labelNames: ['topic', 'group']
+      labelNames: ['topic', 'peerGroup']
     }),
     /** Total count of msg publish data.length bytes */
     msgPublishBytes: register.gauge<{ topic: TopicLabel }>({
@@ -530,10 +542,10 @@ export function getMetrics(register: MetricsRegister, topicStrToLabel: TopicStrT
       this.msgPublishCount.inc({ topic }, 1)
       this.msgPublishBytes.inc({ topic }, tosendCount * dataLen)
       this.msgPublishPeers.inc({ topic }, tosendCount)
-      this.msgPublishPeersByGroup.inc({ topic, group: 'direct' }, tosendGroupCount.direct)
-      this.msgPublishPeersByGroup.inc({ topic, group: 'floodsub' }, tosendGroupCount.floodsub)
-      this.msgPublishPeersByGroup.inc({ topic, group: 'mesh' }, tosendGroupCount.mesh)
-      this.msgPublishPeersByGroup.inc({ topic, group: 'fanout' }, tosendGroupCount.fanout)
+      this.msgPublishPeersByGroup.inc({ topic, peerGroup: 'direct' }, tosendGroupCount.direct)
+      this.msgPublishPeersByGroup.inc({ topic, peerGroup: 'floodsub' }, tosendGroupCount.floodsub)
+      this.msgPublishPeersByGroup.inc({ topic, peerGroup: 'mesh' }, tosendGroupCount.mesh)
+      this.msgPublishPeersByGroup.inc({ topic, peerGroup: 'fanout' }, tosendGroupCount.fanout)
     },
 
     onMsgRecvPreValidation(topicStr: TopicStr): void {

@@ -22,19 +22,19 @@ export class PeerScore {
   /**
    * Per-peer stats for score calculation
    */
-  peerStats: Map<PeerIdStr, PeerStats>
+  readonly peerStats: Map<PeerIdStr, PeerStats>
   /**
    * IP colocation tracking; maps IP => set of peers.
    */
-  peerIPs: Map<PeerIdStr, Set<IPStr>>
+  readonly peerIPs: Map<PeerIdStr, Set<IPStr>>
   /**
    * Cache score up to decayInterval if topic stats are unchanged.
    */
-  scoreCache: Map<PeerIdStr, ScoreCacheEntry>
+  readonly scoreCache: Map<PeerIdStr, ScoreCacheEntry>
   /**
    * Recent message delivery timing/participants
    */
-  deliveryRecords: MessageDeliveries
+  readonly deliveryRecords: MessageDeliveries
   _backgroundInterval?: NodeJS.Timeout
 
   constructor(
