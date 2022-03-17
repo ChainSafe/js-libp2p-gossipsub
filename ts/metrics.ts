@@ -354,7 +354,8 @@ export function getMetrics(
     }),
     scoreCachedDelta: register.histogram({
       name: 'gossipsub_score_cache_delta',
-      help: 'Delta of score between cached values that expired'
+      help: 'Delta of score between cached values that expired',
+      buckets: [10, 100, 1000]
     }),
     /** Current count of peers by score threshold */
     peersByScoreThreshold: register.gauge<{ threshold: ScoreThreshold }>({
