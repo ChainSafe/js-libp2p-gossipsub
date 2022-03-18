@@ -1,5 +1,5 @@
 import { PeerScoreParams, validatePeerScoreParams } from './peer-score-params'
-import { IPeerStats, PeerStats } from './peer-stats'
+import { PeerStats, TopicStats } from './peer-stats'
 import { computeScore } from './compute-score'
 import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries'
 import PeerId from 'peer-id'
@@ -25,7 +25,7 @@ interface ScoreCacheEntry {
   cacheUntil: number
 }
 
-export type PeerScoreStatsDump = Record<PeerIdStr, IPeerStats>
+export type PeerScoreStatsDump = Record<PeerIdStr, PeerStats>
 
 export class PeerScore {
   /**
@@ -101,20 +101,7 @@ export class PeerScore {
   }
 
   dumpPeerScoreStats(): PeerScoreStatsDump {
-    return Object.fromEntries(
-      Array.from(this.peerStats.entries()).map(([peer, stats]) => [
-        peer,
-        {
-          connected: stats.connected,
-          expire: stats.expire,
-          behaviourPenalty: stats.behaviourPenalty,
-          ips: stats.ips.slice(0),
-          topics: Object.fromEntries(
-            Array.from(stats.topics.entries()).map(([topic, tstats]) => [topic, { ...tstats }])
-          )
-        }
-      ])
-    )
+    return Object.fromEntries(Array.from(this.peerStats.entries()).map(([peer, stats]) => [peer, stats]))
   }
 
   /**
@@ -232,7 +219,13 @@ export class PeerScore {
   addPeer(id: PeerIdStr): void {
     // create peer stats (not including topic stats for each topic to be scored)
     // topic stats will be added as needed
-    const pstats = new PeerStats(this.params, true)
+    const pstats: PeerStats = {
+      connected: false,
+      expire: 0,
+      topics: {},
+      ips: [],
+      behaviourPenalty: 0
+    }
     this.peerStats.set(id, pstats)
 
     // get + update peer IPs
@@ -277,7 +270,7 @@ export class PeerScore {
   graft(id: PeerIdStr, topic: TopicStr): void {
     const pstats = this.peerStats.get(id)
     if (pstats) {
-      const tstats = pstats.topicStats(topic)
+      const tstats = this.getPtopicStats(pstats, topic)
       if (tstats) {
         // if we are scoring the topic, update the mesh status.
         tstats.inMesh = true
@@ -292,7 +285,7 @@ export class PeerScore {
   prune(id: PeerIdStr, topic: TopicStr): void {
     const pstats = this.peerStats.get(id)
     if (pstats) {
-      const tstats = pstats.topicStats(topic)
+      const tstats = this.getPtopicStats(pstats, topic)
       if (tstats) {
         // sticky mesh delivery rate failure penalty
         const threshold = this.params.topics[topic].meshMessageDeliveriesThreshold
@@ -433,7 +426,7 @@ export class PeerScore {
   private markInvalidMessageDelivery(from: PeerIdStr, topic: TopicStr): void {
     const pstats = this.peerStats.get(from)
     if (pstats) {
-      const tstats = pstats.topicStats(topic)
+      const tstats = this.getPtopicStats(pstats, topic)
       if (tstats) {
         tstats.invalidMessageDeliveries += 1
       }
@@ -448,7 +441,7 @@ export class PeerScore {
   private markFirstMessageDelivery(from: PeerIdStr, topic: TopicStr): void {
     const pstats = this.peerStats.get(from)
     if (pstats) {
-      const tstats = pstats.topicStats(topic)
+      const tstats = this.getPtopicStats(pstats, topic)
       if (tstats) {
         let cap = this.params.topics[topic].firstMessageDeliveriesCap
         tstats.firstMessageDeliveries = Math.max(cap, tstats.firstMessageDeliveries + 1)
@@ -470,7 +463,7 @@ export class PeerScore {
     if (pstats) {
       const now = validatedTime !== undefined ? Date.now() : 0
 
-      const tstats = pstats.topicStats(topic)
+      const tstats = this.getPtopicStats(pstats, topic)
       if (tstats) {
         if (tstats.inMesh) {
           const tparams = this.params.topics[topic]
@@ -571,5 +564,35 @@ export class PeerScore {
       this.setIPs(id, newIPs, pstats.ips)
       pstats.ips = newIPs
     })
+  }
+
+  /**
+   * Returns topic stats if they exist, otherwise if the supplied parameters score the
+   * topic, inserts the default stats and returns a reference to those. If neither apply, returns None.
+   */
+  private getPtopicStats(pstats: PeerStats, topic: TopicStr): TopicStats | null {
+    let topicStats: TopicStats | undefined = pstats.topics[topic]
+
+    if (topicStats) {
+      return topicStats
+    }
+
+    if (this.params.topics[topic]) {
+      topicStats = {
+        inMesh: false,
+        graftTime: 0,
+        meshTime: 0,
+        firstMessageDeliveries: 0,
+        meshMessageDeliveries: 0,
+        meshMessageDeliveriesActive: false,
+        meshFailurePenalty: 0,
+        invalidMessageDeliveries: 0
+      }
+      pstats.topics[topic] = topicStats
+
+      return topicStats
+    }
+
+    return null
   }
 }
