@@ -31,6 +31,14 @@ module.exports = {
     '@typescript-eslint/indent': 'off', // This is the job of StandardJS, they are competing rules so we turn off the Typescript one.
     'node/no-unsupported-features/es-syntax': 'off', // Allows us to use Import and Export keywords.
     '@typescript-eslint/no-non-null-assertion': 'off',
+    "@typescript-eslint/strict-boolean-expressions": [
+      "error",
+      {
+        allowNullableBoolean: true,
+        allowNullableString: true,
+        allowAny: true,
+      },
+    ],
     'no-mixed-operators': 'off',
     'space-before-function-paren': 'off',
     'comma-dangle': 'off',

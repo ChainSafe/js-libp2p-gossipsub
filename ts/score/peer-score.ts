@@ -116,7 +116,7 @@ export class PeerScore {
 
       Object.entries(pstats.topics).forEach(([topic, tstats]) => {
         const tparams = this.params.topics[topic]
-        if (!tparams) {
+        if (tparams === undefined) {
           // we are not scoring this topic
           // should be unreachable, we only add scored topics to pstats
           return

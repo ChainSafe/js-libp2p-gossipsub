@@ -51,7 +51,7 @@ export class IWantTracer {
         // the promise has been broken
         if (expire < now) {
           // add 1 to result
-          result.set(p, (result.get(p) || 0) + 1)
+          result.set(p, (result.get(p) ?? 0) + 1)
           // delete from tracked promises
           peers.delete(p)
         }

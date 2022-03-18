@@ -402,7 +402,7 @@ export default class Gossipsub extends Pubsub {
    * Handles an rpc control message from a peer
    */
   async _processRpcControlMessage(id: string, controlMsg: RPC.IControlMessage): Promise<void> {
-    if (!controlMsg) {
+    if (controlMsg === undefined) {
       return
     }
 
@@ -515,7 +515,7 @@ export default class Gossipsub extends Pubsub {
     }
 
     // IHAVE flood protection
-    const peerhave = (this.peerhave.get(id) || 0) + 1
+    const peerhave = (this.peerhave.get(id) ?? 0) + 1
     this.peerhave.set(id, peerhave)
     if (peerhave > constants.GossipsubMaxIHaveMessages) {
       this.log(
@@ -526,7 +526,7 @@ export default class Gossipsub extends Pubsub {
       return []
     }
 
-    const iasked = this.iasked.get(id) || 0
+    const iasked = this.iasked.get(id) ?? 0
     if (iasked >= constants.GossipsubMaxIHaveLength) {
       this.log('IHAVE: peer %s has already advertised too many messages (%d); ignoring', id, iasked)
       return []
@@ -768,7 +768,7 @@ export default class Gossipsub extends Pubsub {
       this.backoff.set(topic, backoff)
     }
     const expire = this._now() + interval
-    const existingExpire = backoff.get(id) || 0
+    const existingExpire = backoff.get(id) ?? 0
     if (existingExpire < expire) {
       backoff.set(id, expire)
     }
@@ -868,7 +868,7 @@ export default class Gossipsub extends Pubsub {
             this.log("bogus peer record obtained through px: peer ID %s doesn't match expected peer %s", eid, id)
             return
           }
-          if (!this._libp2p.peerStore.addressBook.consumePeerRecord(envelope)) {
+          if (!(await this._libp2p.peerStore.addressBook.consumePeerRecord(envelope))) {
             this.log('bogus peer record obtained through px: could not add peer record to address book')
             return
           }

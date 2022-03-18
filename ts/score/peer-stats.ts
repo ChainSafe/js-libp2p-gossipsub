@@ -102,10 +102,10 @@ export function createTopicStats(ts: Partial<TopicStats> = {}): TopicStats {
 
 export function ensureTopicStats(topic: string, ps: PeerStats, params: PeerScoreParams): TopicStats | undefined {
   let ts = ps.topics[topic]
-  if (ts) {
+  if (ts !== undefined) {
     return ts
   }
-  if (!params.topics[topic]) {
+  if (params.topics[topic] === undefined) {
     return undefined
   }
   ps.topics[topic] = ts = createTopicStats()

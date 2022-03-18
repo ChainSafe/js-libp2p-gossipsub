@@ -13,7 +13,7 @@ export function computeScore(
   Object.entries(pstats.topics).forEach(([topic, tstats]) => {
     // the topic parameters
     const topicParams = params.topics[topic]
-    if (!topicParams) {
+    if (topicParams === undefined) {
       // we are not scoring this topic
       return
     }
