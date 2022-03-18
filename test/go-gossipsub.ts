@@ -45,8 +45,11 @@ const checkReceivedSubscription = (psub: Gossipsub, peerIdStr: string, topic: st
     if (peerId.toB58String() === peerIdStr && subs[0].topicID === topic && subs[0].subscribe === true) {
       clearTimeout(t)
       psub.off(event, cb)
-      expect(Array.from(psub.topics.get(topic) || []).includes(peerIdStr), 'topics should include the peerId').to.be.true
-      resolve()
+      if (Array.from(psub.topics.get(topic) || []).includes(peerIdStr)) {
+        resolve()
+      } else {
+        reject(Error('topics should include the peerId'))
+      }
     }
   }
   psub.on(event, cb);
