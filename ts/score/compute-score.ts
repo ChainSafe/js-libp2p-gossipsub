@@ -30,7 +30,10 @@ export function computeScore(
     }
 
     // P2: first message deliveries
-    const p2 = tstats.firstMessageDeliveries
+    let p2 = tstats.firstMessageDeliveries
+    if (p2 > topicParams.firstMessageDeliveriesCap) {
+      p2 = topicParams.firstMessageDeliveriesCap
+    }
     topicScore += p2 * topicParams.firstMessageDeliveriesWeight
 
     // P3: mesh message deliveries
@@ -85,8 +88,11 @@ export function computeScore(
   })
 
   // P7: behavioural pattern penalty
-  const p7 = pstats.behaviourPenalty * pstats.behaviourPenalty
-  score += p7 * params.behaviourPenaltyWeight
+  if (pstats.behaviourPenalty > params.behaviourPenaltyThreshold) {
+    const excess = pstats.behaviourPenalty - params.behaviourPenaltyThreshold
+    const p7 = excess * excess
+    score += p7 * params.behaviourPenaltyWeight
+  }
 
   return score
 }
