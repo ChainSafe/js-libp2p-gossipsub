@@ -220,7 +220,7 @@ export class PeerScore {
     // create peer stats (not including topic stats for each topic to be scored)
     // topic stats will be added as needed
     const pstats: PeerStats = {
-      connected: false,
+      connected: true,
       expire: 0,
       topics: {},
       ips: [],
