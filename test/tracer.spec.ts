@@ -8,7 +8,7 @@ describe('IWantTracer', () => {
   it('should track broken promises', async function () {
     // tests that unfullfilled promises are tracked correctly
     this.timeout(6000)
-    const t = new IWantTracer()
+    const t = new IWantTracer(null)
     const peerA = 'A'
     const peerB = 'B'
 
@@ -36,7 +36,7 @@ describe('IWantTracer', () => {
   it('should track unbroken promises', async function () {
     // like above, but this time we deliver messages to fullfil the promises
     this.timeout(6000)
-    const t = new IWantTracer()
+    const t = new IWantTracer(null)
     const peerA = 'A'
     const peerB = 'B'
 

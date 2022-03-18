@@ -29,7 +29,7 @@ describe('score / scoreMetrics', () => {
 
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
     // Peer score should start at 0
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
 
     // Do some actions that penalize the peer

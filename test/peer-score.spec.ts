@@ -30,7 +30,7 @@ describe('PeerScore', () => {
     }))
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
     // Peer score should start at 0
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
 
     let aScore = ps.score(peerA)
@@ -41,7 +41,7 @@ describe('PeerScore', () => {
     const elapsed = tparams.timeInMeshQuantum * 100
     await delay(elapsed + 10)
 
-    ps._refreshScores()
+    ps['refreshScores']()
     aScore = ps.score(peerA)
     expect(aScore).to.be.gte(((tparams.topicWeight * tparams.timeInMeshWeight) / tparams.timeInMeshQuantum) * elapsed)
   })
@@ -59,7 +59,7 @@ describe('PeerScore', () => {
     }))
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
     // Peer score should start at 0
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
 
     let aScore = ps.score(peerA)
@@ -70,7 +70,7 @@ describe('PeerScore', () => {
     const elapsed = tparams.timeInMeshQuantum * 40
     await delay(elapsed)
 
-    ps._refreshScores()
+    ps['refreshScores']()
     aScore = ps.score(peerA)
     expect(aScore).to.be.gt(tparams.topicWeight * tparams.timeInMeshWeight * tparams.timeInMeshCap * 0.5)
     expect(aScore).to.be.lt(tparams.topicWeight * tparams.timeInMeshWeight * tparams.timeInMeshCap * 1.5)
@@ -91,7 +91,7 @@ describe('PeerScore', () => {
     }))
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
     // Peer score should start at 0
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
 
@@ -103,7 +103,7 @@ describe('PeerScore', () => {
       ps.deliverMessage(peerA, getMsgIdStr(msg), msg.topic)
     }
 
-    ps._refreshScores()
+    ps['refreshScores']()
     const aScore = ps.score(peerA)
     expect(aScore).to.be.equal(
       tparams.topicWeight * tparams.firstMessageDeliveriesWeight * nMessages * tparams.firstMessageDeliveriesDecay
@@ -126,7 +126,7 @@ describe('PeerScore', () => {
     }))
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
     // Peer score should start at 0
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
 
     let aScore = ps.score(peerA)
@@ -143,7 +143,7 @@ describe('PeerScore', () => {
       ps.deliverMessage(peerA, getMsgIdStr(msg), msg.topic)
     }
 
-    ps._refreshScores()
+    ps['refreshScores']()
     aScore = ps.score(peerA)
     expect(aScore).to.be.equal(
       tparams.topicWeight *
@@ -169,7 +169,7 @@ describe('PeerScore', () => {
     }))
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
     // Peer score should start at 0
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
 
     let aScore = ps.score(peerA)
@@ -186,7 +186,7 @@ describe('PeerScore', () => {
       ps.deliverMessage(peerA, getMsgIdStr(msg), msg.topic)
     }
 
-    ps._refreshScores()
+    ps['refreshScores']()
     aScore = ps.score(peerA)
     let expected =
       tparams.topicWeight *
@@ -198,7 +198,7 @@ describe('PeerScore', () => {
     // refreshing the scores applies the decay param
     const decayInterals = 10
     for (let i = 0; i < decayInterals; i++) {
-      ps._refreshScores()
+      ps['refreshScores']()
       expected *= tparams.firstMessageDeliveriesDecay
     }
     aScore = ps.score(peerA)
@@ -232,14 +232,14 @@ describe('PeerScore', () => {
     const peerC = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
     const peers = [peerA, peerB, peerC]
     // Peer score should start at 0
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     peers.forEach((p) => {
       ps.addPeer(p)
       ps.graft(p, mytopic)
     })
 
     // assert that nobody has been penalized yet for not delivering messages before activation time
-    ps._refreshScores()
+    ps['refreshScores']()
     peers.forEach((p) => {
       const score = ps.score(p)
       expect(score, 'expected no mesh delivery penalty before activation time').to.equal(0)
@@ -260,7 +260,7 @@ describe('PeerScore', () => {
       await delay(tparams.meshMessageDeliveriesWindow + 5)
       ps.duplicateMessage(peerC, getMsgIdStr(msg), msg.topic)
     }
-    ps._refreshScores()
+    ps['refreshScores']()
     const aScore = ps.score(peerA)
     const bScore = ps.score(peerB)
     const cScore = ps.score(peerC)
@@ -293,7 +293,7 @@ describe('PeerScore', () => {
     }))
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
     // Peer score should start at 0
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
 
@@ -307,14 +307,14 @@ describe('PeerScore', () => {
       ps.validateMessage(getMsgIdStr(msg))
       ps.deliverMessage(peerA, getMsgIdStr(msg), msg.topic)
     }
-    ps._refreshScores()
+    ps['refreshScores']()
     let aScore = ps.score(peerA)
     expect(aScore).to.be.gte(0)
 
     // we need to refresh enough times for the decay to bring us below the threshold
     let decayedDeliveryCount = nMessages * tparams.meshMessageDeliveriesDecay
     for (let i = 0; i < 20; i++) {
-      ps._refreshScores()
+      ps['refreshScores']()
       decayedDeliveryCount *= tparams.meshMessageDeliveriesDecay
     }
     aScore = ps.score(peerA)
@@ -353,7 +353,7 @@ describe('PeerScore', () => {
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
     const peerB = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
     const peers = [peerA, peerB]
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
 
     peers.forEach((p) => {
       ps.addPeer(p)
@@ -371,7 +371,7 @@ describe('PeerScore', () => {
       ps.deliverMessage(peerA, getMsgIdStr(msg), msg.topic)
     }
     // peers A and B should both have zero scores, since the failure penalty hasn't been applied yet
-    ps._refreshScores()
+    ps['refreshScores']()
     let aScore = ps.score(peerA)
     let bScore = ps.score(peerB)
     expect(aScore).to.be.equal(0)
@@ -379,7 +379,7 @@ describe('PeerScore', () => {
 
     // prune peer B to apply the penalty
     ps.prune(peerB, mytopic)
-    ps._refreshScores()
+    ps['refreshScores']()
     aScore = ps.score(peerA)
     bScore = ps.score(peerB)
     expect(aScore).to.be.equal(0)
@@ -402,7 +402,7 @@ describe('PeerScore', () => {
       timeInMeshWeight: 0
     }))
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
 
@@ -412,7 +412,7 @@ describe('PeerScore', () => {
       const msg = makeTestMessage(i, mytopic)
       ps.rejectMessage(peerA, getMsgIdStr(msg), msg.topic, RejectReason.Reject)
     }
-    ps._refreshScores()
+    ps['refreshScores']()
     let aScore = ps.score(peerA)
 
     const expected =
@@ -433,7 +433,7 @@ describe('PeerScore', () => {
       timeInMeshWeight: 0
     }))
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
 
@@ -443,7 +443,7 @@ describe('PeerScore', () => {
       const msg = makeTestMessage(i, mytopic)
       ps.rejectMessage(peerA, getMsgIdStr(msg), msg.topic, RejectReason.Reject)
     }
-    ps._refreshScores()
+    ps['refreshScores']()
     let aScore = ps.score(peerA)
 
     let expected =
@@ -454,7 +454,7 @@ describe('PeerScore', () => {
 
     // refresh scores a few times to apply decay
     for (let i = 0; i < 10; i++) {
-      ps._refreshScores()
+      ps['refreshScores']()
       expected *= tparams.invalidMessageDeliveriesDecay ** 2
     }
     aScore = ps.score(peerA)
@@ -473,7 +473,7 @@ describe('PeerScore', () => {
     }))
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
     const peerB = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.addPeer(peerB)
 
@@ -537,13 +537,13 @@ describe('PeerScore', () => {
       appSpecificWeight: 0.5
     })
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
 
     for (let i = -100; i < 100; i++) {
       appScoreValue = i
-      ps._refreshScores()
+      ps['refreshScores']()
       const aScore = ps.score(peerA)
       const expected = i * params.appSpecificWeight
       expect(aScore).to.equal(expected)
@@ -562,14 +562,14 @@ describe('PeerScore', () => {
     const peerD = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
     const peers = [peerA, peerB, peerC, peerD]
 
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     peers.forEach((p) => {
       ps.addPeer(p)
       ps.graft(p, mytopic)
     })
 
     const setIPsForPeer = (p: string, ips: string[]) => {
-      ps._setIPs(p, ips, [])
+      ps['setIPs'](p, ips, [])
       const pstats = ps.peerStats.get(p)
       pstats!.ips = ips
     }
@@ -579,7 +579,7 @@ describe('PeerScore', () => {
     setIPsForPeer(peerC, ['2.3.4.5', '3.4.5.6'])
     setIPsForPeer(peerD, ['2.3.4.5'])
 
-    ps._refreshScores()
+    ps['refreshScores']()
     const aScore = ps.score(peerA)
     const bScore = ps.score(peerB)
     const cScore = ps.score(peerC)
@@ -603,7 +603,7 @@ describe('PeerScore', () => {
     })
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
 
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
 
     // add penalty on a non-existent peer
     ps.addPenalty(peerA, 1, ScorePenalty.MessageDeficit)
@@ -624,7 +624,7 @@ describe('PeerScore', () => {
     aScore = ps.score(peerA)
     expect(aScore).to.equal(-4)
 
-    ps._refreshScores()
+    ps['refreshScores']()
 
     aScore = ps.score(peerA)
     expect(aScore).to.equal(-3.9204)
@@ -639,12 +639,12 @@ describe('PeerScore', () => {
     })
     const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
 
-    const ps = new PeerScore(params, connectionManager, null)
+    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
     // score should equal -1000 (app-specific score)
     const expected = -1000
-    ps._refreshScores()
+    ps['refreshScores']()
     let aScore = ps.score(peerA)
     expect(aScore).to.equal(expected)
 
@@ -653,13 +653,13 @@ describe('PeerScore', () => {
     ps.removePeer(peerA)
     const _delay = params.retainScore / 2
     await delay(_delay)
-    ps._refreshScores()
+    ps['refreshScores']()
     aScore = ps.score(peerA)
     expect(aScore).to.equal(expected)
 
     // wait remaining time (plus a little slop) and the score should reset to 0
     await delay(_delay + 5)
-    ps._refreshScores()
+    ps['refreshScores']()
     aScore = ps.score(peerA)
     expect(aScore).to.equal(0)
   })
@@ -676,7 +676,7 @@ describe('PeerScore score cache', function () {
     decayInterval: 1000,
     topics: { a: { topicWeight: 10 } as TopicScoreParams }
   })
-  const ps2 = new PeerScore(params, connectionManager, null)
+  const ps2 = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
 
   beforeEach(() => {
     sandbox = sinon.createSandbox()
@@ -702,16 +702,16 @@ describe('PeerScore score cache', function () {
 
   const testCases = [
     { name: 'decayInterval timeout', fun: () => sandbox.clock.tick(params.decayInterval) },
-    { name: '_refreshScores', fun: () => ps2._refreshScores() },
+    { name: 'refreshScores', fun: () => ps2['refreshScores']() },
     { name: 'addPenalty', fun: () => ps2.addPenalty(peerA, 10, scorePenaltyAny) },
     { name: 'graft', fun: () => ps2.graft(peerA, 'a') },
     { name: 'prune', fun: () => ps2.prune(peerA, 'a') },
-    { name: '_markInvalidMessageDelivery', fun: () => ps2._markInvalidMessageDelivery(peerA, 'a') },
-    { name: '_markFirstMessageDelivery', fun: () => ps2._markFirstMessageDelivery(peerA, 'a') },
-    { name: '_markDuplicateMessageDelivery', fun: () => ps2._markDuplicateMessageDelivery(peerA, 'a') },
-    { name: '_setIPs', fun: () => ps2._setIPs(peerA, [], ['127.0.0.1']) },
-    { name: '_removeIPs', fun: () => ps2._removeIPs(peerA, ['127.0.0.1']) },
-    { name: '_updateIPs', fun: () => ps2._updateIPs() }
+    { name: 'markInvalidMessageDelivery', fun: () => ps2['markInvalidMessageDelivery'](peerA, 'a') },
+    { name: 'markFirstMessageDelivery', fun: () => ps2['markFirstMessageDelivery'](peerA, 'a') },
+    { name: 'markDuplicateMessageDelivery', fun: () => ps2['markDuplicateMessageDelivery'](peerA, 'a') },
+    { name: 'setIPs', fun: () => ps2['setIPs'](peerA, [], ['127.0.0.1']) },
+    { name: 'removeIPs', fun: () => ps2['removeIPs'](peerA, ['127.0.0.1']) },
+    { name: 'updateIPs', fun: () => ps2['updateIPs']() }
   ]
 
   for (const { name, fun } of testCases) {

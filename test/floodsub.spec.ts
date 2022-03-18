@@ -58,7 +58,7 @@ describe('gossipsub fallbacks to floodsub', () => {
         await nodeGs._libp2p.dialProtocol(nodeFs._libp2p.peerId, nodeGs.multicodecs)
         expect.fail('Dial should not have succeed')
       } catch (err) {
-        expect(err.code).to.be.equal('ERR_UNSUPPORTED_PROTOCOL')
+        expect((err as { code: string }).code).to.be.equal('ERR_UNSUPPORTED_PROTOCOL')
       }
     })
   })
