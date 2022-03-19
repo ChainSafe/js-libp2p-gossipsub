@@ -2210,6 +2210,7 @@ export default class Gossipsub extends EventEmitter {
     this.fastMsgIdCache?.prune()
     this.seenCache.prune()
     this.gossipTracer.prune()
+    this.publishedMessageIds.prune()
 
     // maintain the mesh for topics we have joined
     this.mesh.forEach((peers, topic) => {
