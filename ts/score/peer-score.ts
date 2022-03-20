@@ -141,18 +141,22 @@ export class PeerScore {
         if (tstats.firstMessageDeliveries < decayToZero) {
           tstats.firstMessageDeliveries = 0
         }
+
         tstats.meshMessageDeliveries *= tparams.meshMessageDeliveriesDecay
         if (tstats.meshMessageDeliveries < decayToZero) {
           tstats.meshMessageDeliveries = 0
         }
+
         tstats.meshFailurePenalty *= tparams.meshFailurePenaltyDecay
         if (tstats.meshFailurePenalty < decayToZero) {
           tstats.meshFailurePenalty = 0
         }
+
         tstats.invalidMessageDeliveries *= tparams.invalidMessageDeliveriesDecay
         if (tstats.invalidMessageDeliveries < decayToZero) {
           tstats.invalidMessageDeliveries = 0
         }
+
         // update mesh time and activate mesh message delivery parameter if need be
         if (tstats.inMesh) {
           tstats.meshTime = now - tstats.graftTime
@@ -161,6 +165,7 @@ export class PeerScore {
           }
         }
       })
+
       // decay P7 counter
       pstats.behaviourPenalty *= this.params.behaviourPenaltyDecay
       if (pstats.behaviourPenalty < decayToZero) {
@@ -209,11 +214,10 @@ export class PeerScore {
    */
   addPenalty(id: PeerIdStr, penalty: number, penaltyLabel: ScorePenalty): void {
     const pstats = this.peerStats.get(id)
-    if (!pstats) {
-      return
+    if (pstats) {
+      pstats.behaviourPenalty += penalty
+      this.metrics?.onScorePenalty(penaltyLabel)
     }
-    pstats.behaviourPenalty += penalty
-    this.metrics?.onScorePenalty(penaltyLabel)
   }
 
   addPeer(id: PeerIdStr): void {
@@ -444,11 +448,11 @@ export class PeerScore {
       const tstats = this.getPtopicStats(pstats, topic)
       if (tstats) {
         let cap = this.params.topics[topic].firstMessageDeliveriesCap
-        tstats.firstMessageDeliveries = Math.max(cap, tstats.firstMessageDeliveries + 1)
+        tstats.firstMessageDeliveries = Math.min(cap, tstats.firstMessageDeliveries + 1)
 
         if (tstats.inMesh) {
           cap = this.params.topics[topic].meshMessageDeliveriesCap
-          tstats.meshMessageDeliveries = Math.max(cap, tstats.meshMessageDeliveries + 1)
+          tstats.meshMessageDeliveries = Math.min(cap, tstats.meshMessageDeliveries + 1)
         }
       }
     }
@@ -464,20 +468,18 @@ export class PeerScore {
       const now = validatedTime !== undefined ? Date.now() : 0
 
       const tstats = this.getPtopicStats(pstats, topic)
-      if (tstats) {
-        if (tstats.inMesh) {
-          const tparams = this.params.topics[topic]
+      if (tstats && tstats.inMesh) {
+        const tparams = this.params.topics[topic]
 
-          // check against the mesh delivery window -- if the validated time is passed as 0, then
-          // the message was received before we finished validation and thus falls within the mesh
-          // delivery window.
-          if (validatedTime && now > validatedTime + tparams.meshMessageDeliveriesWindow) {
-            return
-          }
-
-          const cap = tparams.meshMessageDeliveriesCap
-          tstats.meshMessageDeliveries = Math.min(cap, tstats.meshMessageDeliveries + 1)
+        // check against the mesh delivery window -- if the validated time is passed as 0, then
+        // the message was received before we finished validation and thus falls within the mesh
+        // delivery window.
+        if (validatedTime && now > validatedTime + tparams.meshMessageDeliveriesWindow) {
+          return
         }
+
+        const cap = tparams.meshMessageDeliveriesCap
+        tstats.meshMessageDeliveries = Math.min(cap, tstats.meshMessageDeliveries + 1)
       }
     }
   }
