@@ -61,16 +61,20 @@ export function computeScoreWeights(
     }
 
     // P2: first message deliveries
-    const p2 = tstats.firstMessageDeliveries
+    let p2 = tstats.firstMessageDeliveries
+    if (p2 > topicParams.firstMessageDeliveriesCap) {
+      p2 = topicParams.firstMessageDeliveriesCap
+    }
     p2w += p2 * topicParams.firstMessageDeliveriesWeight
 
     // P3: mesh message deliveries
-    if (tstats.meshMessageDeliveriesActive) {
-      if (tstats.meshMessageDeliveries < topicParams.meshMessageDeliveriesThreshold) {
-        const deficit = topicParams.meshMessageDeliveriesThreshold - tstats.meshMessageDeliveries
-        const p3 = deficit * deficit
-        p3w += p3 * topicParams.meshMessageDeliveriesWeight
-      }
+    if (
+      tstats.meshMessageDeliveriesActive &&
+      tstats.meshMessageDeliveries < topicParams.meshMessageDeliveriesThreshold
+    ) {
+      const deficit = topicParams.meshMessageDeliveriesThreshold - tstats.meshMessageDeliveries
+      const p3 = deficit * deficit
+      p3w += p3 * topicParams.meshMessageDeliveriesWeight
     }
 
     // P3b:
