@@ -237,6 +237,7 @@ export class PeerScore {
       }
 
       tstats.inMesh = false
+      tstats.meshMessageDeliveriesActive = false
     })
 
     pstats.connected = false
@@ -279,6 +280,7 @@ export class PeerScore {
       tstats.meshFailurePenalty += deficit * deficit
     }
     tstats.inMesh = false
+    tstats.meshMessageDeliveriesActive = false
     this.scoreCache.set(id, { score: null, cacheUntil: 0 })
   }
 
