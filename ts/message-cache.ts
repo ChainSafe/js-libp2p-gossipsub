@@ -54,7 +54,7 @@ export class MessageCache {
       peertx = new Map()
       this.peertx.set(msgIdStr, peertx)
     }
-    const count = (peertx.get(p) || 0) + 1
+    const count = (peertx.get(p) ?? 0) + 1
     peertx.set(p, count)
 
     return [msg, count]
