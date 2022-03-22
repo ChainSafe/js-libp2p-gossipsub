@@ -2528,7 +2528,7 @@ export default class Gossipsub extends EventEmitter {
       const score = this.score.score(peerIdStr)
       scores.push(score)
       scoreByPeer.set(peerIdStr, score)
-      metrics.behaviourPenalty.observe({ p: peerIdStr }, this.score.peerStats.get(peerIdStr)?.behaviourPenalty)
+      metrics.behaviourPenalty.observe(this.score.peerStats.get(peerIdStr)?.behaviourPenalty ?? 0)
     }
 
     metrics.registerScores(scores, this.opts.scoreThresholds)

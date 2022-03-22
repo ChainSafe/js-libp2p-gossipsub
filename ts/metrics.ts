@@ -399,15 +399,14 @@ export function getMetrics(
       help: 'A counter of the kind of penalties being applied to peers',
       labelNames: ['penalty']
     }),
-    behaviourPenalty: register.histogram<{ p: string }>({
+    behaviourPenalty: register.histogram({
       name: 'gossipsub_peer_stat_behaviour_penalty',
       help: 'Current peer stat behaviour_penalty at each scrape',
       buckets: [
         0.5 * opts.behaviourPenaltyThreshold,
         1 * opts.behaviourPenaltyThreshold,
         2 * opts.behaviourPenaltyThreshold
-      ],
-      labelNames: ['p']
+      ]
     }),
 
     // TODO:
@@ -591,6 +590,11 @@ export function getMetrics(
 
       const error = reason.reason === RejectReason.Error ? reason.error : reason.reason
       this.msgReceivedInvalid.inc({ topic, error }, 1)
+    },
+
+    onFailedMeshMsgDelivery(topicStr: TopicStr, time: number): void {
+      const topic = this.toTopic(topicStr)
+      this.duplicateMsgDelivery.observe({ topic }, time)
     },
 
     onRpcRecv(rpc: IRPC, rpcBytes: number): void {
