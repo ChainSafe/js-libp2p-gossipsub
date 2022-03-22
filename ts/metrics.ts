@@ -161,7 +161,7 @@ export type Metrics = ReturnType<typeof getMetrics>
 export function getMetrics(
   register: MetricsRegister,
   topicStrToLabel: TopicStrToLabel,
-  opts: { gossipPromiseExpireSec: number; behaviourPenaltyThreshold: number; meshMessageDeliveriesWindow: number }
+  opts: { gossipPromiseExpireSec: number; behaviourPenaltyThreshold: number; minMeshMessageDeliveriesWindow: number }
 ) {
   // Using function style instead of class to prevent having to re-declare all MetricsPrometheus types.
 
@@ -346,9 +346,9 @@ export function getMetrics(
       help: 'Time since the 1st duplicated message validated',
       labelNames: ['topic'],
       buckets: [
-        0.5 * opts.meshMessageDeliveriesWindow,
-        1 * opts.meshMessageDeliveriesWindow,
-        2 * opts.meshMessageDeliveriesWindow
+        0.5 * opts.minMeshMessageDeliveriesWindow,
+        1 * opts.minMeshMessageDeliveriesWindow,
+        2 * opts.minMeshMessageDeliveriesWindow
       ]
     }),
 

@@ -395,8 +395,8 @@ export default class Gossipsub extends EventEmitter {
         gossipPromiseExpireSec: constants.GossipsubIWantFollowupTime / 1000,
         behaviourPenaltyThreshold: opts.scoreParams.behaviourPenaltyThreshold,
         // in theory, each topic has its own meshMessageDeliveriesWindow param
-        // however in lodestar, we configure it the same so just pick the max one
-        meshMessageDeliveriesWindow: Math.max(
+        // however in lodestar, we configure it the same so just pick the min one
+        minMeshMessageDeliveriesWindow: Math.min(
           ...Object.values(opts.scoreParams.topics).map((topicParam) => topicParam.meshMessageDeliveriesWindow)
         )
       })
