@@ -161,7 +161,7 @@ export type Metrics = ReturnType<typeof getMetrics>
 export function getMetrics(
   register: MetricsRegister,
   topicStrToLabel: TopicStrToLabel,
-  opts: { gossipPromiseExpireSec: number }
+  opts: { gossipPromiseExpireSec: number; behaviourPenaltyThreshold: number }
 ) {
   // Using function style instead of class to prevent having to re-declare all MetricsPrometheus types.
 
@@ -387,6 +387,16 @@ export function getMetrics(
       name: 'gossipsub_scoring_penalties_total',
       help: 'A counter of the kind of penalties being applied to peers',
       labelNames: ['penalty']
+    }),
+    behaviourPenalty: register.histogram<{ p: string }>({
+      name: 'gossipsub_peer_stat_behaviour_penalty',
+      help: 'Current peer stat behaviour_penalty at each scrape',
+      buckets: [
+        0.5 * opts.behaviourPenaltyThreshold,
+        1 * opts.behaviourPenaltyThreshold,
+        2 * opts.behaviourPenaltyThreshold
+      ],
+      labelNames: ['p']
     }),
 
     // TODO:
