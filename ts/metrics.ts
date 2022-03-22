@@ -341,10 +341,10 @@ export function getMetrics(
       labelNames: ['topic', 'error']
     }),
     /** Track duplicate message delivery time */
-    duplicateMsgDelivery: register.histogram<{ topic: TopicLabel }>({
+    duplicateMsgDelivery: register.histogram<{ topic: TopicLabel; p: string }>({
       name: 'gossisub_duplicate_msg_delivery_in_seconds',
       help: 'Time since the 1st duplicated message validated',
-      labelNames: ['topic'],
+      labelNames: ['topic', 'p'],
       buckets: [
         0.5 * opts.meshMessageDeliveriesWindow,
         1 * opts.meshMessageDeliveriesWindow,
