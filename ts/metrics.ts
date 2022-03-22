@@ -342,7 +342,7 @@ export function getMetrics(
     }),
     /** Track duplicate message delivery time */
     duplicateMsgDelivery: register.histogram<{ topic: TopicLabel }>({
-      name: 'gossisub_duplicate_msg_delivery_in_seconds',
+      name: 'gossisub_duplicate_msg_delivery_delay_seconds',
       help: 'Time since the 1st duplicated message validated',
       labelNames: ['topic'],
       buckets: [
@@ -592,9 +592,9 @@ export function getMetrics(
       this.msgReceivedInvalid.inc({ topic, error }, 1)
     },
 
-    onFailedMeshMsgDelivery(topicStr: TopicStr, time: number): void {
+    onDuplicateMsgDelivery(topicStr: TopicStr, deliveryDelayMs: number): void {
       const topic = this.toTopic(topicStr)
-      this.duplicateMsgDelivery.observe({ topic }, time)
+      this.duplicateMsgDelivery.observe({ topic }, deliveryDelayMs / 1000)
     },
 
     onRpcRecv(rpc: IRPC, rpcBytes: number): void {
