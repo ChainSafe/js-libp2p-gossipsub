@@ -475,6 +475,7 @@ export class PeerScore {
         // the message was received before we finished validation and thus falls within the mesh
         // delivery window.
         if (validatedTime && now > validatedTime + tparams.meshMessageDeliveriesWindow) {
+          this.metrics?.duplicateMsgDelivery.observe(Math.floor(now - validatedTime) / 1000)
           return
         }
 

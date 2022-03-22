@@ -161,7 +161,7 @@ export type Metrics = ReturnType<typeof getMetrics>
 export function getMetrics(
   register: MetricsRegister,
   topicStrToLabel: TopicStrToLabel,
-  opts: { gossipPromiseExpireSec: number; behaviourPenaltyThreshold: number }
+  opts: { gossipPromiseExpireSec: number; behaviourPenaltyThreshold: number; meshMessageDeliveriesWindow: number }
 ) {
   // Using function style instead of class to prevent having to re-declare all MetricsPrometheus types.
 
@@ -339,6 +339,17 @@ export function getMetrics(
       name: 'gossipsub_msg_received_invalid_total',
       help: 'Tracks specific reason of invalid',
       labelNames: ['topic', 'error']
+    }),
+    /** Track duplicate message delivery time */
+    duplicateMsgDelivery: register.histogram<{ topic: TopicLabel }>({
+      name: 'gossisub_duplicate_msg_delivery_in_seconds',
+      help: 'Time since the 1st duplicated message validated',
+      labelNames: ['topic'],
+      buckets: [
+        0.5 * opts.meshMessageDeliveriesWindow,
+        1 * opts.meshMessageDeliveriesWindow,
+        2 * opts.meshMessageDeliveriesWindow
+      ]
     }),
 
     /* Metrics related to scoring */
