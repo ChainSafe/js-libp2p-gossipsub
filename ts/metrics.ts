@@ -161,7 +161,7 @@ export type Metrics = ReturnType<typeof getMetrics>
 export function getMetrics(
   register: MetricsRegister,
   topicStrToLabel: TopicStrToLabel,
-  opts: { gossipPromiseExpireSec: number }
+  opts: { gossipPromiseExpireSec: number; behaviourPenaltyThreshold: number; minMeshMessageDeliveriesWindow: number }
 ) {
   // Using function style instead of class to prevent having to re-declare all MetricsPrometheus types.
 
@@ -340,6 +340,17 @@ export function getMetrics(
       help: 'Tracks specific reason of invalid',
       labelNames: ['topic', 'error']
     }),
+    /** Track duplicate message delivery time */
+    duplicateMsgDelivery: register.histogram<{ topic: TopicLabel }>({
+      name: 'gossisub_duplicate_msg_delivery_delay_seconds',
+      help: 'Time since the 1st duplicated message validated',
+      labelNames: ['topic'],
+      buckets: [
+        0.5 * opts.minMeshMessageDeliveriesWindow,
+        1 * opts.minMeshMessageDeliveriesWindow,
+        2 * opts.minMeshMessageDeliveriesWindow
+      ]
+    }),
 
     /* Metrics related to scoring */
     /** Total times score() is called */
@@ -387,6 +398,15 @@ export function getMetrics(
       name: 'gossipsub_scoring_penalties_total',
       help: 'A counter of the kind of penalties being applied to peers',
       labelNames: ['penalty']
+    }),
+    behaviourPenalty: register.histogram({
+      name: 'gossipsub_peer_stat_behaviour_penalty',
+      help: 'Current peer stat behaviour_penalty at each scrape',
+      buckets: [
+        0.5 * opts.behaviourPenaltyThreshold,
+        1 * opts.behaviourPenaltyThreshold,
+        2 * opts.behaviourPenaltyThreshold
+      ]
     }),
 
     // TODO:
@@ -570,6 +590,11 @@ export function getMetrics(
 
       const error = reason.reason === RejectReason.Error ? reason.error : reason.reason
       this.msgReceivedInvalid.inc({ topic, error }, 1)
+    },
+
+    onDuplicateMsgDelivery(topicStr: TopicStr, deliveryDelayMs: number): void {
+      const topic = this.toTopic(topicStr)
+      this.duplicateMsgDelivery.observe({ topic }, deliveryDelayMs / 1000)
     },
 
     onRpcRecv(rpc: IRPC, rpcBytes: number): void {

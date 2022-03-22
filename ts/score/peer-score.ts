@@ -474,8 +474,13 @@ export class PeerScore {
         // check against the mesh delivery window -- if the validated time is passed as 0, then
         // the message was received before we finished validation and thus falls within the mesh
         // delivery window.
-        if (validatedTime && now > validatedTime + tparams.meshMessageDeliveriesWindow) {
-          return
+        if (validatedTime) {
+          const deliveryDelayMs = now - validatedTime
+          this.metrics?.onDuplicateMsgDelivery(topic, deliveryDelayMs)
+
+          if (deliveryDelayMs > tparams.meshMessageDeliveriesWindow) {
+            return
+          }
         }
 
         const cap = tparams.meshMessageDeliveriesCap

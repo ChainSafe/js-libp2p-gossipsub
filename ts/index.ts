@@ -392,7 +392,13 @@ export default class Gossipsub extends EventEmitter {
       }
 
       const metrics = getMetrics(options.metricsRegister, options.metricsTopicStrToLabel, {
-        gossipPromiseExpireSec: constants.GossipsubIWantFollowupTime / 1000
+        gossipPromiseExpireSec: constants.GossipsubIWantFollowupTime / 1000,
+        behaviourPenaltyThreshold: opts.scoreParams.behaviourPenaltyThreshold,
+        // in theory, each topic has its own meshMessageDeliveriesWindow param
+        // however in lodestar, we configure it the same so just pick the min one
+        minMeshMessageDeliveriesWindow: Math.min(
+          ...Object.values(opts.scoreParams.topics).map((topicParam) => topicParam.meshMessageDeliveriesWindow)
+        )
       })
 
       metrics.mcacheSize.addCollect(() => this.onScrapeMetrics(metrics))
@@ -2522,6 +2528,7 @@ export default class Gossipsub extends EventEmitter {
       const score = this.score.score(peerIdStr)
       scores.push(score)
       scoreByPeer.set(peerIdStr, score)
+      metrics.behaviourPenalty.observe(this.score.peerStats.get(peerIdStr)?.behaviourPenalty ?? 0)
     }
 
     metrics.registerScores(scores, this.opts.scoreThresholds)
