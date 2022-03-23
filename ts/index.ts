@@ -1627,7 +1627,9 @@ export default class Gossipsub extends EventEmitter {
         }
       })
 
-      // as of Mar 2022, rust-libp2p does not have this while golang-libp2p and the spec do have
+      // As of Mar 2022, spec + golang-libp2p include this while rust-libp2p does not
+      // rust-libp2p: https://github.com/libp2p/rust-libp2p/blob/6cc3b4ec52c922bfcf562a29b5805c3150e37c75/protocols/gossipsub/src/behaviour.rs#L2693
+      // spec: https://github.com/libp2p/specs/blob/10712c55ab309086a52eec7d25f294df4fa96528/pubsub/gossipsub/gossipsub-v1.0.md?plain=1#L361
       this.floodsubPeers.forEach((peer) => {
         if (
           peersInTopic.has(peer) &&
@@ -1694,6 +1696,7 @@ export default class Gossipsub extends EventEmitter {
         })
 
         // floodsub peers
+        // Note: if there are no floodsub peers, we save a loop through peersInTopic Map
         this.floodsubPeers.forEach((id) => {
           if (peersInTopic.has(id) && this.score.score(id) >= this.opts.scoreThresholds.publishThreshold) {
             tosend.add(id)
