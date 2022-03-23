@@ -338,10 +338,10 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
 
     expect(psubs[0]['fanout'].size).to.be.gt(0)
 
-    // wait for TTL to expore fanout peers in owner
-    await delay(2000)
+    // wait for heartbeats to expire fanout peers
+    await Promise.all(psubs.map((ps) => awaitEvents(ps, 'gossipsub:heartbeat', 2)))
 
-    expect(psubs[0]['fanout'].size).to.be.eql(0)
+    expect(psubs[0]['fanout'].size, 'should have no fanout peers after not publishing for a while').to.be.eql(0)
     await tearDownGossipsubs(psubs)
   })
   it('test gossipsub gossip', async function () {
