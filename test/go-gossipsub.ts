@@ -1195,7 +1195,9 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     const real = psubs.slice(0, 6)
     const sybils = psubs.slice(6)
 
+    const connectPromises = real.map((psub) => awaitEvents(psub._libp2p.connectionManager, 'peer:connect', 3))
     await connectSome(real, 5)
+    await Promise.all(connectPromises)
 
     sybils.forEach((s) => {
       s['handleReceivedRpc'] = async function () {}
@@ -1208,12 +1210,17 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     }
 
     await Promise.all(psubs.map((ps) => awaitEvents(ps, 'gossipsub:heartbeat', 1)))
-
+    const realPeerIdStrs = real.map((psub) => psub.peerId.toB58String())
+    const subscriptionPromises = real.map((psub) => {
+      const waitingPeerIdStrs = Array.from(psub['peers'].keys()).filter((peerIdStr) => realPeerIdStrs.includes(peerIdStr))
+      return checkReceivedSubscriptions(psub, waitingPeerIdStrs, topic)
+    })
     psubs.forEach((ps) => ps.subscribe(topic))
+    await Promise.all(subscriptionPromises)
 
     for (let i = 0; i < 300; i++) {
       const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
-      const owner = i % 10
+      const owner = i % real.length
       await psubs[owner].publish(topic, msg)
       await delay(20)
     }
