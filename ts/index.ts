@@ -185,6 +185,9 @@ export default class Gossipsub extends EventEmitter {
   /** Direct peers */
   private readonly direct = new Set<PeerIdStr>()
 
+  /** Floodsub peers */
+  private readonly floodsubPeers = new Set<PeerIdStr>()
+
   /** Cache of seen messages */
   private readonly seenCache: SimpleTimeCache<void>
 
@@ -595,29 +598,33 @@ export default class Gossipsub extends EventEmitter {
    * Add a peer to the router
    */
   private addPeer(peerId: PeerId, protocol: string, direction: ConnectionDirection): PeerStreams {
-    let peerStreams = this.peers.get(peerId.toB58String())
+    const peerIdStr = peerId.toB58String()
+    let peerStreams = this.peers.get(peerIdStr)
 
     // If peer streams already exists, do nothing
     if (peerStreams === undefined) {
       // else create a new peer streams
-      this.log('new peer %s', peerId.toB58String())
+      this.log('new peer %s', peerIdStr)
 
       peerStreams = new PeerStreams({
         id: peerId,
         protocol
       })
 
-      this.peers.set(peerId.toB58String(), peerStreams)
+      this.peers.set(peerIdStr, peerStreams)
       peerStreams.addListener('close', () => this.removePeer(peerId))
     }
 
     // Add to peer scoring
-    this.score.addPeer(peerId.toB58String())
+    this.score.addPeer(peerIdStr)
+    if (protocol === constants.FloodsubID) {
+      this.floodsubPeers.add(peerIdStr)
+    }
     this.metrics?.peersPerProtocol.inc({ protocol }, 1)
 
     // track the connection direction. Don't allow to unset outbound
-    if (!this.outbound.get(peerId.toB58String())) {
-      this.outbound.set(peerId.toB58String(), direction === 'outbound')
+    if (!this.outbound.get(peerIdStr)) {
+      this.outbound.set(peerIdStr, direction === 'outbound')
     }
 
     return peerStreams
@@ -660,6 +667,8 @@ export default class Gossipsub extends EventEmitter {
       peers.delete(id)
     }
 
+    // Remove from floodsubPeers
+    this.floodsubPeers.delete(id)
     // Remove from gossip mapping
     this.gossip.delete(id)
     // Remove from control mapping
@@ -1617,6 +1626,18 @@ export default class Gossipsub extends EventEmitter {
           tosend.add(peer)
         }
       })
+
+      // as of Mar 2022, rust-libp2p does not have this while golang-libp2p and the spec do have
+      this.floodsubPeers.forEach((peer) => {
+        if (
+          peersInTopic.has(peer) &&
+          propagationSource !== peer &&
+          !excludePeers?.has(peer) &&
+          this.score.score(peer) >= this.opts.scoreThresholds.publishThreshold
+        ) {
+          tosend.add(peer)
+        }
+      })
     }
 
     // add mesh peers
@@ -1673,14 +1694,8 @@ export default class Gossipsub extends EventEmitter {
         })
 
         // floodsub peers
-        peersInTopic.forEach((id) => {
-          const peerStreams = this.peers.get(id)
-
-          if (
-            peerStreams &&
-            peerStreams.protocol === constants.FloodsubID &&
-            this.score.score(id) >= this.opts.scoreThresholds.publishThreshold
-          ) {
+        this.floodsubPeers.forEach((id) => {
+          if (peersInTopic.has(id) && this.score.score(id) >= this.opts.scoreThresholds.publishThreshold) {
             tosend.add(id)
             tosendCount.floodsub++
           }
