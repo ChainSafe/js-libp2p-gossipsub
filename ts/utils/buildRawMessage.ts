@@ -105,11 +105,11 @@ export async function validateToRawMessage(
       if (msg.key) {
         publicKey = keys.unmarshalPublicKey(msg.key)
         // TODO: Should `fromPeerId.pubKey` be optional?
-        if (fromPeerId.pubKey && !publicKey.equals(fromPeerId.pubKey)) {
+        if (fromPeerId.pubKey !== undefined && !publicKey.equals(fromPeerId.pubKey)) {
           return { valid: false, error: ValidateError.InvalidPeerId }
         }
       } else {
-        if (!fromPeerId.pubKey) {
+        if (fromPeerId.pubKey === undefined) {
           return { valid: false, error: ValidateError.InvalidPeerId }
         }
         publicKey = fromPeerId.pubKey

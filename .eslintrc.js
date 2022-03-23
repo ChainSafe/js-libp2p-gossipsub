@@ -32,6 +32,14 @@ module.exports = {
     '@typescript-eslint/no-non-null-assertion': 'off',
     '@typescript-eslint/member-delimiter-style': 'off',
     'node/no-unsupported-features/es-syntax': 'off', // Allows us to use Import and Export keywords.
+    "@typescript-eslint/strict-boolean-expressions": [
+      "error",
+      {
+        allowNullableBoolean: true,
+        allowNullableString: true,
+        allowAny: true,
+      },
+    ],
     'no-mixed-operators': 'off',
     'space-before-function-paren': 'off',
     'comma-dangle': 'off',

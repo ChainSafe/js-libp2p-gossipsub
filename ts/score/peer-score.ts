@@ -130,7 +130,7 @@ export class PeerScore {
 
       Object.entries(pstats.topics).forEach(([topic, tstats]) => {
         const tparams = this.params.topics[topic]
-        if (!tparams) {
+        if (tparams === undefined) {
           // we are not scoring this topic
           // should be unreachable, we only add scored topics to pstats
           return
@@ -264,6 +264,7 @@ export class PeerScore {
       }
 
       tstats.inMesh = false
+      tstats.meshMessageDeliveriesActive = false
     })
 
     pstats.connected = false
@@ -474,7 +475,7 @@ export class PeerScore {
         // check against the mesh delivery window -- if the validated time is passed as 0, then
         // the message was received before we finished validation and thus falls within the mesh
         // delivery window.
-        if (validatedTime) {
+        if (validatedTime !== undefined) {
           const deliveryDelayMs = now - validatedTime
           this.metrics?.onDuplicateMsgDelivery(topic, deliveryDelayMs)
 
@@ -580,11 +581,11 @@ export class PeerScore {
   private getPtopicStats(pstats: PeerStats, topic: TopicStr): TopicStats | null {
     let topicStats: TopicStats | undefined = pstats.topics[topic]
 
-    if (topicStats) {
+    if (topicStats !== undefined) {
       return topicStats
     }
 
-    if (this.params.topics[topic]) {
+    if (this.params.topics[topic] !== undefined) {
       topicStats = {
         inMesh: false,
         graftTime: 0,

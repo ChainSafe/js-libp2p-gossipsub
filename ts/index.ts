@@ -875,7 +875,7 @@ export default class Gossipsub extends EventEmitter {
 
         // Dispatch the message to the user if we are subscribed to the topic
         if (this.subscriptions.has(rpcMsg.topic)) {
-          const isFromSelf = this.peerId && this.peerId.equals(from)
+          const isFromSelf = this.peerId !== undefined && this.peerId.equals(from)
 
           if (!isFromSelf || this.opts.emitSelf) {
             super.emit('gossipsub:message', {
@@ -1025,7 +1025,7 @@ export default class Gossipsub extends EventEmitter {
    * Handles an rpc control message from a peer
    */
   private async handleControlMessage(id: PeerIdStr, controlMsg: RPC.IControlMessage): Promise<void> {
-    if (!controlMsg) {
+    if (controlMsg === undefined) {
       return
     }
 
@@ -1089,7 +1089,7 @@ export default class Gossipsub extends EventEmitter {
     }
 
     // IHAVE flood protection
-    const peerhave = (this.peerhave.get(id) || 0) + 1
+    const peerhave = (this.peerhave.get(id) ?? 0) + 1
     this.peerhave.set(id, peerhave)
     if (peerhave > constants.GossipsubMaxIHaveMessages) {
       this.log(
@@ -1101,7 +1101,7 @@ export default class Gossipsub extends EventEmitter {
       return []
     }
 
-    const iasked = this.iasked.get(id) || 0
+    const iasked = this.iasked.get(id) ?? 0
     if (iasked >= constants.GossipsubMaxIHaveLength) {
       this.log('IHAVE: peer %s has already advertised too many messages (%d); ignoring', id, iasked)
       this.metrics?.ihaveRcvIgnored.inc({ reason: IHaveIgnoreReason.MaxIasked })
@@ -1364,7 +1364,7 @@ export default class Gossipsub extends EventEmitter {
       this.backoff.set(topic, backoff)
     }
     const expire = this._now() + interval
-    const existingExpire = backoff.get(id) || 0
+    const existingExpire = backoff.get(id) ?? 0
     if (existingExpire < expire) {
       backoff.set(id, expire)
     }
@@ -1459,7 +1459,7 @@ export default class Gossipsub extends EventEmitter {
             this.log("bogus peer record obtained through px: peer ID %s doesn't match expected peer %s", eid, id)
             return
           }
-          if (!this._libp2p.peerStore.addressBook.consumePeerRecord(envelope)) {
+          if (!(await this._libp2p.peerStore.addressBook.consumePeerRecord(envelope))) {
             this.log('bogus peer record obtained through px: could not add peer record to address book')
             return
           }

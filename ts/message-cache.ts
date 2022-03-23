@@ -102,7 +102,7 @@ export class MessageCache {
       return null
     }
 
-    const count = (msg.iwantCounts.get(p) || 0) + 1
+    const count = (msg.iwantCounts.get(p) ?? 0) + 1
     msg.iwantCounts.set(p, count)
 
     return { msg: msg.message, count }
