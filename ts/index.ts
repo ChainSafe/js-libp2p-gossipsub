@@ -969,6 +969,23 @@ export default class Gossipsub extends EventEmitter {
       topic: rpcMsg.topic
     }
 
+    // TODO: Check if message is from a blacklisted source or propagation origin
+    // - Reject any message from a blacklisted peer
+    // - Also reject any message that originated from a blacklisted peer
+    // - reject messages claiming to be from ourselves but not locally published
+
+    // Calculate the message id on the transformed data.
+    const msgIdStr = msgIdCached ?? messageIdToString(await this.msgIdFn(msg))
+
+    // Add the message to the duplicate caches
+    if (fastMsgIdStr) this.fastMsgIdCache?.put(fastMsgIdStr, msgIdStr)
+
+    if (this.seenCache.has(msgIdStr)) {
+      return { code: MessageStatus.duplicate, msgId: msgIdStr }
+    } else {
+      this.seenCache.put(msgIdStr)
+    }
+
     // (Optional) Provide custom validation here with dynamic validators per topic
     // NOTE: This custom topicValidator() must resolve fast (< 100ms) to allow scores
     // to not penalize peers for long validation times.
@@ -987,25 +1004,8 @@ export default class Gossipsub extends EventEmitter {
       }
 
       if (acceptance !== MessageAcceptance.Accept) {
-        return { code: MessageStatus.invalid, reason: rejectReasonFromAcceptance(acceptance) }
+        return { code: MessageStatus.invalid, reason: rejectReasonFromAcceptance(acceptance), msgId: msgIdStr }
       }
-    }
-
-    // TODO: Check if message is from a blacklisted source or propagation origin
-    // - Reject any message from a blacklisted peer
-    // - Also reject any message that originated from a blacklisted peer
-    // - reject messages claiming to be from ourselves but not locally published
-
-    // Calculate the message id on the transformed data.
-    const msgIdStr = msgIdCached ?? messageIdToString(await this.msgIdFn(msg))
-
-    // Add the message to the duplicate caches
-    if (fastMsgIdStr) this.fastMsgIdCache?.put(fastMsgIdStr, msgIdStr)
-
-    if (this.seenCache.has(msgIdStr)) {
-      return { code: MessageStatus.duplicate, msgId: msgIdStr }
-    } else {
-      this.seenCache.put(msgIdStr)
     }
 
     return { code: MessageStatus.valid, msgIdStr, msg }
