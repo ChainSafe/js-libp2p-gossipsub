@@ -198,7 +198,7 @@ describe('2 nodes', () => {
 
     // Create pubsub nodes
     beforeEach(async () => {
-      nodes = await createConnectedGossipsubs({ number: 2 })
+      nodes = await createConnectedGossipsubs({ number: 2, options: {allowPublishToZeroPeers: true} })
     })
 
     // Create subscriptions
