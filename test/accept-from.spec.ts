@@ -12,7 +12,8 @@ describe('Gossipsub acceptFrom', () => {
 
   beforeEach(async () => {
     sandbox = sinon.createSandbox()
-    sandbox.useFakeTimers(Date.now())
+    // not able to use fake timers or tests in browser are suspended
+    // sandbox.useFakeTimers(Date.now())
 
     const peerId = await createPeerId()
     gossipsub = new Gossipsub({ peerId } as Libp2p, { emitSelf: false, fastMsgIdFn })
@@ -40,7 +41,7 @@ describe('Gossipsub acceptFrom', () => {
     expect(scoreSpy.getCall(1)).to.not.be.ok
   })
 
-  it('should recompute score after 1s', () => {
+  it('should recompute score after 1s', async () => {
     // by default the score is 0
     gossipsub['acceptFrom']('peerA')
     // 1st time, we have to compute score
@@ -51,7 +52,7 @@ describe('Gossipsub acceptFrom', () => {
     expect(scoreSpy.getCall(1)).to.not.be.ok
 
     // after 1s
-    sandbox.clock.tick(1001)
+    await new Promise((resolve) => setTimeout(resolve, 1001))
 
     gossipsub['acceptFrom']('peerA')
     expect(scoreSpy.getCall(1).args[0]).to.be.equal('peerA')
