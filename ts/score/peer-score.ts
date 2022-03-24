@@ -477,9 +477,10 @@ export class PeerScore {
         // delivery window.
         if (validatedTime !== undefined) {
           const deliveryDelayMs = now - validatedTime
-          this.metrics?.onDuplicateMsgDelivery(topic, deliveryDelayMs)
+          const isLateDelivery = deliveryDelayMs > tparams.meshMessageDeliveriesWindow
+          this.metrics?.onDuplicateMsgDelivery(topic, deliveryDelayMs, isLateDelivery)
 
-          if (deliveryDelayMs > tparams.meshMessageDeliveriesWindow) {
+          if (isLateDelivery) {
             return
           }
         }
