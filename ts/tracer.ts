@@ -1,4 +1,3 @@
-import { GossipsubIWantFollowupTime } from './constants'
 import { messageIdToString } from './utils'
 import { MsgIdStr, PeerIdStr, RejectReason } from './types'
 import { Metrics } from './metrics'
@@ -22,10 +21,11 @@ export class IWantTracer {
    * Necessary to know if peers are actually breaking promises or simply sending them a bit later
    */
   private readonly requestMsByMsg = new Map<MsgIdStr, number>()
-  private readonly requestMsByMsgExpire = 10 * GossipsubIWantFollowupTime
+  private readonly requestMsByMsgExpire: number
 
-  // eslint-disable-next-line no-useless-constructor
-  constructor(private readonly metrics: Metrics | null) {}
+  constructor(private readonly gossipsubIWantFollowupTime: number, private readonly metrics: Metrics | null) {
+    this.requestMsByMsgExpire = 10 * gossipsubIWantFollowupTime
+  }
 
   get size(): number {
     return this.promises.size
@@ -54,7 +54,7 @@ export class IWantTracer {
 
     // If a promise for this message id and peer already exists we don't update the expiry
     if (!expireByPeer.has(from)) {
-      expireByPeer.set(from, now + GossipsubIWantFollowupTime)
+      expireByPeer.set(from, now + this.gossipsubIWantFollowupTime)
 
       if (this.metrics) {
         this.metrics.iwantPromiseStarted.inc(1)
