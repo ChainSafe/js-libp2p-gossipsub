@@ -341,15 +341,23 @@ export function getMetrics(
       labelNames: ['topic', 'error']
     }),
     /** Track duplicate message delivery time */
-    duplicateMsgDelivery: register.histogram<{ topic: TopicLabel }>({
+    duplicateMsgDeliveryDelay: register.histogram({
       name: 'gossisub_duplicate_msg_delivery_delay_seconds',
       help: 'Time since the 1st duplicated message validated',
       labelNames: ['topic'],
       buckets: [
+        0.25 * opts.minMeshMessageDeliveriesWindow,
         0.5 * opts.minMeshMessageDeliveriesWindow,
         1 * opts.minMeshMessageDeliveriesWindow,
-        2 * opts.minMeshMessageDeliveriesWindow
+        2 * opts.minMeshMessageDeliveriesWindow,
+        4 * opts.minMeshMessageDeliveriesWindow
       ]
+    }),
+    /** Total count of late msg delivery total by topic */
+    duplicateMsgLateDelivery: register.gauge<{ topic: TopicLabel }>({
+      name: 'gossisub_duplicate_msg_late_delivery_total',
+      help: 'Total count of late duplicate message delivery by topic, which triggers P3 penalty',
+      labelNames: ['topic']
     }),
 
     /* Metrics related to scoring */
@@ -403,9 +411,11 @@ export function getMetrics(
       name: 'gossipsub_peer_stat_behaviour_penalty',
       help: 'Current peer stat behaviour_penalty at each scrape',
       buckets: [
+        0.25 * opts.behaviourPenaltyThreshold,
         0.5 * opts.behaviourPenaltyThreshold,
         1 * opts.behaviourPenaltyThreshold,
-        2 * opts.behaviourPenaltyThreshold
+        2 * opts.behaviourPenaltyThreshold,
+        4 * opts.behaviourPenaltyThreshold
       ]
     }),
 
@@ -592,9 +602,12 @@ export function getMetrics(
       this.msgReceivedInvalid.inc({ topic, error }, 1)
     },
 
-    onDuplicateMsgDelivery(topicStr: TopicStr, deliveryDelayMs: number): void {
-      const topic = this.toTopic(topicStr)
-      this.duplicateMsgDelivery.observe({ topic }, deliveryDelayMs / 1000)
+    onDuplicateMsgDelivery(topicStr: TopicStr, deliveryDelayMs: number, isLateDelivery: boolean): void {
+      this.duplicateMsgDeliveryDelay.observe(deliveryDelayMs / 1000)
+      if (isLateDelivery) {
+        const topic = this.toTopic(topicStr)
+        this.duplicateMsgLateDelivery.inc({ topic }, 1)
+      }
     },
 
     onRpcRecv(rpc: IRPC, rpcBytes: number): void {
