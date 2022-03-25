@@ -6,7 +6,7 @@ import { createPeers } from './create-peer'
 import { FloodsubID } from '../../ts/constants'
 
 export type PubsubBaseMinimal = EventEmitter &
-  Pick<PubsubBaseProtocol, 'start' | 'stop' | '_libp2p' | 'multicodecs' | 'subscribe' | 'publish'>
+  Pick<PubsubBaseProtocol, 'start' | 'stop' | '_libp2p' | 'multicodecs' | 'subscribe'>
 
 /**
  * Start node - gossipsub + libp2p

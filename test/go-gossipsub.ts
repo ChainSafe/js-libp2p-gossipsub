@@ -5,7 +5,7 @@ import pRetry from 'p-retry'
 import { EventEmitter } from 'events'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
-import { InMessage } from 'libp2p-interfaces/src/pubsub'
+import PubsubBaseProtocol, { InMessage } from 'libp2p-interfaces/src/pubsub'
 import { IRPC, RPC } from '../ts/message/rpc'
 import { TopicScoreParams } from '../ts/score'
 import Floodsub from 'libp2p-floodsub'
@@ -685,7 +685,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       const results = Promise.all(
         psubs.filter((psub, j) => j !== owner).map(checkReceivedMessage(topic, msg, owner, i))
       )
-      sendRecv.push(psubs[owner].publish(topic, msg))
+      sendRecv.push((psubs[owner] as PubsubBaseProtocol).publish(topic, msg))
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
