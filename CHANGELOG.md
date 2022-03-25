@@ -1,3 +1,13 @@
+# [0.13.2](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.13.2...v0.13.1) (2022-03-25)
+
+- Do not apply P3 penalty if peers are pruned from topic mesh
+- Fix flood publish behavior
+- Increase the default for seenTTL to match that of go-libp2p
+- _publish: Only compute score if peer stream has FloodsubID protocol
+- Migrate tests to Typescript
+- Prettier
+- Apply strict-boolean-expression eslint rule
+
 # [0.13.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.13.1...v0.13.0) (2022-02-14)
 
 - Fix async getFastMsgIdStr function
