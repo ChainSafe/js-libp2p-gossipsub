@@ -143,9 +143,11 @@ export class IWantTracer {
     const maxMs = Date.now() - this.requestMsByMsgExpire
 
     for (const [k, v] of this.requestMsByMsg.entries()) {
-      if (v < maxMs) {
+      if (v >= maxMs) {
+        // messages that stay too long in the requestMsByMsg map, delete
         this.requestMsByMsg.delete(k)
       } else {
+        // recent messages, keep them
         // sort by insertion order
         break
       }

@@ -397,14 +397,18 @@ export default class Gossipsub extends EventEmitter {
         throw Error('Must set metricsTopicStrToLabel with metrics')
       }
 
+      // in theory, each topic has its own meshMessageDeliveriesWindow param
+      // however in lodestar, we configure it mostly the same so just pick the max of positive ones
+      // (some topics have meshMessageDeliveriesWindow as 0)
+      const maxMeshMessageDeliveriesWindow = Math.max(
+        ...Object.values(opts.scoreParams.topics).map((topicParam) => topicParam.meshMessageDeliveriesWindow),
+        constants.DEFAULT_METRIC_MESH_MESSAGE_DELIVERIES_WINDOWS
+      )
+
       const metrics = getMetrics(options.metricsRegister, options.metricsTopicStrToLabel, {
-        gossipPromiseExpireSec: constants.GossipsubIWantFollowupTime / 1000,
+        gossipPromiseExpireSec: this.opts.gossipsubIWantFollowupTime / 1000,
         behaviourPenaltyThreshold: opts.scoreParams.behaviourPenaltyThreshold,
-        // in theory, each topic has its own meshMessageDeliveriesWindow param
-        // however in lodestar, we configure it the same so just pick the min one
-        minMeshMessageDeliveriesWindow: Math.min(
-          ...Object.values(opts.scoreParams.topics).map((topicParam) => topicParam.meshMessageDeliveriesWindow)
-        )
+        maxMeshMessageDeliveriesWindow
       })
 
       metrics.mcacheSize.addCollect(() => this.onScrapeMetrics(metrics))
