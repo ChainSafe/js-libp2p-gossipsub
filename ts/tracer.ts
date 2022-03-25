@@ -23,8 +23,8 @@ export class IWantTracer {
   private readonly requestMsByMsg = new Map<MsgIdStr, number>()
   private readonly requestMsByMsgExpire: number
 
-  constructor(private readonly gossipsubIWantFollowupTime: number, private readonly metrics: Metrics | null) {
-    this.requestMsByMsgExpire = 10 * gossipsubIWantFollowupTime
+  constructor(private readonly gossipsubIWantFollowupMs: number, private readonly metrics: Metrics | null) {
+    this.requestMsByMsgExpire = 10 * gossipsubIWantFollowupMs
   }
 
   get size(): number {
@@ -54,7 +54,7 @@ export class IWantTracer {
 
     // If a promise for this message id and peer already exists we don't update the expiry
     if (!expireByPeer.has(from)) {
-      expireByPeer.set(from, now + this.gossipsubIWantFollowupTime)
+      expireByPeer.set(from, now + this.gossipsubIWantFollowupMs)
 
       if (this.metrics) {
         this.metrics.iwantPromiseStarted.inc(1)
@@ -143,7 +143,7 @@ export class IWantTracer {
     const maxMs = Date.now() - this.requestMsByMsgExpire
 
     for (const [k, v] of this.requestMsByMsg.entries()) {
-      if (v >= maxMs) {
+      if (v < maxMs) {
         // messages that stay too long in the requestMsByMsg map, delete
         this.requestMsByMsg.delete(k)
       } else {

@@ -121,7 +121,7 @@ export type GossipsubOpts = GossipsubOptsSpec & {
   /** peer score thresholds */
   scoreThresholds: Partial<PeerScoreThresholds>
   /** customize GossipsubIWantFollowupTime in order not to apply IWANT penalties */
-  gossipsubIWantFollowupTime: number
+  gossipsubIWantFollowupMs: number
 
   dataTransform?: DataTransform
   metricsRegister?: MetricsRegister | null
@@ -332,7 +332,7 @@ export default class Gossipsub extends EventEmitter {
       mcacheLength: constants.GossipsubHistoryLength,
       mcacheGossip: constants.GossipsubHistoryGossip,
       seenTTL: constants.GossipsubSeenTTL,
-      gossipsubIWantFollowupTime: constants.GossipsubIWantFollowupTime,
+      gossipsubIWantFollowupMs: constants.GossipsubIWantFollowupTime,
       ...options,
       scoreParams: createPeerScoreParams(options.scoreParams),
       scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
@@ -406,7 +406,7 @@ export default class Gossipsub extends EventEmitter {
       )
 
       const metrics = getMetrics(options.metricsRegister, options.metricsTopicStrToLabel, {
-        gossipPromiseExpireSec: this.opts.gossipsubIWantFollowupTime / 1000,
+        gossipPromiseExpireSec: this.opts.gossipsubIWantFollowupMs / 1000,
         behaviourPenaltyThreshold: opts.scoreParams.behaviourPenaltyThreshold,
         maxMeshMessageDeliveriesWindowSec: maxMeshMessageDeliveriesWindowMs / 1000
       })
@@ -421,7 +421,7 @@ export default class Gossipsub extends EventEmitter {
       this.metrics = null
     }
 
-    this.gossipTracer = new IWantTracer(this.opts.gossipsubIWantFollowupTime, this.metrics)
+    this.gossipTracer = new IWantTracer(this.opts.gossipsubIWantFollowupMs, this.metrics)
 
     /**
      * libp2p
