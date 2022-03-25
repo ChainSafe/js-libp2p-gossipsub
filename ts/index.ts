@@ -2548,6 +2548,7 @@ export default class Gossipsub extends EventEmitter {
 
     const scores: number[] = []
     const scoreByPeer = new Map<PeerIdStr, number>()
+    metrics.behaviourPenalty.reset()
 
     for (const peerIdStr of this.peers.keys()) {
       const score = this.score.score(peerIdStr)
