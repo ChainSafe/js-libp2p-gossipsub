@@ -238,3 +238,8 @@ export const ACCEPT_FROM_WHITELIST_MAX_MESSAGES = 128
  * this peer up to this time duration.
  */
 export const ACCEPT_FROM_WHITELIST_DURATION_MS = 1000
+
+/**
+ * The default MeshMessageDeliveriesWindow to be used in metrics.
+ */
+export const DEFAULT_METRIC_MESH_MESSAGE_DELIVERIES_WINDOWS = 1000
