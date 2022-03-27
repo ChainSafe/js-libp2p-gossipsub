@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'master'
+      - '0.11.x'
 
 jobs:
   tag:
