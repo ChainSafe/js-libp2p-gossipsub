@@ -1,3 +1,10 @@
+## [0.11.5](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.11.4...v0.11.5) (2022-03-27)
+
+
+### Bug Fixes (cherry-pick from master)
+* Do not apply P3 penalty if peers are pruned from topic mesh (#212)
+* Fix floodPublish (#198)
+
 ## [0.11.4](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.11.3...v0.11.4) (2021-09-20)
 
 
