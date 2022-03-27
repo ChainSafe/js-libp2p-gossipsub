@@ -1019,6 +1019,13 @@ export default class Gossipsub extends EventEmitter {
   }
 
   /**
+   * Return score of a peer.
+   */
+  getScore(peerId: PeerIdStr): number {
+    return this.score.score(peerId)
+  }
+
+  /**
    * Send an rpc object to a peer with subscriptions
    */
   private sendSubscriptions(toPeer: PeerIdStr, topics: string[], subscribe: boolean): void {
