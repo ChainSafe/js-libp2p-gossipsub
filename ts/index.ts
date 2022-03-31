@@ -2258,8 +2258,7 @@ export default class Gossipsub extends EventEmitter {
       // prune/graft helper functions (defined per topic)
       const prunePeer = (id: PeerIdStr, reason: ChurnReason): void => {
         this.log('HEARTBEAT: Remove mesh link to %s in %s', id, topic)
-        // update peer score
-        this.score.prune(id, topic)
+        // no need to update peer score here as we do it in makePrune
         // add prune backoff record
         this.addBackoff(id, topic)
         // remove peer from mesh
