@@ -67,10 +67,6 @@ interface BufferList {
   slice(): Buffer
 }
 
-// Re-export useful utils
-// TODO
-// export { getPublishConfigFromPeerId } from './utils'
-
 type ConnectionDirection = 'inbound' | 'outbound'
 
 type ReceivedMessageResult =
@@ -132,6 +128,14 @@ export type GossipsubOpts = GossipsubOptsSpec & {
   debugName?: string
 }
 
+export type GossipsubEvents = {
+  'gossipsub:message': {
+    propagationSource: PeerId
+    msgId: MsgIdStr
+    msg: GossipsubMessage
+  }
+}
+
 enum GossipStatusCode {
   started,
   stopped
@@ -140,7 +144,6 @@ enum GossipStatusCode {
 type GossipStatus =
   | {
       code: GossipStatusCode.started
-      registrarHandlerId: string
       registrarTopologyId: string
       heartbeatTimeout: NodeJS.Timeout
       hearbeatStartMs: number
@@ -159,15 +162,6 @@ interface AcceptFromWhitelistEntry {
   messagesAccepted: number
   /** have to recompute score after this time */
   acceptUntil: number
-}
-
-// TODO: Export this type
-type GossipsubEvents = {
-  'gossipsub:message': {
-    propagationSource: PeerId
-    msgId: MsgIdStr
-    msg: GossipsubMessage
-  }
 }
 
 export default class Gossipsub extends EventEmitter {
@@ -449,8 +443,6 @@ export default class Gossipsub extends EventEmitter {
 
     // Incoming streams
     // Called after a peer dials us
-    // TODO
-    // const registrarHandlerId = this.registrar.handle(this.multicodecs, this.onIncomingStream.bind(this))
     this.registrar.handle(this.multicodecs, this.onIncomingStream.bind(this))
 
     // # How does Gossipsub interact with libp2p? Rough guide from Mar 2022
@@ -487,7 +479,6 @@ export default class Gossipsub extends EventEmitter {
 
     this.status = {
       code: GossipStatusCode.started,
-      registrarHandlerId: 'TODO',
       registrarTopologyId,
       heartbeatTimeout: heartbeatTimeout,
       hearbeatStartMs: Date.now() + constants.GossipsubHeartbeatInitialDelay
@@ -519,8 +510,6 @@ export default class Gossipsub extends EventEmitter {
 
     // unregister protocol and handlers
     this.registrar.unregister(registrarTopologyId)
-    // TODO: Uncomment on new libp2p version
-    // this.registrar.unregister(registrarHandlerId)
 
     this.log('stopping')
     for (const peerStreams of this.peers.values()) {
@@ -1003,7 +992,6 @@ export default class Gossipsub extends EventEmitter {
       try {
         acceptance = await topicValidator(msg.topic, msg, propagationSource)
       } catch (e) {
-        // TODO: Handle error for backwards compatibility
         const errCode = (e as { code: string }).code
         if (errCode === constants.ERR_TOPIC_VALIDATOR_IGNORE) acceptance = MessageAcceptance.Ignore
         if (errCode === constants.ERR_TOPIC_VALIDATOR_REJECT) acceptance = MessageAcceptance.Reject
@@ -1744,7 +1732,6 @@ export default class Gossipsub extends EventEmitter {
               return this.score.score(id) >= this.opts.scoreThresholds.publishThreshold
             })
 
-            // TODO: Should we check for > 0 here? libp2p-rust does not
             if (newFanoutPeers.size > 0) {
               this.fanout.set(topic, newFanoutPeers)
 
@@ -1888,7 +1875,6 @@ export default class Gossipsub extends EventEmitter {
         // message is fully validated inform peer_score
         this.score.deliverMessage(propagationSource.toB58String(), msgId, rawMsg.topic)
 
-        // TODO: Don't forward to `originatingPeers`
         this.forwardMessage(msgId, cacheEntry.message, propagationSource.toB58String(), originatingPeers)
         this.metrics?.onReportValidation(rawMsg.topic, acceptance)
       }
@@ -2236,6 +2222,7 @@ export default class Gossipsub extends EventEmitter {
 
     // clean up peerhave/iasked counters
     this.peerhave.clear()
+    this.metrics?.cacheSize.set({ cache: 'iasked' }, this.iasked.size)
     this.iasked.clear()
 
     // apply IWANT request penalties
@@ -2533,8 +2520,6 @@ export default class Gossipsub extends EventEmitter {
     metrics.cacheSize.set({ cache: 'gossip' }, this.gossip.size)
     metrics.cacheSize.set({ cache: 'control' }, this.control.size)
     metrics.cacheSize.set({ cache: 'peerhave' }, this.peerhave.size)
-    // TODO: This ones get cleared every heartbeat, track there
-    metrics.cacheSize.set({ cache: 'iasked' }, this.iasked.size)
     metrics.cacheSize.set({ cache: 'outbound' }, this.outbound.size)
     // 2D nested data structure
     let backoffSize = 0
