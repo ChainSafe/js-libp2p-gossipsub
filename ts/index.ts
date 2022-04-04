@@ -932,13 +932,6 @@ export default class Gossipsub extends EventEmitter {
   async validateReceivedMessage(propagationSource: PeerId, rpcMsg: RPC.IMessage): Promise<ReceivedMessageResult> {
     this.metrics?.onMsgRecvPreValidation(rpcMsg.topic)
 
-    // Perform basic validation on message and convert to RawGossipsubMessage for fastMsgIdFn()
-    const validationResult = await validateToRawMessage(this.globalSignaturePolicy, rpcMsg)
-
-    if (!validationResult.valid) {
-      return { code: MessageStatus.invalid, reason: RejectReason.Error, error: validationResult.error }
-    }
-
     // Fast message ID stuff
     const fastMsgIdStr = this.fastMsgIdFn?.(rpcMsg)
     const msgIdCached = fastMsgIdStr && this.fastMsgIdCache?.get(fastMsgIdStr)
@@ -946,6 +939,13 @@ export default class Gossipsub extends EventEmitter {
     if (msgIdCached) {
       // This message has been seen previously. Ignore it
       return { code: MessageStatus.duplicate, msgId: msgIdCached }
+    }
+
+    // Perform basic validation on message and convert to RawGossipsubMessage for fastMsgIdFn()
+    const validationResult = await validateToRawMessage(this.globalSignaturePolicy, rpcMsg)
+
+    if (!validationResult.valid) {
+      return { code: MessageStatus.invalid, reason: RejectReason.Error, error: validationResult.error }
     }
 
     // Try and perform the data transform to the message. If it fails, consider it invalid.
