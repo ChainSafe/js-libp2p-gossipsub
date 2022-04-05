@@ -1,3 +1,7 @@
+# [0.14.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.14.0...v0.13.2) (2022-04-05)
+
+- New gossipsub implementation: better performance, async validation flow, improved peer scores significantly, add a lot of metrics
+
 # [0.13.2](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.13.2...v0.13.1) (2022-03-25)
 
 - Do not apply P3 penalty if peers are pruned from topic mesh
