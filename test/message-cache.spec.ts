@@ -6,8 +6,9 @@ import chaiSpies from 'chai-spies'
 import { messageIdToString } from '../ts/utils/messageIdToString'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { MessageCache } from '../ts/message-cache'
-import { InMessage, utils } from 'libp2p-interfaces/src/pubsub'
+import { utils } from 'libp2p-interfaces/src/pubsub'
 import { getMsgId } from './utils'
+import { GossipsubMessage } from '../ts/types'
 
 /* eslint-disable no-unused-expressions */
 
@@ -17,16 +18,15 @@ const expect = chai.expect
 
 describe('Testing Message Cache Operations', () => {
   const messageCache = new MessageCache(3, 5)
-  const testMessages: InMessage[] = []
+  const testMessages: GossipsubMessage[] = []
 
   before(async () => {
-    const makeTestMessage = (n: number): InMessage => {
+    const makeTestMessage = (n: number): GossipsubMessage => {
       return {
-        receivedFrom: '',
-        from: 'test',
+        from: new Uint8Array(0),
         data: uint8ArrayFromString(n.toString()),
         seqno: utils.randomSeqno(),
-        topicIDs: ['test']
+        topic: 'test'
       }
     }
 
@@ -35,7 +35,7 @@ describe('Testing Message Cache Operations', () => {
     }
 
     for (let i = 0; i < 10; i++) {
-      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
+      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
     }
   })
 
@@ -60,7 +60,7 @@ describe('Testing Message Cache Operations', () => {
   it('Shift message cache', async () => {
     messageCache.shift()
     for (let i = 10; i < 20; i++) {
-      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
+      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
     }
 
     for (let i = 0; i < 20; i++) {
@@ -84,22 +84,22 @@ describe('Testing Message Cache Operations', () => {
 
     messageCache.shift()
     for (let i = 20; i < 30; i++) {
-      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
+      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
     }
 
     messageCache.shift()
     for (let i = 30; i < 40; i++) {
-      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
+      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
     }
 
     messageCache.shift()
     for (let i = 40; i < 50; i++) {
-      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
+      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
     }
 
     messageCache.shift()
     for (let i = 50; i < 60; i++) {
-      await messageCache.put(testMessages[i], messageIdToString(getMsgId(testMessages[i])))
+      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
     }
 
     expect(messageCache.msgs.size).to.equal(50)

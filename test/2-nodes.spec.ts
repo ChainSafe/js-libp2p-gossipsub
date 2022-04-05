@@ -1,10 +1,12 @@
 import chai from 'chai'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import delay from 'delay'
-import Gossipsub, { multicodec } from '../ts'
-import { createGossipsubs, createConnectedGossipsubs, expectSet, stopNode, first } from './utils'
+import Gossipsub from '../ts'
+import { createGossipsubs, createPubsubs, createConnectedGossipsubs, expectSet, stopNode, first } from './utils'
 import { RPC } from '../ts/message/rpc'
-import { InMessage, PeerId } from 'libp2p-interfaces/src/pubsub'
+import PubsubBaseProtocol, { PeerId } from 'libp2p-interfaces/src/pubsub'
+import { FloodsubID, GossipsubIDv11 } from '../ts/constants'
+import { GossipsubMessage } from '../ts/types'
 
 chai.use(require('dirty-chai'))
 chai.use(require('chai-spies'))
@@ -13,6 +15,28 @@ const expect = chai.expect
 const shouldNotHappen = () => expect.fail()
 
 describe('2 nodes', () => {
+  describe('Pubsub dial', () => {
+    let nodes: PubsubBaseProtocol[]
+
+    // Create pubsub nodes
+    before(async () => {
+      nodes = await createPubsubs({ number: 2 })
+    })
+
+    after(() => Promise.all(nodes.map(stopNode)))
+
+    it('Dial from nodeA to nodeB happened with pubsub', async () => {
+      await nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, FloodsubID)
+
+      while (nodes[0]['peers'].size === 0 || nodes[1]['peers'].size === 0) {
+        await delay(10)
+      }
+
+      expect(nodes[0]['peers'].size).to.be.eql(1)
+      expect(nodes[1]['peers'].size).to.be.eql(1)
+    })
+  })
+
   describe('basics', () => {
     let nodes: Gossipsub[] = []
 
@@ -24,15 +48,14 @@ describe('2 nodes', () => {
     after(() => Promise.all(nodes.map(stopNode)))
 
     it('Dial from nodeA to nodeB happened with pubsub', async () => {
-      await nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, multicodec)
-      await delay(10)
-      await Promise.all([
-        new Promise((resolve) => nodes[0].once('gossipsub:heartbeat', resolve)),
-        new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
-      ])
+      await nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, GossipsubIDv11)
 
-      expect(nodes[0].peers.size).to.be.eql(1)
-      expect(nodes[1].peers.size).to.be.eql(1)
+      while (nodes[0]['peers'].size === 0 || nodes[1]['peers'].size === 0) {
+        await delay(10)
+      }
+
+      expect(nodes[0]['peers'].size).to.be.eql(1)
+      expect(nodes[1]['peers'].size).to.be.eql(1)
     })
   })
 
@@ -47,7 +70,14 @@ describe('2 nodes', () => {
     after(() => Promise.all(nodes.map(stopNode)))
 
     it('Subscribe to a topic', async () => {
-      const topic = 'Z'
+      const topic = 'test_topic'
+
+      // await subscription change, after calling subscribe
+      const subscriptionEventPromise = Promise.all([
+        new Promise((resolve) => nodes[0].once('pubsub:subscription-change', (...args) => resolve(args))),
+        new Promise((resolve) => nodes[1].once('pubsub:subscription-change', (...args) => resolve(args)))
+      ])
+
       nodes[0].subscribe(topic)
       nodes[1].subscribe(topic)
 
@@ -61,14 +91,14 @@ describe('2 nodes', () => {
 
       const [changedPeerId, changedSubs] = evt0 as [PeerId, RPC.ISubOpts[]]
 
-      expectSet(nodes[0].subscriptions, [topic])
-      expectSet(nodes[1].subscriptions, [topic])
-      expect(nodes[0].peers.size).to.equal(1)
-      expect(nodes[1].peers.size).to.equal(1)
-      expectSet(nodes[0].topics.get(topic), [nodes[1].peerId.toB58String()])
-      expectSet(nodes[1].topics.get(topic), [nodes[0].peerId.toB58String()])
+      expectSet(nodes[0]['subscriptions'], [topic])
+      expectSet(nodes[1]['subscriptions'], [topic])
+      expect(nodes[0]['peers'].size).to.equal(1)
+      expect(nodes[1]['peers'].size).to.equal(1)
+      expectSet(nodes[0]['topics'].get(topic), [nodes[1].peerId.toB58String()])
+      expectSet(nodes[1]['topics'].get(topic), [nodes[0].peerId.toB58String()])
 
-      expect(changedPeerId.toB58String()).to.equal(first(nodes[0].peers).id.toB58String())
+      expect(changedPeerId.toB58String()).to.equal(first(nodes[0]['peers']).id.toB58String())
       expect(changedSubs).to.have.lengthOf(1)
       expect(changedSubs[0].topicID).to.equal(topic)
       expect(changedSubs[0].subscribe).to.equal(true)
@@ -79,8 +109,8 @@ describe('2 nodes', () => {
         new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
       ])
 
-      expect(first(nodes[0].mesh.get(topic))).to.equal(first(nodes[0].peers).id.toB58String())
-      expect(first(nodes[1].mesh.get(topic))).to.equal(first(nodes[1].peers).id.toB58String())
+      expect(first(nodes[0]['mesh'].get(topic))).to.equal(first(nodes[0]['peers']).id.toB58String())
+      expect(first(nodes[1]['mesh'].get(topic))).to.equal(first(nodes[1]['peers']).id.toB58String())
     })
   })
 
@@ -109,7 +139,7 @@ describe('2 nodes', () => {
     afterEach(() => Promise.all(nodes.map(stopNode)))
 
     it('Publish to a topic - nodeA', async () => {
-      const promise = new Promise<InMessage>((resolve) => nodes[1].once(topic, resolve))
+      const promise = new Promise<GossipsubMessage>((resolve) => nodes[1].once(topic, resolve))
       nodes[0].once(topic, (m) => shouldNotHappen)
 
       nodes[0].publish(topic, uint8ArrayFromString('hey'))
@@ -117,13 +147,13 @@ describe('2 nodes', () => {
       const msg = await promise
 
       expect(msg.data.toString()).to.equal('hey')
-      expect(msg.from).to.be.eql(nodes[0].peerId.toB58String())
+      expect(msg.from).to.be.eql(nodes[0].peerId.toBytes())
 
       nodes[0].removeListener(topic, shouldNotHappen)
     })
 
     it('Publish to a topic - nodeB', async () => {
-      const promise = new Promise<InMessage>((resolve) => nodes[0].once(topic, resolve))
+      const promise = new Promise<GossipsubMessage>((resolve) => nodes[0].once(topic, resolve))
       nodes[1].once(topic, shouldNotHappen)
 
       nodes[1].publish(topic, uint8ArrayFromString('banana'))
@@ -131,7 +161,7 @@ describe('2 nodes', () => {
       const msg = await promise
 
       expect(msg.data.toString()).to.equal('banana')
-      expect(msg.from).to.be.eql(nodes[1].peerId.toB58String())
+      expect(msg.from).to.be.eql(nodes[1].peerId.toBytes())
 
       nodes[1].removeListener(topic, shouldNotHappen)
     })
@@ -143,11 +173,11 @@ describe('2 nodes', () => {
 
       nodes[0].on(topic, receivedMsg)
 
-      function receivedMsg(msg: InMessage) {
-        expect(msg.data.toString().startsWith('banana')).to.be.true
-        expect(msg.from).to.be.eql(nodes[1].peerId.toB58String())
+      function receivedMsg(msg: RPC.IMessage) {
+        expect(msg.data!.toString().startsWith('banana')).to.be.true
+        expect(msg.from).to.be.eql(nodes[1].peerId.toBytes())
         expect(msg.seqno).to.be.a('Uint8Array')
-        expect(msg.topicIDs).to.be.eql([topic])
+        expect(msg.topic).to.be.eql(topic)
 
         if (++counter === 10) {
           nodes[0].removeListener(topic, receivedMsg)
@@ -168,7 +198,7 @@ describe('2 nodes', () => {
 
     // Create pubsub nodes
     beforeEach(async () => {
-      nodes = await createConnectedGossipsubs({ number: 2 })
+      nodes = await createConnectedGossipsubs({ number: 2, options: {allowPublishToZeroPeers: true} })
     })
 
     // Create subscriptions
@@ -188,16 +218,16 @@ describe('2 nodes', () => {
 
     it('Unsubscribe from a topic', async () => {
       nodes[0].unsubscribe(topic)
-      expect(nodes[0].subscriptions.size).to.equal(0)
+      expect(nodes[0]['subscriptions'].size).to.equal(0)
 
       const [changedPeerId, changedSubs] = await new Promise<[PeerId, RPC.ISubOpts[]]>((resolve) => {
         nodes[1].once('pubsub:subscription-change', (...args: [PeerId, RPC.ISubOpts[]]) => resolve(args))
       })
       await new Promise((resolve) => nodes[1].once('gossipsub:heartbeat', resolve))
 
-      expect(nodes[1].peers.size).to.equal(1)
-      expectSet(nodes[1].topics.get(topic), [])
-      expect(changedPeerId.toB58String()).to.equal(first(nodes[1].peers).id.toB58String())
+      expect(nodes[1]['peers'].size).to.equal(1)
+      expectSet(nodes[1]['topics'].get(topic), [])
+      expect(changedPeerId.toB58String()).to.equal(first(nodes[1]['peers']).id.toB58String())
       expect(changedSubs).to.have.lengthOf(1)
       expect(changedSubs[0].topicID).to.equal(topic)
       expect(changedSubs[0].subscribe).to.equal(false)
@@ -245,10 +275,10 @@ describe('2 nodes', () => {
       nodes[0].subscribe('Za')
       nodes[1].subscribe('Zb')
 
-      expect(nodes[0].peers.size).to.equal(0)
-      expectSet(nodes[0].subscriptions, ['Za'])
-      expect(nodes[1].peers.size).to.equal(0)
-      expectSet(nodes[1].subscriptions, ['Zb'])
+      expect(nodes[0]['peers'].size).to.equal(0)
+      expectSet(nodes[0]['subscriptions'], ['Za'])
+      expect(nodes[1]['peers'].size).to.equal(0)
+      expectSet(nodes[1]['subscriptions'], ['Zb'])
     })
 
     after(() => Promise.all(nodes.map(stopNode)))
@@ -257,20 +287,20 @@ describe('2 nodes', () => {
       this.timeout(5000)
 
       await Promise.all([
-        nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, multicodec),
+        nodes[0]._libp2p.dialProtocol(nodes[1]._libp2p.peerId, GossipsubIDv11),
         new Promise((resolve) => nodes[0].once('pubsub:subscription-change', resolve)),
         new Promise((resolve) => nodes[1].once('pubsub:subscription-change', resolve))
       ])
-      expect(nodes[0].peers.size).to.equal(1)
-      expect(nodes[1].peers.size).to.equal(1)
+      expect(nodes[0]['peers'].size).to.equal(1)
+      expect(nodes[1]['peers'].size).to.equal(1)
 
-      expectSet(nodes[0].subscriptions, ['Za'])
-      expect(nodes[1].peers.size).to.equal(1)
-      expectSet(nodes[1].topics.get('Za'), [nodes[0].peerId.toB58String()])
+      expectSet(nodes[0]['subscriptions'], ['Za'])
+      expect(nodes[1]['peers'].size).to.equal(1)
+      expectSet(nodes[1]['topics'].get('Za'), [nodes[0].peerId.toB58String()])
 
-      expectSet(nodes[1].subscriptions, ['Zb'])
-      expect(nodes[0].peers.size).to.equal(1)
-      expectSet(nodes[0].topics.get('Zb'), [nodes[1].peerId.toB58String()])
+      expectSet(nodes[1]['subscriptions'], ['Zb'])
+      expect(nodes[0]['peers'].size).to.equal(1)
+      expectSet(nodes[0]['topics'].get('Zb'), [nodes[1].peerId.toB58String()])
     })
   })
 
@@ -284,8 +314,8 @@ describe('2 nodes', () => {
 
     it("nodes don't have peers after stopped", async () => {
       await Promise.all(nodes.map(stopNode))
-      expect(nodes[0].peers.size).to.equal(0)
-      expect(nodes[1].peers.size).to.equal(0)
+      expect(nodes[0]['peers'].size).to.equal(0)
+      expect(nodes[1]['peers'].size).to.equal(0)
     })
   })
 })

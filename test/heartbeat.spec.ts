@@ -1,6 +1,3 @@
-'use strict'
-/* eslint-env mocha */
-
 import { expect } from 'chai'
 import Gossipsub from '../ts'
 import { GossipsubHeartbeatInterval } from '../ts/constants'
@@ -17,12 +14,12 @@ describe('heartbeat', () => {
   after(() => stopNode(gossipsub))
 
   it('should occur with regularity defined by a constant', async function () {
-    this.timeout(3000)
+    this.timeout(GossipsubHeartbeatInterval * 5)
     await new Promise((resolve) => gossipsub.once('gossipsub:heartbeat', resolve))
     const t1 = Date.now()
     await new Promise((resolve) => gossipsub.once('gossipsub:heartbeat', resolve))
     const t2 = Date.now()
-    const safeDelta = 100 // ms
-    expect(t2 - t1).to.be.lt(GossipsubHeartbeatInterval + safeDelta)
+    const safeFactor = 1.5
+    expect(t2 - t1).to.be.lt(GossipsubHeartbeatInterval * safeFactor)
   })
 })

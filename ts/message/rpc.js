@@ -23,7 +23,7 @@
          * @exports IRPC
          * @interface IRPC
          * @property {Array.<RPC.ISubOpts>|null} [subscriptions] RPC subscriptions
-         * @property {Array.<RPC.IMessage>|null} [msgs] RPC msgs
+         * @property {Array.<RPC.IMessage>|null} [messages] RPC messages
          * @property {RPC.IControlMessage|null} [control] RPC control
          */
     
@@ -37,7 +37,7 @@
          */
         function RPC(p) {
             this.subscriptions = [];
-            this.msgs = [];
+            this.messages = [];
             if (p)
                 for (var ks = Object.keys(p), i = 0; i < ks.length; ++i)
                     if (p[ks[i]] != null)
@@ -53,12 +53,12 @@
         RPC.prototype.subscriptions = $util.emptyArray;
     
         /**
-         * RPC msgs.
-         * @member {Array.<RPC.IMessage>} msgs
+         * RPC messages.
+         * @member {Array.<RPC.IMessage>} messages
          * @memberof RPC
          * @instance
          */
-        RPC.prototype.msgs = $util.emptyArray;
+        RPC.prototype.messages = $util.emptyArray;
     
         /**
          * RPC control.
@@ -98,9 +98,9 @@
                 for (var i = 0; i < m.subscriptions.length; ++i)
                     $root.RPC.SubOpts.encode(m.subscriptions[i], w.uint32(10).fork()).ldelim();
             }
-            if (m.msgs != null && m.msgs.length) {
-                for (var i = 0; i < m.msgs.length; ++i)
-                    $root.RPC.Message.encode(m.msgs[i], w.uint32(18).fork()).ldelim();
+            if (m.messages != null && m.messages.length) {
+                for (var i = 0; i < m.messages.length; ++i)
+                    $root.RPC.Message.encode(m.messages[i], w.uint32(18).fork()).ldelim();
             }
             if (m.control != null && Object.hasOwnProperty.call(m, "control"))
                 $root.RPC.ControlMessage.encode(m.control, w.uint32(26).fork()).ldelim();
@@ -131,9 +131,9 @@
                     m.subscriptions.push($root.RPC.SubOpts.decode(r, r.uint32()));
                     break;
                 case 2:
-                    if (!(m.msgs && m.msgs.length))
-                        m.msgs = [];
-                    m.msgs.push($root.RPC.Message.decode(r, r.uint32()));
+                    if (!(m.messages && m.messages.length))
+                        m.messages = [];
+                    m.messages.push($root.RPC.Message.decode(r, r.uint32()));
                     break;
                 case 3:
                     m.control = $root.RPC.ControlMessage.decode(r, r.uint32());
@@ -168,14 +168,14 @@
                     m.subscriptions[i] = $root.RPC.SubOpts.fromObject(d.subscriptions[i]);
                 }
             }
-            if (d.msgs) {
-                if (!Array.isArray(d.msgs))
-                    throw TypeError(".RPC.msgs: array expected");
-                m.msgs = [];
-                for (var i = 0; i < d.msgs.length; ++i) {
-                    if (typeof d.msgs[i] !== "object")
-                        throw TypeError(".RPC.msgs: object expected");
-                    m.msgs[i] = $root.RPC.Message.fromObject(d.msgs[i]);
+            if (d.messages) {
+                if (!Array.isArray(d.messages))
+                    throw TypeError(".RPC.messages: array expected");
+                m.messages = [];
+                for (var i = 0; i < d.messages.length; ++i) {
+                    if (typeof d.messages[i] !== "object")
+                        throw TypeError(".RPC.messages: object expected");
+                    m.messages[i] = $root.RPC.Message.fromObject(d.messages[i]);
                 }
             }
             if (d.control != null) {
@@ -201,7 +201,7 @@
             var d = {};
             if (o.arrays || o.defaults) {
                 d.subscriptions = [];
-                d.msgs = [];
+                d.messages = [];
             }
             if (m.subscriptions && m.subscriptions.length) {
                 d.subscriptions = [];
@@ -209,10 +209,10 @@
                     d.subscriptions[j] = $root.RPC.SubOpts.toObject(m.subscriptions[j], o);
                 }
             }
-            if (m.msgs && m.msgs.length) {
-                d.msgs = [];
-                for (var j = 0; j < m.msgs.length; ++j) {
-                    d.msgs[j] = $root.RPC.Message.toObject(m.msgs[j], o);
+            if (m.messages && m.messages.length) {
+                d.messages = [];
+                for (var j = 0; j < m.messages.length; ++j) {
+                    d.messages[j] = $root.RPC.Message.toObject(m.messages[j], o);
                 }
             }
             if (m.control != null && m.hasOwnProperty("control")) {
@@ -421,7 +421,7 @@
              * @property {Uint8Array|null} [from] Message from
              * @property {Uint8Array|null} [data] Message data
              * @property {Uint8Array|null} [seqno] Message seqno
-             * @property {Array.<string>|null} [topicIDs] Message topicIDs
+             * @property {string} topic Message topic
              * @property {Uint8Array|null} [signature] Message signature
              * @property {Uint8Array|null} [key] Message key
              */
@@ -435,7 +435,6 @@
              * @param {RPC.IMessage=} [p] Properties to set
              */
             function Message(p) {
-                this.topicIDs = [];
                 if (p)
                     for (var ks = Object.keys(p), i = 0; i < ks.length; ++i)
                         if (p[ks[i]] != null)
@@ -467,12 +466,12 @@
             Message.prototype.seqno = null;
     
             /**
-             * Message topicIDs.
-             * @member {Array.<string>} topicIDs
+             * Message topic.
+             * @member {string} topic
              * @memberof RPC.Message
              * @instance
              */
-            Message.prototype.topicIDs = $util.emptyArray;
+            Message.prototype.topic = "";
     
             /**
              * Message signature.
@@ -566,10 +565,7 @@
                     w.uint32(18).bytes(m.data);
                 if (m.seqno != null && Object.hasOwnProperty.call(m, "seqno"))
                     w.uint32(26).bytes(m.seqno);
-                if (m.topicIDs != null && m.topicIDs.length) {
-                    for (var i = 0; i < m.topicIDs.length; ++i)
-                        w.uint32(34).string(m.topicIDs[i]);
-                }
+                w.uint32(34).string(m.topic);
                 if (m.signature != null && Object.hasOwnProperty.call(m, "signature"))
                     w.uint32(42).bytes(m.signature);
                 if (m.key != null && Object.hasOwnProperty.call(m, "key"))
@@ -605,9 +601,7 @@
                         m.seqno = r.bytes();
                         break;
                     case 4:
-                        if (!(m.topicIDs && m.topicIDs.length))
-                            m.topicIDs = [];
-                        m.topicIDs.push(r.string());
+                        m.topic = r.string();
                         break;
                     case 5:
                         m.signature = r.bytes();
@@ -620,6 +614,8 @@
                         break;
                     }
                 }
+                if (!m.hasOwnProperty("topic"))
+                    throw $util.ProtocolError("missing required 'topic'", { instance: m });
                 return m;
             };
     
@@ -653,13 +649,8 @@
                     else if (d.seqno.length)
                         m.seqno = d.seqno;
                 }
-                if (d.topicIDs) {
-                    if (!Array.isArray(d.topicIDs))
-                        throw TypeError(".RPC.Message.topicIDs: array expected");
-                    m.topicIDs = [];
-                    for (var i = 0; i < d.topicIDs.length; ++i) {
-                        m.topicIDs[i] = String(d.topicIDs[i]);
-                    }
+                if (d.topic != null) {
+                    m.topic = String(d.topic);
                 }
                 if (d.signature != null) {
                     if (typeof d.signature === "string")
@@ -689,8 +680,8 @@
                 if (!o)
                     o = {};
                 var d = {};
-                if (o.arrays || o.defaults) {
-                    d.topicIDs = [];
+                if (o.defaults) {
+                    d.topic = "";
                 }
                 if (m.from != null && m.hasOwnProperty("from")) {
                     d.from = o.bytes === String ? $util.base64.encode(m.from, 0, m.from.length) : o.bytes === Array ? Array.prototype.slice.call(m.from) : m.from;
@@ -707,11 +698,8 @@
                     if (o.oneofs)
                         d._seqno = "seqno";
                 }
-                if (m.topicIDs && m.topicIDs.length) {
-                    d.topicIDs = [];
-                    for (var j = 0; j < m.topicIDs.length; ++j) {
-                        d.topicIDs[j] = m.topicIDs[j];
-                    }
+                if (m.topic != null && m.hasOwnProperty("topic")) {
+                    d.topic = m.topic;
                 }
                 if (m.signature != null && m.hasOwnProperty("signature")) {
                     d.signature = o.bytes === String ? $util.base64.encode(m.signature, 0, m.signature.length) : o.bytes === Array ? Array.prototype.slice.call(m.signature) : m.signature;

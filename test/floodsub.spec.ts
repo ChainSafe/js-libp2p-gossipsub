@@ -6,7 +6,7 @@ import FloodSub from 'libp2p-floodsub'
 import Gossipsub from '../ts'
 import { createPeer, createFloodsubNode, expectSet, first, startNode, stopNode } from './utils'
 import { RPC } from '../ts/message/rpc'
-import { InMessage } from 'libp2p-interfaces/src/pubsub'
+import { GossipsubMessage } from '../ts/types'
 
 const expect = chai.expect
 chai.use(require('dirty-chai'))
@@ -31,7 +31,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
     it('Dial event happened from nodeGs to nodeFs', async () => {
       await nodeGs._libp2p.dialProtocol(nodeFs._libp2p.peerId, nodeGs.multicodecs)
-      expect(nodeGs.peers.size).to.equal(1)
+      expect(nodeGs['peers'].size).to.equal(1)
       expect(nodeFs.peers.size).to.equal(1)
     })
   })
@@ -58,7 +58,7 @@ describe('gossipsub fallbacks to floodsub', () => {
         await nodeGs._libp2p.dialProtocol(nodeFs._libp2p.peerId, nodeGs.multicodecs)
         expect.fail('Dial should not have succeed')
       } catch (err) {
-        expect(err.code).to.be.equal('ERR_UNSUPPORTED_PROTOCOL')
+        expect((err as { code: string }).code).to.be.equal('ERR_UNSUPPORTED_PROTOCOL')
       }
     })
   })
@@ -93,14 +93,14 @@ describe('gossipsub fallbacks to floodsub', () => {
       })
       await delay(1000)
 
-      expectSet(nodeGs.subscriptions, [topic])
+      expectSet(nodeGs['subscriptions'], [topic])
       expectSet(nodeFs.subscriptions, [topic])
-      expect(nodeGs.peers.size).to.equal(1)
+      expect(nodeGs['peers'].size).to.equal(1)
       expect(nodeFs.peers.size).to.equal(1)
-      expectSet(nodeGs.topics.get(topic), [nodeFs.peerId.toB58String()])
+      expectSet(nodeGs['topics'].get(topic), [nodeFs.peerId.toB58String()])
       expectSet(nodeFs.topics.get(topic), [nodeGs.peerId.toB58String()])
 
-      expect(changedPeerId.toB58String()).to.equal(first(nodeGs.peers).id.toB58String())
+      expect(changedPeerId.toB58String()).to.equal(first(nodeGs['peers']).id.toB58String())
       expect(changedSubs).to.have.lengthOf(1)
       expect(changedSubs[0].topicID).to.equal(topic)
       expect(changedSubs[0].subscribe).to.equal(true)
@@ -136,7 +136,7 @@ describe('gossipsub fallbacks to floodsub', () => {
     })
 
     it('Publish to a topic - nodeGs', async () => {
-      const promise = new Promise<InMessage>((resolve) => nodeFs.once(topic, resolve))
+      const promise = new Promise<GossipsubMessage>((resolve) => nodeFs.once(topic, resolve))
 
       nodeGs.publish(topic, uint8ArrayFromString('hey'))
 
@@ -146,14 +146,14 @@ describe('gossipsub fallbacks to floodsub', () => {
     })
 
     it('Publish to a topic - nodeFs', async () => {
-      const promise = new Promise<InMessage>((resolve) => nodeGs.once(topic, resolve))
+      const promise = new Promise<GossipsubMessage>((resolve) => nodeGs.once(topic, resolve))
 
       nodeFs.publish(topic, uint8ArrayFromString('banana'))
 
       const msg = await promise
 
       expect(msg.data.toString()).to.equal('banana')
-      expect(msg.from).to.be.eql(nodeFs.peerId.toB58String())
+      expect(msg.from).to.be.eql(nodeFs.peerId.toBytes())
     })
   })
 
@@ -189,7 +189,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
     it('Unsubscribe from a topic', async () => {
       nodeGs.unsubscribe(topic)
-      expect(nodeGs.subscriptions.size).to.equal(0)
+      expect(nodeGs['subscriptions'].size).to.equal(0)
 
       const [changedPeerId, changedSubs] = await new Promise<[PeerId, RPC.ISubOpts[]]>((resolve) => {
         nodeFs.once('pubsub:subscription-change', (...args: [PeerId, RPC.ISubOpts[]]) => resolve(args))

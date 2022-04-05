@@ -1,6 +1,5 @@
 import { expect } from 'chai'
 import delay from 'delay'
-import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { IWantTracer } from '../ts/tracer'
 import * as constants from '../ts/constants'
 import { makeTestMessage, getMsgId, getMsgIdStr } from './utils'
@@ -9,14 +8,13 @@ describe('IWantTracer', () => {
   it('should track broken promises', async function () {
     // tests that unfullfilled promises are tracked correctly
     this.timeout(6000)
-    const t = new IWantTracer()
+    const t = new IWantTracer(constants.GossipsubIWantFollowupTime, null)
     const peerA = 'A'
     const peerB = 'B'
 
     const msgIds = []
     for (let i = 0; i < 100; i++) {
-      const m = makeTestMessage(i)
-      m.from = peerA
+      const m = makeTestMessage(i, 'test_topic')
       msgIds.push(getMsgId(m))
     }
 
@@ -38,15 +36,14 @@ describe('IWantTracer', () => {
   it('should track unbroken promises', async function () {
     // like above, but this time we deliver messages to fullfil the promises
     this.timeout(6000)
-    const t = new IWantTracer()
+    const t = new IWantTracer(constants.GossipsubIWantFollowupTime, null)
     const peerA = 'A'
     const peerB = 'B'
 
     const msgs = []
     const msgIds = []
     for (let i = 0; i < 100; i++) {
-      const m = makeTestMessage(i)
-      m.from = peerA
+      const m = makeTestMessage(i, 'test_topic')
       msgs.push(m)
       msgIds.push(getMsgId(m))
     }

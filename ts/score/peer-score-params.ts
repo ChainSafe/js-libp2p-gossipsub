@@ -1,7 +1,7 @@
 import { ERR_INVALID_PEER_SCORE_PARAMS } from './constants'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import errcode = require('err-code')
+import errcode from 'err-code'
 
 // This file defines PeerScoreParams and TopicScoreParams interfaces
 // as well as constructors, default constructors, and validation functions
@@ -50,6 +50,7 @@ export interface PeerScoreParams {
    * The weight of the parameter MUST be negative (or zero to disable).
    */
   behaviourPenaltyWeight: number
+  behaviourPenaltyThreshold: number
   behaviourPenaltyDecay: number
 
   /**
@@ -140,15 +141,16 @@ export interface TopicScoreParams {
 
 export const defaultPeerScoreParams: PeerScoreParams = {
   topics: {},
-  topicScoreCap: 10,
-  appSpecificScore: () => 0,
-  appSpecificWeight: 10,
-  IPColocationFactorWeight: -5,
-  IPColocationFactorThreshold: 10,
+  topicScoreCap: 10.0,
+  appSpecificScore: () => 0.0,
+  appSpecificWeight: 10.0,
+  IPColocationFactorWeight: -5.0,
+  IPColocationFactorThreshold: 10.0,
   IPColocationFactorWhitelist: new Set(),
-  behaviourPenaltyWeight: -10,
+  behaviourPenaltyWeight: -10.0,
+  behaviourPenaltyThreshold: 0.0,
   behaviourPenaltyDecay: 0.2,
-  decayInterval: 1000,
+  decayInterval: 1000.0,
   decayToZero: 0.1,
   retainScore: 3600 * 1000
 }
@@ -204,7 +206,7 @@ export function validatePeerScoreParams(p: PeerScoreParams): void {
       validateTopicScoreParams(params)
     } catch (e) {
       throw errcode(
-        new Error(`invalid score parameters for topic ${topic}: ${e.message}`),
+        new Error(`invalid score parameters for topic ${topic}: ${(e as Error).message}`),
         ERR_INVALID_PEER_SCORE_PARAMS
       )
     }
