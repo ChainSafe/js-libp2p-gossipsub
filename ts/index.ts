@@ -903,8 +903,6 @@ export default class Gossipsub extends EventEmitter {
     propagationSource: PeerId,
     rpcMsg: RPC.IMessage
   ): Promise<ReceivedMessageResult> {
-    this.metrics?.onMsgRecvPreValidation(rpcMsg.topic)
-
     // Fast message ID stuff
     const fastMsgIdStr = this.fastMsgIdFn?.(rpcMsg)
     const msgIdCached = fastMsgIdStr && this.fastMsgIdCache?.get(fastMsgIdStr)
