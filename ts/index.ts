@@ -1943,16 +1943,16 @@ export default class Gossipsub extends EventEmitter {
     }
 
     if (outRpc.control) {
-      outRpc.control.graft = outRpc.control.graft && outRpc.control.graft.concat(tograft)
-      outRpc.control.prune = outRpc.control.prune && outRpc.control.prune.concat(toprune)
+      outRpc.control.graft = outRpc.control.graft ? outRpc.control.graft.concat(tograft) : tograft
+      outRpc.control.prune = outRpc.control.prune ? outRpc.control.prune.concat(toprune) : toprune
     } else {
-      outRpc.control = { ihave: [], iwant: [], graft: tograft, prune: toprune }
+      outRpc.control = { graft: tograft, prune: toprune }
     }
   }
 
   private piggybackGossip(id: PeerIdStr, outRpc: IRPC, ihave: RPC.IControlIHave[]): void {
     if (!outRpc.control) {
-      outRpc.control = { ihave: [], iwant: [], graft: [], prune: [] }
+      outRpc.control = { ihave: [] }
     }
     outRpc.control.ihave = ihave
   }
