@@ -1,39 +1,23 @@
-import { expect } from 'chai'
-import FloodSub from 'libp2p-floodsub'
-import PeerId from 'peer-id'
+import { FloodSub } from '@libp2p/floodsub'
 import delay from 'delay'
-import Libp2p from 'libp2p'
-import Gossipsub from '../../ts'
-import { GossipsubMessage, TopicStr } from '../../ts/types'
+import type { Libp2p } from 'libp2p'
+import type { TopicStr } from '../../ts/types.js'
+import { createEd25519PeerId } from '@libp2p/peer-id-factory'
+import type { PeerId } from '@libp2p/interfaces/peer-id'
+import type { RPC } from '../../ts/message/rpc.js'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 
-export * from './create-peer'
-export * from './create-gossipsub'
-export * from './msgId'
-
-export const first = <T>(map: Map<unknown, T> | Set<T> | undefined): T => {
-  if (!map) throw Error('No map')
-
-  return map.values().next().value
-}
-
-export const expectSet = <T>(set: Set<T> | undefined, list: T[]) => {
-  if (!set) throw Error('No map')
-
-  expect(set.size).to.eql(list.length)
-  list.forEach((item) => {
-    expect(set.has(item)).to.eql(true)
-  })
-}
+export * from './create-gossipsub.js'
+export * from './msgId.js'
 
 export const createPeerId = async () => {
-  const peerId = await PeerId.create({ bits: 1024 })
+  const peerId = await createEd25519PeerId()
 
   return peerId
 }
 
 export const createFloodsubNode = async (libp2p: Libp2p, shouldStart = false) => {
-  const fs = new FloodSub(libp2p)
-  fs._libp2p = libp2p
+  const fs = new FloodSub()
 
   if (shouldStart) {
     await libp2p.start()
@@ -43,15 +27,13 @@ export const createFloodsubNode = async (libp2p: Libp2p, shouldStart = false) =>
   return fs
 }
 
-export const waitForAllNodesToBePeered = async (peers: Gossipsub[], attempts = 10, delayMs = 100) => {
-  const nodeIds = peers.map((peer) => peer.peerId!.toB58String())
+export const waitForAllNodesToBePeered = async (peers: Libp2p[], attempts = 10, delayMs = 100) => {
+  const nodeIds = peers.map((peer) => peer.peerId)
 
   for (let i = 0; i < attempts; i++) {
     for (const node of peers) {
-      const nodeId = node.peerId!.toB58String()
-      const others = nodeIds.filter((peerId) => peerId !== nodeId)
-
-      const missing = others.some((other) => !node['peers'].has(other))
+      const others = nodeIds.filter((peerId) => !peerId.equals(node.peerId))
+      const missing = others.some((other) => node.getConnections(other).length === 0)
 
       if (!missing) {
         return
@@ -62,11 +44,14 @@ export const waitForAllNodesToBePeered = async (peers: Gossipsub[], attempts = 1
   }
 }
 
-export function makeTestMessage(i: number, topic: TopicStr): GossipsubMessage {
+let seq = 0n
+const defaultPeer = uint8ArrayFromString('12D3KooWBsYhazxNL7aeisdwttzc6DejNaM48889t5ifiS6tTrBf', 'base58btc')
+
+export function makeTestMessage (i: number, topic: TopicStr, from?: PeerId): RPC.Message {
   return {
-    seqno: Uint8Array.from(new Array(8).fill(i)),
+    seqno: uint8ArrayFromString((seq++).toString(16).padStart(16, '0'), 'base16'),
     data: Uint8Array.from([i]),
-    from: new Uint8Array(0),
+    from: from?.toBytes() ?? defaultPeer,
     topic
   }
 }

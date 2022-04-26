@@ -1,24 +1,36 @@
-import { expect } from 'chai'
-import Gossipsub from '../ts'
-import { GossipsubHeartbeatInterval } from '../ts/constants'
-import { createPeer, startNode, stopNode } from './utils'
+import { expect } from 'aegir/utils/chai.js'
+import { GossipsubHeartbeatInterval } from '../ts/constants.js'
+import { createGossipSub } from './utils/index.js'
+import type { Libp2p } from 'libp2p'
+import { pEvent } from 'p-event'
 
 describe('heartbeat', () => {
-  let gossipsub: Gossipsub
+  let node: Libp2p
 
   before(async () => {
-    gossipsub = new Gossipsub(await createPeer({ started: false }), { emitSelf: true })
-    await startNode(gossipsub)
+    node = await createGossipSub({
+      started: true,
+      init: {
+        emitSelf: true
+      }
+    })
   })
 
-  after(() => stopNode(gossipsub))
+  after(async () => {
+    if (node != null) {
+      await node.stop()
+    }
+  })
 
   it('should occur with regularity defined by a constant', async function () {
     this.timeout(GossipsubHeartbeatInterval * 5)
-    await new Promise((resolve) => gossipsub.once('gossipsub:heartbeat', resolve))
+
+    await pEvent(node.pubsub, 'gossipsub:heartbeat')
     const t1 = Date.now()
-    await new Promise((resolve) => gossipsub.once('gossipsub:heartbeat', resolve))
+
+    await pEvent(node.pubsub, 'gossipsub:heartbeat')
     const t2 = Date.now()
+
     const safeFactor = 1.5
     expect(t2 - t1).to.be.lt(GossipsubHeartbeatInterval * safeFactor)
   })

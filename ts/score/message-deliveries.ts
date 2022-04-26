@@ -1,4 +1,4 @@
-import { TimeCacheDuration } from '../constants'
+import { TimeCacheDuration } from '../constants.js'
 import Denque from 'denque'
 
 export enum DeliveryRecordStatus {
@@ -39,7 +39,7 @@ interface DeliveryQueueEntry {
  */
 export class MessageDeliveries {
   private records: Map<string, DeliveryRecord>
-  private queue: Denque<DeliveryQueueEntry>
+  public queue: Denque<DeliveryQueueEntry>
 
   constructor() {
     this.records = new Map()

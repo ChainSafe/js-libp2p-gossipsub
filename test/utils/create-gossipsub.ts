@@ -1,99 +1,100 @@
-import { EventEmitter } from 'events'
-import PubsubBaseProtocol from 'libp2p-interfaces/src/pubsub'
-import Gossipsub, { GossipsubOpts } from '../../ts'
-import { fastMsgIdFn } from './msgId'
-import { createPeers } from './create-peer'
-import { FloodsubID } from '../../ts/constants'
+import { GossipSub, GossipsubOpts } from '../../ts/index.js'
+import { fastMsgIdFn } from './msgId.js'
+import { createPeer, seedAddressBooks } from './create-peer.js'
+import { FloodSub, FloodSubInit } from '@libp2p/floodsub'
+import type { Libp2p } from 'libp2p'
 
-export type PubsubBaseMinimal = EventEmitter &
-  Pick<PubsubBaseProtocol, 'start' | 'stop' | '_libp2p' | 'multicodecs' | 'subscribe'>
+export async function connectGossipsub (gs1: Libp2p, gs2: Libp2p) {
+  const addr = gs2.getMultiaddrs()[0]
 
-/**
- * Start node - gossipsub + libp2p
- */
-export async function startNode(gs: PubsubBaseMinimal) {
-  await gs._libp2p.start()
-  await gs.start()
-}
+  if (addr == null) {
+    throw new Error('Peer has no multiaddrs available')
+  }
 
-/**
- * Stop node - gossipsub + libp2p
- */
-export async function stopNode(gs: PubsubBaseMinimal) {
-  await gs._libp2p.stop()
-  await gs.stop()
-}
-
-export async function connectGossipsub(gs1: PubsubBaseMinimal, gs2: PubsubBaseMinimal) {
-  await gs1._libp2p.dialProtocol(gs2._libp2p.peerId, gs1.multicodecs)
+  await gs1.dialProtocol(addr, gs1.pubsub.multicodecs)
 }
 
 /**
  * Create a number of preconfigured gossipsub nodes
  */
-export async function createGossipsubs({
-  number = 1,
+export async function createGossipSub ({
   started = true,
-  options
+  init
 }: {
-  number?: number
   started?: boolean
-  options?: Partial<GossipsubOpts>
-} = {}) {
-  const libp2ps = await createPeers({ number, started })
-  const gss = libp2ps.map((libp2p) => new Gossipsub(libp2p, { ...options, fastMsgIdFn: fastMsgIdFn }))
-
-  if (started) {
-    await Promise.all(gss.map((gs) => gs.start()))
-  }
-
-  return gss
-}
-
-export async function createPubsubs({
-  number = 1,
-  started = true,
-  options = {}
-}: {
-  number?: number
-  started?: boolean
-  options?: Partial<GossipsubOpts>
-} = {}) {
-  const libp2ps = await createPeers({ number, started })
-  const pubsubs = libp2ps.map(
-    (libp2p) =>
-      new PubsubBaseProtocol({
-        debugName: 'pubsub',
-        multicodecs: FloodsubID,
-        libp2p
-      })
-  )
-
-  if (started) {
-    await Promise.all(pubsubs.map((gs) => gs.start()))
-  }
-
-  return pubsubs
+  init?: Partial<GossipsubOpts>
+} = {}): Promise<Libp2p> {
+  return await createPeer({
+    started,
+    config: {
+      pubsub: new GossipSub({ ...init, fastMsgIdFn: fastMsgIdFn })
+    }
+  })
 }
 
 /**
- * Stop gossipsub nodes
+ * Create a number of preconfigured gossipsub nodes
  */
-export async function tearDownGossipsubs(gss: PubsubBaseMinimal[]) {
-  await Promise.all(
-    gss.map(async (p) => {
-      await p.stop()
-      await p._libp2p.stop()
-    })
+export async function createGossipSubs ({
+  number = 2,
+  started = true,
+  init
+}: {
+  number?: number
+  started?: boolean
+  init?: Partial<GossipsubOpts>
+} = {}): Promise<Libp2p[]> {
+  const nodes = await Promise.all(
+    Array.from({ length: number }).fill(0).map(async () => await createGossipSub({ started, init }))
+  )
+
+  await seedAddressBooks(...nodes)
+
+  return nodes
+}
+
+/**
+ * Create a number of preconfigured floodsub nodes
+ */
+export async function createFloodSub ({
+  started = true,
+  init
+}: {
+  started?: boolean
+  init?: Partial<FloodSubInit>
+} = {}): Promise<Libp2p> {
+  return await createPeer({
+    started,
+    config: {
+      pubsub: new FloodSub(init)
+    }
+  })
+}
+
+/**
+ * Create a number of preconfigured floodsub nodes
+ */
+export async function createFloodSubs ({
+  number = 2,
+  started = true,
+  init
+}: {
+  number?: number
+  started?: boolean
+  init?: Partial<FloodSubInit>
+} = {}): Promise<Libp2p[]> {
+  return await Promise.all(
+    Array.from({ length: number }).fill(0).map(async () => await createFloodSub({ started, init }))
   )
 }
 
 /**
  * Connect some gossipsub nodes to others
+ *
  * @param {Gossipsub[]} gss
- * @param {number} num number of peers to connect
+ * @param {number} num - number of peers to connect
  */
-export async function connectSome(gss: PubsubBaseMinimal[], num: number) {
+export async function connectSome (gss: Libp2p[], num: number) {
   for (let i = 0; i < gss.length; i++) {
     for (let j = 0; j < num; j++) {
       const n = Math.floor(Math.random() * gss.length)
@@ -106,19 +107,20 @@ export async function connectSome(gss: PubsubBaseMinimal[], num: number) {
   }
 }
 
-export async function sparseConnect(gss: PubsubBaseMinimal[]) {
+export async function sparseConnect (gss: Libp2p[]) {
   await connectSome(gss, 3)
 }
 
-export async function denseConnect(gss: PubsubBaseMinimal[]) {
+export async function denseConnect (gss: Libp2p[]) {
   await connectSome(gss, 10)
 }
 
 /**
  * Connect every gossipsub node to every other
+ *
  * @param {Gossipsub[]} gss
  */
-export async function connectGossipsubs(gss: PubsubBaseMinimal[]) {
+export async function connectGossipsubs (gss: Libp2p[]) {
   for (let i = 0; i < gss.length; i++) {
     for (let j = i + 1; j < gss.length; j++) {
       await connectGossipsub(gss[i], gss[j])
@@ -129,11 +131,15 @@ export async function connectGossipsubs(gss: PubsubBaseMinimal[]) {
 /**
  * Create a number of fully connected gossipsub nodes
  */
-export async function createConnectedGossipsubs({
+export async function createConnectedGossipsubs ({
   number = 2,
-  options = {}
-}: { number?: number; options?: Partial<GossipsubOpts> } = {}) {
-  const gss = await createGossipsubs({ number, started: true, options })
-  await connectGossipsubs(gss)
-  return gss
+  init = {}
+}: { number?: number, init?: Partial<GossipsubOpts> } = {}): Promise<Libp2p[]> {
+  const nodes = await Promise.all(
+    Array.from({ length: number }).fill(0).map(async () => await createGossipSub({ started: true, init }))
+  )
+
+  await connectGossipsubs(nodes)
+
+  return nodes
 }

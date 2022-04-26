@@ -1,18 +1,19 @@
-import { expect } from 'chai'
+import { expect } from 'aegir/utils/chai.js'
 import delay from 'delay'
-import { IWantTracer } from '../ts/tracer'
-import * as constants from '../ts/constants'
-import { makeTestMessage, getMsgId, getMsgIdStr } from './utils'
+import { IWantTracer } from '../ts/tracer.js'
+import * as constants from '../ts/constants.js'
+import { makeTestMessage, getMsgId, getMsgIdStr } from './utils/index.js'
+import { createEd25519PeerId } from '@libp2p/peer-id-factory'
 
 describe('IWantTracer', () => {
   it('should track broken promises', async function () {
-    // tests that unfullfilled promises are tracked correctly
+    // tests that unfulfilled promises are tracked correctly
     this.timeout(6000)
     const t = new IWantTracer(constants.GossipsubIWantFollowupTime, null)
-    const peerA = 'A'
-    const peerB = 'B'
+    const peerA = (await createEd25519PeerId()).toString()
+    const peerB = (await createEd25519PeerId()).toString()
 
-    const msgIds = []
+    const msgIds: Uint8Array[] = []
     for (let i = 0; i < 100; i++) {
       const m = makeTestMessage(i, 'test_topic')
       msgIds.push(getMsgId(m))
@@ -37,8 +38,8 @@ describe('IWantTracer', () => {
     // like above, but this time we deliver messages to fullfil the promises
     this.timeout(6000)
     const t = new IWantTracer(constants.GossipsubIWantFollowupTime, null)
-    const peerA = 'A'
-    const peerB = 'B'
+    const peerA = (await createEd25519PeerId()).toString()
+    const peerB = (await createEd25519PeerId()).toString()
 
     const msgs = []
     const msgIds = []

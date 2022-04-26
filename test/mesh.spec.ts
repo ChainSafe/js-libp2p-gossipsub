@@ -1,21 +1,29 @@
-import { expect } from 'chai'
+import { expect } from 'aegir/utils/chai.js'
 import delay from 'delay'
-import Gossipsub from '../ts'
-import { GossipsubDhi } from '../ts/constants'
-import { createGossipsubs, connectGossipsubs, stopNode } from './utils'
+import { GossipsubDhi } from '../ts/constants.js'
+import { createGossipSub, connectGossipsubs } from './utils/index.js'
+import type { Libp2p } from 'libp2p'
+import type { GossipSub } from '../ts/index.js'
 
 describe('mesh overlay', () => {
-  let nodes: Gossipsub[]
+  let nodes: Libp2p[]
 
   // Create pubsub nodes
   beforeEach(async () => {
-    nodes = await createGossipsubs({
-      number: GossipsubDhi + 2,
-      options: { scoreParams: { IPColocationFactorThreshold: GossipsubDhi + 3 } }
-    })
+    nodes = await Promise.all(
+      Array.from({ length: GossipsubDhi + 2 }).fill(0).map(async () => {
+        return await createGossipSub({
+          init: {
+            scoreParams: {
+              IPColocationFactorThreshold: GossipsubDhi + 3
+            }
+          }
+        })
+      })
+    )
   })
 
-  afterEach(() => Promise.all(nodes.map(stopNode)))
+  afterEach(async () => await Promise.all(nodes.map(n => n.stop())))
 
   it('should add mesh peers below threshold', async function () {
     this.timeout(10e3)
@@ -25,7 +33,7 @@ describe('mesh overlay', () => {
     const topic = 'Z'
 
     // add subscriptions to each node
-    nodes.forEach((node) => node.subscribe(topic))
+    nodes.forEach((node) => node.pubsub.subscribe(topic))
 
     // connect N (< GossipsubD) nodes to node0
     const N = 4
@@ -33,9 +41,12 @@ describe('mesh overlay', () => {
 
     await delay(50)
     // await mesh rebalancing
-    await new Promise((resolve) => node0.once('gossipsub:heartbeat', resolve))
+    await new Promise((resolve) => (node0.pubsub as GossipSub).addEventListener('gossipsub:heartbeat', resolve, {
+      once: true
+    }))
 
-    expect(node0['mesh'].get(topic)!.size).to.equal(N)
+    const mesh = (node0.pubsub as GossipSub).mesh.get(topic)
+    expect(mesh).to.have.property('size', N)
   })
 
   it('should remove mesh peers once above threshold', async function () {
@@ -45,13 +56,17 @@ describe('mesh overlay', () => {
     const topic = 'Z'
 
     // add subscriptions to each node
-    nodes.forEach((node) => node.subscribe(topic))
+    nodes.forEach((node) => node.pubsub.subscribe(topic))
 
     await connectGossipsubs(nodes)
 
     await delay(500)
     // await mesh rebalancing
-    await new Promise((resolve) => node0.once('gossipsub:heartbeat', resolve))
-    expect(node0['mesh'].get(topic)!.size).to.be.lte(GossipsubDhi)
+    await new Promise((resolve) => (node0.pubsub as GossipSub).addEventListener('gossipsub:heartbeat', resolve, {
+      once: true
+    }))
+
+    const mesh = (node0.pubsub as GossipSub).mesh.get(topic)
+    expect(mesh).to.have.property('size').that.is.lte(GossipsubDhi)
   })
 })

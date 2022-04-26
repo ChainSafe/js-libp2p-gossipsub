@@ -1,12 +1,14 @@
 import { itBench, setBenchOpts } from '@dapplion/benchmark'
+// @ts-expect-error no types
 import TimeCache from 'time-cache'
-import { SimpleTimeCache } from '../../ts/utils/time-cache'
+import { SimpleTimeCache } from '../../ts/utils/time-cache.js'
 
+// TODO: errors with "Error: root suite not found"
 describe('npm TimeCache vs SimpleTimeCache', () => {
   setBenchOpts({
     maxMs: 100 * 1000,
     minMs: 60 * 1000,
-    runs: 512
+    minRuns: 512
   })
 
   const iterations = [1_000_000, 4_000_000, 8_000_000, 16_000_000]
@@ -19,7 +21,7 @@ describe('npm TimeCache vs SimpleTimeCache', () => {
     })
 
     itBench(`SimpleTimeCache.put x${iteration}`, () => {
-      for (let j = 0; j < iteration; j++) simpleTimeCache.put(String(j))
+      for (let j = 0; j < iteration; j++) simpleTimeCache.put(String(j), true)
     })
   }
 })

@@ -1,61 +1,88 @@
-import chai from 'chai'
+import { expect } from 'aegir/utils/chai.js'
 import delay from 'delay'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import PeerId from 'peer-id'
-import FloodSub from 'libp2p-floodsub'
-import Gossipsub from '../ts'
-import { createPeer, createFloodsubNode, expectSet, first, startNode, stopNode } from './utils'
-import { RPC } from '../ts/message/rpc'
-import { GossipsubMessage } from '../ts/types'
-
-const expect = chai.expect
-chai.use(require('dirty-chai'))
+import { createGossipSub, createFloodSub } from './utils/index.js'
+import type { Libp2p } from 'libp2p'
+import { pEvent } from 'p-event'
+import type { SubscriptionChangeData, Message } from '@libp2p/interfaces/pubsub'
+import pRetry from 'p-retry'
 
 describe('gossipsub fallbacks to floodsub', () => {
   describe('basics', () => {
-    let nodeGs: Gossipsub
-    let nodeFs: FloodSub
+    let nodeGs: Libp2p
+    let nodeFs: Libp2p
 
     beforeEach(async () => {
-      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
-      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
+      nodeGs = await createGossipSub({
+        started: false,
+        init: {
+          fallbackToFloodsub: true
+        }
+      })
+      nodeFs = await createFloodSub({
+        started: false
+      })
 
-      await Promise.all([startNode(nodeGs), startNode(nodeFs)])
-      nodeGs._libp2p.peerStore.addressBook.set(nodeFs._libp2p.peerId, nodeFs._libp2p.multiaddrs)
+      await Promise.all([
+        nodeGs.start(),
+        nodeFs.start()
+      ])
+
+      await nodeGs.peerStore.addressBook.set(nodeFs.peerId, nodeFs.getMultiaddrs())
     })
 
     afterEach(async function () {
       this.timeout(4000)
-      await Promise.all([stopNode(nodeGs), stopNode(nodeFs)])
+      await Promise.all([
+        nodeGs.stop(),
+        nodeFs.stop()
+      ])
     })
 
     it('Dial event happened from nodeGs to nodeFs', async () => {
-      await nodeGs._libp2p.dialProtocol(nodeFs._libp2p.peerId, nodeGs.multicodecs)
-      expect(nodeGs['peers'].size).to.equal(1)
-      expect(nodeFs.peers.size).to.equal(1)
+      await nodeGs.dialProtocol(nodeFs.peerId, nodeFs.pubsub.multicodecs)
+
+      pRetry(() => {
+        expect(nodeGs.pubsub.getPeers()).to.have.lengthOf(1)
+        expect(nodeFs.pubsub.getPeers()).to.have.lengthOf(1)
+      })
     })
   })
 
   describe('should not be added if fallback disabled', () => {
-    let nodeGs: Gossipsub
-    let nodeFs: FloodSub
+    let nodeGs: Libp2p
+    let nodeFs: Libp2p
 
-    before(async () => {
-      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: false })
-      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
+    beforeEach(async () => {
+      nodeGs = await createGossipSub({
+        started: false,
+        init: {
+          fallbackToFloodsub: false
+        }
+      })
+      nodeFs = await createFloodSub({
+        started: false
+      })
 
-      await Promise.all([startNode(nodeGs), startNode(nodeFs)])
-      nodeGs._libp2p.peerStore.addressBook.set(nodeFs._libp2p.peerId, nodeFs._libp2p.multiaddrs)
+      await Promise.all([
+        nodeGs.start(),
+        nodeFs.start()
+      ])
+
+      await nodeGs.peerStore.addressBook.set(nodeFs.peerId, nodeFs.getMultiaddrs())
     })
 
-    after(async function () {
+    afterEach(async function () {
       this.timeout(4000)
-      await Promise.all([stopNode(nodeGs), stopNode(nodeFs)])
+      await Promise.all([
+        nodeGs.stop(),
+        nodeFs.stop()
+      ])
     })
 
-    it('Dial event happened from nodeGs to nodeFs, but NodeGs does not support floodsub', async () => {
+    it('Dial event happened from nodeGs to nodeFs, but nodeGs does not support floodsub', async () => {
       try {
-        await nodeGs._libp2p.dialProtocol(nodeFs._libp2p.peerId, nodeGs.multicodecs)
+        await nodeGs.dialProtocol(nodeFs.peerId, nodeGs.pubsub.multicodecs)
         expect.fail('Dial should not have succeed')
       } catch (err) {
         expect((err as { code: string }).code).to.be.equal('ERR_UNSUPPORTED_PROTOCOL')
@@ -64,119 +91,159 @@ describe('gossipsub fallbacks to floodsub', () => {
   })
 
   describe('subscription functionality', () => {
-    let nodeGs: Gossipsub
-    let nodeFs: FloodSub
+    let nodeGs: Libp2p
+    let nodeFs: Libp2p
 
     before(async () => {
-      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
-      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
+      nodeGs = await createGossipSub({
+        started: false,
+        init: {
+          fallbackToFloodsub: true
+        }
+      })
+      nodeFs = await createFloodSub({
+        started: false
+      })
 
-      await Promise.all([startNode(nodeGs), startNode(nodeFs)])
-      nodeGs._libp2p.peerStore.addressBook.set(nodeFs._libp2p.peerId, nodeFs._libp2p.multiaddrs)
-      await nodeGs._libp2p.dialProtocol(nodeFs._libp2p.peerId, nodeGs.multicodecs)
+      await Promise.all([
+        nodeGs.start(),
+        nodeFs.start()
+      ])
+
+      await nodeGs.peerStore.addressBook.set(nodeFs.peerId, nodeFs.getMultiaddrs())
+      await nodeGs.dialProtocol(nodeFs.peerId, nodeFs.pubsub.multicodecs)
     })
 
-    after(async function () {
+    afterEach(async function () {
       this.timeout(4000)
-      await Promise.all([stopNode(nodeGs), stopNode(nodeFs)])
+      await Promise.all([
+        nodeGs.stop(),
+        nodeFs.stop()
+      ])
     })
 
     it('Subscribe to a topic', async function () {
       this.timeout(10000)
       const topic = 'Z'
-      nodeGs.subscribe(topic)
-      nodeFs.subscribe(topic)
+      nodeGs.pubsub.subscribe(topic)
+      nodeFs.pubsub.subscribe(topic)
 
       // await subscription change
-      const [changedPeerId, changedSubs] = await new Promise<[PeerId, RPC.ISubOpts[]]>((resolve) => {
-        nodeGs.once('pubsub:subscription-change', (...args: [PeerId, RPC.ISubOpts[]]) => resolve(args))
-      })
+      const evt = await pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(nodeGs.pubsub, 'subscription-change')
+      const { peerId: changedPeerId, subscriptions: changedSubs } = evt.detail
+
       await delay(1000)
 
-      expectSet(nodeGs['subscriptions'], [topic])
-      expectSet(nodeFs.subscriptions, [topic])
-      expect(nodeGs['peers'].size).to.equal(1)
-      expect(nodeFs.peers.size).to.equal(1)
-      expectSet(nodeGs['topics'].get(topic), [nodeFs.peerId.toB58String()])
-      expectSet(nodeFs.topics.get(topic), [nodeGs.peerId.toB58String()])
+      expect(nodeGs.pubsub.getTopics()).to.deep.equal([topic])
+      expect(nodeFs.pubsub.getTopics()).to.deep.equal([topic])
+      expect(nodeGs.pubsub.getPeers()).to.have.lengthOf(1)
+      expect(nodeFs.pubsub.getPeers()).to.have.lengthOf(1)
+      expect(nodeGs.pubsub.getSubscribers(topic).map(p => p.toString())).to.deep.equal([nodeFs.peerId.toString()])
+      expect(nodeFs.pubsub.getSubscribers(topic).map(p => p.toString())).to.deep.equal([nodeGs.peerId.toString()])
 
-      expect(changedPeerId.toB58String()).to.equal(first(nodeGs['peers']).id.toB58String())
+      expect(nodeGs.pubsub.getPeers().map(p => p.toString())).to.deep.equal([changedPeerId.toString()])
       expect(changedSubs).to.have.lengthOf(1)
-      expect(changedSubs[0].topicID).to.equal(topic)
+      expect(changedSubs[0].topic).to.equal(topic)
       expect(changedSubs[0].subscribe).to.equal(true)
     })
   })
 
   describe('publish functionality', () => {
-    let nodeGs: Gossipsub
-    let nodeFs: FloodSub
+    let nodeGs: Libp2p
+    let nodeFs: Libp2p
     const topic = 'Z'
 
     beforeEach(async () => {
-      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
-      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
+      nodeGs = await createGossipSub({
+        started: false,
+        init: {
+          fallbackToFloodsub: true
+        }
+      })
+      nodeFs = await createFloodSub({
+        started: false
+      })
 
-      await Promise.all([startNode(nodeGs), startNode(nodeFs)])
-      nodeGs._libp2p.peerStore.addressBook.set(nodeFs._libp2p.peerId, nodeFs._libp2p.multiaddrs)
-      await nodeGs._libp2p.dialProtocol(nodeFs._libp2p.peerId, nodeGs.multicodecs)
+      await Promise.all([
+        nodeGs.start(),
+        nodeFs.start()
+      ])
 
-      nodeGs.subscribe(topic)
-      nodeFs.subscribe(topic)
+      await nodeGs.peerStore.addressBook.set(nodeFs.peerId, nodeFs.getMultiaddrs())
+      await nodeGs.dialProtocol(nodeFs.peerId, nodeFs.pubsub.multicodecs)
+
+      nodeGs.pubsub.subscribe(topic)
+      nodeFs.pubsub.subscribe(topic)
 
       // await subscription change
       await Promise.all([
-        new Promise((resolve) => nodeGs.once('pubsub:subscription-change', resolve)),
-        new Promise((resolve) => nodeFs.once('pubsub:subscription-change', resolve))
+        pEvent(nodeGs.pubsub, 'subscription-change'),
+        pEvent(nodeFs.pubsub, 'subscription-change')
       ])
     })
 
     afterEach(async function () {
       this.timeout(4000)
-      await Promise.all([stopNode(nodeGs), stopNode(nodeFs)])
+      await Promise.all([
+        nodeGs.stop(),
+        nodeFs.stop()
+      ])
     })
 
     it('Publish to a topic - nodeGs', async () => {
-      const promise = new Promise<GossipsubMessage>((resolve) => nodeFs.once(topic, resolve))
+      const promise = pEvent<'message', CustomEvent<Message>>(nodeFs.pubsub, 'message')
+      const data = uint8ArrayFromString('hey')
 
-      nodeGs.publish(topic, uint8ArrayFromString('hey'))
+      await nodeGs.pubsub.publish(topic, data)
 
-      const msg = await promise
-      expect(msg.data.toString()).to.equal('hey')
-      expect(msg.from).to.be.eql(nodeGs.peerId.toB58String())
+      const evt = await promise
+      expect(evt.detail.data).to.equalBytes(data)
+      expect(evt.detail.from.toString()).to.be.eql(nodeGs.peerId.toString())
     })
 
     it('Publish to a topic - nodeFs', async () => {
-      const promise = new Promise<GossipsubMessage>((resolve) => nodeGs.once(topic, resolve))
+      const promise = pEvent<'message', CustomEvent<Message>>(nodeGs.pubsub, 'message')
+      const data = uint8ArrayFromString('banana')
 
-      nodeFs.publish(topic, uint8ArrayFromString('banana'))
+      await nodeFs.pubsub.publish(topic, data)
 
-      const msg = await promise
-
-      expect(msg.data.toString()).to.equal('banana')
-      expect(msg.from).to.be.eql(nodeFs.peerId.toBytes())
+      const evt = await promise
+      expect(evt.detail.data).to.equalBytes(data)
+      expect(evt.detail.from.toString()).to.be.eql(nodeFs.peerId.toString())
     })
   })
 
   describe('publish after unsubscribe', () => {
-    let nodeGs: Gossipsub
-    let nodeFs: FloodSub
+    let nodeGs: Libp2p
+    let nodeFs: Libp2p
     const topic = 'Z'
 
     beforeEach(async () => {
-      nodeGs = new Gossipsub(await createPeer({ started: false }), { fallbackToFloodsub: true })
-      nodeFs = await createFloodsubNode(await createPeer({ peerId: await PeerId.create(), started: false }))
+      nodeGs = await createGossipSub({
+        started: false,
+        init: {
+          fallbackToFloodsub: true
+        }
+      })
+      nodeFs = await createFloodSub({
+        started: false
+      })
 
-      await Promise.all([startNode(nodeGs), startNode(nodeFs)])
-      nodeGs._libp2p.peerStore.addressBook.set(nodeFs._libp2p.peerId, nodeFs._libp2p.multiaddrs)
-      await nodeGs._libp2p.dialProtocol(nodeFs._libp2p.peerId, nodeGs.multicodecs)
+      await Promise.all([
+        nodeGs.start(),
+        nodeFs.start()
+      ])
 
-      nodeGs.subscribe(topic)
-      nodeFs.subscribe(topic)
+      await nodeGs.peerStore.addressBook.set(nodeFs.peerId, nodeFs.getMultiaddrs())
+      await nodeGs.dialProtocol(nodeFs.peerId, nodeFs.pubsub.multicodecs)
+
+      nodeGs.pubsub.subscribe(topic)
+      nodeFs.pubsub.subscribe(topic)
 
       // await subscription change
       await Promise.all([
-        new Promise((resolve) => nodeGs.once('pubsub:subscription-change', resolve)),
-        new Promise((resolve) => nodeFs.once('pubsub:subscription-change', resolve))
+        pEvent(nodeGs.pubsub, 'subscription-change'),
+        pEvent(nodeFs.pubsub, 'subscription-change')
       ])
       // allow subscriptions to propagate to the other peer
       await delay(10)
@@ -184,39 +251,45 @@ describe('gossipsub fallbacks to floodsub', () => {
 
     afterEach(async function () {
       this.timeout(4000)
-      await Promise.all([stopNode(nodeGs), stopNode(nodeFs)])
+      await Promise.all([
+        nodeGs.stop(),
+        nodeFs.stop()
+      ])
     })
 
     it('Unsubscribe from a topic', async () => {
-      nodeGs.unsubscribe(topic)
-      expect(nodeGs['subscriptions'].size).to.equal(0)
+      const promise = pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(nodeFs.pubsub, 'subscription-change')
 
-      const [changedPeerId, changedSubs] = await new Promise<[PeerId, RPC.ISubOpts[]]>((resolve) => {
-        nodeFs.once('pubsub:subscription-change', (...args: [PeerId, RPC.ISubOpts[]]) => resolve(args))
-      })
+      nodeGs.pubsub.unsubscribe(topic)
+      expect(nodeGs.pubsub.getTopics()).to.be.empty()
 
-      expect(nodeFs.peers.size).to.equal(1)
-      expectSet(nodeFs.topics.get(topic), [])
-      expect(changedPeerId.toB58String()).to.equal(first(nodeFs.peers).id.toB58String())
+      const evt = await promise
+      const { peerId: changedPeerId, subscriptions: changedSubs } = evt.detail
+
+      expect(nodeFs.pubsub.getPeers()).to.have.lengthOf(1)
+      expect(nodeFs.pubsub.getSubscribers(topic)).to.be.empty()
+      expect(nodeFs.getPeers().map(p => p.toString())).to.deep.equal([changedPeerId.toString()])
       expect(changedSubs).to.have.lengthOf(1)
-      expect(changedSubs[0].topicID).to.equal(topic)
+      expect(changedSubs[0].topic).to.equal(topic)
       expect(changedSubs[0].subscribe).to.equal(false)
     })
 
     it('Publish to a topic after unsubscribe', async () => {
-      nodeGs.unsubscribe(topic)
-      await new Promise((resolve) => nodeFs.once('pubsub:subscription-change', resolve))
+      nodeGs.pubsub.unsubscribe(topic)
+      await pEvent(nodeFs.pubsub, 'subscription-change')
 
       const promise = new Promise<void>((resolve, reject) => {
-        nodeGs.once(topic, reject)
+        nodeGs.pubsub.addEventListener('message', reject, {
+          once: true
+        })
         setTimeout(() => {
-          nodeGs.removeListener(topic, reject)
+          nodeGs.pubsub.removeEventListener('message', reject)
           resolve()
         }, 100)
       })
 
-      nodeFs.publish('Z', uint8ArrayFromString('banana'))
-      nodeGs.publish('Z', uint8ArrayFromString('banana'))
+      await nodeFs.pubsub.publish(topic, uint8ArrayFromString('banana'))
+      await nodeGs.pubsub.publish(topic, uint8ArrayFromString('banana'))
 
       try {
         await promise

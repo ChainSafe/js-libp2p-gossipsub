@@ -1,6 +1,4 @@
-import { ERR_INVALID_PEER_SCORE_THRESHOLDS } from './constants'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+import { ERR_INVALID_PEER_SCORE_THRESHOLDS } from './constants.js'
 import errcode from 'err-code'
 
 // This file defines PeerScoreThresholds interface

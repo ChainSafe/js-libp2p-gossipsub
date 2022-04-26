@@ -1,8 +1,8 @@
-type SimpleTimeCacheOpts = {
+interface SimpleTimeCacheOpts {
   validityMs: number
 }
 
-type CacheValue<T> = {
+interface CacheValue<T> {
   value: T
   validUntilMs: number
 }

@@ -7,7 +7,7 @@ message RPC {
 
   message SubOpts {
     optional bool subscribe = 1; // subscribe or unsubcribe
-    optional string topicID = 2;
+    optional string topic = 2;
   }
 
   message Message {
@@ -32,7 +32,7 @@ message RPC {
   }
 
   message ControlIWant {
-    repeated bytes messageIDs = 1;  
+    repeated bytes messageIDs = 1;
   }
 
   message ControlGraft {

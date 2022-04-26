@@ -1,11 +1,9 @@
-'use strict'
-
-import { RPC, IRPC } from '../message/rpc'
+import type { RPC } from '../message/rpc.js'
 
 /**
  * Create a gossipsub RPC object
  */
-export function createGossipRpc(messages: RPC.IMessage[] = [], control: Partial<RPC.IControlMessage> = {}): IRPC {
+export function createGossipRpc(messages: RPC.Message[] = [], control: Partial<RPC.ControlMessage> = {}): RPC {
   return {
     subscriptions: [],
     messages,

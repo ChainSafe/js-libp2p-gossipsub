@@ -1,1 +1,1 @@
-import './go-gossipsub'
+import './go-gossipsub.js'

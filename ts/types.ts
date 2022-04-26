@@ -1,16 +1,13 @@
-import PeerId from 'peer-id'
-import { keys } from 'libp2p-crypto'
-import { Multiaddr } from 'multiaddr'
-import { RPC } from './message/rpc'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type PromiseValue<T extends Promise<any>> = T extends Promise<infer V> ? V : never
-
-type PrivateKey = PromiseValue<ReturnType<typeof keys.unmarshalPrivateKey>>
+import type { PeerId } from '@libp2p/interfaces/peer-id'
+import type { PrivateKey } from '@libp2p/interfaces/keys'
+import type { Multiaddr } from '@multiformats/multiaddr'
+import type { RPC } from './message/rpc.js'
+import type { Message } from '@libp2p/interfaces/pubsub'
 
 export type MsgIdStr = string
 export type PeerIdStr = string
 export type TopicStr = string
+export type IPStr = string
 
 export interface AddrInfo {
   id: PeerId
@@ -21,12 +18,14 @@ export interface AddrInfo {
  * Compute a local non-spec'ed msg-id for faster de-duplication of seen messages.
  * Used exclusively for a local seen_cache
  */
-export type FastMsgIdFn = (msg: RPC.IMessage) => string
+export type FastMsgIdFn = (msg: RPC.Message) => string
 
 /**
  * Compute spec'ed msg-id. Used for IHAVE / IWANT messages
  */
-export type MsgIdFn = (msg: GossipsubMessage) => Promise<Uint8Array> | Uint8Array
+export interface MsgIdFn {
+  (msg: Message): Promise<Uint8Array> | Uint8Array
+}
 
 export interface DataTransform {
   /**
@@ -52,7 +51,7 @@ export interface DataTransform {
  */
 export type TopicValidatorFn = (
   topic: TopicStr,
-  msg: GossipsubMessage,
+  msg: Message,
   propagationSource: PeerId
 ) => MessageAcceptance | Promise<MessageAcceptance>
 
@@ -154,24 +153,6 @@ export enum MessageStatus {
   duplicate = 'duplicate',
   invalid = 'invalid',
   valid = 'valid'
-}
-
-/**
- * Gossipsub message with TRANSFORMED data
- */
-export type GossipsubMessage = {
-  /// Id of the peer that published this message.
-  from?: Uint8Array
-
-  /// Content of the message.
-  data: Uint8Array
-
-  /// A random sequence number.
-  // Keeping as Uint8Array for cheaper concatenating on msgIdFn
-  seqno?: Uint8Array
-
-  /// The topic this message belongs to
-  topic: TopicStr
 }
 
 /**

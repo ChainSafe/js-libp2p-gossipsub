@@ -1,8 +1,7 @@
 {
-  "include": ["./ts"],
+  "include": ["./ts", "./test"],
   "compilerOptions": {
-    "outDir": "./src",
-    "module": "commonjs",
+    "outDir": "./dist",
     "lib": ["es2020", "dom"],
     "target": "es2020",
 
@@ -19,6 +18,7 @@
     "skipLibCheck": true,
 
     "esModuleInterop": true,
+    "moduleResolution": "node",
     "declaration": true,
     "types": ["node", "mocha"]
   }

@@ -1,6 +1,6 @@
-import { messageIdToString } from './utils'
-import { MsgIdStr, PeerIdStr, RejectReason } from './types'
-import { Metrics } from './metrics'
+import { messageIdToString } from './utils/index.js'
+import { MsgIdStr, PeerIdStr, RejectReason } from './types.js'
+import type { Metrics } from './metrics.js'
 
 /**
  * IWantTracer is an internal tracer that tracks IWANT requests in order to penalize

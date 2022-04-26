@@ -1,5 +1,5 @@
-import { PeerStats } from './peer-stats'
-import { PeerScoreParams } from './peer-score-params'
+import type { PeerStats } from './peer-stats.js'
+import type { PeerScoreParams } from './peer-score-params.js'
 
 export function computeScore(
   peer: string,

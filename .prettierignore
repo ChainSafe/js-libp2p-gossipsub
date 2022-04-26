@@ -3,5 +3,4 @@ src/
 dist/
 
 # Don't format the auto-generated protobuf files
-ts/message/rpc.d.ts
-ts/message/rpc.js
+ts/message/rpc.ts
