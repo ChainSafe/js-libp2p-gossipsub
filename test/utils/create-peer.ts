@@ -8,6 +8,7 @@ import { Mplex } from '@libp2p/mplex'
 import Peers from '../fixtures/peers.js'
 import RelayPeer from '../fixtures/relay.js'
 import { createEd25519PeerId, createFromJSON } from '@libp2p/peer-id-factory'
+import { setMaxListeners } from 'events'
 
 /**
  * These utilities rely on the fixtures defined in test/fixtures
@@ -87,6 +88,14 @@ export async function createPeer (opts: { peerId?: PeerId, started?: boolean, co
   if (started) {
     await libp2p.start()
   }
+
+
+  try {
+    // not available everywhere
+    setMaxListeners(Infinity, libp2p.pubsub)
+    setMaxListeners(Infinity, libp2p)
+  } catch {}
+
 
   return libp2p
 }

@@ -131,6 +131,7 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   graftFloodThreshold?: number
   opportunisticGraftPeers?: number
   opportunisticGraftTicks?: number
+  directConnectTicks?: number
 
   dataTransform?: DataTransform
   metricsRegister?: MetricsRegister | null
@@ -196,7 +197,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   public readonly peers = new Map<PeerIdStr, PeerStreams>()
 
   /** Direct peers */
-  private readonly direct = new Set<PeerIdStr>()
+  public readonly direct = new Set<PeerIdStr>()
 
   /** Floodsub peers */
   private readonly floodsubPeers = new Set<PeerIdStr>()
@@ -345,6 +346,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       graftFloodThreshold: constants.GossipsubGraftFloodThreshold,
       opportunisticGraftPeers: constants.GossipsubOpportunisticGraftPeers,
       opportunisticGraftTicks: constants.GossipsubOpportunisticGraftTicks,
+      directConnectTicks: constants.GossipsubDirectConnectTicks,
       ...options,
       scoreParams: createPeerScoreParams(options.scoreParams),
       scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
@@ -1486,7 +1488,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         try {
           const envelope = await RecordEnvelope.openAndCertify(pi.signedPeerRecord, 'libp2p-peer-record')
           const eid = envelope.peerId
-          if (envelope.peerId.equals(p)) {
+          if (!envelope.peerId.equals(p)) {
             this.log("bogus peer record obtained through px: peer ID %p doesn't match expected peer %p", eid, p)
             return
           }
@@ -2299,7 +2301,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     this.applyIwantPenalties()
 
     // ensure direct peers are connected
-    if (this.heartbeatTicks % constants.GossipsubDirectConnectTicks === 0) {
+    if (this.heartbeatTicks % this.opts.directConnectTicks === 0) {
       // we only do this every few ticks to allow pending connections to complete and account for restarts/downtime
       await this.directConnect()
     }
