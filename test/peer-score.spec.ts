@@ -3,15 +3,14 @@ import { expect } from 'aegir/utils/chai.js'
 import delay from 'delay'
 import type { ConnectionManager } from '@libp2p/interfaces/registrar'
 import { PeerScore, createPeerScoreParams, createTopicScoreParams } from '../ts/score/index.js'
-import * as computeScoreModule from '../ts/score/compute-score.js'
 import { getMsgIdStr, makeTestMessage } from './utils/index.js'
 import { RejectReason } from '../ts/types.js'
 import { ScorePenalty } from '../ts/metrics.js'
 import { stubInterface } from 'ts-sinon'
 import { createEd25519PeerId } from '@libp2p/peer-id-factory'
 import { Components } from '@libp2p/interfaces/components'
-import { peerIdFromString } from '@libp2p/peer-id'
-import type { PeerId } from '@libp2p/interfaces/peer-id'
+import { PeerStats } from '../ts/score/peer-stats.js'
+import type { PeerScoreParams, TopicScoreParams } from '../ts/score/peer-score-params.js'
 
 const connectionManager = stubInterface<ConnectionManager>()
 connectionManager.getConnections.returns([])
@@ -700,46 +699,31 @@ describe('PeerScore', () => {
   })
 })
 
-// TODO: cannot stub ES6 module exports, need to figure out a better way to test this functionality
+// TODO: https://github.com/ChainSafe/js-libp2p-gossipsub/issues/238
 describe.skip('PeerScore score cache', function () {
   const peerA = '16Uiu2HAmMkH6ZLen2tbhiuNCTZLLvrZaDgufNdT5MPjtC9Hr9YNG'
   let sandbox: sinon.SinonSandbox
-  let computeStoreStub: sinon.SinonStub<Parameters<typeof computeScoreModule['computeScore']>, number>
+  let computeStoreStub: sinon.SinonStub<[string, PeerStats, PeerScoreParams, Map<string, Set<string>>], number>
   const params = createPeerScoreParams({
     appSpecificScore: () => -1000,
     appSpecificWeight: 1,
     retainScore: 800,
     decayInterval: 1000,
-    topics: {
-      a: {
-        topicWeight: 10,
-        timeInMeshCap: 0,
-        timeInMeshQuantum: 1000,
-        timeInMeshWeight: 0,
-        firstMessageDeliveriesCap: 0,
-        firstMessageDeliveriesDecay: 0,
-        firstMessageDeliveriesWeight: 0,
-        meshFailurePenaltyDecay: 0,
-        meshFailurePenaltyWeight: 0,
-        meshMessageDeliveriesActivation: 0,
-        meshMessageDeliveriesCap: 0,
-        meshMessageDeliveriesDecay: 0,
-        meshMessageDeliveriesThreshold: 0,
-        meshMessageDeliveriesWeight: 0,
-        meshMessageDeliveriesWindow: 0,
-        invalidMessageDeliveriesDecay: 0.9,
-        invalidMessageDeliveriesWeight: 0
-      }
-    }
+    topics: { a: { topicWeight: 10 } as TopicScoreParams }
   })
-  const ps2 = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-  ps2.init(new Components({ connectionManager }))
+  let ps2: PeerScore
 
   beforeEach(() => {
     sandbox = sinon.createSandbox()
     const now = Date.now()
     sandbox.useFakeTimers(now)
-    computeStoreStub = sandbox.stub(computeScoreModule, 'computeScore')
+    computeStoreStub = sinon.stub<[string, PeerStats, PeerScoreParams, Map<string, Set<string>>], number>()
+
+    ps2 = new PeerScore(params, null, {
+      scoreCacheValidityMs: 10,
+      computeScore: computeStoreStub
+    })
+    ps2.init(new Components({ connectionManager }))
   })
 
   afterEach(() => {

@@ -15,6 +15,8 @@ interface PeerScoreOpts {
    * Miliseconds to cache computed score per peer
    */
   scoreCacheValidityMs: number
+
+  computeScore?: typeof computeScore
 }
 
 interface ScoreCacheEntry {
@@ -44,14 +46,16 @@ export class PeerScore {
    */
   readonly deliveryRecords = new MessageDeliveries()
 
-  _backgroundInterval?: NodeJS.Timeout
+  _backgroundInterval?: ReturnType<typeof setInterval>
 
   private readonly scoreCacheValidityMs: number
   private components = new Components()
+  private readonly computeScore: typeof computeScore
 
   constructor(readonly params: PeerScoreParams, private readonly metrics: Metrics | null, opts: PeerScoreOpts) {
     validatePeerScoreParams(params)
     this.scoreCacheValidityMs = opts.scoreCacheValidityMs
+    this.computeScore = opts.computeScore ?? computeScore
   }
 
   init(components: Components): void {
@@ -112,7 +116,7 @@ export class PeerScore {
 
     this.peerStats.forEach((pstats, id) => {
       if (!pstats.connected) {
-        // has the retention perious expired?
+        // has the retention period expired?
         if (now > pstats.expire) {
           // yes, throw it away (but clean up the IP tracking first)
           this.removeIPs(id, pstats.ips)
@@ -122,7 +126,7 @@ export class PeerScore {
 
         // we don't decay retained scores, as the peer is not active.
         // this way the peer cannot reset a negative score by simply disconnecting and reconnecting,
-        // unless the retention period has ellapsed.
+        // unless the retention period has elapsed.
         // similarly, a well behaved peer does not lose its score by getting disconnected.
         return
       }
@@ -194,7 +198,7 @@ export class PeerScore {
 
     this.metrics?.scoreFnRuns.inc()
 
-    const score = computeScore(id, pstats, this.params, this.peerIPs)
+    const score = this.computeScore(id, pstats, this.params, this.peerIPs)
     const cacheUntil = now + this.scoreCacheValidityMs
 
     if (cacheEntry) {

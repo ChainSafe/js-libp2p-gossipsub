@@ -162,7 +162,7 @@ type GossipStatus =
   | {
       code: GossipStatusCode.started
       registrarTopologyId: string
-      heartbeatTimeout: NodeJS.Timeout
+      heartbeatTimeout: ReturnType<typeof setTimeout>
       hearbeatStartMs: number
     }
   | {
@@ -305,7 +305,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
   private components = new Components()
 
-  private directPeerInitial: NodeJS.Timeout | null = null
+  private directPeerInitial: ReturnType<typeof setTimeout> | null = null
   private readonly log: Logger
 
   public static multicodec: string = constants.GossipsubIDv11
@@ -315,7 +315,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   private status: GossipStatus = { code: GossipStatusCode.stopped }
 
   private heartbeatTimer: {
-    _intervalId: NodeJS.Timeout | undefined
+    _intervalId: ReturnType<typeof setInterval> | undefined
     runPeriodically: (fn: () => void, period: number) => void
     cancel: () => void
   } | null = null

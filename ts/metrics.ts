@@ -632,11 +632,15 @@ export function getMetrics(
       this.rpcSentSubscription.inc(rpc.subscriptions.length)
       this.rpcSentMessage.inc(rpc.messages.length)
       if (rpc.control) {
-        this.rpcSentControl.inc(1)
-        this.rpcSentIHave.inc(rpc.control.ihave.length)
-        this.rpcSentIWant.inc(rpc.control.iwant.length)
-        this.rpcSentGraft.inc(rpc.control.graft.length)
-        this.rpcSentPrune.inc(rpc.control.prune.length)
+        const ihave = rpc.control.ihave.length
+        const iwant = rpc.control.iwant.length
+        const graft = rpc.control.graft.length
+        const prune = rpc.control.prune.length
+        if (ihave > 0) this.rpcSentIHave.inc(ihave)
+        if (iwant > 0) this.rpcSentIWant.inc(iwant)
+        if (graft > 0) this.rpcSentGraft.inc(graft)
+        if (prune > 0) this.rpcSentPrune.inc(prune)
+        if (ihave > 0 || iwant > 0 || graft > 0 || prune > 0) this.rpcSentControl.inc(1)
       }
     },
 
