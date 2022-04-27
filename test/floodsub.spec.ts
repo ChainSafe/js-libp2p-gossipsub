@@ -134,14 +134,14 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       await delay(1000)
 
-      expect(nodeGs.pubsub.getTopics()).to.deep.equal([topic])
-      expect(nodeFs.pubsub.getTopics()).to.deep.equal([topic])
+      expect(nodeGs.pubsub.getTopics()).to.include(topic)
+      expect(nodeFs.pubsub.getTopics()).to.include(topic)
       expect(nodeGs.pubsub.getPeers()).to.have.lengthOf(1)
       expect(nodeFs.pubsub.getPeers()).to.have.lengthOf(1)
-      expect(nodeGs.pubsub.getSubscribers(topic).map(p => p.toString())).to.deep.equal([nodeFs.peerId.toString()])
-      expect(nodeFs.pubsub.getSubscribers(topic).map(p => p.toString())).to.deep.equal([nodeGs.peerId.toString()])
+      expect(nodeGs.pubsub.getSubscribers(topic).map(p => p.toString())).to.include(nodeFs.peerId.toString())
+      expect(nodeFs.pubsub.getSubscribers(topic).map(p => p.toString())).to.include(nodeGs.peerId.toString())
 
-      expect(nodeGs.pubsub.getPeers().map(p => p.toString())).to.deep.equal([changedPeerId.toString()])
+      expect(nodeGs.pubsub.getPeers().map(p => p.toString())).to.include(changedPeerId.toString())
       expect(changedSubs).to.have.lengthOf(1)
       expect(changedSubs[0].topic).to.equal(topic)
       expect(changedSubs[0].subscribe).to.equal(true)
@@ -268,7 +268,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       expect(nodeFs.pubsub.getPeers()).to.have.lengthOf(1)
       expect(nodeFs.pubsub.getSubscribers(topic)).to.be.empty()
-      expect(nodeFs.getPeers().map(p => p.toString())).to.deep.equal([changedPeerId.toString()])
+      expect(nodeFs.getPeers().map(p => p.toString())).to.include(changedPeerId.toString())
       expect(changedSubs).to.have.lengthOf(1)
       expect(changedSubs[0].topic).to.equal(topic)
       expect(changedSubs[0].subscribe).to.equal(false)

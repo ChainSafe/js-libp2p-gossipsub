@@ -9,8 +9,20 @@ import type { Libp2p } from 'libp2p'
 import { pEvent } from 'p-event'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import defer from 'p-defer'
+import pWaitFor from 'p-wait-for'
 
 const shouldNotHappen = () => expect.fail()
+
+async function nodesArePubSubPeers (node0: Libp2p, node1: Libp2p, timeout: number = 60000) {
+  await pWaitFor(() => {
+    const node0SeesNode1 = node0.pubsub.getPeers().map(p => p.toString()).includes(node1.peerId.toString())
+    const node1SeesNode0 = node1.pubsub.getPeers().map(p => p.toString()).includes(node0.peerId.toString())
+
+    return node0SeesNode1 && node1SeesNode0
+  }, {
+    timeout
+  })
+}
 
 describe('2 nodes', () => {
   describe('Pubsub dial', () => {
@@ -25,13 +37,7 @@ describe('2 nodes', () => {
 
     it('Dial from nodeA to nodeB happened with FloodsubID', async () => {
       await nodes[0].dialProtocol(nodes[1].peerId, FloodsubID)
-
-      while (nodes[0].pubsub.getPeers().length === 0 || nodes[1].pubsub.getPeers().length === 0) {
-        await delay(10)
-      }
-
-      expect(nodes[0].pubsub.getPeers()).to.have.lengthOf(1)
-      expect(nodes[1].pubsub.getPeers()).to.have.lengthOf(1)
+      await nodesArePubSubPeers(nodes[0], nodes[1])
     })
   })
 
@@ -47,13 +53,7 @@ describe('2 nodes', () => {
 
     it('Dial from nodeA to nodeB happened with GossipsubIDv11', async () => {
       await nodes[0].dialProtocol(nodes[1].peerId, GossipsubIDv11)
-
-      while (nodes[0].pubsub.getPeers().length === 0 || nodes[1].pubsub.getPeers().length === 0) {
-        await delay(10)
-      }
-
-      expect(nodes[0].pubsub.getPeers()).to.have.lengthOf(1)
-      expect(nodes[1].pubsub.getPeers()).to.have.lengthOf(1)
+      await nodesArePubSubPeers(nodes[0], nodes[1])
     })
   })
 
@@ -63,6 +63,7 @@ describe('2 nodes', () => {
     // Create pubsub nodes
     beforeEach(async () => {
       nodes = await createConnectedGossipsubs({ number: 2 })
+      await nodesArePubSubPeers(nodes[0], nodes[1])
     })
 
     afterEach(async () => await Promise.all(nodes.map(node => node.stop())))
@@ -81,12 +82,10 @@ describe('2 nodes', () => {
 
       const { peerId: changedPeerId, subscriptions: changedSubs } = evt0.detail
 
-      expect(nodes[0].pubsub.getTopics()).to.deep.equal([topic])
-      expect(nodes[1].pubsub.getTopics()).to.deep.equal([topic])
-      expect(nodes[0].pubsub.getPeers()).to.have.lengthOf(1)
-      expect(nodes[1].pubsub.getPeers()).to.have.lengthOf(1)
-      expect(nodes[0].pubsub.getSubscribers(topic).map(p => p.toString())).to.deep.equal([nodes[1].peerId.toString()])
-      expect(nodes[1].pubsub.getSubscribers(topic).map(p => p.toString())).to.deep.equal([nodes[0].peerId.toString()])
+      expect(nodes[0].pubsub.getTopics()).to.include(topic)
+      expect(nodes[1].pubsub.getTopics()).to.include(topic)
+      expect(nodes[0].pubsub.getSubscribers(topic).map(p => p.toString())).to.include(nodes[1].peerId.toString())
+      expect(nodes[1].pubsub.getSubscribers(topic).map(p => p.toString())).to.include(nodes[0].peerId.toString())
 
       expect(changedPeerId.toString()).to.equal(nodes[1].peerId.toString())
       expect(changedSubs).to.have.lengthOf(1)
@@ -279,9 +278,9 @@ describe('2 nodes', () => {
       nodes[1].pubsub.subscribe('Zb')
 
       expect(nodes[0].pubsub.getPeers()).to.be.empty()
-      expect(nodes[0].pubsub.getTopics()).to.deep.equal(['Za'])
+      expect(nodes[0].pubsub.getTopics()).to.include('Za')
       expect(nodes[1].pubsub.getPeers()).to.be.empty()
-      expect(nodes[1].pubsub.getTopics()).to.deep.equal(['Zb'])
+      expect(nodes[1].pubsub.getTopics()).to.include('Zb')
     })
 
     afterEach(async () => await Promise.all(nodes.map(node => node.stop())))
@@ -295,14 +294,11 @@ describe('2 nodes', () => {
         pEvent(nodes[1].pubsub, 'subscription-change')
       ])
 
-      expect(nodes[0].pubsub.getPeers()).to.have.lengthOf(1)
-      expect(nodes[1].pubsub.getPeers()).to.have.lengthOf(1)
-
-      expect(nodes[0].pubsub.getTopics()).to.deep.equal(['Za'])
+      expect(nodes[0].pubsub.getTopics()).to.include('Za')
       expect(nodes[1].pubsub.getPeers()).to.have.lengthOf(1)
       expect(nodes[1].pubsub.getSubscribers('Za').map(p => p.toString())).to.include(nodes[0].peerId.toString())
 
-      expect(nodes[1].pubsub.getTopics()).to.deep.equal(['Zb'])
+      expect(nodes[1].pubsub.getTopics()).to.include('Zb')
       expect(nodes[0].pubsub.getPeers()).to.have.lengthOf(1)
       expect(nodes[0].pubsub.getSubscribers('Zb').map(p => p.toString())).to.include(nodes[1].peerId.toString())
     })

@@ -16,7 +16,6 @@ const opts = {
 
       // Use the last peer
       const RelayPeer = await import('./dist/test/fixtures/relay.js')
-      const { GossipSub } = await import('./dist/ts/index.js')
       const peerId = await createFromJSON(RelayPeer.default)
       const libp2p = await createLibp2p({
         addresses: {
@@ -38,8 +37,7 @@ const opts = {
             enabled: true,
             active: false
           }
-        },
-        pubsub: new GossipSub()
+        }
       })
 
       await libp2p.start()
