@@ -23,7 +23,7 @@
     "pretest": "npm run build",
     "benchmark": "node ./node_modules/.bin/benchmark 'test/benchmark/time-cache.test.js' --local",
     "test": "aegir test -f './dist/test/*.spec.js'",
-    "test:node": "npm run test -- --target node",
+    "test:node": "npm run test -- -f './dist/test/*.js' --target node",
     "test:browser": "npm run test -- --target browser"
   },
   "repository": {

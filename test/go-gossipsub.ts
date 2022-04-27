@@ -73,7 +73,7 @@ const checkReceivedMessage =
       const t = setTimeout(() => {
         node.pubsub.removeEventListener('message', cb)
         reject(new Error(`Message never received, sender ${senderIx}, receiver ${receiverIx}, index ${msgIx}`))
-      }, 20000)
+      }, 60000)
       const cb = (evt: CustomEvent<Message>) => {
         const msg = evt.detail
 
