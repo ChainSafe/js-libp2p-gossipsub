@@ -40,7 +40,7 @@ describe('gossip', () => {
     await waitForAllNodesToBePeered(nodes)
 
     // await mesh rebalancing
-    await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+    await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
     await delay(500)
 
@@ -52,7 +52,7 @@ describe('gossip', () => {
 
     await nodeA.pubsub.publish(topic, uint8ArrayFromString('hey'))
 
-    await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+    await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
     nodeASpy.pushGossip
       .getCalls()
@@ -84,7 +84,7 @@ describe('gossip', () => {
     await waitForAllNodesToBePeered(nodes)
 
     // await mesh rebalancing
-    await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+    await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
     await delay(500)
 
     const peerB = [...((nodeA.pubsub as GossipSub).mesh.get(topic) ?? [])][0]

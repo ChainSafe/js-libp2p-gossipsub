@@ -75,8 +75,8 @@ describe('2 nodes', () => {
 
       // await subscription change
       const [evt0] = await Promise.all([
-        await pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(nodes[0].pubsub, 'subscription-change'),
-        await pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(nodes[1].pubsub, 'subscription-change')
+        pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(nodes[0].pubsub, 'subscription-change'),
+        pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(nodes[1].pubsub, 'subscription-change')
       ])
 
       const { peerId: changedPeerId, subscriptions: changedSubs } = evt0.detail
@@ -95,8 +95,8 @@ describe('2 nodes', () => {
 
       // await heartbeats
       await Promise.all([
-        await pEvent(nodes[0].pubsub, 'gossipsub:heartbeat'),
-        await pEvent(nodes[1].pubsub, 'gossipsub:heartbeat')
+        pEvent(nodes[0].pubsub, 'gossipsub:heartbeat'),
+        pEvent(nodes[1].pubsub, 'gossipsub:heartbeat')
       ])
 
       expect((nodes[0].pubsub as GossipSub).mesh.get(topic)?.has(nodes[1].peerId.toString())).to.be.true()
