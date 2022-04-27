@@ -976,19 +976,22 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       })
     ])
 
+    await Promise.all(libp2ps.map((ps) => ps.start()))
+
     ;(libp2ps[1].pubsub as GossipSub).direct.add(libp2ps[2].peerId.toString())
     await libp2ps[1].peerStore.addressBook.add(libp2ps[2].peerId, libp2ps[2].getMultiaddrs())
+    await libp2ps[1].dialProtocol(libp2ps[2].peerId, libp2ps[2].pubsub.multicodecs)
 
     ;(libp2ps[2].pubsub as GossipSub).direct.add(libp2ps[1].peerId.toString())
     await libp2ps[2].peerStore.addressBook.add(libp2ps[1].peerId, libp2ps[1].getMultiaddrs())
+    await libp2ps[2].dialProtocol(libp2ps[1].peerId, libp2ps[1].pubsub.multicodecs)
 
-    await Promise.all(libp2ps.map((ps) => ps.start()))
     const multicodecs = libp2ps[0].pubsub.multicodecs
     // each peer connects to 2 other peers
-    let connectPromises = libp2ps.map((libp2p) => awaitEvents(libp2p.connectionManager, 'peer:connect', 2))
+    await libp2ps[0].peerStore.addressBook.add(libp2ps[1].peerId, libp2ps[1].getMultiaddrs())
     await libp2ps[0].dialProtocol(libp2ps[1].peerId, multicodecs)
+    await libp2ps[0].peerStore.addressBook.add(libp2ps[2].peerId, libp2ps[2].getMultiaddrs())
     await libp2ps[0].dialProtocol(libp2ps[2].peerId, multicodecs)
-    await Promise.all(connectPromises)
 
     const topic = 'foobar'
     const peerIdStrs = libp2ps.map((libp2p) => libp2p.peerId.toString())
@@ -1009,7 +1012,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     }
     await Promise.all(sendRecv)
 
-    connectPromises = [1, 2].map((i) => awaitEvents(libp2ps[i].connectionManager, 'peer:connect', 1))
+    let connectPromises = [1, 2].map((i) => awaitEvents(libp2ps[i].connectionManager, 'peer:connect', 1))
     // disconnect the direct peers to test reconnection
     // need more time to disconnect/connect/send subscriptions again
     subscriptionPromises = [
@@ -1210,8 +1213,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     const test1 = 'test1'
     const test2 = 'test2'
     const test3 = 'test3'
-    psub['mesh'].set(test1, new Set([otherId]))
-    psub['mesh'].set(test2, new Set())
+    psub.mesh.set(test1, new Set([otherId]))
+    psub.mesh.set(test2, new Set())
 
     const rpc: RPC = {
       subscriptions: [],
@@ -1228,8 +1231,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     expect(rpc).to.have.nested.property('control.graft.length', 1)
     expect(rpc).to.have.nested.property('control.graft[0].topicID', test1)
     expect(rpc).to.have.nested.property('control.prune.length', 2)
-    expect(rpc).to.have.nested.property('control.prune[0].topicIDh', test2)
-    expect(rpc).to.have.nested.property('control.prune[1].topicIDh', test3)
+    expect(rpc).to.have.nested.property('control.prune[0].topicID', test2)
+    expect(rpc).to.have.nested.property('control.prune[1].topicID', test3)
 
     await psub.stop()
     await Promise.all(libp2ps.map((libp2p) => libp2p.stop()))

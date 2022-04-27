@@ -2014,24 +2014,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   }
 
   public piggybackControl(id: PeerIdStr, outRpc: RPC, ctrl: RPC.ControlMessage): void {
-    const filterByMeshPeers = ({ topicID }: { topicID?: string }) => {
-      if (topicID == null) {
-        return false
-      }
+    const tograft = ctrl.graft.filter(({ topicID }) => ((topicID && this.mesh.get(topicID)) || new Set()).has(id))
+    const toprune = ctrl.prune.filter(({ topicID }) => !((topicID && this.mesh.get(topicID)) || new Set()).has(id))
 
-      const meshPeers = this.mesh.get(topicID)
-
-      if (meshPeers == null) {
-        return false
-      }
-
-      return meshPeers.has(id)
-    }
-
-    const tograft = ctrl.graft.filter(filterByMeshPeers)
-    const toprune = ctrl.prune.filter(filterByMeshPeers)
-
-    if (tograft.length === 0 && toprune.length === 0) {
+    if (!tograft.length && !toprune.length) {
       return
     }
 
@@ -2039,7 +2025,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       outRpc.control.graft = outRpc.control.graft.concat(tograft)
       outRpc.control.prune = outRpc.control.prune.concat(toprune)
     } else {
-      outRpc.control = { ihave: [], iwant: [], graft: tograft, prune: toprune }
+      outRpc.control = { graft: tograft, prune: toprune, ihave: [], iwant: [] }
     }
   }
 
