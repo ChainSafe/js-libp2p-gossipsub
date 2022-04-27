@@ -8,31 +8,33 @@ import {
 import * as constants from '../ts/constants'
 
 describe('TopicScoreParams validation', () => {
+  it('should not throw on default TopicScoreParams', () => {
+    expect(() => validateTopicScoreParams(createTopicScoreParams({}))).to.not.throw()
+  })
   it('should throw on invalid TopicScoreParams', () => {
-    expect(() => validateTopicScoreParams(createTopicScoreParams({}))).to.throw
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
           topicWeight: -1
         })
-      )
-    ).to.throw
+      ), "topicWeight must be >= 0"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
           timeInMeshWeight: -1,
           timeInMeshQuantum: 1000
         })
-      )
-    ).to.throw
+      ), "timeInMeshWeight must be positive (or 0 to disable)"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
           timeInMeshWeight: 1,
           timeInMeshQuantum: -1
         })
-      )
-    ).to.throw
+      ), "timeInMeshQuantum must be positive"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
@@ -40,16 +42,16 @@ describe('TopicScoreParams validation', () => {
           timeInMeshQuantum: 1000,
           timeInMeshCap: -1
         })
-      )
-    ).to.throw
+      ), "timeInMeshCap must be positive"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
           timeInMeshQuantum: 1000,
           firstMessageDeliveriesWeight: -1
         })
-      )
-    ).to.throw
+      ), "firstMessageDeliveriesWeight must be positive (or 0 to disable)"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
@@ -57,8 +59,8 @@ describe('TopicScoreParams validation', () => {
           firstMessageDeliveriesWeight: 1,
           firstMessageDeliveriesDecay: -1
         })
-      )
-    ).to.throw
+      ), "firstMessageDeliveriesDecay must be between 0 and 1"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
@@ -66,8 +68,8 @@ describe('TopicScoreParams validation', () => {
           firstMessageDeliveriesWeight: 1,
           firstMessageDeliveriesDecay: 2
         })
-      )
-    ).to.throw
+      ), "firstMessageDeliveriesDecay must be between 0 and 1"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
@@ -76,16 +78,16 @@ describe('TopicScoreParams validation', () => {
           firstMessageDeliveriesDecay: 0.5,
           firstMessageDeliveriesCap: -1
         })
-      )
-    ).to.throw
+      ), "firstMessageDeliveriesCap must be positive"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
           timeInMeshQuantum: 1000,
           meshMessageDeliveriesWeight: 1
         })
-      )
-    ).to.throw
+      ), "meshMessageDeliveriesWeight must be negative (or 0 to disable)"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
@@ -93,8 +95,8 @@ describe('TopicScoreParams validation', () => {
           meshMessageDeliveriesWeight: -1,
           meshMessageDeliveriesDecay: -1
         })
-      )
-    ).to.throw
+      ), "meshMessageDeliveriesDecay must be between 0 and 1"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
@@ -102,8 +104,8 @@ describe('TopicScoreParams validation', () => {
           meshMessageDeliveriesWeight: -1,
           meshMessageDeliveriesDecay: 2
         })
-      )
-    ).to.throw
+      ), "meshMessageDeliveriesDecay must be between 0 and 1"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
@@ -112,8 +114,8 @@ describe('TopicScoreParams validation', () => {
           meshMessageDeliveriesDecay: 0.5,
           meshMessageDeliveriesCap: -1
         })
-      )
-    ).to.throw
+      ), "meshMessageDeliveriesCap must be positive"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
@@ -122,39 +124,39 @@ describe('TopicScoreParams validation', () => {
           meshMessageDeliveriesDecay: 5,
           meshMessageDeliveriesThreshold: -3
         })
-      )
-    ).to.throw
+      ), "meshMessageDeliveriesDecay must be between 0 and 1"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
           timeInMeshQuantum: 1000,
           meshMessageDeliveriesWeight: -1,
-          meshMessageDeliveriesDecay: 5,
-          meshMessageDeliveriesThreshold: 3,
+          meshMessageDeliveriesDecay: 0.5,
+          meshMessageDeliveriesThreshold: -3,
           meshMessageDeliveriesWindow: -1
         })
-      )
-    ).to.throw
+      ), "meshMessageDeliveriesThreshold must be positive"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
           timeInMeshQuantum: 1000,
           meshMessageDeliveriesWeight: -1,
-          meshMessageDeliveriesDecay: 5,
+          meshMessageDeliveriesDecay: 0.5,
           meshMessageDeliveriesThreshold: 3,
-          meshMessageDeliveriesWindow: 1,
+          meshMessageDeliveriesWindow: -1,
           meshMessageDeliveriesActivation: 1
         })
-      )
-    ).to.throw
+      ), "meshMessageDeliveriesWindow must be non-negative"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
           timeInMeshQuantum: 1000,
           meshFailurePenaltyWeight: 1
         })
-      )
-    ).to.throw
+      ), "meshFailurePenaltyWeight must be negative"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
@@ -162,8 +164,8 @@ describe('TopicScoreParams validation', () => {
           meshFailurePenaltyWeight: -1,
           meshFailurePenaltyDecay: -1
         })
-      )
-    ).to.throw
+      ), "meshFailurePenaltyDecay must be between 0 and 1"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
@@ -171,16 +173,16 @@ describe('TopicScoreParams validation', () => {
           meshFailurePenaltyWeight: -1,
           meshFailurePenaltyDecay: 2
         })
-      )
-    ).to.throw
+      ),  "meshFailurePenaltyDecay must be between 0 and 1"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
           timeInMeshQuantum: 1000,
           invalidMessageDeliveriesWeight: 1
         })
-      )
-    ).to.throw
+      ), "invalidMessageDeliveriesWeight must be negative"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
@@ -188,8 +190,8 @@ describe('TopicScoreParams validation', () => {
           invalidMessageDeliveriesWeight: -1,
           invalidMessageDeliveriesDecay: -1
         })
-      )
-    ).to.throw
+      ), "invalidMessageDeliveriesDecay must be between 0 and 1"
+    ).to.throw()
     expect(() =>
       validateTopicScoreParams(
         createTopicScoreParams({
@@ -197,8 +199,8 @@ describe('TopicScoreParams validation', () => {
           invalidMessageDeliveriesWeight: -1,
           invalidMessageDeliveriesDecay: 2
         })
-      )
-    ).to.throw
+      ), "invalidMessageDeliveriesDecay must be between 0 and 1"
+    ).to.throw()
   })
   it('should not throw on valid TopicScoreParams', () => {
     expect(() =>
@@ -223,7 +225,7 @@ describe('TopicScoreParams validation', () => {
           invalidMessageDeliveriesDecay: 0.5
         })
       )
-    ).to.not.throw
+    ).to.not.throw()
   })
 })
 
@@ -239,17 +241,17 @@ describe('PeerScoreParams validation', () => {
           decayInterval: 1000,
           decayToZero: 0.01
         })
-      )
-    ).to.throw
+      ), "topicScoreCap must be positive"
+    ).to.throw()
     expect(() =>
       validatePeerScoreParams(
         createPeerScoreParams({
           topicScoreCap: 1,
-          decayInterval: 1000,
+          decayInterval: 999,
           decayToZero: 0.01
         })
-      )
-    ).to.throw
+      ), "decayInterval must be at least 1s"
+    ).to.throw()
     expect(() =>
       validatePeerScoreParams(
         createPeerScoreParams({
@@ -259,8 +261,8 @@ describe('PeerScoreParams validation', () => {
           decayToZero: 0.01,
           IPColocationFactorWeight: 1
         })
-      )
-    ).to.throw
+      ), "IPColocationFactorWeight should be negative"
+    ).to.throw()
     expect(() =>
       validatePeerScoreParams(
         createPeerScoreParams({
@@ -271,8 +273,8 @@ describe('PeerScoreParams validation', () => {
           IPColocationFactorWeight: -1,
           IPColocationFactorThreshold: -1
         })
-      )
-    ).to.throw
+      ), "IPColocationFactorThreshold should be at least 1"
+    ).to.throw()
     expect(() =>
       validatePeerScoreParams(
         createPeerScoreParams({
@@ -281,10 +283,10 @@ describe('PeerScoreParams validation', () => {
           decayInterval: 1000,
           decayToZero: 0.01,
           IPColocationFactorWeight: -1,
-          IPColocationFactorThreshold: 1
+          IPColocationFactorThreshold: 0.99
         })
-      )
-    ).to.throw
+      ), "IPColocationFactorThreshold should be at least 1"
+    ).to.throw()
     expect(() =>
       validatePeerScoreParams(
         createPeerScoreParams({
@@ -295,8 +297,8 @@ describe('PeerScoreParams validation', () => {
           IPColocationFactorWeight: -1,
           IPColocationFactorThreshold: 1
         })
-      )
-    ).to.throw
+      ), "decayToZero must be between 0 and 1"
+    ).to.throw()
     expect(() =>
       validatePeerScoreParams(
         createPeerScoreParams({
@@ -307,8 +309,8 @@ describe('PeerScoreParams validation', () => {
           IPColocationFactorWeight: -1,
           IPColocationFactorThreshold: 1
         })
-      )
-    ).to.throw
+      ), "decayToZero must be between 0 and 1"
+    ).to.throw()
     expect(() =>
       validatePeerScoreParams(
         createPeerScoreParams({
@@ -317,18 +319,8 @@ describe('PeerScoreParams validation', () => {
           decayToZero: 0.01,
           behaviourPenaltyWeight: 1
         })
-      )
-    ).to.throw
-    expect(() =>
-      validatePeerScoreParams(
-        createPeerScoreParams({
-          appSpecificScore: appScore,
-          decayInterval: 1000,
-          decayToZero: 0.01,
-          behaviourPenaltyWeight: -1
-        })
-      )
-    ).to.throw
+      ), "behaviourPenaltyWeight MUST be negative (or zero to disable)"
+    ).to.throw()
     expect(() =>
       validatePeerScoreParams(
         createPeerScoreParams({
@@ -338,8 +330,8 @@ describe('PeerScoreParams validation', () => {
           behaviourPenaltyWeight: -1,
           behaviourPenaltyDecay: 2
         })
-      )
-    ).to.throw
+      ), "behaviourPenaltyDecay must be between 0 and 1"
+    ).to.throw()
     expect(() =>
       validatePeerScoreParams(
         createPeerScoreParams({
@@ -372,7 +364,7 @@ describe('PeerScoreParams validation', () => {
           }
         })
       )
-    ).to.throw
+    ).to.throw()
   })
   it('should not throw on valid PeerScoreParams', () => {
     expect(() =>
@@ -387,7 +379,7 @@ describe('PeerScoreParams validation', () => {
           behaviourPenaltyDecay: 0.999
         })
       )
-    ).to.not.throw
+    ).to.not.throw()
     expect(() =>
       validatePeerScoreParams(
         createPeerScoreParams({
@@ -401,7 +393,7 @@ describe('PeerScoreParams validation', () => {
           behaviourPenaltyDecay: 0.999
         })
       )
-    ).to.not.throw
+    ).to.not.throw()
     expect(() =>
       validatePeerScoreParams(
         createPeerScoreParams({
@@ -434,6 +426,6 @@ describe('PeerScoreParams validation', () => {
           }
         })
       )
-    ).to.not.throw
+    ).to.not.throw()
   })
 })

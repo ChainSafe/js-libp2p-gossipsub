@@ -8,45 +8,52 @@ describe('PeerScoreThresholds validation', () => {
         createPeerScoreThresholds({
           gossipThreshold: 1
         })
-      )
-    ).to.throw
+      ), "gossipThreshold must be <= 0"
+    ).to.throw()
     expect(() =>
       validatePeerScoreThresholds(
         createPeerScoreThresholds({
           publishThreshold: 1
         })
-      )
-    ).to.throw
+      ), "publishThreshold must be <= 0 and <= gossip threshold"
+    ).to.throw()
     expect(() =>
       validatePeerScoreThresholds(
         createPeerScoreThresholds({
           gossipThreshold: -1,
           publishThreshold: 0
         })
-      )
-    ).to.throw
+      ), "publishThreshold must be <= 0 and <= gossip threshold"
+    ).to.throw()
     expect(() =>
       validatePeerScoreThresholds(
         createPeerScoreThresholds({
-          gossipThreshold: -1,
-          publishThreshold: -2
+          graylistThreshold: 1
         })
-      )
-    ).to.throw
+      ), "graylistThreshold must be <= 0 and <= publish threshold"
+    ).to.throw()
+    expect(() =>
+      validatePeerScoreThresholds(
+        createPeerScoreThresholds({
+          publishThreshold: -1,
+          graylistThreshold: -2,
+        })
+      ), "graylistThreshold must be <= 0 and <= publish threshold"
+    ).to.throw()
     expect(() =>
       validatePeerScoreThresholds(
         createPeerScoreThresholds({
           acceptPXThreshold: -1
         })
-      )
-    ).to.throw
+      ), "acceptPXThreshold must be >= 0"
+    ).to.throw()
     expect(() =>
       validatePeerScoreThresholds(
         createPeerScoreThresholds({
           opportunisticGraftThreshold: -1
         })
-      )
-    ).to.throw
+      ), "opportunisticGraftThreshold must be >= 0"
+    ).to.throw()
   })
   it('should not throw on valid PeerScoreThresholds', () => {
     expect(() =>
@@ -59,6 +66,6 @@ describe('PeerScoreThresholds validation', () => {
           opportunisticGraftThreshold: 2
         })
       )
-    ).to.not.throw
+    ).to.not.throw()
   })
 })
