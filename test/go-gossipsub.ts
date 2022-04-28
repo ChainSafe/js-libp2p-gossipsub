@@ -29,7 +29,7 @@ import pWaitFor from 'p-wait-for'
  * https://github.com/libp2p/go-libp2p-pubsub/blob/master/gossipsub_test.go
  */
 
-const checkReceivedSubscription = async (node: Libp2p, peerIdStr: string, topic: string, peerIdx: number, timeout = 1000) => {
+const checkReceivedSubscription = async (node: Libp2p, peerIdStr: string, topic: string, peerIdx: number, timeout = 5000) => {
   while (true) {
     const evt = await pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(node.pubsub, 'subscription-change', {
       timeout
