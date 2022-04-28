@@ -1856,8 +1856,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     }
 
     const { tosend, tosendCount } = this.selectPeersToPublish(rawMsg.topic)
+    const willSendToSelf = this.opts.emitSelf === true && this.subscriptions.has(topic)
 
-    if (tosend.size === 0 && !this.opts.allowPublishToZeroPeers) {
+    if (tosend.size === 0 && !this.opts.allowPublishToZeroPeers && !willSendToSelf) {
       throw Error('PublishError.InsufficientPeers')
     }
 
@@ -1879,7 +1880,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     this.metrics?.onPublishMsg(topic, tosendCount, tosend.size, rawMsg.data != null ? rawMsg.data.length : 0)
 
     // Dispatch the message to the user if we are subscribed to the topic
-    if (this.opts.emitSelf === true && this.subscriptions.has(topic)) {
+    if (willSendToSelf) {
       tosend.add(this.components.getPeerId().toString())
 
       super.dispatchEvent(
