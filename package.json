@@ -46,6 +46,7 @@
     "@libp2p/interfaces": "^1.3.23",
     "@libp2p/logger": "^1.1.4",
     "@libp2p/peer-id": "^1.1.10",
+    "@libp2p/pubsub": "^1.2.20",
     "@libp2p/topology": "^1.1.7",
     "denque": "^1.5.0",
     "err-code": "^3.0.1",
