@@ -13,7 +13,6 @@ import {
 import type { Message, SubscriptionChangeData } from '@libp2p/interfaces/pubsub'
 import type { RPC } from '../ts/message/rpc.js'
 import type { ConnectionManagerEvents } from '@libp2p/interfaces/connection-manager'
-import { pEvent } from 'p-event'
 import pWaitFor from 'p-wait-for'
 import { Components } from '@libp2p/interfaces/components'
 import { sparseConnect,
@@ -98,13 +97,24 @@ const checkReceivedMessage =
       node.getPubSub().addEventListener('message', cb)
     })
 
-const awaitEvents = async <Events = GossipsubEvents> (emitter: EventEmitter<Events>, event: keyof Events, number: number, timeout = 10000) => {
-  for (let i = 0; i < number; i++) {
-    // @ts-expect-error pEvent types are looser than the sig of this function
-    await pEvent(emitter, event, {
-      timeout
-    })
-  }
+const awaitEvents = async <Events = GossipsubEvents> (emitter: EventEmitter<Events>, event: keyof Events, number: number, timeout = 30000) => {
+  return new Promise<void>((resolve, reject) => {
+    let cb: () => void
+    let counter = 0
+    const t = setTimeout(() => {
+      emitter.removeEventListener(event, cb)
+      reject(new Error(`${counter} of ${number} '${event}' events received after ${timeout}ms`))
+    }, timeout)
+    cb = () => {
+      counter++
+      if (counter >= number) {
+        clearTimeout(t)
+        emitter.removeEventListener(event, cb)
+        resolve()
+      }
+    }
+    emitter.addEventListener(event, cb)
+  })
 }
 
 describe('go-libp2p-pubsub gossipsub tests', function () {

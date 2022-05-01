@@ -68,17 +68,16 @@ export const connectAllPubSubNodes = async (components: Components[]) => {
 }
 
 /**
- * Connect some gossipsub nodes to others
+ * For every node in `gss`, connect it to `num` other nodes in `gss`
  *
  * @param {Gossipsub[]} gss
- * @param {number} num - number of peers to connect
+ * @param {number} num - number of peers to connect each node to
  */
  export async function connectSome (gss: Components[], num: number) {
   for (let i = 0; i < gss.length; i++) {
-    for (let j = 0; j < num; j++) {
+    while (gss[i].getConnectionManager().getConnections().length < num) {
       const n = Math.floor(Math.random() * gss.length)
       if (n === i) {
-        j--
         continue
       }
 
@@ -92,5 +91,5 @@ export async function sparseConnect (gss: Components[]) {
 }
 
 export async function denseConnect (gss: Components[]) {
-  await connectSome(gss, 10)
+  await connectSome(gss, Math.min(gss.length -1, 10))
 }

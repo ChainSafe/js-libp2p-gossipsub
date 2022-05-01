@@ -39,5 +39,8 @@ export async function getPublishConfigFromPeerId(
       return {
         type: PublishConfigType.Anonymous
       }
+
+    default:
+      throw new Error(`Unknown signature policy "${signaturePolicy}"`)
   }
 }
