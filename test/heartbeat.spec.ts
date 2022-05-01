@@ -1,34 +1,35 @@
 import { expect } from 'aegir/utils/chai.js'
 import { GossipsubHeartbeatInterval } from '../ts/constants.js'
-import { createGossipSub } from './utils/index.js'
-import type { Libp2p } from 'libp2p'
 import { pEvent } from 'p-event'
+import { Components } from '@libp2p/interfaces/components'
+import { createComponents } from './utils/create-pubsub.js'
+import { stop } from '@libp2p/interface-compliance-tests'
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 
 describe('heartbeat', () => {
-  let node: Libp2p
+  let node: Components
 
   before(async () => {
-    node = await createGossipSub({
-      started: true,
+    mockNetwork.reset()
+    node = await createComponents({
       init: {
         emitSelf: true
       }
     })
   })
 
-  after(async () => {
-    if (node != null) {
-      await node.stop()
-    }
+  after(() => {
+    stop(node)
+    mockNetwork.reset()
   })
 
   it('should occur with regularity defined by a constant', async function () {
     this.timeout(GossipsubHeartbeatInterval * 5)
 
-    await pEvent(node.pubsub, 'gossipsub:heartbeat')
+    await pEvent(node.getPubSub(), 'gossipsub:heartbeat')
     const t1 = Date.now()
 
-    await pEvent(node.pubsub, 'gossipsub:heartbeat')
+    await pEvent(node.getPubSub(), 'gossipsub:heartbeat')
     const t2 = Date.now()
 
     const safeFactor = 1.5

@@ -1,4 +1,4 @@
-import type { ConnectionManager } from '@libp2p/interfaces/registrar'
+import type { ConnectionManager } from '@libp2p/interfaces/connection-manager'
 import { computeAllPeersScoreWeights } from '../ts/score/scoreMetrics.js'
 import { createPeerScoreParams, createTopicScoreParams, PeerScore } from '../ts/score/index.js'
 import { ScorePenalty } from '../ts/metrics.js'

@@ -1212,7 +1212,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     let iwantDonthave = 0
 
     iwant.forEach(({ messageIDs }) => {
-      messageIDs?.forEach((msgId) => {
+      messageIDs.forEach((msgId) => {
         const msgIdStr = messageIdToString(msgId)
         const entry = this.mcache.getWithIWantCount(msgIdStr, id)
         if (entry == null) {
@@ -1234,6 +1234,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     this.metrics?.onIwantRcv(iwantByTopic, iwantDonthave)
 
     if (!ihave.size) {
+      this.log('IWANT: Could not provide any wanted messages to %s', id)
       return []
     }
 
@@ -1515,7 +1516,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    */
   private async connect(id: PeerIdStr): Promise<void> {
     this.log('Initiating connection with %s', id)
-    await this.components.getDialer().dialProtocol(peerIdFromString(id), this.multicodecs)
+    const connection = await this.components.getConnectionManager().openConnection(peerIdFromString(id))
+    await connection.newStream(this.multicodecs)
+    // TODO: what happens to the stream?
   }
 
   /**

@@ -1,7 +1,7 @@
 import sinon from 'sinon'
 import { expect } from 'aegir/utils/chai.js'
 import delay from 'delay'
-import type { ConnectionManager } from '@libp2p/interfaces/registrar'
+import type { ConnectionManager } from '@libp2p/interfaces/connection-manager'
 import { PeerScore, createPeerScoreParams, createTopicScoreParams } from '../ts/score/index.js'
 import { getMsgIdStr, makeTestMessage } from './utils/index.js'
 import { RejectReason } from '../ts/types.js'

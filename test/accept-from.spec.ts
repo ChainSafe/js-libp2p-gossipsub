@@ -1,6 +1,4 @@
 import { Components } from '@libp2p/interfaces/components'
-import type { PeerId } from '@libp2p/interfaces/peer-id'
-import { peerIdFromString } from '@libp2p/peer-id'
 import { expect } from 'aegir/utils/chai.js'
 import sinon from 'sinon'
 import { GossipSub } from '../ts/index.js'
