@@ -449,15 +449,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   async init(components: Components): Promise<void> {
     this.components = components
     this.score.init(components)
-
-    this.publishConfig = await getPublishConfigFromPeerId(this.globalSignaturePolicy, this.components.getPeerId())
-
-    // set direct peer addresses in the address book
-    await Promise.all(
-      this.opts.directPeers.map(async (p) => {
-        await components.getPeerStore().addressBook.add(p.id, p.addrs)
-      })
-    )
   }
 
   /**
@@ -471,6 +462,15 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     }
 
     this.log('starting')
+
+    this.publishConfig = await getPublishConfigFromPeerId(this.globalSignaturePolicy, this.components.getPeerId())
+
+    // set direct peer addresses in the address book
+    await Promise.all(
+      this.opts.directPeers.map(async (p) => {
+        await this.components.getPeerStore().addressBook.add(p.id, p.addrs)
+      })
+    )
 
     // Incoming streams
     // Called after a peer dials us

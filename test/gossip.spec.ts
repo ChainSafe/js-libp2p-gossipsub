@@ -51,23 +51,23 @@ describe('gossip', () => {
     }>
     sinon.spy(nodeASpy, 'pushGossip')
 
-    // bad peers can get pruned from the mesh during the heatbeat so test on
-    // the mesh contents at the time of publish
-    const mesh = (nodeA.getPubSub() as GossipSub).mesh.get(topic)
-
     await nodeA.getPubSub().publish(topic, uint8ArrayFromString('hey'))
 
     await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
+
+    const mesh = (nodeA.getPubSub() as GossipSub).mesh.get(topic)
+
+    if (mesh == null) {
+      throw new Error('No mesh for topic')
+    }
 
     nodeASpy.pushGossip
       .getCalls()
       .map((call) => call.args[0])
       .forEach((peerId) => {
-        if (mesh != null) {
-          mesh.forEach((meshPeerId) => {
-            expect(meshPeerId).to.not.equal(peerId)
-          })
-        }
+        mesh.forEach((meshPeerId) => {
+          expect(meshPeerId).to.not.equal(peerId)
+        })
       })
 
     // unset spy
