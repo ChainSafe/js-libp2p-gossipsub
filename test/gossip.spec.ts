@@ -65,9 +65,7 @@ describe('gossip', () => {
       .getCalls()
       .map((call) => call.args[0])
       .forEach((peerId) => {
-        mesh.forEach((meshPeerId) => {
-          expect(meshPeerId).to.not.equal(peerId)
-        })
+        expect(mesh).to.not.include(peerId)
       })
 
     // unset spy
@@ -88,7 +86,21 @@ describe('gossip', () => {
     // await mesh rebalancing
     await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
 
-    const peerB = [...((nodeA.getPubSub() as GossipSub).mesh.get(topic) ?? [])][0]
+    const mesh = (nodeA.getPubSub() as GossipSub).mesh.get(topic)
+
+    if (mesh == null) {
+      throw new Error('No mesh for topic')
+    }
+
+    if (mesh.size === 0) {
+      throw new Error('Topic mesh was empty')
+    }
+
+    const peerB = Array.from(mesh)[0]
+
+    if (peerB == null) {
+      throw new Error('Could not get peer from mesh')
+    }
 
     // set spy. NOTE: Forcing private property to be public
     const nodeASpy = sinon.spy(nodeA.getPubSub() as GossipSub, 'piggybackControl')
