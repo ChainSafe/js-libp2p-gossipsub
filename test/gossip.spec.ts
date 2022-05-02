@@ -1,6 +1,5 @@
 import { expect } from 'aegir/utils/chai.js'
 import sinon, { SinonStubbedInstance } from 'sinon'
-import delay from 'delay'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { GossipsubDhi } from '../ts/constants.js'
 import type { GossipSub } from '../ts/index.js'
@@ -42,6 +41,9 @@ describe('gossip', () => {
     // every node connected to every other
     await connectAllPubSubNodes(nodes)
 
+    // wait for subscriptions to be transmitted
+    await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'subscription-change')))
+
     // await mesh rebalancing
     await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
 
@@ -53,7 +55,8 @@ describe('gossip', () => {
 
     await nodeA.getPubSub().publish(topic, uint8ArrayFromString('hey'))
 
-    await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
+    // gossip happens during the heartbeat
+    await pEvent(nodeA.getPubSub(), 'gossipsub:heartbeat')
 
     const mesh = (nodeA.getPubSub() as GossipSub).mesh.get(topic)
 
@@ -83,8 +86,11 @@ describe('gossip', () => {
     // every node connected to every other
     await connectAllPubSubNodes(nodes)
 
-    // await mesh rebalancing
-    await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
+    // wait for subscriptions to be transmitted
+    await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'subscription-change')))
+
+    // await nodeA mesh rebalancing
+    await pEvent(nodeA.getPubSub(), 'gossipsub:heartbeat')
 
     const mesh = (nodeA.getPubSub() as GossipSub).mesh.get(topic)
 
@@ -102,6 +108,12 @@ describe('gossip', () => {
       throw new Error('Could not get peer from mesh')
     }
 
+    // should have peerB as a subscriber to the topic
+    expect(nodeA.getPubSub().getSubscribers(topic).map(p => p.toString())).to.include(peerB, 'did not know about peerB\'s subscription to topic')
+
+    // should be able to send them messages
+    expect((nodeA.getPubSub() as GossipSub).peers.get(peerB)).to.have.property('isWritable', true, 'nodeA did not have connection open to peerB')
+
     // set spy. NOTE: Forcing private property to be public
     const nodeASpy = sinon.spy(nodeA.getPubSub() as GossipSub, 'piggybackControl')
 
@@ -109,7 +121,10 @@ describe('gossip', () => {
     const graft = { ihave: [], iwant: [], graft: [{ topicID: topic }], prune: [] }
     ;(nodeA.getPubSub() as GossipSub).control.set(peerB, graft)
 
-    await nodeA.getPubSub().publish(topic, uint8ArrayFromString('hey'))
+    const publishResult = await nodeA.getPubSub().publish(topic, uint8ArrayFromString('hey'))
+
+    // should have sent message to peerB
+    expect(publishResult.recipients.map(p => p.toString())).to.include(peerB, 'did not send pubsub message to peerB')
 
     expect(nodeASpy.callCount).to.be.equal(1)
     // expect control message to be sent alongside published message

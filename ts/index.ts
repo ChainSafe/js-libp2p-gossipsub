@@ -1875,10 +1875,16 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     // Send to set of peers aggregated from direct, mesh, fanout
     const rpc = createGossipRpc([rawMsg])
-    tosend.forEach((id) => {
+
+    for (const id of tosend) {
       // self.send_message(*peer_id, event.clone())?;
-      this.sendRpc(id, rpc)
-    })
+      const sent = this.sendRpc(id, rpc)
+
+      // did not actually send the message
+      if (!sent) {
+        tosend.delete(id)
+      }
+    }
 
     this.metrics?.onPublishMsg(topic, tosendCount, tosend.size, rawMsg.data != null ? rawMsg.data.length : 0)
 
@@ -1990,11 +1996,11 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   /**
    * Send an rpc object to a peer
    */
-  private sendRpc(id: PeerIdStr, rpc: RPC): void {
+  private sendRpc(id: PeerIdStr, rpc: RPC): boolean {
     const peerStreams = this.peers.get(id)
     if (!peerStreams || !peerStreams.isWritable) {
       this.log(`Cannot send RPC to ${id} as there is no open stream to it available`)
-      return
+      return false
     }
 
     // piggyback control message retries
@@ -2015,6 +2021,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     peerStreams.write(rpcBytes)
 
     this.metrics?.onRpcSent(rpc, rpcBytes.length)
+
+    return true
   }
 
   public piggybackControl(id: PeerIdStr, outRpc: RPC, ctrl: RPC.ControlMessage): void {

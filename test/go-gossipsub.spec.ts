@@ -269,7 +269,6 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       sendRecv.push(results)
     }
     await Promise.all(sendRecv)
-
   })
 
   it('test gossipsub fanout maintenance', async function () {
@@ -332,7 +331,6 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     sendRecv = []
     await sendMessages(2)
     await Promise.all(sendRecv)
-
   })
 
   it('test gossipsub fanout expiry', async function () {
@@ -381,8 +379,6 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await pWaitFor(async () => {
       return (psubs[0].getPubSub() as GossipSub).fanout.size === 0
     })
-
-
   })
 
   it('test gossipsub gossip', async function () {
@@ -421,7 +417,6 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     }
     // and wait for some gossip flushing
     await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.getPubSub(), 'gossipsub:heartbeat', 2)))
-
   })
 
   it('test gossipsub gossip propagation', async function () {
