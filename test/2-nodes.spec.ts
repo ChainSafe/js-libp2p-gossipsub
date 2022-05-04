@@ -140,7 +140,7 @@ describe('2 nodes', () => {
 
     it('Publish to a topic - nodeA', async () => {
       const promise = new Promise<GossipsubMessage>((resolve) => nodes[1].once(topic, resolve))
-      nodes[0].once(topic, (m) => shouldNotHappen)
+      nodes[0].once(topic, shouldNotHappen)
 
       nodes[0].publish(topic, uint8ArrayFromString('hey'))
 

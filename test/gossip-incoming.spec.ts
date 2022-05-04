@@ -41,7 +41,7 @@ describe('gossip incoming', () => {
 
     it('should gossip incoming messages', async () => {
       const promise = new Promise<GossipsubMessage>((resolve) => nodes[2].once(topic, resolve))
-      nodes[0].once(topic, (m) => shouldNotHappen)
+      nodes[0].once(topic, shouldNotHappen)
 
       nodes[0].publish(topic, uint8ArrayFromString('hey'))
 
@@ -78,7 +78,7 @@ describe('gossip incoming', () => {
     after(() => Promise.all(nodes.map(stopNode)))
 
     it('should not gossip incoming messages', async () => {
-      nodes[2].once(topic, (m) => shouldNotHappen)
+      nodes[2].once(topic, shouldNotHappen)
 
       nodes[0].publish(topic, uint8ArrayFromString('hey'))
 
