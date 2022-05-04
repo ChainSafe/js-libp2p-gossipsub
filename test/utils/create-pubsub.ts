@@ -6,7 +6,7 @@ import { GossipSub, GossipsubOpts } from '../../ts/index.js'
 import { PubSub } from '@libp2p/interfaces/pubsub'
 import { setMaxListeners } from 'events'
 import { PersistentPeerStore } from '@libp2p/peer-store'
-import { start } from '@libp2p/interface-compliance-tests'
+import { start } from '@libp2p/interfaces/startable'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 
 export interface CreateComponentsOpts {

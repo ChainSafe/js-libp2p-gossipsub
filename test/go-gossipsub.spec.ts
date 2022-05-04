@@ -1,7 +1,7 @@
 import { expect } from 'aegir/utils/chai.js'
 import delay from 'delay'
 import pRetry from 'p-retry'
-import type { EventEmitter } from '@libp2p/interfaces'
+import type { EventEmitter } from '@libp2p/interfaces/events'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
 import type { GossipSub, GossipsubEvents } from '../ts/index.js'
@@ -24,7 +24,7 @@ import { sparseConnect,
 } from './utils/create-pubsub.js'
 import { FloodSub } from '@libp2p/floodsub'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
-import { stop } from '@libp2p/interface-compliance-tests'
+import { stop } from '@libp2p/interfaces/startable'
 import { TopicScoreParams } from '../ts/score/peer-score-params.js'
 
 /**

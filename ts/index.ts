@@ -6,7 +6,7 @@ import { Logger, logger } from '@libp2p/logger'
 import { createTopology } from '@libp2p/topology'
 import { PeerStreams } from '@libp2p/pubsub/peer-streams'
 import type { PeerId } from '@libp2p/interfaces/peer-id'
-import { CustomEvent, EventEmitter } from '@libp2p/interfaces'
+import { CustomEvent, EventEmitter } from '@libp2p/interfaces/events'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 
 import { MessageCache } from './message-cache.js'

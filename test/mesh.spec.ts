@@ -4,7 +4,7 @@ import { GossipsubDhi } from '../ts/constants.js'
 import type { GossipSub } from '../ts/index.js'
 import { Components } from '@libp2p/interfaces/components'
 import { connectAllPubSubNodes, createComponentsArray } from './utils/create-pubsub.js'
-import { stop } from '@libp2p/interface-compliance-tests'
+import { stop } from '@libp2p/interfaces/startable'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { pEvent } from 'p-event'
 
