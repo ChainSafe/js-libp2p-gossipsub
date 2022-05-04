@@ -1,17 +1,21 @@
 import { Components } from '@libp2p/interfaces/components'
 import { createRSAPeerId } from '@libp2p/peer-id-factory'
-import { mockRegistrar, mockConnectionManager, mockConnectionGater } from '@libp2p/interface-compliance-tests/mocks'
+import {
+  mockRegistrar,
+  mockConnectionManager,
+  mockConnectionGater,
+  mockNetwork
+} from '@libp2p/interface-compliance-tests/mocks'
 import { MemoryDatastore } from 'datastore-core'
 import { GossipSub, GossipsubOpts } from '../../ts/index.js'
 import { PubSub } from '@libp2p/interfaces/pubsub'
 import { setMaxListeners } from 'events'
 import { PersistentPeerStore } from '@libp2p/peer-store'
 import { start } from '@libp2p/interfaces/startable'
-import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 
 export interface CreateComponentsOpts {
   init?: Partial<GossipsubOpts>
-  pubsub?: { new (opts?: any ): PubSub }
+  pubsub?: { new (opts?: any): PubSub }
 }
 
 export const createComponents = async (opts: CreateComponentsOpts) => {
@@ -39,10 +43,10 @@ export const createComponents = async (opts: CreateComponentsOpts) => {
   return components
 }
 
-export const createComponentsArray = async (opts: CreateComponentsOpts & { number: number, connected?: boolean } = { number: 1, connected: true }) => {
-  const output = await Promise.all(
-      Array.from({ length: opts.number }).map(async () => createComponents(opts))
-  )
+export const createComponentsArray = async (
+  opts: CreateComponentsOpts & { number: number; connected?: boolean } = { number: 1, connected: true }
+) => {
+  const output = await Promise.all(Array.from({ length: opts.number }).map(async () => createComponents(opts)))
 
   if (opts.connected) {
     await connectAllPubSubNodes(output)
@@ -73,11 +77,11 @@ export const connectAllPubSubNodes = async (components: Components[]) => {
  * @param {Gossipsub[]} gss
  * @param {number} num - number of peers to connect each node to
  */
- export async function connectSome (gss: Components[], num: number) {
+export async function connectSome(gss: Components[], num: number) {
   for (let i = 0; i < gss.length; i++) {
     while (gss[i].getConnectionManager().getConnections().length < num) {
       const n = Math.floor(Math.random() * gss.length)
-      if (n === i) {
+      if (n === i || gss[i].getConnectionManager().getConnections(gss[n].getPeerId()).length > 0) {
         continue
       }
 
@@ -86,10 +90,10 @@ export const connectAllPubSubNodes = async (components: Components[]) => {
   }
 }
 
-export async function sparseConnect (gss: Components[]) {
+export async function sparseConnect(gss: Components[]) {
   await connectSome(gss, 3)
 }
 
-export async function denseConnect (gss: Components[]) {
-  await connectSome(gss, Math.min(gss.length -1, 10))
+export async function denseConnect(gss: Components[]) {
+  await connectSome(gss, Math.min(gss.length - 1, 10))
 }
