@@ -80,6 +80,7 @@ describe('gossip', () => {
     const nodeA = nodes[0]
     const topic = 'Z'
 
+    const promises = nodes.map(async (n) => await pEvent(n.getPubSub(), 'subscription-change'))
     // add subscriptions to each node
     nodes.forEach((n) => n.getPubSub().subscribe(topic))
 
@@ -87,7 +88,7 @@ describe('gossip', () => {
     await connectAllPubSubNodes(nodes)
 
     // wait for subscriptions to be transmitted
-    await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'subscription-change')))
+    await Promise.all(promises)
 
     // await nodeA mesh rebalancing
     await pEvent(nodeA.getPubSub(), 'gossipsub:heartbeat')
@@ -109,10 +110,19 @@ describe('gossip', () => {
     }
 
     // should have peerB as a subscriber to the topic
-    expect(nodeA.getPubSub().getSubscribers(topic).map(p => p.toString())).to.include(peerB, 'did not know about peerB\'s subscription to topic')
+    expect(
+      nodeA
+        .getPubSub()
+        .getSubscribers(topic)
+        .map((p) => p.toString())
+    ).to.include(peerB, "did not know about peerB's subscription to topic")
 
     // should be able to send them messages
-    expect((nodeA.getPubSub() as GossipSub).peers.get(peerB)).to.have.property('isWritable', true, 'nodeA did not have connection open to peerB')
+    expect((nodeA.getPubSub() as GossipSub).peers.get(peerB)).to.have.property(
+      'isWritable',
+      true,
+      'nodeA did not have connection open to peerB'
+    )
 
     // set spy. NOTE: Forcing private property to be public
     const nodeASpy = sinon.spy(nodeA.getPubSub() as GossipSub, 'piggybackControl')
@@ -124,7 +134,7 @@ describe('gossip', () => {
     const publishResult = await nodeA.getPubSub().publish(topic, uint8ArrayFromString('hey'))
 
     // should have sent message to peerB
-    expect(publishResult.recipients.map(p => p.toString())).to.include(peerB, 'did not send pubsub message to peerB')
+    expect(publishResult.recipients.map((p) => p.toString())).to.include(peerB, 'did not send pubsub message to peerB')
 
     expect(nodeASpy.callCount).to.be.equal(1)
     // expect control message to be sent alongside published message
