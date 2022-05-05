@@ -126,7 +126,6 @@ describe('gossip', () => {
 
     // set spy. NOTE: Forcing private property to be public
     const nodeASpy = sinon.spy(nodeA.getPubSub() as GossipSub, 'piggybackControl')
-
     // manually add control message to be sent to peerB
     const graft = { ihave: [], iwant: [], graft: [{ topicID: topic }], prune: [] }
     ;(nodeA.getPubSub() as GossipSub).control.set(peerB, graft)
@@ -135,6 +134,12 @@ describe('gossip', () => {
 
     // should have sent message to peerB
     expect(publishResult.recipients.map((p) => p.toString())).to.include(peerB, 'did not send pubsub message to peerB')
+
+    // wait until spy is called
+    const startTime = Date.now()
+    while (Date.now() - startTime < 5000) {
+      if (nodeASpy.callCount > 0) break
+    }
 
     expect(nodeASpy.callCount).to.be.equal(1)
     // expect control message to be sent alongside published message
