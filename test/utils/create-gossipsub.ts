@@ -104,7 +104,7 @@ export async function connectSome(gss: PubsubBaseMinimal[], num: number) {
       const n = Math.floor(Math.random() * (candidatePeers.length))
       const peer = candidatePeers[n]
       await connectGossipsub(gss[i], gss[peer])
-      // after connecting to a peer, update indexToPeers so that we don't connect to it again
+      // after connecting to a peer, update candidatePeers so that we don't connect to it again
       for (let j = n; j < candidatePeers.length - 1; j++) {
         candidatePeers[j] = candidatePeers[j + 1]
       }
