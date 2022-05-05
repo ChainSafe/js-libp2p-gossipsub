@@ -89,29 +89,38 @@ export async function tearDownGossipsubs(gss: PubsubBaseMinimal[]) {
 }
 
 /**
- * Connect some gossipsub nodes to others
+ * Connect some gossipsub nodes to others, ensure each has num peers
  * @param {Gossipsub[]} gss
  * @param {number} num number of peers to connect
  */
 export async function connectSome(gss: PubsubBaseMinimal[], num: number) {
   for (let i = 0; i < gss.length; i++) {
-    for (let j = 0; j < num; j++) {
-      const n = Math.floor(Math.random() * gss.length)
-      if (n === i) {
-        j--
-        continue
+    let count = 0;
+    // merely do a Math.random() and check for duplicate may take a lot of time to run a test
+    // so we make an array of candidate peers
+    // initially, don't populate i as a candidate to connect: candidatePeers[i] = i + 1
+    const candidatePeers = Array.from({length: gss.length - 1}, (_, j) => j >= i ? j + 1 : j)
+    while (count < num) {
+      const n = Math.floor(Math.random() * (candidatePeers.length))
+      const peer = candidatePeers[n]
+      await connectGossipsub(gss[i], gss[peer])
+      // after connecting to a peer, update indexToPeers so that we don't connect to it again
+      for (let j = n; j < candidatePeers.length - 1; j++) {
+        candidatePeers[j] = candidatePeers[j + 1]
       }
-      await connectGossipsub(gss[i], gss[n])
+      // remove the last item
+      candidatePeers.splice(candidatePeers.length - 1, 1)
+      count++
     }
   }
 }
 
 export async function sparseConnect(gss: PubsubBaseMinimal[]) {
-  await connectSome(gss, 3)
+  await connectSome(gss, Math.min(3, gss.length - 1))
 }
 
 export async function denseConnect(gss: PubsubBaseMinimal[]) {
-  await connectSome(gss, 10)
+  await connectSome(gss, Math.min(10, gss.length - 1))
 }
 
 /**
