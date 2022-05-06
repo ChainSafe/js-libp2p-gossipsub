@@ -10,7 +10,8 @@ describe('gossip', () => {
   let nodes: sinon.SinonStubbedInstance<Gossipsub>[]
 
   // Create pubsub nodes
-  beforeEach(async () => {
+  beforeEach(async function () {
+    this.timeout(5e3)
     nodes = (await createGossipsubs({
       number: GossipsubDhi + 2,
       options: { scoreParams: { IPColocationFactorThreshold: GossipsubDhi + 3 } }
@@ -19,43 +20,45 @@ describe('gossip', () => {
 
   afterEach(() => Promise.all(nodes.map(stopNode)))
 
-  it('should send gossip to non-mesh peers in topic', async function () {
-    this.timeout(10e4)
-    const nodeA = nodes[0]
-    const topic = 'Z'
-    // add subscriptions to each node
-    nodes.forEach((n) => n.subscribe(topic))
+  for (let i = 0; i<100; i++) {
+    it.only('should send gossip to non-mesh peers in topic i=' + i, async function () {
+      this.timeout(10e4)
+      const nodeA = nodes[0]
+      const topic = 'Z'
+      // add subscriptions to each node
+      nodes.forEach((n) => n.subscribe(topic))
 
-    // every node connected to every other
-    await connectGossipsubs(nodes)
-    await waitForAllNodesToBePeered(nodes)
+      // every node connected to every other
+      await connectGossipsubs(nodes)
+      await waitForAllNodesToBePeered(nodes)
 
-    // await mesh rebalancing
-    await Promise.all(nodes.map((n) => new Promise((resolve) => n.once('gossipsub:heartbeat', resolve))))
-    await delay(500)
+      // await mesh rebalancing
+      await Promise.all(nodes.map((n) => new Promise((resolve) => n.once('gossipsub:heartbeat', resolve))))
+      await delay(500)
 
-    // set spy. NOTE: Forcing private property to be public
-    const nodeASpy = nodeA as Partial<Gossipsub> as SinonStubbedInstance<{
-      pushGossip: Gossipsub['pushGossip']
-    }>
-    sinon.spy(nodeASpy, 'pushGossip')
+      // set spy. NOTE: Forcing private property to be public
+      const nodeASpy = nodeA as Partial<Gossipsub> as SinonStubbedInstance<{
+        pushGossip: Gossipsub['pushGossip']
+      }>
+      sinon.spy(nodeASpy, 'pushGossip')
 
-    await nodeA.publish(topic, uint8ArrayFromString('hey'))
+      await nodeA.publish(topic, uint8ArrayFromString('hey'))
 
-    await new Promise((resolve) => nodeA.once('gossipsub:heartbeat', resolve))
+      await new Promise((resolve) => nodeA.once('gossipsub:heartbeat', resolve))
 
-    nodeASpy.pushGossip
-      .getCalls()
-      .map((call) => call.args[0])
-      .forEach((peerId) => {
-        nodeA['mesh'].get(topic)!.forEach((meshPeerId) => {
-          expect(meshPeerId).to.not.equal(peerId)
+      nodeASpy.pushGossip
+        .getCalls()
+        .map((call) => call.args[0])
+        .forEach((peerId) => {
+          nodeA['mesh'].get(topic)!.forEach((meshPeerId) => {
+            expect(meshPeerId).to.not.equal(peerId)
+          })
         })
-      })
 
-    // unset spy
-    nodeASpy.pushGossip.restore()
-  })
+      // unset spy
+      nodeASpy.pushGossip.restore()
+    })
+  }
 
   it('should send piggyback control into other sent messages', async function () {
     this.timeout(10e4)
