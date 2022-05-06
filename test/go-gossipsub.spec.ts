@@ -246,6 +246,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await denseConnect(psubs)
 
     // wait for heartbeats to build mesh
+    console.log('waiting hearbeat 1')
     await Promise.all(promises)
 
     let sendRecv = []
@@ -263,11 +264,13 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       sendRecv.push(psubs[owner].getPubSub().publish(topic, msg))
       sendRecv.push(results)
     }
+    console.log('waiting sendrcv 1')
     await Promise.all(sendRecv)
 
     psubs[0].getPubSub().subscribe(topic)
 
     // wait for a heartbeat
+    console.log('waiting hearbeat 2')
     await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.getPubSub(), 'gossipsub:heartbeat', 1)))
 
     sendRecv = []
@@ -285,6 +288,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       sendRecv.push(psubs[owner].getPubSub().publish(topic, msg))
       sendRecv.push(results)
     }
+    console.log('waiting sendrcv2 2')
     await Promise.all(sendRecv)
   })
 
@@ -1320,7 +1324,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await connectSome(real, 5)
     await Promise.all(connectPromises)
     sybils.forEach((s) => {
-      ;(s.getPubSub() as GossipSub).handleReceivedRpc = async function () {}
+      (s.getPubSub() as GossipSub).handleReceivedRpc = async function () {}
     })
 
     for (let i = 0; i < sybils.length; i++) {
