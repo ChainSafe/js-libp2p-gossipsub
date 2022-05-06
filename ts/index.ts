@@ -242,7 +242,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    * Map of pending messages to gossip
    * peer id => control messages
    */
-  private readonly gossip = new Map<PeerIdStr, RPC.ControlIHave[]>()
+  public readonly gossip = new Map<PeerIdStr, RPC.ControlIHave[]>()
 
   /**
    * Map of control messages
