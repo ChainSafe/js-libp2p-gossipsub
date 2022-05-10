@@ -58,3 +58,36 @@ jobs:
       - run: npm install
       - run: npm run prebuild
       - run: npx aegir test -t browser -t webworker --bail -- --browser firefox -- --exit
+  maybe-release:
+    name: release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [check, test-node, test-chrome, test-firefox]
+    steps:
+      - uses: google-github-actions/release-please-action@v3 
+        id: release
+        with:
+          release-type: node
+          package-name: release-please-action
+          changelog-types: '[{"type":"feat","section":"Features","hidden":false},{"type":"fix","section":"Bug Fixes","hidden":false},{"type":"chore","section":"Miscellaneous","hidden":false}]'
+      
+      - uses: actions/checkout@v3
+        if: ${{ steps.release.outputs.release_created }}
+        
+      - uses: actions/setup-node@v3
+        with:
+          cache: 'npm'
+          node-version: 16
+          registry-url: 'https://registry.npmjs.org'
+        if: ${{ steps.release.outputs.release_created }}
+      
+      - run: npm install
+        if: ${{ steps.release.outputs.release_created }}
+      
+      - run: npm run build
+        if: ${{ steps.release.outputs.release_created }}
+
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
+        if: ${{ steps.release.outputs.release_created }}
