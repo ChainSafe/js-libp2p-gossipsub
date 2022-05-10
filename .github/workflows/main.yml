@@ -59,7 +59,7 @@ jobs:
     name: release
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: [check, test-node, test-chrome, test-firefox]
+    needs: [check, test-node, test-chrome]
     steps:
       - uses: google-github-actions/release-please-action@v3 
         id: release
