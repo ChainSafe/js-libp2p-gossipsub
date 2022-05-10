@@ -11,12 +11,16 @@
 
 ## Table of Contents
 
-- [Specs](#specs)
-- [Install](#Install)
-- [Usage](#Usage)
-- [API](#API)
-- [Contribute](#Contribute)
-- [License](#License)
+- [js-libp2p-gossipsub](#js-libp2p-gossipsub)
+  - [Lead Maintainer](#lead-maintainer)
+  - [Table of Contents](#table-of-contents)
+  - [Specs](#specs)
+  - [Install](#install)
+  - [Usage](#usage)
+  - [API](#api)
+    - [Create a gossipsub implementation](#create-a-gossipsub-implementation)
+  - [Contribute](#contribute)
+  - [License](#license)
 
 ## Specs
 
@@ -26,12 +30,12 @@ Gossipsub is an implementation of pubsub based on meshsub and floodsub. You can 
 
 ## Install
 
-`npm install libp2p-gossipsub`
+`npm install @chainsafe/libp2p-gossipsub`
 
 ## Usage
 
 ```javascript
-const Gossipsub = require('libp2p-gossipsub')
+const Gossipsub = require('@chainsafe/libp2p-gossipsub')
 
 const gsub = new Gossipsub(libp2p, options)
 

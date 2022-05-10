@@ -1,6 +1,6 @@
-import { TopicStr } from '../types'
+import type { TopicStr } from '../types.js'
 
-export type PeerStats = {
+export interface PeerStats {
   /** true if the peer is currently connected */
   connected: boolean
   /** expiration time of the score stats for disconnected peers */
@@ -13,7 +13,7 @@ export type PeerStats = {
   behaviourPenalty: number
 }
 
-export type TopicStats = {
+export interface TopicStats {
   /** true if the peer is in the mesh */
   inMesh: boolean
   /** time when the peer was (last) GRAFTed; valid only when in mesh */

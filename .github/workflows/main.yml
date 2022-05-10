@@ -17,7 +17,7 @@ jobs:
           node-version: lts/*
       - run: npm install
       - run: npm run lint
-      - run: npm run prebuild
+      - run: npm run build
       - run: npx aegir dep-check
   test-node:
     needs: check
@@ -33,8 +33,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm install
-      - run: npm run prebuild
-      - run: npx aegir test -t node --cov --bail -- --exit
+      - run: npm run test:node -- --cov --bail -- --exit
       - uses: codecov/codecov-action@v1
   test-chrome:
     needs: check
@@ -45,24 +44,22 @@ jobs:
         with:
           node-version: lts/*
       - run: npm install
-      - run: npm run prebuild
-      - run: npx aegir test -t browser -t webworker --bail -- --exit
-  test-firefox:
-    needs: check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: lts/*
-      - run: npm install
-      - run: npm run prebuild
-      - run: npx aegir test -t browser -t webworker --bail -- --browser firefox -- --exit
+      - run: npm run test:browser -- -t webworker --bail -- --exit
+  # test-firefox:
+  #   needs: check
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-node@v2
+  #       with:
+  #         node-version: lts/*
+  #     - run: npm install
+  #     - run: npm run test:browser -- -t webworker --bail -- --browser firefox -- --exit
   maybe-release:
     name: release
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: [check, test-node, test-chrome, test-firefox]
+    needs: [check, test-node, test-chrome]
     steps:
       - uses: google-github-actions/release-please-action@v3 
         id: release

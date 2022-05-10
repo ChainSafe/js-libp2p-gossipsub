@@ -1,5 +1,5 @@
-import { IRPC } from './message/rpc'
-import { PeerScoreThresholds } from './score/peer-score-thresholds'
+import type { RPC } from './message/rpc.js'
+import type { PeerScoreThresholds } from './score/peer-score-thresholds.js'
 import {
   MessageAcceptance,
   MessageStatus,
@@ -8,7 +8,7 @@ import {
   RejectReasonObj,
   TopicStr,
   ValidateError
-} from './types'
+} from './types.js'
 
 /** Topic label as provided in `topicStrToLabel` */
 export type TopicLabel = string
@@ -612,30 +612,30 @@ export function getMetrics(
       }
     },
 
-    onRpcRecv(rpc: IRPC, rpcBytes: number): void {
+    onRpcRecv(rpc: RPC, rpcBytes: number): void {
       this.rpcRecvBytes.inc(rpcBytes)
       this.rpcRecvCount.inc(1)
-      if (rpc.subscriptions) this.rpcRecvSubscription.inc(rpc.subscriptions.length)
-      if (rpc.messages) this.rpcRecvMessage.inc(rpc.messages.length)
+      this.rpcRecvSubscription.inc(rpc.subscriptions.length)
+      this.rpcRecvMessage.inc(rpc.messages.length)
       if (rpc.control) {
         this.rpcRecvControl.inc(1)
-        if (rpc.control.ihave) this.rpcRecvIHave.inc(rpc.control.ihave.length)
-        if (rpc.control.iwant) this.rpcRecvIWant.inc(rpc.control.iwant.length)
-        if (rpc.control.graft) this.rpcRecvGraft.inc(rpc.control.graft.length)
-        if (rpc.control.prune) this.rpcRecvPrune.inc(rpc.control.prune.length)
+        this.rpcRecvIHave.inc(rpc.control.ihave.length)
+        this.rpcRecvIWant.inc(rpc.control.iwant.length)
+        this.rpcRecvGraft.inc(rpc.control.graft.length)
+        this.rpcRecvPrune.inc(rpc.control.prune.length)
       }
     },
 
-    onRpcSent(rpc: IRPC, rpcBytes: number): void {
+    onRpcSent(rpc: RPC, rpcBytes: number): void {
       this.rpcSentBytes.inc(rpcBytes)
       this.rpcSentCount.inc(1)
-      if (rpc.subscriptions) this.rpcSentSubscription.inc(rpc.subscriptions.length)
-      if (rpc.messages) this.rpcSentMessage.inc(rpc.messages.length)
+      this.rpcSentSubscription.inc(rpc.subscriptions.length)
+      this.rpcSentMessage.inc(rpc.messages.length)
       if (rpc.control) {
-        const ihave = rpc.control.ihave ? rpc.control.ihave.length : 0
-        const iwant = rpc.control.iwant ? rpc.control.iwant.length : 0
-        const graft = rpc.control.graft ? rpc.control.graft.length : 0
-        const prune = rpc.control.prune ? rpc.control.prune.length : 0
+        const ihave = rpc.control.ihave.length
+        const iwant = rpc.control.iwant.length
+        const graft = rpc.control.graft.length
+        const prune = rpc.control.prune.length
         if (ihave > 0) this.rpcSentIHave.inc(ihave)
         if (iwant > 0) this.rpcSentIWant.inc(iwant)
         if (graft > 0) this.rpcSentGraft.inc(graft)

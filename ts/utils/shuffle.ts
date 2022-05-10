@@ -1,5 +1,3 @@
-'use strict'
-
 /**
  * Pseudo-randomly shuffles an array
  *

@@ -1,12 +1,18 @@
-import { PeerScoreParams } from './peer-score-params'
-import { PeerStats } from './peer-stats'
+import type { PeerScoreParams } from './peer-score-params.js'
+import type { PeerStats } from './peer-stats.js'
 
 type TopicLabel = string
 type TopicStr = string
 type TopicStrToLabel = Map<TopicStr, TopicLabel>
 
-export type TopicScoreWeights<T> = { p1w: T; p2w: T; p3w: T; p3bw: T; p4w: T }
-export type ScoreWeights<T> = {
+export interface TopicScoreWeights<T> {
+  p1w: T
+  p2w: T
+  p3w: T
+  p3bw: T
+  p4w: T
+}
+export interface ScoreWeights<T> {
   byTopic: Map<TopicLabel, TopicScoreWeights<T>>
   p5w: T
   p6w: T

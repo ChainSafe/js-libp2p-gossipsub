@@ -1,14 +1,14 @@
-import { RPC } from './message/rpc'
-import { MsgIdStr, PeerIdStr, TopicStr } from './types'
-import { messageIdFromString, messageIdToString } from './utils'
+import type { RPC } from './message/rpc.js'
+import type { MsgIdStr, PeerIdStr, TopicStr } from './types.js'
+import { messageIdFromString, messageIdToString } from './utils/index.js'
 
 export interface CacheEntry {
   msgId: Uint8Array
   topic: TopicStr
 }
 
-type MessageCacheEntry = {
-  message: RPC.IMessage
+interface MessageCacheEntry {
+  message: RPC.Message
   /**
    * Tracks if the message has been validated by the app layer and thus forwarded
    */
@@ -53,7 +53,7 @@ export class MessageCache {
    * Adds a message to the current window and the cache
    * Returns true if the message is not known and is inserted in the cache
    */
-  put(msgIdStr: MsgIdStr, msg: RPC.IMessage): boolean {
+  put(msgIdStr: MsgIdStr, msg: RPC.Message): boolean {
     // Don't add duplicate entries to the cache.
     if (this.msgs.has(msgIdStr)) {
       return false
@@ -88,7 +88,7 @@ export class MessageCache {
   /**
    * Retrieves a message from the cache by its ID, if it is still present
    */
-  get(msgId: Uint8Array): RPC.IMessage | undefined {
+  get(msgId: Uint8Array): RPC.Message | undefined {
     return this.msgs.get(messageIdToString(msgId))?.message
   }
 
@@ -96,7 +96,7 @@ export class MessageCache {
    * Increases the iwant count for the given message by one and returns the message together
    * with the iwant if the message exists.
    */
-  getWithIWantCount(msgIdStr: string, p: string): { msg: RPC.IMessage; count: number } | null {
+  getWithIWantCount(msgIdStr: string, p: string): { msg: RPC.Message; count: number } | null {
     const msg = this.msgs.get(msgIdStr)
     if (!msg) {
       return null
@@ -129,7 +129,7 @@ export class MessageCache {
    * This function also returns the known peers that have sent us this message. This is used to
    * prevent us sending redundant messages to peers who have already propagated it.
    */
-  validate(msgId: MsgIdStr): { message: RPC.IMessage; originatingPeers: Set<PeerIdStr> } | null {
+  validate(msgId: MsgIdStr): { message: RPC.Message; originatingPeers: Set<PeerIdStr> } | null {
     const entry = this.msgs.get(msgId)
     if (!entry) {
       return null

@@ -46,5 +46,8 @@ module.exports = {
     // Allow to place comments before the else {} block
     'brace-style': 'off',
     indent: 'off'
+  },
+  globals: {
+    'BigInt':true
   }
 }

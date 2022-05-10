@@ -1,4 +1,4 @@
-export type GossipsubOptsSpec = {
+export interface GossipsubOptsSpec {
   /** D sets the optimal degree for a Gossipsub topic mesh. */
   D: number
   /** Dlo sets the lower bound on the number of peers we keep in a Gossipsub topic mesh. */

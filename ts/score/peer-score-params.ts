@@ -1,6 +1,4 @@
-import { ERR_INVALID_PEER_SCORE_PARAMS } from './constants'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+import { ERR_INVALID_PEER_SCORE_PARAMS } from './constants.js'
 import errcode from 'err-code'
 
 // This file defines PeerScoreParams and TopicScoreParams interfaces

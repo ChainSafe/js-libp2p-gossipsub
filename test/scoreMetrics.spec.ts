@@ -1,12 +1,14 @@
-import ConnectionManager from 'libp2p/src/connection-manager'
-import PeerId from 'peer-id'
-import { computeAllPeersScoreWeights } from '../ts/score/scoreMetrics'
-import { createPeerScoreParams, createTopicScoreParams, PeerScore } from '../ts/score'
-import { ScorePenalty } from '../ts/metrics'
-import { expect } from 'chai'
+import type { ConnectionManager } from '@libp2p/interfaces/connection-manager'
+import { computeAllPeersScoreWeights } from '../ts/score/scoreMetrics.js'
+import { createPeerScoreParams, createTopicScoreParams, PeerScore } from '../ts/score/index.js'
+import { ScorePenalty } from '../ts/metrics.js'
+import { expect } from 'aegir/utils/chai.js'
+import { stubInterface } from 'ts-sinon'
+import { createEd25519PeerId } from '@libp2p/peer-id-factory'
+import { Components } from '@libp2p/interfaces/components'
 
-const connectionManager = new Map() as unknown as ConnectionManager
-connectionManager.getAll = () => []
+const connectionManager = stubInterface<ConnectionManager>()
+connectionManager.getConnections.returns([])
 
 describe('score / scoreMetrics', () => {
   it('computeScoreWeights', async () => {
@@ -27,9 +29,10 @@ describe('score / scoreMetrics', () => {
     const topicStrToLabel = new Map<string, string>()
     topicStrToLabel.set(topic, topic)
 
-    const peerA = (await PeerId.create({ keyType: 'secp256k1' })).toB58String()
+    const peerA = (await createEd25519PeerId()).toString()
     // Peer score should start at 0
-    const ps = new PeerScore(params, connectionManager, null, { scoreCacheValidityMs: 0 })
+    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
+    ps.init(new Components({ connectionManager }))
     ps.addPeer(peerA)
 
     // Do some actions that penalize the peer

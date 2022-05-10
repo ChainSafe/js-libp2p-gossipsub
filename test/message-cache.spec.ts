@@ -1,31 +1,21 @@
-import chai from 'chai'
-// @ts-ignore
-import dirtyChai from 'dirty-chai'
-// @ts-ignore
-import chaiSpies from 'chai-spies'
-import { messageIdToString } from '../ts/utils/messageIdToString'
+import { expect } from 'aegir/utils/chai.js'
+import { messageIdToString } from '../ts/utils/messageIdToString.js'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { MessageCache } from '../ts/message-cache'
-import { utils } from 'libp2p-interfaces/src/pubsub'
-import { getMsgId } from './utils'
-import { GossipsubMessage } from '../ts/types'
-
-/* eslint-disable no-unused-expressions */
-
-chai.use(dirtyChai)
-chai.use(chaiSpies)
-const expect = chai.expect
+import { MessageCache } from '../ts/message-cache.js'
+import * as utils from '@libp2p/pubsub/utils'
+import { getMsgId } from './utils/index.js'
+import type { RPC } from '../ts/message/rpc.js'
 
 describe('Testing Message Cache Operations', () => {
   const messageCache = new MessageCache(3, 5)
-  const testMessages: GossipsubMessage[] = []
+  const testMessages: RPC.Message[] = []
 
   before(async () => {
-    const makeTestMessage = (n: number): GossipsubMessage => {
+    const makeTestMessage = (n: number): RPC.Message => {
       return {
         from: new Uint8Array(0),
         data: uint8ArrayFromString(n.toString()),
-        seqno: utils.randomSeqno(),
+        seqno: uint8ArrayFromString(utils.randomSeqno().toString(16).padStart(16, '0'), 'base16'),
         topic: 'test'
       }
     }
