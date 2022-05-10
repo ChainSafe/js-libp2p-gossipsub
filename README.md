@@ -30,12 +30,12 @@ Gossipsub is an implementation of pubsub based on meshsub and floodsub. You can 
 
 ## Install
 
-`npm install @chainsafe/libp2p-gossipsub`
+`npm install @libp2p/gossipsub`
 
 ## Usage
 
 ```javascript
-const Gossipsub = require('@chainsafe/libp2p-gossipsub')
+const Gossipsub = require('@libp2p/gossipsub')
 
 const gsub = new Gossipsub(libp2p, options)
 
