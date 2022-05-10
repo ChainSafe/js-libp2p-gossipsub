@@ -72,20 +72,28 @@ export const connectAllPubSubNodes = async (components: Components[]) => {
 }
 
 /**
- * For every node in `gss`, connect it to `num` other nodes in `gss`
- *
+ * Connect some gossipsub nodes to others, ensure each has num peers
  * @param {Gossipsub[]} gss
- * @param {number} num - number of peers to connect each node to
+ * @param {number} num number of peers to connect
  */
 export async function connectSome(gss: Components[], num: number) {
   for (let i = 0; i < gss.length; i++) {
-    while (gss[i].getConnectionManager().getConnections().length < num) {
-      const n = Math.floor(Math.random() * gss.length)
-      if (n === i || gss[i].getConnectionManager().getConnections(gss[n].getPeerId()).length > 0) {
-        continue
+    let count = 0
+    // merely do a Math.random() and check for duplicate may take a lot of time to run a test
+    // so we make an array of candidate peers
+    // initially, don't populate i as a candidate to connect: candidatePeers[i] = i + 1
+    const candidatePeers = Array.from({ length: gss.length - 1 }, (_, j) => (j >= i ? j + 1 : j))
+    while (count < num) {
+      const n = Math.floor(Math.random() * candidatePeers.length)
+      const peer = candidatePeers[n]
+      await connectPubsubNodes(gss[i], gss[peer])
+      // after connecting to a peer, update candidatePeers so that we don't connect to it again
+      for (let j = n; j < candidatePeers.length - 1; j++) {
+        candidatePeers[j] = candidatePeers[j + 1]
       }
-
-      await connectPubsubNodes(gss[i], gss[n])
+      // remove the last item
+      candidatePeers.splice(candidatePeers.length - 1, 1)
+      count++
     }
   }
 }
