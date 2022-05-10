@@ -18,6 +18,46 @@
 
 # [0.13.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.12.2...v0.13.0) (2022-01-20)
 
+## [1.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.14.0...v1.0.0) (2022-05-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* the output of this module is now ESM-only
+
+### Bug Fixes
+
+* browser tests ([cd09f89](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/cd09f891d116cb4de6783b3a0814d6dcb2df5489))
+* event awaiting ([799dd3f](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/799dd3fa9f7fb9ed5176de25f8c2675231d23caa))
+* flaky test and [#208](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/208) ([86a27a6](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/86a27a66bd0d00f7f43997eab5728f1a09516096))
+* gossip test for piggyback control ([25e7838](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/25e7838a506fe1a4928256e9e7517887f7ac8c03))
+* more of the go-gossipsub tests passing ([2045fde](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/2045fde3687a56331cd31463930bcd2f9e34362c))
+* test mesh at time of publish ([b653f00](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/b653f00865c4a43bd12f801fd93bba3522e5f404))
+* tests passing ([2d74e27](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/2d74e270dc7033e5ac304a312d4bc22863ebe199))
+* update to esm libp2p and deps ([6785f17](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/6785f1705aae763096315c004bf7355efea314ea))
+
+
+### Miscellaneous
+
+* add missing dep ([102c68b](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/102c68b98a58a73531d38a772d2d44d14a7bc7da))
+* add missing dep ([07c130b](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/07c130b4f074c026ef93d7ab1c24e4f6725498f7))
+* add missing protons dev dep ([da13c30](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/da13c309a9f612a5ee4ed4f29e21bffea0b7ff73))
+* another missing dep ([4df0d81](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/4df0d810959016cbc59b63472deb13e6c3d0fed8))
+* disable firefox tests ([cc97f84](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/cc97f847c3283b82d3d7263035aad0c801d172ea))
+* do not wait in order ([f65d56d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/f65d56d4ae110aa0d7cdbd1c61d93997bb1d80a8))
+* ensure we get the right number of connections ([903d698](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/903d698a0f88f1f5fc646e02ae88cef24a6d9238))
+* missing deps ([4a703b8](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/4a703b8bc5864af8f75ab14cf2a8505a2a937e54))
+* only wait for the heartbeat of the node under test ([6d0afe9](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/6d0afe9f59050ac4464bc80e8acc4f473982b499))
+* partial revert ([1d65689](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/1d65689ed824f0a4e71f357b718db84798e6d820))
+* remove libp2p dep in favour of programatic streams ([6d36b4b](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/6d36b4bda7db8f51d284e437bb12bb9e548f6577))
+* restore license ([e110b2f](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/e110b2ffc3f68ec07aa1ef9b99b38d0a624f99e2))
+* revert interface to type ([51d2135](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/51d21350f8153a3633c5d908e55936832ffd451b))
+* run go tests on node ([3619aca](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/3619acaf2dc7a7bc80d27006c09d695bab4510de))
+* slow ci is slow ([02da20a](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/02da20a5f7724862fd541b011ca31d3910608e04))
+* test mesh before use ([9278534](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/9278534977a344929b538456dbb7cc6bcca5f6e4))
+* update ci ([18db40e](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/18db40e09a1bedfb34d6f74ba5bf560cac921f8c))
+* update interfaces ([1ec595c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/1ec595cc577477232af7885f0aa6aee4bf45ce0e))
+
 ## [0.12.2](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.12.1...v0.12.2) (2022-01-20)
 
 ### Features
