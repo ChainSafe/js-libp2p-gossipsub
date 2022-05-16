@@ -1,7 +1,7 @@
-import type { TopicStr } from '../../ts/types.js'
+import type { TopicStr } from '../../src/types.js'
 import { createEd25519PeerId } from '@libp2p/peer-id-factory'
 import type { PeerId } from '@libp2p/interfaces/peer-id'
-import type { RPC } from '../../ts/message/rpc.js'
+import type { RPC } from '../../src/message/rpc.js'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 
 export * from './msgId.js'

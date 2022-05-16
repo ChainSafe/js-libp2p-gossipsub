@@ -1,5 +1,5 @@
 import tests from '@libp2p/interface-compliance-tests/pubsub'
-import { GossipSub } from '../ts/index.js'
+import { GossipSub } from '../src/index.js'
 
 describe('interface compliance', function () {
   this.timeout(3000)

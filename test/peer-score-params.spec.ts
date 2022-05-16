@@ -4,8 +4,8 @@ import {
   validateTopicScoreParams,
   createPeerScoreParams,
   validatePeerScoreParams
-} from '../ts/score/index.js'
-import * as constants from '../ts/constants.js'
+} from '../src/score/index.js'
+import * as constants from '../src/constants.js'
 
 describe('TopicScoreParams validation', () => {
   it('should not throw on default TopicScoreParams', () => {

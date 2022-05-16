@@ -7,7 +7,7 @@ import pRetry from 'p-retry'
 import { connectPubsubNodes, createComponents } from './utils/create-pubsub.js'
 import { Components } from '@libp2p/interfaces/components'
 import { FloodSub } from '@libp2p/floodsub'
-import { FloodsubID, GossipsubIDv11 } from '../ts/constants.js'
+import { FloodsubID, GossipsubIDv11 } from '../src/constants.js'
 import { stop } from '@libp2p/interfaces/startable'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 

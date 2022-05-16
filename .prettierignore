@@ -1,6 +1,5 @@
-src/
 .nyc_output
 dist/
 
 # Don't format the auto-generated protobuf files
-ts/message/rpc.ts
+src/message/rpc.ts

@@ -7,7 +7,7 @@ import {
   mockNetwork
 } from '@libp2p/interface-compliance-tests/mocks'
 import { MemoryDatastore } from 'datastore-core'
-import { GossipSub, GossipsubOpts } from '../../ts/index.js'
+import { GossipSub, GossipsubOpts } from '../../src/index.js'
 import { PubSub } from '@libp2p/interfaces/pubsub'
 import { setMaxListeners } from 'events'
 import { PersistentPeerStore } from '@libp2p/peer-store'

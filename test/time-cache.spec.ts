@@ -1,5 +1,5 @@
 import { expect } from 'aegir/utils/chai.js'
-import { SimpleTimeCache } from '../ts/utils/time-cache.js'
+import { SimpleTimeCache } from '../src/utils/time-cache.js'
 import sinon from 'sinon'
 
 describe('SimpleTimeCache', () => {
