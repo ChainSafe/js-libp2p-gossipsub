@@ -1,5 +1,5 @@
 import { expect } from 'aegir/utils/chai.js'
-import { GossipsubHeartbeatInterval } from '../ts/constants.js'
+import { GossipsubHeartbeatInterval } from '../src/constants.js'
 import { pEvent } from 'p-event'
 import { Components } from '@libp2p/interfaces/components'
 import { createComponents } from './utils/create-pubsub.js'

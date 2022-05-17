@@ -1,7 +1,7 @@
 import SHA256 from '@chainsafe/as-sha256'
-import type { RPC } from '../../ts/message/rpc.js'
+import type { RPC } from '../../src/message/rpc.js'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { messageIdToString } from '../../ts/utils/messageIdToString.js'
+import { messageIdToString } from '../../src/utils/messageIdToString.js'
 
 export const getMsgId = (msg: RPC.Message) => {
   const from = (msg.from != null) ? msg.from : new Uint8Array(0)

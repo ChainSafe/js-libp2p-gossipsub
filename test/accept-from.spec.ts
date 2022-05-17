@@ -1,7 +1,7 @@
 import { Components } from '@libp2p/interfaces/components'
 import { expect } from 'aegir/utils/chai.js'
 import sinon from 'sinon'
-import { GossipSub } from '../ts/index.js'
+import { GossipSub } from '../src/index.js'
 import { createPeerId } from './utils/index.js'
 import { fastMsgIdFn } from './utils/msgId.js'
 

@@ -1,10 +1,10 @@
 import { expect } from 'aegir/utils/chai.js'
-import { messageIdToString } from '../ts/utils/messageIdToString.js'
+import { messageIdToString } from '../src/utils/messageIdToString.js'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { MessageCache } from '../ts/message-cache.js'
+import { MessageCache } from '../src/message-cache.js'
 import * as utils from '@libp2p/pubsub/utils'
 import { getMsgId } from './utils/index.js'
-import type { RPC } from '../ts/message/rpc.js'
+import type { RPC } from '../src/message/rpc.js'
 
 describe('Testing Message Cache Operations', () => {
   const messageCache = new MessageCache(3, 5)

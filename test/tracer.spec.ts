@@ -1,7 +1,7 @@
 import { expect } from 'aegir/utils/chai.js'
 import delay from 'delay'
-import { IWantTracer } from '../ts/tracer.js'
-import * as constants from '../ts/constants.js'
+import { IWantTracer } from '../src/tracer.js'
+import * as constants from '../src/constants.js'
 import { makeTestMessage, getMsgId, getMsgIdStr } from './utils/index.js'
 import { createEd25519PeerId } from '@libp2p/peer-id-factory'
 
