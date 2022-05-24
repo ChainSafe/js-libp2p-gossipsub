@@ -15,6 +15,14 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+### [1.0.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v1.0.0...v1.0.1) (2022-05-23)
+
+
+### Miscellaneous
+
+* move ts/ to src/ ([#250](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/250)) ([6bf0693](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/6bf0693f924785abd933c9ee37332ab00ce947d0))
+* update interface deps ([#254](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/254)) ([01b28fd](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/01b28fd7dcd1dc488b0c78c09f72f455e05f745f))
+
 ## [0.14.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.14.0...v0.13.2) (2022-04-05)
 
 - New gossipsub implementation: better performance, async validation flow, improved peer scores significantly, add a lot of metrics
