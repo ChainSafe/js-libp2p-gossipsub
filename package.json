@@ -11,6 +11,18 @@
   "exports": {
     ".": {
       "import": "./dist/src/index.js"
+    },
+    "./metrics": {
+      "import": "./dist/src/metrics.js"
+    },
+    "./message": {
+      "import": "./dist/src/message/index.js"
+    },
+    "./score": {
+      "import": "./dist/src/score/index.js"
+    },
+    "./types": {
+      "import": "./dist/src/types.js"
     }
   },
   "scripts": {
