@@ -1,6 +1,6 @@
 {
   "name": "@chainsafe/libp2p-gossipsub",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A typescript implementation of gossipsub",
   "leadMaintainer": "Cayman Nava <caymannava@gmail.com>",
   "files": [
@@ -11,6 +11,18 @@
   "exports": {
     ".": {
       "import": "./dist/src/index.js"
+    },
+    "./metrics": {
+      "import": "./dist/src/metrics.js"
+    },
+    "./message": {
+      "import": "./dist/src/message/index.js"
+    },
+    "./score": {
+      "import": "./dist/src/score/index.js"
+    },
+    "./types": {
+      "import": "./dist/src/types.js"
     }
   },
   "scripts": {
@@ -42,11 +54,11 @@
   "homepage": "https://github.com/ChainSafe/js-libp2p-gossipsub#readme",
   "dependencies": {
     "@libp2p/crypto": "^0.22.12",
-    "@libp2p/interfaces": "^1.3.31",
+    "@libp2p/interfaces": "^2.0.1",
     "@libp2p/logger": "^1.1.4",
     "@libp2p/peer-id": "^1.1.10",
     "@libp2p/peer-record": "^1.0.8",
-    "@libp2p/pubsub": "^1.2.21",
+    "@libp2p/pubsub": "^1.3.0",
     "@libp2p/topology": "^1.1.7",
     "denque": "^1.5.0",
     "err-code": "^3.0.1",
@@ -60,7 +72,7 @@
     "@chainsafe/as-sha256": "^0.2.4",
     "@dapplion/benchmark": "^0.2.2",
     "@libp2p/floodsub": "^1.0.5",
-    "@libp2p/interface-compliance-tests": "^1.1.32",
+    "@libp2p/interface-compliance-tests": "^2.0.1",
     "@libp2p/peer-id-factory": "^1.0.9",
     "@libp2p/peer-store": "^1.0.12",
     "@multiformats/multiaddr": "^10.1.8",
