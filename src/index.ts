@@ -2465,7 +2465,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
           const backoff = this.backoff.get(topic)
           const peersToGraft = this.getRandomGossipPeers(topic, this.opts.opportunisticGraftPeers, (id) => {
             // filter out current mesh peers, direct peers, peers we are backing off, peers below or at threshold
-            return !peers.has(id) && !this.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) > medianScore
+            return (
+              !peers.has(id) && !this.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) > medianScore
+            )
           })
           peersToGraft.forEach((id) => {
             this.log('HEARTBEAT: Opportunistically graft peer %s on topic %s', id, topic)
