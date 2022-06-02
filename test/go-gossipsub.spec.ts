@@ -116,11 +116,12 @@ const awaitEvents = async <Events = GossipsubEvents>(
   timeout = 30000
 ) => {
   return new Promise<void>((resolve, reject) => {
-    let cb: () => void
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    let cb: () => void = () => { }
     let counter = 0
     const t = setTimeout(() => {
       emitter.removeEventListener(event, cb)
-      reject(new Error(`${counter} of ${number} '${event}' events received after ${timeout}ms`))
+      reject(new Error(`${counter} of ${number} '${event.toString()}' events received after ${timeout}ms`))
     }, timeout)
     cb = () => {
       counter++
@@ -135,7 +136,7 @@ const awaitEvents = async <Events = GossipsubEvents>(
 }
 
 describe('go-libp2p-pubsub gossipsub tests', function () {
-  this.timeout(100000)
+  this.timeout(200000)
 
   let psubs: Components[]
 
@@ -159,7 +160,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       init: {
         floodPublish: false,
         scoreParams: {
-          IPColocationFactorThreshold: 20
+          IPColocationFactorThreshold: 20,
+          behaviourPenaltyWeight: 0
         }
       }
     })
@@ -196,7 +198,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       init: {
         floodPublish: false,
         scoreParams: {
-          IPColocationFactorThreshold: 20
+          IPColocationFactorThreshold: 20,
+          behaviourPenaltyWeight: 0
         }
       }
     })
@@ -235,7 +238,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       init: {
         floodPublish: false,
         scoreParams: {
-          IPColocationFactorThreshold: 20
+          IPColocationFactorThreshold: 20,
+          behaviourPenaltyWeight: 0
         }
       }
     })
@@ -303,7 +307,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       init: {
         floodPublish: false,
         scoreParams: {
-          IPColocationFactorThreshold: 20
+          IPColocationFactorThreshold: 20,
+          behaviourPenaltyWeight: 0
         }
       }
     })
@@ -315,7 +320,6 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
 
     // wait for heartbeats to build mesh
     await Promise.all(promises)
-
     let sendRecv: Array<Promise<unknown>> = []
     const sendMessages = async (time: number) => {
       for (let i = 0; i < 100; i++) {
@@ -340,12 +344,10 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
 
     // wait for heartbeats
     await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.getPubSub(), 'gossipsub:heartbeat', 2)))
-
     psubs.slice(1).forEach((ps) => ps.getPubSub().subscribe(topic))
 
     // wait for heartbeats
     await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.getPubSub(), 'gossipsub:heartbeat', 2)))
-
     sendRecv = []
     await sendMessages(2)
     await Promise.all(sendRecv)
@@ -364,7 +366,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       number: 10,
       init: {
         scoreParams: {
-          IPColocationFactorThreshold: 20
+          IPColocationFactorThreshold: 20,
+          behaviourPenaltyWeight: 0
         },
         floodPublish: false,
         fanoutTTL: 1000
@@ -411,7 +414,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       number: 20,
       init: {
         scoreParams: {
-          IPColocationFactorThreshold: 20
+          IPColocationFactorThreshold: 20,
+          behaviourPenaltyWeight: 0
         }
       }
     })
@@ -453,7 +457,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       init: {
         floodPublish: false,
         scoreParams: {
-          IPColocationFactorThreshold: 20
+          IPColocationFactorThreshold: 20,
+          behaviourPenaltyWeight: 0
         }
       }
     })
@@ -563,7 +568,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       number: 20,
       init: {
         scoreParams: {
-          IPColocationFactorThreshold: 20
+          IPColocationFactorThreshold: 20,
+          behaviourPenaltyWeight: 0
         }
       }
     })
@@ -687,7 +693,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       number: 10,
       init: {
         scoreParams: {
-          IPColocationFactorThreshold: 20
+          IPColocationFactorThreshold: 20,
+          behaviourPenaltyWeight: 0
         }
       }
     })
@@ -746,7 +753,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       number: 20,
       init: {
         scoreParams: {
-          IPColocationFactorThreshold: 20
+          IPColocationFactorThreshold: 20,
+          behaviourPenaltyWeight: 0
         },
         fastMsgIdFn
       }
@@ -787,7 +795,12 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     const numPeers = 6
     psubs = await createComponentsArray({
       number: numPeers,
-      init: { scoreParams: { IPColocationFactorThreshold: 20 } }
+      init: {
+        scoreParams: {
+          IPColocationFactorThreshold: 20,
+          behaviourPenaltyWeight: 0
+        }
+      }
     })
     const topic = 'foobar'
 
@@ -946,11 +959,11 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       }
     })
 
-    // configure the center of the star with very low D
-    ;(psubs[0].getPubSub() as GossipSub).opts.D = 0
-    ;(psubs[0].getPubSub() as GossipSub).opts.Dhi = 0
-    ;(psubs[0].getPubSub() as GossipSub).opts.Dlo = 0
-    ;(psubs[0].getPubSub() as GossipSub).opts.Dscore = 0
+      // configure the center of the star with very low D
+      ; (psubs[0].getPubSub() as GossipSub).opts.D = 0
+      ; (psubs[0].getPubSub() as GossipSub).opts.Dhi = 0
+      ; (psubs[0].getPubSub() as GossipSub).opts.Dlo = 0
+      ; (psubs[0].getPubSub() as GossipSub).opts.Dscore = 0
 
     // build the star
     await Promise.all(psubs.slice(1).map((ps) => connectPubsubNodes(psubs[0], ps)))
@@ -1025,9 +1038,9 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
         }
       })
     ])
-    ;(psubs[1].getPubSub() as GossipSub).direct.add(psubs[2].getPeerId().toString())
+      ; (psubs[1].getPubSub() as GossipSub).direct.add(psubs[2].getPeerId().toString())
     await connectPubsubNodes(psubs[1], psubs[2])
-    ;(psubs[2].getPubSub() as GossipSub).direct.add(psubs[1].getPeerId().toString())
+      ; (psubs[2].getPubSub() as GossipSub).direct.add(psubs[1].getPeerId().toString())
     await connectPubsubNodes(psubs[2], psubs[1])
 
     // each peer connects to 2 other peers
@@ -1213,11 +1226,11 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await connectPubsubNodes(psubs[0], psubs[1])
     await connectPubsubNodes(psubs[1], psubs[2])
     await connectPubsubNodes(psubs[0], psubs[2])
-    ;(psubs[0].getPubSub() as GossipSub).topicValidators.set(topic, async (topic, m, propagationSource) => {
-      if (propagationSource.equals(psubs[1].getPeerId())) return MessageAcceptance.Ignore
-      if (propagationSource.equals(psubs[2].getPeerId())) return MessageAcceptance.Reject
-      throw Error('Unknown PeerId')
-    })
+      ; (psubs[0].getPubSub() as GossipSub).topicValidators.set(topic, async (topic, m, propagationSource) => {
+        if (propagationSource.equals(psubs[1].getPeerId())) return MessageAcceptance.Ignore
+        if (propagationSource.equals(psubs[2].getPeerId())) return MessageAcceptance.Reject
+        throw Error('Unknown PeerId')
+      })
 
     psubs[0].getPubSub().subscribe(topic)
 
@@ -1320,7 +1333,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await connectSome(real, 5)
     await Promise.all(connectPromises)
     sybils.forEach((s) => {
-      ;(s.getPubSub() as GossipSub).handleReceivedRpc = async function () {}
+      ; (s.getPubSub() as GossipSub).handleReceivedRpc = async function () { }
     })
 
     for (let i = 0; i < sybils.length; i++) {

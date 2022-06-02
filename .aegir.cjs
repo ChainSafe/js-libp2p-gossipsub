@@ -1,6 +1,6 @@
 
 /** @type {import('aegir').PartialOptions} */
-export default {
+module.exports = {
     docs: {
       entryPoint: "src/index.ts"
     }
