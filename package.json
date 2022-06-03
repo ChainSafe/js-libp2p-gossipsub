@@ -25,6 +25,14 @@
       "import": "./dist/src/types.js"
     }
   },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "dist/src/*",
+        "dist/src/*/index"
+      ]
+    }
+  },
   "scripts": {
     "lint": "eslint --ext .ts src",
     "release": "aegir release --no-types",
