@@ -20,8 +20,10 @@
     "generate": "protons ./src/message/rpc.proto",
     "prepare": "npm run build",
     "pretest": "npm run build",
+    "pretest:e2e": "npm run build",
     "benchmark": "node ./node_modules/.bin/benchmark 'test/benchmark/time-cache.test.js' --local",
     "test": "aegir test -f './dist/test/*.spec.js'",
+    "test:e2e": "aegir test -f './dist/test/e2e/*.spec.js'",
     "test:node": "npm run test -- --target node",
     "test:browser": "npm run test -- --target browser"
   },

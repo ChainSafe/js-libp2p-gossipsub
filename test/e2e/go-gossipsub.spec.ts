@@ -4,12 +4,12 @@ import pRetry from 'p-retry'
 import type { EventEmitter } from '@libp2p/interfaces/events'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
-import type { GossipSub, GossipsubEvents } from '../src/index.js'
-import { MessageAcceptance } from '../src/types.js'
-import { GossipsubD } from '../src/constants.js'
-import { fastMsgIdFn } from './utils/index.js'
+import type { GossipSub, GossipsubEvents } from '../../src/index.js'
+import { MessageAcceptance } from '../../src/types.js'
+import { GossipsubD } from '../../src/constants.js'
+import { fastMsgIdFn } from '../utils/index.js'
 import type { Message, SubscriptionChangeData } from '@libp2p/interfaces/pubsub'
-import type { RPC } from '../src/message/rpc.js'
+import type { RPC } from '../../src/message/rpc.js'
 import type { ConnectionManagerEvents } from '@libp2p/interfaces/connection-manager'
 import pWaitFor from 'p-wait-for'
 import { Components } from '@libp2p/interfaces/components'
@@ -20,11 +20,11 @@ import {
   createComponentsArray,
   createComponents,
   connectPubsubNodes
-} from './utils/create-pubsub.js'
+} from '../utils/create-pubsub.js'
 import { FloodSub } from '@libp2p/floodsub'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { stop } from '@libp2p/interfaces/startable'
-import { TopicScoreParams } from '../src/score/peer-score-params.js'
+import { TopicScoreParams } from '../../src/score/peer-score-params.js'
 
 /**
  * These tests were translated from:
@@ -258,16 +258,11 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
 
       const owner = 0
 
-      const results = Promise.all(
-        psubs
-          .slice(1)
-          .filter((psub, j) => j !== owner)
-          .map(checkReceivedMessage(topic, msg, owner, i))
-      )
-      sendRecv.push(psubs[owner].getPubSub().publish(topic, msg))
-      sendRecv.push(results)
+      const results = Promise.all(psubs.slice(1).map(checkReceivedMessage(topic, msg, owner, i)))
+      await psubs[owner].getPubSub().publish(topic, msg)
+      await results
     }
-    await Promise.all(sendRecv)
+    // await Promise.all(sendRecv)
 
     psubs[0].getPubSub().subscribe(topic)
 
@@ -1333,7 +1328,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await connectSome(real, 5)
     await Promise.all(connectPromises)
     sybils.forEach((s) => {
-      ; (s.getPubSub() as GossipSub).handleReceivedRpc = async function () { }
+      (s.getPubSub() as GossipSub).handleReceivedRpc = async function () { }
     })
 
     for (let i = 0; i < sybils.length; i++) {
