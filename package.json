@@ -28,6 +28,7 @@
   "typesVersions": {
     "*": {
       "*": [
+        "*",
         "dist/src/*",
         "dist/src/*/index"
       ]
