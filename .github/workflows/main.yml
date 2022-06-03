@@ -35,6 +35,21 @@ jobs:
       - run: npm install
       - run: npm run test:node -- --cov --bail -- --exit
       - uses: codecov/codecov-action@v1
+  test-node-e2e:
+    needs: check
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node: [16]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm install
+      - run: npm run test:e2e -- --target node --bail -- --exit 
   test-chrome:
     needs: check
     runs-on: ubuntu-latest
@@ -45,16 +60,16 @@ jobs:
           node-version: lts/*
       - run: npm install
       - run: npm run test:browser -- -t webworker --bail -- --exit
-  # test-firefox:
-  #   needs: check
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-node@v2
-  #       with:
-  #         node-version: lts/*
-  #     - run: npm install
-  #     - run: npm run test:browser -- -t webworker --bail -- --browser firefox -- --exit
+  test-firefox:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: lts/*
+      - run: npm install
+      - run: npm run test:browser -- -t webworker --bail -- --browser firefox -- --exit
   maybe-release:
     name: release
     runs-on: ubuntu-latest
@@ -84,6 +99,4 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
 
       - run: npm publish --access public 
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
         if: ${{ steps.release.outputs.release_created }}
