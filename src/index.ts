@@ -2440,7 +2440,13 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
           const backoff = this.backoff.get(topic)
           const newPeers = this.getRandomGossipPeers(topic, ineed, (id: string): boolean => {
             // filter our current mesh peers, direct peers, peers we are backing off, peers with negative score
-            return !peers.has(id) && !this.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) >= 0
+            return (
+              !peers.has(id) &&
+              !this.direct.has(id) &&
+              (!backoff || !backoff.has(id)) &&
+              getScore(id) >= 0 &&
+              this.outbound.get(id) === true
+            )
           })
           newPeers.forEach((p) => graftPeer(p, InclusionReason.Outbound))
         }
