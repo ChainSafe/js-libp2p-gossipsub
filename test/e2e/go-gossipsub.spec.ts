@@ -1,14 +1,13 @@
 import { expect } from 'aegir/utils/chai.js'
 import delay from 'delay'
 import pRetry from 'p-retry'
-import type { EventEmitter } from '@libp2p/interfaces/events'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
-import type { GossipSub, GossipsubEvents } from '../../src/index.js'
+import type { GossipSub } from '../../src/index.js'
 import { MessageAcceptance } from '../../src/types.js'
 import { GossipsubD } from '../../src/constants.js'
 import { fastMsgIdFn } from '../utils/index.js'
-import type { Message, SubscriptionChangeData } from '@libp2p/interfaces/pubsub'
+import type { Message } from '@libp2p/interfaces/pubsub'
 import type { RPC } from '../../src/message/rpc.js'
 import type { ConnectionManagerEvents } from '@libp2p/interfaces/connection-manager'
 import pWaitFor from 'p-wait-for'
@@ -25,60 +24,12 @@ import { FloodSub } from '@libp2p/floodsub'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { stop } from '@libp2p/interfaces/startable'
 import { TopicScoreParams } from '../../src/score/peer-score-params.js'
+import { awaitEvents, checkReceivedSubscription, checkReceivedSubscriptions } from '../utils/events.js'
 
 /**
  * These tests were translated from:
  * https://github.com/libp2p/go-libp2p-pubsub/blob/master/gossipsub_test.go
  */
-
-const checkReceivedSubscription = (
-  node: Components,
-  peerIdStr: string,
-  topic: string,
-  peerIdx: number,
-  timeout = 1000
-) =>
-  new Promise<void>((resolve, reject) => {
-    const event = 'subscription-change'
-    let cb: (evt: CustomEvent<SubscriptionChangeData>) => void
-    const t = setTimeout(() => reject(`Not received subscriptions of psub ${peerIdx}`), timeout)
-    cb = (evt) => {
-      const { peerId, subscriptions } = evt.detail
-
-      if (peerId.toString() === peerIdStr && subscriptions[0].topic === topic && subscriptions[0].subscribe === true) {
-        clearTimeout(t)
-        node.getPubSub().removeEventListener(event, cb)
-        if (
-          Array.from(node.getPubSub().getSubscribers(topic) || [])
-            .map((p) => p.toString())
-            .includes(peerIdStr)
-        ) {
-          resolve()
-        } else {
-          reject(Error('topics should include the peerId'))
-        }
-      }
-    }
-    node.getPubSub().addEventListener(event, cb)
-  })
-
-const checkReceivedSubscriptions = async (node: Components, peerIdStrs: string[], topic: string) => {
-  const recvPeerIdStrs = peerIdStrs.filter((peerIdStr) => peerIdStr !== node.getPeerId().toString())
-  const promises = recvPeerIdStrs.map(
-    async (peerIdStr, idx) => await checkReceivedSubscription(node, peerIdStr, topic, idx)
-  )
-  await Promise.all(promises)
-  for (const str of recvPeerIdStrs) {
-    expect(Array.from(node.getPubSub().getSubscribers(topic)).map((p) => p.toString())).to.include(str)
-  }
-  await pWaitFor(() => {
-    return recvPeerIdStrs.every((peerIdStr) => {
-      const peerStream = (node.getPubSub() as GossipSub).peers.get(peerIdStr)
-
-      return peerStream?.isWritable
-    })
-  })
-}
 
 /**
  * Given a topic and data (and debug metadata -- sender index and msg index)
@@ -108,32 +59,6 @@ const checkReceivedMessage =
       }
       node.getPubSub().addEventListener('message', cb)
     })
-
-const awaitEvents = async <Events = GossipsubEvents>(
-  emitter: EventEmitter<Events>,
-  event: keyof Events,
-  number: number,
-  timeout = 30000
-) => {
-  return new Promise<void>((resolve, reject) => {
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    let cb: () => void = () => { }
-    let counter = 0
-    const t = setTimeout(() => {
-      emitter.removeEventListener(event, cb)
-      reject(new Error(`${counter} of ${number} '${event.toString()}' events received after ${timeout}ms`))
-    }, timeout)
-    cb = () => {
-      counter++
-      if (counter >= number) {
-        clearTimeout(t)
-        emitter.removeEventListener(event, cb)
-        resolve()
-      }
-    }
-    emitter.addEventListener(event, cb)
-  })
-}
 
 describe('go-libp2p-pubsub gossipsub tests', function () {
   this.timeout(200000)

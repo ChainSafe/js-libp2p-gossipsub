@@ -5,7 +5,6 @@ import { expect } from 'chai';
 import pWaitFor from 'p-wait-for';
 import { GossipSub, GossipsubEvents } from "../../src/index.js";
 
-// TODO: share with go-gossipsub
 export const checkReceivedSubscription = (
   node: Components,
   peerIdStr: string,
@@ -67,7 +66,7 @@ export const awaitEvents = async <Events = GossipsubEvents>(
     let counter = 0
     const t = setTimeout(() => {
       emitter.removeEventListener(event, cb)
-      reject(new Error(`${counter} of ${number} '${event}' events received after ${timeout}ms`))
+      reject(new Error(`${counter} of ${number} '${String(event)}' events received after ${timeout}ms`))
     }, timeout)
     cb = () => {
       counter++
