@@ -6,3 +6,4 @@ dist/
 docs/
 .nyc_output/coverage-final.json
 .vscode/settings.json
+benchmark_data/
