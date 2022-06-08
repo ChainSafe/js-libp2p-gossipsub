@@ -44,6 +44,7 @@
     "pretest:e2e": "npm run build",
     "benchmark": "node ./node_modules/.bin/benchmark 'dist/test/benchmark/*.test.js' --local",
     "test": "aegir test -f './dist/test/*.spec.js'",
+    "test:unit": "aegir test -f './dist/test/unit/*.test.js' --target node",
     "test:e2e": "aegir test -f './dist/test/e2e/*.spec.js'",
     "test:node": "npm run test -- --target node",
     "test:browser": "npm run test -- --target browser"
