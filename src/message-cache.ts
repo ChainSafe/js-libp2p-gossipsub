@@ -1,6 +1,6 @@
 import type { RPC } from './message/rpc.js'
-import type { MsgIdStr, PeerIdStr, TopicStr } from './types.js'
-import { messageIdFromString, messageIdToString } from './utils/index.js'
+import type { MsgIdStr, PeerIdStr, TopicStr, MsgIdToStrFn } from './types.js'
+import { messageIdFromString } from './utils/messageIdToString.js'
 
 export interface CacheEntry {
   msgId: Uint8Array
@@ -26,6 +26,8 @@ interface MessageCacheEntry {
 export class MessageCache {
   msgs = new Map<MsgIdStr, MessageCacheEntry>()
 
+  msgIdToStrFn: MsgIdToStrFn
+
   history: CacheEntry[][] = []
 
   /**
@@ -33,13 +35,15 @@ export class MessageCache {
    */
   constructor(
     /**
-     * he number of indices in the cache history used for gossiping. That means that a message
+     * The number of indices in the cache history used for gossiping. That means that a message
      * won't get gossiped anymore when shift got called `gossip` many times after inserting the
      * message in the cache.
      */
     private readonly gossip: number,
+    msgIdToStrFn: MsgIdToStrFn,
     historyCapacity: number
   ) {
+    this.msgIdToStrFn = msgIdToStrFn
     for (let i = 0; i < historyCapacity; i++) {
       this.history[i] = []
     }
@@ -89,7 +93,7 @@ export class MessageCache {
    * Retrieves a message from the cache by its ID, if it is still present
    */
   get(msgId: Uint8Array): RPC.Message | undefined {
-    return this.msgs.get(messageIdToString(msgId))?.message
+    return this.msgs.get(this.msgIdToStrFn(msgId))?.message
   }
 
   /**
@@ -149,7 +153,7 @@ export class MessageCache {
   shift(): void {
     const last = this.history[this.history.length - 1]
     last.forEach((entry) => {
-      const msgIdStr = messageIdToString(entry.msgId)
+      const msgIdStr = this.msgIdToStrFn(entry.msgId)
       this.msgs.delete(msgIdStr)
     })
 

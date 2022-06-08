@@ -7,7 +7,7 @@ import { getMsgId } from './utils/index.js'
 import type { RPC } from '../src/message/rpc.js'
 
 describe('Testing Message Cache Operations', () => {
-  const messageCache = new MessageCache(3, 5)
+  const messageCache = new MessageCache(3, messageIdToString, 5)
   const testMessages: RPC.Message[] = []
 
   before(async () => {

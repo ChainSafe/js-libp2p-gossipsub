@@ -54,7 +54,8 @@ import {
   AddrInfo,
   DataTransform,
   TopicValidatorFn,
-  rejectReasonFromAcceptance
+  rejectReasonFromAcceptance,
+  MsgIdToStrFn
 } from './types.js'
 import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage.js'
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js'
@@ -112,10 +113,12 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   /** For a single RPC, await processing each message before processing the next */
   awaitRpcMessageHandler: boolean
 
-  // Extra modules, config
+  /** message id function */
   msgIdFn: MsgIdFn
   /** fast message id function */
   fastMsgIdFn: FastMsgIdFn
+  /** Uint8Array message id to string function */
+  msgIdToStrFn: MsgIdToStrFn
   /** override the default MessageCache */
   messageCache: MessageCache
   /** peer score parameters */
@@ -273,6 +276,11 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    */
   private readonly fastMsgIdFn: FastMsgIdFn | undefined
 
+  /**
+   * By default, gossipsub only provide a browser friendly function to convert Uint8Array message id to string.
+   */
+  private readonly msgIdToStrFn: MsgIdToStrFn
+
   /** Maps fast message-id to canonical message-id */
   private readonly fastMsgIdCache: SimpleTimeCache<MsgIdStr> | undefined
 
@@ -369,8 +377,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     this.seenCache = new SimpleTimeCache<void>({ validityMs: opts.seenTTL })
     this.publishedMessageIds = new SimpleTimeCache<void>({ validityMs: opts.seenTTL })
 
-    this.mcache = options.messageCache || new MessageCache(opts.mcacheGossip, opts.mcacheLength)
-
     if (options.msgIdFn) {
       // Use custom function
       this.msgIdFn = options.msgIdFn
@@ -389,6 +395,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       this.fastMsgIdFn = options.fastMsgIdFn
       this.fastMsgIdCache = new SimpleTimeCache<string>({ validityMs: opts.seenTTL })
     }
+
+    this.msgIdToStrFn = options.msgIdToStrFn ?? messageIdToString
+
+    this.mcache = options.messageCache || new MessageCache(opts.mcacheGossip, this.msgIdToStrFn, opts.mcacheLength)
 
     if (options.dataTransform) {
       this.dataTransform = options.dataTransform
@@ -423,7 +433,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       this.metrics = null
     }
 
-    this.gossipTracer = new IWantTracer(this.opts.gossipsubIWantFollowupMs, this.metrics)
+    this.gossipTracer = new IWantTracer(this.opts.gossipsubIWantFollowupMs, this.msgIdToStrFn, this.metrics)
 
     /**
      * libp2p
@@ -1003,7 +1013,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // - reject messages claiming to be from ourselves but not locally published
 
     // Calculate the message id on the transformed data.
-    const msgIdStr = msgIdCached ?? messageIdToString(await this.msgIdFn(msg))
+    const msgIdStr = msgIdCached ?? this.msgIdToStrFn(await this.msgIdFn(msg))
 
     // Add the message to the duplicate caches
     if (fastMsgIdStr) this.fastMsgIdCache?.put(fastMsgIdStr, msgIdStr)
@@ -1153,7 +1163,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       let idonthave = 0
 
       messageIDs.forEach((msgId) => {
-        const msgIdStr = messageIdToString(msgId)
+        const msgIdStr = this.msgIdToStrFn(msgId)
         if (!this.seenCache.has(msgIdStr)) {
           iwant.set(msgIdStr, msgId)
           idonthave++
@@ -1213,7 +1223,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     iwant.forEach(({ messageIDs }) => {
       messageIDs.forEach((msgId) => {
-        const msgIdStr = messageIdToString(msgId)
+        const msgIdStr = this.msgIdToStrFn(msgId)
         const entry = this.mcache.getWithIWantCount(msgIdStr, id)
         if (entry == null) {
           iwantDonthave++
@@ -1850,7 +1860,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       key: rawMsg.key
     }
     const msgId = await this.msgIdFn(msg)
-    const msgIdStr = messageIdToString(msgId)
+    const msgIdStr = this.msgIdToStrFn(msgId)
 
     if (this.seenCache.has(msgIdStr)) {
       // This message has already been seen. We don't re-publish messages that have already

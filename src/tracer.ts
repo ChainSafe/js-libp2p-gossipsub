@@ -1,5 +1,4 @@
-import { messageIdToString } from './utils/index.js'
-import { MsgIdStr, PeerIdStr, RejectReason } from './types.js'
+import { MsgIdStr, MsgIdToStrFn, PeerIdStr, RejectReason } from './types.js'
 import type { Metrics } from './metrics.js'
 
 /**
@@ -23,7 +22,11 @@ export class IWantTracer {
   private readonly requestMsByMsg = new Map<MsgIdStr, number>()
   private readonly requestMsByMsgExpire: number
 
-  constructor(private readonly gossipsubIWantFollowupMs: number, private readonly metrics: Metrics | null) {
+  constructor(
+    private readonly gossipsubIWantFollowupMs: number,
+    private readonly msgIdToStrFn: MsgIdToStrFn,
+    private readonly metrics: Metrics | null
+  ) {
     this.requestMsByMsgExpire = 10 * gossipsubIWantFollowupMs
   }
 
@@ -42,7 +45,7 @@ export class IWantTracer {
     // pick msgId randomly from the list
     const ix = Math.floor(Math.random() * msgIds.length)
     const msgId = msgIds[ix]
-    const msgIdStr = messageIdToString(msgId)
+    const msgIdStr = this.msgIdToStrFn(msgId)
 
     let expireByPeer = this.promises.get(msgIdStr)
     if (!expireByPeer) {
