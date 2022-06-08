@@ -116,7 +116,7 @@ export class LinkedList<T> {
   /**
    * Remove up to `max` items if condition `cond` is met.
    */
-  removeMultiple(max: number, cond: (t: T, i: number) => boolean): T[] {
+  findAndRemove(max: number, cond: (t: T, i: number) => boolean): T[] {
     let node = this.head
     if (!node) return []
     let count = 0

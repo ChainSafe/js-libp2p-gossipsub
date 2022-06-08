@@ -80,7 +80,7 @@ describe('LinkedList', () => {
     for (const { id, max, cond, result, expected, length } of testCases) {
       it(id, () => {
         const list = createLinkedList(arr)
-        const removedArr = list.removeMultiple(max, cond)
+        const removedArr = list.findAndRemove(max, cond)
         expect(removedArr).to.be.deep.equal(result, 'wrong result')
         expect(list.toArray()).to.be.deep.equal(expected, 'wrong list')
         expect(list.length).to.be.deep.equal(length, 'wrong length')
