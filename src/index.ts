@@ -2086,8 +2086,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   }
 
   /**
-   * Emits gossip - Send IHAVE messages to a random set of gossip peers. This is applied to mesh
-   * and fanout peers
+   * Emits gossip - Send IHAVE messages to a random set of gossip peers
    */
   private emitGossip(peersToGossipByTopic: Map<string, Set<PeerIdStr>>): void {
     for (const [topic, peersToGossip] of peersToGossipByTopic) {
@@ -2096,8 +2095,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   }
 
   /**
-   * Emits gossip to peers in a particular topic
-   *
+   * Send gossip messages to GossipFactor peers above threshold with a minimum of D_lazy
+   * Peers are randomly selected from the heartbeat which exclude mesh + fanout peers
+   * We also exclude direct peers, as there is no reason to emit gossip to them
    * @param topic
    * @param candidateToGossip - peers to gossip
    */
@@ -2115,11 +2115,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       // we do the truncation (with shuffling) per peer below
       this.log('too many messages for gossip; will truncate IHAVE list (%d messages)', messageIDs.length)
     }
-
-    // Send gossip to GossipFactor peers above threshold with a minimum of D_lazy
-    // First we collect the peers above gossipThreshold that are not in the exclude set
-    // and then randomly select from that set
-    // We also exclude direct peers, as there is no reason to emit gossip to them
 
     if (!candidateToGossip.size) return
     let target = this.opts.Dlazy
@@ -2312,8 +2307,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
      *   + oppportunistic grafting
      *   + emitGossip
      *
-     * We want to loop through the topic peers only single time and perform different sets at different thresholds
-     * and do emit gossip with known peers to improve performance
+     * We want to loop through the topic peers only a single time and prepare gossip peers for all topics to improve the performance
      */
 
     const peersToGossipByTopic = new Map<string, Set<PeerIdStr>>()
@@ -2332,6 +2326,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
           if (peerStreams && hasGossipProtocol(peerStreams.protocol) && !peers.has(id) && !this.direct.has(id)) {
             const score = getScore(id)
             if ((!backoff || !backoff.has(id)) && score >= 0) candidateMeshPeers.push(id)
+            // instead of having to find gossip peers after heartbeat which require another loop
+            // we prepare peers to gossip in a topic within heartbeat to improve performance
             if (score >= this.opts.scoreThresholds.gossipThreshold) peersToGossip.add(id)
           }
         }
@@ -2345,6 +2341,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         this.addBackoff(id, topic)
         // remove peer from mesh
         peers.delete(id)
+        // after pruning a peer from mesh, we want to gossip topic to it if its score meet the gossip threshold
         if (getScore(id) >= this.opts.scoreThresholds.gossipThreshold) peersToGossip.add(id)
         this.metrics?.onRemoveFromMesh(topic, reason, 1)
         // add to toprune
@@ -2362,6 +2359,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         this.score.graft(id, topic)
         // add peer to mesh
         peers.add(id)
+        // when we add a new mesh peer, we don't want to gossip messages to it
         peersToGossip.delete(id)
         this.metrics?.onAddToMesh(topic, reason, 1)
         // add to tograft
@@ -2532,6 +2530,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
           if (peerStreams && hasGossipProtocol(peerStreams.protocol) && !fanoutPeers.has(id) && !this.direct.has(id)) {
             const score = getScore(id)
             if (score >= this.opts.scoreThresholds.publishThreshold) candidateFanoutPeers.push(id)
+            // instead of having to find gossip peers after heartbeat which require another loop
+            // we prepare peers to gossip in a topic within heartbeat to improve performance
             if (score >= this.opts.scoreThresholds.gossipThreshold) peersToGossip.add(id)
           }
         }
