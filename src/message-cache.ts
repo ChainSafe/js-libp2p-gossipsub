@@ -40,8 +40,8 @@ export class MessageCache {
      * message in the cache.
      */
     private readonly gossip: number,
-    msgIdToStrFn: MsgIdToStrFn,
-    historyCapacity: number
+    historyCapacity: number,
+    msgIdToStrFn: MsgIdToStrFn
   ) {
     this.msgIdToStrFn = msgIdToStrFn
     for (let i = 0; i < historyCapacity; i++) {

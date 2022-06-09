@@ -396,7 +396,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // By default, gossipsub only provide a browser friendly function to convert Uint8Array message id to string.
     this.msgIdToStrFn = options.msgIdToStrFn ?? messageIdToString
 
-    this.mcache = options.messageCache || new MessageCache(opts.mcacheGossip, this.msgIdToStrFn, opts.mcacheLength)
+    this.mcache = options.messageCache || new MessageCache(opts.mcacheGossip, opts.mcacheLength, this.msgIdToStrFn)
 
     if (options.dataTransform) {
       this.dataTransform = options.dataTransform
