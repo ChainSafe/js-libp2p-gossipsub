@@ -73,7 +73,7 @@ import {
   SubscriptionChangeData
 } from '@libp2p/interfaces/pubsub'
 import type { IncomingStreamData } from '@libp2p/interfaces/registrar'
-import { LinkedList } from './utils/array.js'
+import { excludeFirstNItemsFromSet, excludeItemsFromSet } from './utils/set.js'
 
 // From 'bl' library
 interface BufferList {
@@ -2314,7 +2314,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // maintain the mesh for topics we have joined
     this.mesh.forEach((peers, topic) => {
       const peersInTopic = this.topics.get(topic)
-      const candidateMeshPeers = new LinkedList<PeerIdStr>()
+      const candidateMeshPeers = new Set<PeerIdStr>()
       const peersToGossip = new Set<PeerIdStr>()
       peersToGossipByTopic.set(topic, peersToGossip)
 
@@ -2325,7 +2325,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
           const peerStreams = this.peers.get(id)
           if (peerStreams && hasGossipProtocol(peerStreams.protocol) && !peers.has(id) && !this.direct.has(id)) {
             const score = getScore(id)
-            if ((!backoff || !backoff.has(id)) && score >= 0) candidateMeshPeers.push(id)
+            if ((!backoff || !backoff.has(id)) && score >= 0) candidateMeshPeers.add(id)
             // instead of having to find gossip peers after heartbeat which require another loop
             // we prepare peers to gossip in a topic within heartbeat to improve performance
             if (score >= this.opts.scoreThresholds.gossipThreshold) peersToGossip.add(id)
@@ -2389,7 +2389,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         const ineed = D - peers.size
         // slice up to first `ineed` items and remove them from candidateMeshPeers
         // same to `const newMeshPeers = candidateMeshPeers.slice(0, ineed)`
-        const newMeshPeers = candidateMeshPeers.findAndRemove(ineed, () => true)
+        const newMeshPeers = excludeFirstNItemsFromSet(candidateMeshPeers, ineed)
 
         newMeshPeers.forEach((p) => {
           graftPeer(p, InclusionReason.NotEnough)
@@ -2464,7 +2464,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         // if it's less than D_out, select some peers with outbound connections and graft them
         if (outbound < Dout) {
           const ineed = Dout - outbound
-          const newMeshPeers = candidateMeshPeers.findAndRemove(ineed, (id) => this.outbound.get(id) === true)
+          const newMeshPeers = excludeItemsFromSet(candidateMeshPeers, ineed, (id) => this.outbound.get(id) === true)
 
           newMeshPeers.forEach((p) => {
             graftPeer(p, InclusionReason.Outbound)
@@ -2489,7 +2489,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         // if the median score is below the threshold, select a better peer (if any) and GRAFT
         if (medianScore < this.opts.scoreThresholds.opportunisticGraftThreshold) {
           const ineed = this.opts.opportunisticGraftPeers
-          const newMeshPeers = candidateMeshPeers.findAndRemove(ineed, (id) => getScore(id) > medianScore)
+          const newMeshPeers = excludeItemsFromSet(candidateMeshPeers, ineed, (id) => getScore(id) > medianScore)
           for (const id of newMeshPeers) {
             this.log('HEARTBEAT: Opportunistically graft peer %s on topic %s', id, topic)
             graftPeer(id, InclusionReason.Opportunistic)
