@@ -55,7 +55,8 @@ import {
   DataTransform,
   TopicValidatorFn,
   rejectReasonFromAcceptance,
-  MsgIdToStrFn
+  MsgIdToStrFn,
+  MessageId
 } from './types.js'
 import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage.js'
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js'
@@ -84,9 +85,9 @@ interface BufferList {
 type ConnectionDirection = 'inbound' | 'outbound'
 
 type ReceivedMessageResult =
-  | { code: MessageStatus.duplicate; msgId: MsgIdStr }
-  | ({ code: MessageStatus.invalid; msgId?: MsgIdStr } & RejectReasonObj)
-  | { code: MessageStatus.valid; msgIdStr: MsgIdStr; msg: Message }
+  | { code: MessageStatus.duplicate; msgIdStr: MsgIdStr }
+  | ({ code: MessageStatus.invalid; msgIdStr?: MsgIdStr } & RejectReasonObj)
+  | { code: MessageStatus.valid; messageId: MessageId; msg: Message }
 
 export const multicodec: string = constants.GossipsubIDv11
 
@@ -391,7 +392,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     if (options.fastMsgIdFn) {
       this.fastMsgIdFn = options.fastMsgIdFn
-      this.fastMsgIdCache = new SimpleTimeCache<string>({ validityMs: opts.seenTTL })
+      this.fastMsgIdCache = new SimpleTimeCache<MsgIdStr>({ validityMs: opts.seenTTL })
     }
 
     // By default, gossipsub only provide a browser friendly function to convert Uint8Array message id to string.
@@ -903,8 +904,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     switch (validationResult.code) {
       case MessageStatus.duplicate:
         // Report the duplicate
-        this.score.duplicateMessage(from.toString(), validationResult.msgId, rpcMsg.topic)
-        this.mcache.observeDuplicate(validationResult.msgId, from.toString())
+        this.score.duplicateMessage(from.toString(), validationResult.msgIdStr, rpcMsg.topic)
+        this.mcache.observeDuplicate(validationResult.msgIdStr, from.toString())
         return
 
       case MessageStatus.invalid:
@@ -912,9 +913,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         // metrics.register_invalid_message(&raw_message.topic)
         // Tell peer_score about reject
         // Reject the original source, and any duplicates we've seen from other peers.
-        if (validationResult.msgId) {
-          this.score.rejectMessage(from.toString(), validationResult.msgId, rpcMsg.topic, validationResult.reason)
-          this.gossipTracer.rejectMessage(validationResult.msgId, validationResult.reason)
+        if (validationResult.msgIdStr) {
+          const msgIdStr = validationResult.msgIdStr
+          this.score.rejectMessage(from.toString(), msgIdStr, rpcMsg.topic, validationResult.reason)
+          this.gossipTracer.rejectMessage(msgIdStr, validationResult.reason)
         } else {
           this.score.rejectInvalidMessage(from.toString(), rpcMsg.topic)
         }
@@ -925,11 +927,11 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       case MessageStatus.valid:
         // Tells score that message arrived (but is maybe not fully validated yet).
         // Consider the message as delivered for gossip promises.
-        this.score.validateMessage(validationResult.msgIdStr)
-        this.gossipTracer.deliverMessage(validationResult.msgIdStr)
+        this.score.validateMessage(validationResult.messageId.msgIdStr)
+        this.gossipTracer.deliverMessage(validationResult.messageId.msgIdStr)
 
         // Add the message to our memcache
-        this.mcache.put(validationResult.msgIdStr, rpcMsg)
+        this.mcache.put(validationResult.messageId, rpcMsg)
 
         // Dispatch the message to the user if we are subscribed to the topic
         if (this.subscriptions.has(rpcMsg.topic)) {
@@ -940,7 +942,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
               new CustomEvent<GossipsubMessage>('gossipsub:message', {
                 detail: {
                   propagationSource: from,
-                  msgId: validationResult.msgIdStr,
+                  msgId: validationResult.messageId.msgIdStr,
                   msg: validationResult.msg
                 }
               })
@@ -955,7 +957,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         if (!this.opts.asyncValidation) {
           // TODO: in rust-libp2p
           // .forward_msg(&msg_id, raw_message, Some(propagation_source))
-          this.forwardMessage(validationResult.msgIdStr, rpcMsg, from.toString())
+          this.forwardMessage(validationResult.messageId.msgIdStr, rpcMsg, from.toString())
         }
     }
   }
@@ -970,11 +972,11 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   ): Promise<ReceivedMessageResult> {
     // Fast message ID stuff
     const fastMsgIdStr = this.fastMsgIdFn?.(rpcMsg)
-    const msgIdCached = fastMsgIdStr && this.fastMsgIdCache?.get(fastMsgIdStr)
+    const msgIdCached = fastMsgIdStr ? this.fastMsgIdCache?.get(fastMsgIdStr) : undefined
 
     if (msgIdCached) {
       // This message has been seen previously. Ignore it
-      return { code: MessageStatus.duplicate, msgId: msgIdCached }
+      return { code: MessageStatus.duplicate, msgIdStr: msgIdCached }
     }
 
     // Perform basic validation on message and convert to RawGossipsubMessage for fastMsgIdFn()
@@ -1012,13 +1014,15 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // - reject messages claiming to be from ourselves but not locally published
 
     // Calculate the message id on the transformed data.
-    const msgIdStr = msgIdCached ?? this.msgIdToStrFn(await this.msgIdFn(msg))
+    const msgId = await this.msgIdFn(msg)
+    const msgIdStr = this.msgIdToStrFn(msgId)
+    const messageId = { msgId, msgIdStr }
 
     // Add the message to the duplicate caches
     if (fastMsgIdStr) this.fastMsgIdCache?.put(fastMsgIdStr, msgIdStr)
 
     if (this.seenCache.has(msgIdStr)) {
-      return { code: MessageStatus.duplicate, msgId: msgIdStr }
+      return { code: MessageStatus.duplicate, msgIdStr }
     } else {
       this.seenCache.put(msgIdStr)
     }
@@ -1040,11 +1044,11 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       }
 
       if (acceptance !== MessageAcceptance.Accept) {
-        return { code: MessageStatus.invalid, reason: rejectReasonFromAcceptance(acceptance), msgId: msgIdStr }
+        return { code: MessageStatus.invalid, reason: rejectReasonFromAcceptance(acceptance), msgIdStr }
       }
     }
 
-    return { code: MessageStatus.valid, msgIdStr, msg }
+    return { code: MessageStatus.valid, messageId, msg }
   }
 
   /**
@@ -1877,7 +1881,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // If the message isn't a duplicate and we have sent it to some peers add it to the
     // duplicate cache and memcache.
     this.seenCache.put(msgIdStr)
-    this.mcache.put(msgIdStr, rawMsg)
+    this.mcache.put({ msgId, msgIdStr }, rawMsg)
 
     // If the message is anonymous or has a random author add it to the published message ids cache.
     this.publishedMessageIds.put(msgIdStr)

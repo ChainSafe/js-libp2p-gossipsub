@@ -161,6 +161,11 @@ export enum MessageStatus {
   valid = 'valid'
 }
 
+export type MessageId = {
+  msgId: Uint8Array
+  msgIdStr: MsgIdStr
+}
+
 /**
  * Typesafe conversion of MessageAcceptance -> RejectReason. TS ensures all values covered
  */
