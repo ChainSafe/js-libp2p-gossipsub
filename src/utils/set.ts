@@ -1,21 +1,19 @@
 /**
  * Exclude up to `ineed` items from a set if item meets condition `cond`
  */
-export function excludeItemsFromSet<T>(
+export function removeItemsFromSet<T>(
   superSet: Set<T>,
   ineed: number,
   cond: (peer: T) => boolean = () => true
 ): Set<T> {
-  let count = 0
   const subset = new Set<T>()
   if (ineed <= 0) return subset
 
   for (const id of superSet) {
-    if (count >= ineed) break
+    if (subset.size >= ineed) break
     if (cond(id)) {
       subset.add(id)
       superSet.delete(id)
-      count++
     }
   }
 
@@ -25,6 +23,6 @@ export function excludeItemsFromSet<T>(
 /**
  * Exclude up to `ineed` items from a set
  */
-export function excludeFirstNItemsFromSet<T>(superSet: Set<T>, ineed: number): Set<T> {
-  return excludeItemsFromSet(superSet, ineed, () => true)
+export function removeFirstNItemsFromSet<T>(superSet: Set<T>, ineed: number): Set<T> {
+  return removeItemsFromSet(superSet, ineed, () => true)
 }

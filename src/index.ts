@@ -73,7 +73,7 @@ import {
   SubscriptionChangeData
 } from '@libp2p/interfaces/pubsub'
 import type { IncomingStreamData } from '@libp2p/interfaces/registrar'
-import { excludeFirstNItemsFromSet, excludeItemsFromSet } from './utils/set.js'
+import { removeFirstNItemsFromSet, removeItemsFromSet } from './utils/set.js'
 
 // From 'bl' library
 interface BufferList {
@@ -2389,7 +2389,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         const ineed = D - peers.size
         // slice up to first `ineed` items and remove them from candidateMeshPeers
         // same to `const newMeshPeers = candidateMeshPeers.slice(0, ineed)`
-        const newMeshPeers = excludeFirstNItemsFromSet(candidateMeshPeers, ineed)
+        const newMeshPeers = removeFirstNItemsFromSet(candidateMeshPeers, ineed)
 
         newMeshPeers.forEach((p) => {
           graftPeer(p, InclusionReason.NotEnough)
@@ -2464,7 +2464,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         // if it's less than D_out, select some peers with outbound connections and graft them
         if (outbound < Dout) {
           const ineed = Dout - outbound
-          const newMeshPeers = excludeItemsFromSet(candidateMeshPeers, ineed, (id) => this.outbound.get(id) === true)
+          const newMeshPeers = removeItemsFromSet(candidateMeshPeers, ineed, (id) => this.outbound.get(id) === true)
 
           newMeshPeers.forEach((p) => {
             graftPeer(p, InclusionReason.Outbound)
@@ -2489,7 +2489,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         // if the median score is below the threshold, select a better peer (if any) and GRAFT
         if (medianScore < this.opts.scoreThresholds.opportunisticGraftThreshold) {
           const ineed = this.opts.opportunisticGraftPeers
-          const newMeshPeers = excludeItemsFromSet(candidateMeshPeers, ineed, (id) => getScore(id) > medianScore)
+          const newMeshPeers = removeItemsFromSet(candidateMeshPeers, ineed, (id) => getScore(id) > medianScore)
           for (const id of newMeshPeers) {
             this.log('HEARTBEAT: Opportunistically graft peer %s on topic %s', id, topic)
             graftPeer(id, InclusionReason.Opportunistic)
