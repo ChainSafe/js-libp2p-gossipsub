@@ -756,7 +756,8 @@ describe.skip('PeerScore score cache', function () {
   ]
 
   for (const { name, fun } of testCases) {
-    it(`should invalidate the cache after ${name}`, function () { // eslint-disable-line no-loop-func
+    it(`should invalidate the cache after ${name}`, function () {
+      // eslint-disable-line no-loop-func
       computeStoreStub.returns(10)
       ps2.addPeer(peerA)
       ps2.score(peerA)

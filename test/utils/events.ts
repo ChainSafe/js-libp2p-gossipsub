@@ -11,12 +11,14 @@ export const checkReceivedSubscription = (
   topic: string,
   peerIdx: number,
   timeout = 1000
-) =>
+): Promise<void> =>
   new Promise<void>((resolve, reject) => {
     const event = 'subscription-change'
-    let cb: (evt: CustomEvent<SubscriptionChangeData>) => void
-    const t = setTimeout(() => reject(`Not received subscriptions of psub ${peerIdx}, topic ${topic}`), timeout)
-    cb = (evt) => {
+    const t = setTimeout(
+      () => reject(new Error(`Not received subscriptions of psub ${peerIdx}, topic ${topic}`)),
+      timeout
+    )
+    const cb = (evt: CustomEvent<SubscriptionChangeData>) => {
       const { peerId, subscriptions } = evt.detail
 
       // console.log('@@@ in test received subscriptions from peer id', peerId.toString())
@@ -24,7 +26,7 @@ export const checkReceivedSubscription = (
         clearTimeout(t)
         node.getPubSub().removeEventListener(event, cb)
         if (
-          Array.from(node.getPubSub().getSubscribers(topic) || [])
+          Array.from(node.getPubSub().getSubscribers(topic))
             .map((p) => p.toString())
             .includes(peerIdStr)
         ) {
@@ -37,7 +39,12 @@ export const checkReceivedSubscription = (
     node.getPubSub().addEventListener(event, cb)
   })
 
-export const checkReceivedSubscriptions = async (node: Components, peerIdStrs: string[], topic: string, timeout = 5000) => {
+export const checkReceivedSubscriptions = async (
+  node: Components,
+  peerIdStrs: string[],
+  topic: string,
+  timeout = 5000
+): Promise<void> => {
   const recvPeerIdStrs = peerIdStrs.filter((peerIdStr) => peerIdStr !== node.getPeerId().toString())
   const promises = recvPeerIdStrs.map(
     async (peerIdStr, idx) => await checkReceivedSubscription(node, peerIdStr, topic, idx, timeout)
@@ -60,15 +67,14 @@ export const awaitEvents = async <Events = GossipsubEvents>(
   event: keyof Events,
   number: number,
   timeout = 30000
-) => {
+): Promise<void> => {
   return new Promise<void>((resolve, reject) => {
-    let cb: () => void
     let counter = 0
     const t = setTimeout(() => {
       emitter.removeEventListener(event, cb)
       reject(new Error(`${counter} of ${number} '${String(event)}' events received after ${timeout}ms`))
     }, timeout)
-    cb = () => {
+    const cb = () => {
       counter++
       if (counter >= number) {
         clearTimeout(t)

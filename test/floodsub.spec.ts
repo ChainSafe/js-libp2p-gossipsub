@@ -7,7 +7,6 @@ import pRetry from 'p-retry'
 import { connectPubsubNodes, createComponents } from './utils/create-pubsub.js'
 import { Components } from '@libp2p/interfaces/components'
 import { FloodSub } from '@libp2p/floodsub'
-import { FloodsubID, GossipsubIDv11 } from '../src/constants.js'
 import { stop } from '@libp2p/interfaces/startable'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 
@@ -35,11 +34,21 @@ describe('gossipsub fallbacks to floodsub', () => {
     })
 
     it('Dial event happened from nodeGs to nodeFs', async () => {
-      await connectPubsubNodes(nodeGs, nodeFs, FloodsubID)
+      await connectPubsubNodes(nodeGs, nodeFs)
 
       await pRetry(() => {
-        expect(nodeGs.getPubSub().getPeers().map(s => s.toString())).to.include(nodeFs.getPeerId().toString())
-        expect(nodeFs.getPubSub().getPeers().map(s => s.toString())).to.include(nodeGs.getPeerId().toString())
+        expect(
+          nodeGs
+            .getPubSub()
+            .getPeers()
+            .map((s) => s.toString())
+        ).to.include(nodeFs.getPeerId().toString())
+        expect(
+          nodeFs
+            .getPubSub()
+            .getPeers()
+            .map((s) => s.toString())
+        ).to.include(nodeGs.getPeerId().toString())
       })
     })
   })
@@ -67,7 +76,7 @@ describe('gossipsub fallbacks to floodsub', () => {
 
     it('Dial event happened from nodeGs to nodeFs, but nodeGs does not support floodsub', async () => {
       try {
-        await connectPubsubNodes(nodeGs, nodeFs, GossipsubIDv11)
+        await connectPubsubNodes(nodeGs, nodeFs)
         expect.fail('Dial should not have succeed')
       } catch (err) {
         expect((err as { code: string }).code).to.be.equal('ERR_UNSUPPORTED_PROTOCOL')
@@ -90,7 +99,7 @@ describe('gossipsub fallbacks to floodsub', () => {
         pubsub: FloodSub
       })
 
-      await connectPubsubNodes(nodeGs, nodeFs, FloodsubID)
+      await connectPubsubNodes(nodeGs, nodeFs)
     })
 
     afterEach(async () => {
@@ -115,10 +124,25 @@ describe('gossipsub fallbacks to floodsub', () => {
       expect(nodeFs.getPubSub().getTopics()).to.include(topic)
       expect(nodeGs.getPubSub().getPeers()).to.have.lengthOf(1)
       expect(nodeFs.getPubSub().getPeers()).to.have.lengthOf(1)
-      expect(nodeGs.getPubSub().getSubscribers(topic).map(p => p.toString())).to.include(nodeFs.getPeerId().toString())
-      expect(nodeFs.getPubSub().getSubscribers(topic).map(p => p.toString())).to.include(nodeGs.getPeerId().toString())
+      expect(
+        nodeGs
+          .getPubSub()
+          .getSubscribers(topic)
+          .map((p) => p.toString())
+      ).to.include(nodeFs.getPeerId().toString())
+      expect(
+        nodeFs
+          .getPubSub()
+          .getSubscribers(topic)
+          .map((p) => p.toString())
+      ).to.include(nodeGs.getPeerId().toString())
 
-      expect(nodeGs.getPubSub().getPeers().map(p => p.toString())).to.include(changedPeerId.toString())
+      expect(
+        nodeGs
+          .getPubSub()
+          .getPeers()
+          .map((p) => p.toString())
+      ).to.include(changedPeerId.toString())
       expect(changedSubs).to.have.lengthOf(1)
       expect(changedSubs[0].topic).to.equal(topic)
       expect(changedSubs[0].subscribe).to.equal(true)
@@ -141,7 +165,7 @@ describe('gossipsub fallbacks to floodsub', () => {
         pubsub: FloodSub
       })
 
-      await connectPubsubNodes(nodeGs, nodeFs, FloodsubID)
+      await connectPubsubNodes(nodeGs, nodeFs)
 
       nodeGs.getPubSub().subscribe(topic)
       nodeFs.getPubSub().subscribe(topic)
@@ -197,7 +221,7 @@ describe('gossipsub fallbacks to floodsub', () => {
         pubsub: FloodSub
       })
 
-      await connectPubsubNodes(nodeGs, nodeFs, FloodsubID)
+      await connectPubsubNodes(nodeGs, nodeFs)
 
       nodeGs.getPubSub().subscribe(topic)
       nodeFs.getPubSub().subscribe(topic)
@@ -217,7 +241,10 @@ describe('gossipsub fallbacks to floodsub', () => {
     })
 
     it('Unsubscribe from a topic', async () => {
-      const promise = pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(nodeFs.getPubSub(), 'subscription-change')
+      const promise = pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(
+        nodeFs.getPubSub(),
+        'subscription-change'
+      )
 
       nodeGs.getPubSub().unsubscribe(topic)
       expect(nodeGs.getPubSub().getTopics()).to.be.empty()
@@ -227,7 +254,12 @@ describe('gossipsub fallbacks to floodsub', () => {
 
       expect(nodeFs.getPubSub().getPeers()).to.have.lengthOf(1)
       expect(nodeFs.getPubSub().getSubscribers(topic)).to.be.empty()
-      expect(nodeFs.getPubSub().getPeers().map(p => p.toString())).to.include(changedPeerId.toString())
+      expect(
+        nodeFs
+          .getPubSub()
+          .getPeers()
+          .map((p) => p.toString())
+      ).to.include(changedPeerId.toString())
       expect(changedSubs).to.have.lengthOf(1)
       expect(changedSubs[0].topic).to.equal(topic)
       expect(changedSubs[0].subscribe).to.equal(false)

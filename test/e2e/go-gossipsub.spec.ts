@@ -879,11 +879,11 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       }
     })
 
-      // configure the center of the star with very low D
-      ; (psubs[0].getPubSub() as GossipSub).opts.D = 0
-      ; (psubs[0].getPubSub() as GossipSub).opts.Dhi = 0
-      ; (psubs[0].getPubSub() as GossipSub).opts.Dlo = 0
-      ; (psubs[0].getPubSub() as GossipSub).opts.Dscore = 0
+    // configure the center of the star with very low D
+    ;(psubs[0].getPubSub() as GossipSub).opts.D = 0
+    ;(psubs[0].getPubSub() as GossipSub).opts.Dhi = 0
+    ;(psubs[0].getPubSub() as GossipSub).opts.Dlo = 0
+    ;(psubs[0].getPubSub() as GossipSub).opts.Dscore = 0
 
     // build the star
     await Promise.all(psubs.slice(1).map((ps) => connectPubsubNodes(psubs[0], ps)))
@@ -958,9 +958,9 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
         }
       })
     ])
-      ; (psubs[1].getPubSub() as GossipSub).direct.add(psubs[2].getPeerId().toString())
+    ;(psubs[1].getPubSub() as GossipSub).direct.add(psubs[2].getPeerId().toString())
     await connectPubsubNodes(psubs[1], psubs[2])
-      ; (psubs[2].getPubSub() as GossipSub).direct.add(psubs[1].getPeerId().toString())
+    ;(psubs[2].getPubSub() as GossipSub).direct.add(psubs[1].getPeerId().toString())
     await connectPubsubNodes(psubs[2], psubs[1])
 
     // each peer connects to 2 other peers
@@ -1146,11 +1146,11 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await connectPubsubNodes(psubs[0], psubs[1])
     await connectPubsubNodes(psubs[1], psubs[2])
     await connectPubsubNodes(psubs[0], psubs[2])
-      ; (psubs[0].getPubSub() as GossipSub).topicValidators.set(topic, async (topic, m, propagationSource) => {
-        if (propagationSource.equals(psubs[1].getPeerId())) return MessageAcceptance.Ignore
-        if (propagationSource.equals(psubs[2].getPeerId())) return MessageAcceptance.Reject
-        throw Error('Unknown PeerId')
-      })
+    ;(psubs[0].getPubSub() as GossipSub).topicValidators.set(topic, async (topic, m, propagationSource) => {
+      if (propagationSource.equals(psubs[1].getPeerId())) return MessageAcceptance.Ignore
+      if (propagationSource.equals(psubs[2].getPeerId())) return MessageAcceptance.Reject
+      throw Error('Unknown PeerId')
+    })
 
     psubs[0].getPubSub().subscribe(topic)
 
@@ -1253,7 +1253,9 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await connectSome(real, 5)
     await Promise.all(connectPromises)
     sybils.forEach((s) => {
-      (s.getPubSub() as GossipSub).handleReceivedRpc = async function () { }
+      ;(s.getPubSub() as GossipSub).handleReceivedRpc = async function () {
+        //
+      }
     })
 
     for (let i = 0; i < sybils.length; i++) {

@@ -46,9 +46,11 @@ describe('mesh overlay', () => {
 
     await delay(50)
     // await mesh rebalancing
-    await new Promise((resolve) => (node0.getPubSub() as GossipSub).addEventListener('gossipsub:heartbeat', resolve, {
-      once: true
-    }))
+    await new Promise((resolve) =>
+      (node0.getPubSub() as GossipSub).addEventListener('gossipsub:heartbeat', resolve, {
+        once: true
+      })
+    )
 
     const mesh = (node0.getPubSub() as GossipSub).mesh.get(topic)
     expect(mesh).to.have.property('size', N)
