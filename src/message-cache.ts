@@ -55,7 +55,7 @@ export class MessageCache {
    * Adds a message to the current window and the cache
    * Returns true if the message is not known and is inserted in the cache
    */
-  put(messageId: MessageId, msg: RPC.Message): boolean {
+  put(messageId: MessageId, msg: RPC.Message, validated = false): boolean {
     const { msgIdStr } = messageId
     // Don't add duplicate entries to the cache.
     if (this.msgs.has(msgIdStr)) {
@@ -64,7 +64,7 @@ export class MessageCache {
 
     this.msgs.set(msgIdStr, {
       message: msg,
-      validated: false,
+      validated,
       originatingPeers: new Set(),
       iwantCounts: new Map()
     })
@@ -117,9 +117,7 @@ export class MessageCache {
     const msgIdsByTopic = new Map<string, Uint8Array[]>()
     for (let i = 0; i < this.gossip; i++) {
       this.history[i].forEach((entry) => {
-        // TODO: no need to convert to string again
-        // see https://github.com/ChainSafe/js-libp2p-gossipsub/pull/274
-        const msg = this.msgs.get(this.msgIdToStrFn(entry.msgId))
+        const msg = this.msgs.get(entry.msgIdStr)
         if (msg && msg.validated && topics.has(entry.topic)) {
           let msgIds = msgIdsByTopic.get(entry.topic)
           if (!msgIds) {

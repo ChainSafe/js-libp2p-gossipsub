@@ -38,7 +38,7 @@ describe('Testing Message Cache Operations', () => {
     }
 
     for (let i = 0; i < 10; i++) {
-      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i])
+      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i], true)
     }
   })
 
@@ -63,7 +63,7 @@ describe('Testing Message Cache Operations', () => {
   it('Shift message cache', async () => {
     messageCache.shift()
     for (let i = 10; i < 20; i++) {
-      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i])
+      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i], true)
     }
 
     for (let i = 0; i < 20; i++) {
@@ -87,22 +87,22 @@ describe('Testing Message Cache Operations', () => {
 
     messageCache.shift()
     for (let i = 20; i < 30; i++) {
-      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i])
+      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i], true)
     }
 
     messageCache.shift()
     for (let i = 30; i < 40; i++) {
-      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i])
+      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i], true)
     }
 
     messageCache.shift()
     for (let i = 40; i < 50; i++) {
-      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i])
+      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i], true)
     }
 
     messageCache.shift()
     for (let i = 50; i < 60; i++) {
-      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i])
+      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i], true)
     }
 
     expect(messageCache.msgs.size).to.equal(50)
@@ -147,12 +147,9 @@ describe('Testing Message Cache Operations', () => {
     expect(gossipIDs.length).to.be.equal(0)
 
     for (let i = 10; i < 20; i++) {
-      const msgIdStr = messageIdToString(getMsgId(testMessages[i]))
-      messageCache.put(msgIdStr, testMessages[i])
       // 5 last messages are not validated
-      if (i < 15) {
-        messageCache.validate(msgIdStr)
-      }
+      const validated = i < 15
+      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i], validated)
     }
 
     gossipIDs = getGossipIDs(messageCache, topic)

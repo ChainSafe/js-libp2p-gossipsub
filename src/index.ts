@@ -928,7 +928,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         this.gossipTracer.deliverMessage(validationResult.messageId.msgIdStr)
 
         // Add the message to our memcache
-        this.mcache.put(validationResult.messageId, rpcMsg)
+        // if no validation is required, mark the message as validated
+        this.mcache.put(validationResult.messageId, rpcMsg, !this.opts.asyncValidation)
 
         // Dispatch the message to the user if we are subscribed to the topic
         if (this.subscriptions.has(rpcMsg.topic)) {
@@ -1878,7 +1879,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // If the message isn't a duplicate and we have sent it to some peers add it to the
     // duplicate cache and memcache.
     this.seenCache.put(msgIdStr)
-    this.mcache.put({ msgId, msgIdStr }, rawMsg)
+    // all published messages are valid
+    this.mcache.put({ msgId, msgIdStr }, rawMsg, true)
 
     // If the message is anonymous or has a random author add it to the published message ids cache.
     this.publishedMessageIds.put(msgIdStr)
