@@ -73,6 +73,7 @@ import {
   SubscriptionChangeData
 } from '@libp2p/interfaces/pubsub'
 import type { IncomingStreamData } from '@libp2p/interfaces/registrar'
+import { removeFirstNItemsFromSet, removeItemsFromSet } from './utils/set.js'
 
 // From 'bl' library
 interface BufferList {
@@ -2085,12 +2086,22 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   }
 
   /**
-   * Emits gossip to peers in a particular topic
-   *
-   * @param topic
-   * @param exclude - peers to exclude
+   * Emits gossip - Send IHAVE messages to a random set of gossip peers
    */
-  private emitGossip(topic: string, exclude: Set<string>): void {
+  private emitGossip(peersToGossipByTopic: Map<string, Set<PeerIdStr>>): void {
+    for (const [topic, peersToGossip] of peersToGossipByTopic) {
+      this.doEmitGossip(topic, peersToGossip)
+    }
+  }
+
+  /**
+   * Send gossip messages to GossipFactor peers above threshold with a minimum of D_lazy
+   * Peers are randomly selected from the heartbeat which exclude mesh + fanout peers
+   * We also exclude direct peers, as there is no reason to emit gossip to them
+   * @param topic
+   * @param candidateToGossip - peers to gossip
+   */
+  private doEmitGossip(topic: string, candidateToGossip: Set<PeerIdStr>): void {
     const messageIDs = this.mcache.getGossipIDs(topic)
     if (!messageIDs.length) {
       return
@@ -2105,43 +2116,22 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       this.log('too many messages for gossip; will truncate IHAVE list (%d messages)', messageIDs.length)
     }
 
-    // Send gossip to GossipFactor peers above threshold with a minimum of D_lazy
-    // First we collect the peers above gossipThreshold that are not in the exclude set
-    // and then randomly select from that set
-    // We also exclude direct peers, as there is no reason to emit gossip to them
-    const peersToGossip: string[] = []
-    const topicPeers = this.topics.get(topic)
-    if (!topicPeers) {
-      // no topic peers, no gossip
-      return
-    }
-    topicPeers.forEach((id) => {
-      const peerStreams = this.peers.get(id)
-      if (!peerStreams) {
-        return
-      }
-      if (
-        !exclude.has(id) &&
-        !this.direct.has(id) &&
-        hasGossipProtocol(peerStreams.protocol) &&
-        this.score.score(id) >= this.opts.scoreThresholds.gossipThreshold
-      ) {
-        peersToGossip.push(id)
-      }
-    })
-
+    if (!candidateToGossip.size) return
     let target = this.opts.Dlazy
-    const factor = constants.GossipsubGossipFactor * peersToGossip.length
+    const factor = constants.GossipsubGossipFactor * candidateToGossip.size
+    let peersToGossip: Set<PeerIdStr> | PeerIdStr[] = candidateToGossip
     if (factor > target) {
       target = factor
     }
-    if (target > peersToGossip.length) {
-      target = peersToGossip.length
+    if (target > peersToGossip.size) {
+      target = peersToGossip.size
     } else {
-      shuffle(peersToGossip)
+      // only shuffle if needed
+      peersToGossip = shuffle(Array.from(peersToGossip)).slice(0, target)
     }
+
     // Emit the IHAVE gossip to the selected peers up to the target
-    peersToGossip.slice(0, target).forEach((id) => {
+    peersToGossip.forEach((id) => {
       let peerMessageIDs = messageIDs
       if (messageIDs.length > constants.GossipsubMaxIHaveLength) {
         // shuffle and slice message IDs per peer so that we emit a different set for each peer
@@ -2264,7 +2254,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   /**
    * Maintains the mesh and fanout maps in gossipsub.
    */
-  private async heartbeat(): Promise<void> {
+  public async heartbeat(): Promise<void> {
     const { D, Dlo, Dhi, Dscore, Dout, fanoutTTL } = this.opts
 
     this.heartbeatTicks++
@@ -2310,8 +2300,39 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     this.gossipTracer.prune()
     this.publishedMessageIds.prune()
 
+    /**
+     * Instead of calling getRandomGossipPeers multiple times to:
+     *   + get more mesh peers
+     *   + more outbound peers
+     *   + oppportunistic grafting
+     *   + emitGossip
+     *
+     * We want to loop through the topic peers only a single time and prepare gossip peers for all topics to improve the performance
+     */
+
+    const peersToGossipByTopic = new Map<string, Set<PeerIdStr>>()
     // maintain the mesh for topics we have joined
     this.mesh.forEach((peers, topic) => {
+      const peersInTopic = this.topics.get(topic)
+      const candidateMeshPeers = new Set<PeerIdStr>()
+      const peersToGossip = new Set<PeerIdStr>()
+      peersToGossipByTopic.set(topic, peersToGossip)
+
+      if (peersInTopic) {
+        const shuffledPeers = shuffle(Array.from(peersInTopic))
+        const backoff = this.backoff.get(topic)
+        for (const id of shuffledPeers) {
+          const peerStreams = this.peers.get(id)
+          if (peerStreams && hasGossipProtocol(peerStreams.protocol) && !peers.has(id) && !this.direct.has(id)) {
+            const score = getScore(id)
+            if ((!backoff || !backoff.has(id)) && score >= 0) candidateMeshPeers.add(id)
+            // instead of having to find gossip peers after heartbeat which require another loop
+            // we prepare peers to gossip in a topic within heartbeat to improve performance
+            if (score >= this.opts.scoreThresholds.gossipThreshold) peersToGossip.add(id)
+          }
+        }
+      }
+
       // prune/graft helper functions (defined per topic)
       const prunePeer = (id: PeerIdStr, reason: ChurnReason): void => {
         this.log('HEARTBEAT: Remove mesh link to %s in %s', id, topic)
@@ -2320,6 +2341,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         this.addBackoff(id, topic)
         // remove peer from mesh
         peers.delete(id)
+        // after pruning a peer from mesh, we want to gossip topic to it if its score meet the gossip threshold
+        if (getScore(id) >= this.opts.scoreThresholds.gossipThreshold) peersToGossip.add(id)
         this.metrics?.onRemoveFromMesh(topic, reason, 1)
         // add to toprune
         const topics = toprune.get(id)
@@ -2336,6 +2359,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         this.score.graft(id, topic)
         // add peer to mesh
         peers.add(id)
+        // when we add a new mesh peer, we don't want to gossip messages to it
+        peersToGossip.delete(id)
         this.metrics?.onAddToMesh(topic, reason, 1)
         // add to tograft
         const topics = tograft.get(id)
@@ -2361,14 +2386,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
       // do we have enough peers?
       if (peers.size < Dlo) {
-        const backoff = this.backoff.get(topic)
         const ineed = D - peers.size
-        const peersSet = this.getRandomGossipPeers(topic, ineed, (id) => {
-          // filter out mesh peers, direct peers, peers we are backing off, peers with negative score
-          return !peers.has(id) && !this.direct.has(id) && (backoff == null || !backoff.has(id)) && getScore(id) >= 0
-        })
+        // slice up to first `ineed` items and remove them from candidateMeshPeers
+        // same to `const newMeshPeers = candidateMeshPeers.slice(0, ineed)`
+        const newMeshPeers = removeFirstNItemsFromSet(candidateMeshPeers, ineed)
 
-        peersSet.forEach((p) => graftPeer(p, InclusionReason.NotEnough))
+        newMeshPeers.forEach((p) => {
+          graftPeer(p, InclusionReason.NotEnough)
+        })
       }
 
       // do we have to many peers?
@@ -2421,7 +2446,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         }
 
         // prune the excess peers
-        peersArray.slice(D).forEach((p) => prunePeer(p, ChurnReason.Excess))
+        peersArray.slice(D).forEach((p) => {
+          prunePeer(p, ChurnReason.Excess)
+        })
       }
 
       // do we have enough outbound peers?
@@ -2437,18 +2464,11 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         // if it's less than D_out, select some peers with outbound connections and graft them
         if (outbound < Dout) {
           const ineed = Dout - outbound
-          const backoff = this.backoff.get(topic)
-          const newPeers = this.getRandomGossipPeers(topic, ineed, (id: string): boolean => {
-            // filter our current mesh peers, direct peers, peers we are backing off, peers with negative score
-            return (
-              !peers.has(id) &&
-              !this.direct.has(id) &&
-              (!backoff || !backoff.has(id)) &&
-              getScore(id) >= 0 &&
-              this.outbound.get(id) === true
-            )
+          const newMeshPeers = removeItemsFromSet(candidateMeshPeers, ineed, (id) => this.outbound.get(id) === true)
+
+          newMeshPeers.forEach((p) => {
+            graftPeer(p, InclusionReason.Outbound)
           })
-          newPeers.forEach((p) => graftPeer(p, InclusionReason.Outbound))
         }
       }
 
@@ -2468,23 +2488,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
         // if the median score is below the threshold, select a better peer (if any) and GRAFT
         if (medianScore < this.opts.scoreThresholds.opportunisticGraftThreshold) {
-          const backoff = this.backoff.get(topic)
-          const peersToGraft = this.getRandomGossipPeers(topic, this.opts.opportunisticGraftPeers, (id) => {
-            // filter out current mesh peers, direct peers, peers we are backing off, peers below or at threshold
-            return (
-              !peers.has(id) && !this.direct.has(id) && (!backoff || !backoff.has(id)) && getScore(id) > medianScore
-            )
-          })
-          peersToGraft.forEach((id) => {
+          const ineed = this.opts.opportunisticGraftPeers
+          const newMeshPeers = removeItemsFromSet(candidateMeshPeers, ineed, (id) => getScore(id) > medianScore)
+          for (const id of newMeshPeers) {
             this.log('HEARTBEAT: Opportunistically graft peer %s on topic %s', id, topic)
             graftPeer(id, InclusionReason.Opportunistic)
-          })
+          }
         }
       }
-
-      // 2nd arg are mesh peers excluded from gossip. We have already pushed
-      // messages to them, so its redundant to gossip IHAVEs.
-      this.emitGossip(topic, peers)
     })
 
     // expire fanout for topics we haven't published to in a while
@@ -2506,24 +2517,37 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         }
       })
 
+      const peersInTopic = this.topics.get(topic)
+      const candidateFanoutPeers = []
+      // the fanout map contains topics to which we are not subscribed.
+      const peersToGossip = new Set<PeerIdStr>()
+      peersToGossipByTopic.set(topic, peersToGossip)
+
+      if (peersInTopic) {
+        const shuffledPeers = shuffle(Array.from(peersInTopic))
+        for (const id of shuffledPeers) {
+          const peerStreams = this.peers.get(id)
+          if (peerStreams && hasGossipProtocol(peerStreams.protocol) && !fanoutPeers.has(id) && !this.direct.has(id)) {
+            const score = getScore(id)
+            if (score >= this.opts.scoreThresholds.publishThreshold) candidateFanoutPeers.push(id)
+            // instead of having to find gossip peers after heartbeat which require another loop
+            // we prepare peers to gossip in a topic within heartbeat to improve performance
+            if (score >= this.opts.scoreThresholds.gossipThreshold) peersToGossip.add(id)
+          }
+        }
+      }
+
       // do we need more peers?
       if (fanoutPeers.size < D) {
         const ineed = D - fanoutPeers.size
-        const peersSet = this.getRandomGossipPeers(topic, ineed, (id) => {
-          // filter out existing fanout peers, direct peers, and peers with score above the publish threshold
-          return (
-            !fanoutPeers.has(id) && !this.direct.has(id) && getScore(id) >= this.opts.scoreThresholds.publishThreshold
-          )
-        })
-        peersSet.forEach((id) => {
+        candidateFanoutPeers.slice(0, ineed).forEach((id) => {
           fanoutPeers.add(id)
+          peersToGossip?.delete(id)
         })
       }
-
-      // 2nd arg are fanout peers excluded from gossip.
-      // We have already pushed messages to them, so its redundant to gossip IHAVEs
-      this.emitGossip(topic, fanoutPeers)
     })
+
+    this.emitGossip(peersToGossipByTopic)
 
     // send coalesced GRAFT/PRUNE messages (will piggyback gossip)
     await this.sendGraftPrune(tograft, toprune, noPX)
