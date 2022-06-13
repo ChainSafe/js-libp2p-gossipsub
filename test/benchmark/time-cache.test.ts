@@ -1,4 +1,5 @@
 import { itBench, setBenchOpts } from '@dapplion/benchmark'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error no types
 import TimeCache from 'time-cache'
 import { SimpleTimeCache } from '../../src/utils/time-cache.js'

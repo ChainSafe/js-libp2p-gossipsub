@@ -1,5 +1,11 @@
 // from https://dev.to/itmayziii/typescript-eslint-and-standardjs-5hmd
 module.exports = {
+  env: {
+    browser: true,
+    es6: true,
+    node: true,
+    mocha: true
+   },
   parser: '@typescript-eslint/parser',
   parserOptions: {
     project: './tsconfig.json' // Required to have rules that rely on Types.
@@ -30,6 +36,7 @@ module.exports = {
     ],
     '@typescript-eslint/indent': 'off', // This is the job of StandardJS, they are competing rules so we turn off the Typescript one.
     '@typescript-eslint/no-non-null-assertion': 'off',
+    '@typescript-eslint/no-extra-semi': 'off',
     '@typescript-eslint/member-delimiter-style': 'off',
     'node/no-unsupported-features/es-syntax': 'off', // Allows us to use Import and Export keywords.
     "@typescript-eslint/strict-boolean-expressions": [

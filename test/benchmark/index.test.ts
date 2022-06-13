@@ -1,17 +1,17 @@
-import { itBench, setBenchOpts } from "@dapplion/benchmark";
-import { GossipSub } from "../../src/index.js";
-import { connectPubsubNodes, createComponentsArray, denseConnect } from "../utils/create-pubsub.js";
+import { itBench, setBenchOpts } from '@dapplion/benchmark'
+import { GossipSub } from '../../src/index.js'
+import { connectPubsubNodes, createComponentsArray, denseConnect } from '../utils/create-pubsub.js'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { Components } from "@libp2p/interfaces/dist/src/components";
-import { awaitEvents, checkReceivedSubscriptions, checkReceivedSubscription } from "../utils/events.js";
-import { expect } from "chai";
+import { Components } from '@libp2p/interfaces/dist/src/components'
+import { awaitEvents, checkReceivedSubscriptions, checkReceivedSubscription } from '../utils/events.js'
+import { expect } from 'chai'
 
-describe.only("heartbeat", function () {
+describe.only('heartbeat', function () {
   this.timeout(0)
   setBenchOpts({
     maxMs: 200 * 1000,
     minMs: 120 * 1000,
-    minRuns: 200,
+    minRuns: 200
   })
 
   const topic = 'foobar'
@@ -52,13 +52,13 @@ describe.only("heartbeat", function () {
    * |  1  | 0, 2, 3, 4|
    */
   itBench({
-    id: "heartbeat",
+    id: 'heartbeat',
     before: async () => {
       const psubs = await createComponentsArray({
         number: numPeers,
         init: {
           scoreParams: {
-            IPColocationFactorWeight: 0,
+            IPColocationFactorWeight: 0
           },
           floodPublish: true,
           // TODO: why we need to configure this low score
@@ -68,7 +68,7 @@ describe.only("heartbeat", function () {
             gossipThreshold: -10,
             publishThreshold: -100,
             graylistThreshold: -1000
-          },
+          }
         }
       })
 
@@ -79,7 +79,10 @@ describe.only("heartbeat", function () {
       await denseConnect(psubs)
 
       // make sure psub 0 has `numPeers - 1` peers
-      expect(psubs[0].getPubSub().getPeers().length).to.be.gte(numPeers - 1, `peer 0 should have at least ${numPeers - 1} peers`)
+      expect(psubs[0].getPubSub().getPeers().length).to.be.gte(
+        numPeers - 1,
+        `peer 0 should have at least ${numPeers - 1} peers`
+      )
 
       const peerIds = psubs.map((psub) => psub.getPeerId().toString())
       for (let topicIndex = 0; topicIndex < numTopic; topicIndex++) {
@@ -90,32 +93,43 @@ describe.only("heartbeat", function () {
         // peer 0 see all subscriptions from other
         const subscription = checkReceivedSubscriptions(psubs[0], peerIdsOnTopic, topic)
         // other peers should see the subsription from peer 0 to prevent PublishError.InsufficientPeers error
-        const otherSubscriptions = peerIndices.slice(1).map((peerIndex) => psubs[peerIndex]).map((psub) => checkReceivedSubscription(psub, peerIds[0], topic, 0))
+        const otherSubscriptions = peerIndices
+          .slice(1)
+          .map((peerIndex) => psubs[peerIndex])
+          .map((psub) => checkReceivedSubscription(psub, peerIds[0], topic, 0))
         peerIndices.map((peerIndex) => psubs[peerIndex].getPubSub().subscribe(topic))
         await Promise.all([subscription, ...otherSubscriptions])
       }
 
-
       // wait for heartbeats to build mesh
       await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.getPubSub(), 'gossipsub:heartbeat', 3)))
 
-
       // make sure psubs 0 have at least 10 topic peers and 4 mesh peers for each topic
       for (let i = 0; i < numTopic; i++) {
-        expect((psubs[0].getPubSub() as GossipSub).getSubscribers(getTopic(i)).length).to.be.gte(10, `psub 0: topic ${i} does not have enough topic peers`)
+        expect((psubs[0].getPubSub() as GossipSub).getSubscribers(getTopic(i)).length).to.be.gte(
+          10,
+          `psub 0: topic ${i} does not have enough topic peers`
+        )
 
-        expect((psubs[0].getPubSub() as GossipSub).getMeshPeers(getTopic(i)).length).to.be.gte(4, `psub 0: topic ${i} does not have enough mesh peers`)
+        expect((psubs[0].getPubSub() as GossipSub).getMeshPeers(getTopic(i)).length).to.be.gte(
+          4,
+          `psub 0: topic ${i} does not have enough mesh peers`
+        )
       }
 
       return psubs
     },
     beforeEach: async (psubs) => {
-      numLoop ++
+      numLoop++
       const msg = `its not a flooooood ${numLoop}`
       const promises = []
       for (let topicIndex = 0; topicIndex < numTopic; topicIndex++) {
         for (const peerIndex of getTopicPeerIndices(topicIndex)) {
-          promises.push(psubs[peerIndex].getPubSub().publish(getTopic(topicIndex), uint8ArrayFromString(psubs[peerIndex].getPeerId().toString() + msg)))
+          promises.push(
+            psubs[peerIndex]
+              .getPubSub()
+              .publish(getTopic(topicIndex), uint8ArrayFromString(psubs[peerIndex].getPeerId().toString() + msg))
+          )
         }
       }
       await Promise.all(promises)
@@ -123,7 +137,7 @@ describe.only("heartbeat", function () {
       return psubs[0]
     },
     fn: (firstPsub: Components) => {
-      (firstPsub.getPubSub() as GossipSub).heartbeat()
-    },
+      ;(firstPsub.getPubSub() as GossipSub).heartbeat()
+    }
   })
-});
+})

@@ -5,7 +5,7 @@ describe('interface compliance', function () {
   this.timeout(3000)
 
   tests({
-    async setup (args) {
+    async setup(args) {
       if (args == null) {
         throw new Error('PubSubOptions is required')
       }
@@ -21,8 +21,8 @@ describe('interface compliance', function () {
       return pubsub
     },
 
-    async teardown () {
-
+    async teardown() {
+      //
     }
   })
 })

@@ -18,7 +18,7 @@ export interface CreateComponentsOpts {
   pubsub?: { new (opts?: any): PubSub }
 }
 
-export const createComponents = async (opts: CreateComponentsOpts) => {
+export const createComponents = async (opts: CreateComponentsOpts): Promise<Components> => {
   const Ctor = opts.pubsub ?? GossipSub
 
   const components = new Components({
@@ -45,7 +45,7 @@ export const createComponents = async (opts: CreateComponentsOpts) => {
 
 export const createComponentsArray = async (
   opts: CreateComponentsOpts & { number: number; connected?: boolean } = { number: 1, connected: true }
-) => {
+): Promise<Components[]> => {
   const output = await Promise.all(Array.from({ length: opts.number }).map(async () => createComponents(opts)))
 
   if (opts.connected) {
@@ -55,7 +55,7 @@ export const createComponentsArray = async (
   return output
 }
 
-export const connectPubsubNodes = async (componentsA: Components, componentsB: Components, multicodec?: string) => {
+export const connectPubsubNodes = async (componentsA: Components, componentsB: Components): Promise<void> => {
   const multicodecs = new Set<string>([...componentsA.getPubSub().multicodecs, ...componentsB.getPubSub().multicodecs])
 
   const connection = await componentsA.getConnectionManager().openConnection(componentsB.getPeerId())
@@ -63,7 +63,7 @@ export const connectPubsubNodes = async (componentsA: Components, componentsB: C
   connection.newStream(Array.from(multicodecs))
 }
 
-export const connectAllPubSubNodes = async (components: Components[]) => {
+export const connectAllPubSubNodes = async (components: Components[]): Promise<void> => {
   for (let i = 0; i < components.length; i++) {
     for (let j = i + 1; j < components.length; j++) {
       await connectPubsubNodes(components[i], components[j])
@@ -76,7 +76,7 @@ export const connectAllPubSubNodes = async (components: Components[]) => {
  * @param {Gossipsub[]} gss
  * @param {number} num number of peers to connect
  */
-export async function connectSome(gss: Components[], num: number) {
+export async function connectSome(gss: Components[], num: number): Promise<void> {
   for (let i = 0; i < gss.length; i++) {
     let count = 0
     // merely do a Math.random() and check for duplicate may take a lot of time to run a test
@@ -98,10 +98,10 @@ export async function connectSome(gss: Components[], num: number) {
   }
 }
 
-export async function sparseConnect(gss: Components[]) {
+export async function sparseConnect(gss: Components[]): Promise<void> {
   await connectSome(gss, 3)
 }
 
-export async function denseConnect(gss: Components[]) {
+export async function denseConnect(gss: Components[]): Promise<void> {
   await connectSome(gss, Math.min(gss.length - 1, 10))
 }
