@@ -111,19 +111,27 @@ export class MessageCache {
   }
 
   /**
-   * Retrieves a list of message IDs for a given topic
+   * Retrieves a list of message IDs for a set of topics
    */
-  getGossipIDs(topic: string): Uint8Array[] {
-    const msgIds: Uint8Array[] = []
+  getGossipIDs(topics: Set<string>): Map<string, Uint8Array[]> {
+    const msgIdsByTopic = new Map<string, Uint8Array[]>()
     for (let i = 0; i < this.gossip; i++) {
       this.history[i].forEach((entry) => {
-        if (entry.topic === topic) {
+        // TODO: no need to convert to string again
+        // see https://github.com/ChainSafe/js-libp2p-gossipsub/pull/274
+        const msg = this.msgs.get(this.msgIdToStrFn(entry.msgId))
+        if (msg && msg.validated && topics.has(entry.topic)) {
+          let msgIds = msgIdsByTopic.get(entry.topic)
+          if (!msgIds) {
+            msgIds = []
+            msgIdsByTopic.set(entry.topic, msgIds)
+          }
           msgIds.push(entry.msgId)
         }
       })
     }
 
-    return msgIds
+    return msgIdsByTopic
   }
 
   /**

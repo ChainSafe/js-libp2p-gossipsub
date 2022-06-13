@@ -17,6 +17,11 @@ const toMessageId = (msgId: Uint8Array): MessageId => {
 describe('Testing Message Cache Operations', () => {
   const messageCache = new MessageCache(3, 5, messageIdToString)
   const testMessages: RPC.Message[] = []
+  const topic = 'test'
+  const getGossipIDs = (mcache: MessageCache, topic: string): Uint8Array[] => {
+    const gossipIDsByTopic = mcache.getGossipIDs(new Set([topic]))
+    return gossipIDsByTopic.get(topic) ?? []
+  }
 
   before(async () => {
     const makeTestMessage = (n: number): RPC.Message => {
@@ -24,7 +29,7 @@ describe('Testing Message Cache Operations', () => {
         from: new Uint8Array(0),
         data: uint8ArrayFromString(n.toString()),
         seqno: uint8ArrayFromString(utils.randomSeqno().toString(16).padStart(16, '0'), 'base16'),
-        topic: 'test'
+        topic
       }
     }
 
@@ -46,12 +51,12 @@ describe('Testing Message Cache Operations', () => {
   })
 
   it('Get GossipIDs', () => {
-    const gossipIDs = messageCache.getGossipIDs('test')
+    const gossipIDs = getGossipIDs(messageCache, topic)
     expect(gossipIDs.length).to.equal(10)
 
     for (let i = 0; i < 10; i++) {
       const messageID = getMsgId(testMessages[i])
-      expect(messageID).to.deep.equal(gossipIDs[i])
+      expect(messageID).to.deep.equal(gossipIDs![i])
     }
   })
 
@@ -67,7 +72,7 @@ describe('Testing Message Cache Operations', () => {
       expect(message).to.equal(testMessages[i])
     }
 
-    let gossipIDs = messageCache.getGossipIDs('test')
+    let gossipIDs = getGossipIDs(messageCache, topic)
     expect(gossipIDs.length).to.equal(20)
 
     for (let i = 0; i < 10; i++) {
@@ -114,7 +119,7 @@ describe('Testing Message Cache Operations', () => {
       expect(message).to.equal(testMessages[i])
     }
 
-    gossipIDs = messageCache.getGossipIDs('test')
+    gossipIDs = getGossipIDs(messageCache, topic)
     expect(gossipIDs.length).to.equal(30)
 
     for (let i = 0; i < 10; i++) {
@@ -130,6 +135,31 @@ describe('Testing Message Cache Operations', () => {
     for (let i = 20; i < 30; i++) {
       const messageID = getMsgId(testMessages[10 + i])
       expect(messageID).to.deep.equal(gossipIDs[i])
+    }
+  })
+
+  it('should not gossip not-validated message ids', () => {
+    let gossipIDs = getGossipIDs(messageCache, topic)
+    while (gossipIDs.length > 0) {
+      messageCache.shift()
+      gossipIDs = getGossipIDs(messageCache, topic)
+    }
+    expect(gossipIDs.length).to.be.equal(0)
+
+    for (let i = 10; i < 20; i++) {
+      const msgIdStr = messageIdToString(getMsgId(testMessages[i]))
+      messageCache.put(msgIdStr, testMessages[i])
+      // 5 last messages are not validated
+      if (i < 15) {
+        messageCache.validate(msgIdStr)
+      }
+    }
+
+    gossipIDs = getGossipIDs(messageCache, topic)
+    expect(gossipIDs.length).to.be.equal(5)
+    // only validate the new gossip ids
+    for (let i = 0; i < 5; i++) {
+      expect(gossipIDs[i]).to.deep.equal(getMsgId(testMessages[i + 10]), 'incorrect gossip message id ' + i)
     }
   })
 })
