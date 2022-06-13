@@ -21,6 +21,12 @@ export interface AddrInfo {
 export type FastMsgIdFn = (msg: RPC.Message) => string
 
 /**
+ * By default, gossipsub only provide a browser friendly function to convert Uint8Array message id to string.
+ * Application could use this option to provide a more efficient function.
+ */
+export type MsgIdToStrFn = (msgId: Uint8Array) => string
+
+/**
  * Compute spec'ed msg-id. Used for IHAVE / IWANT messages
  */
 export interface MsgIdFn {

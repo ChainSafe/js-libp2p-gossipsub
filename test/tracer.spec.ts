@@ -4,12 +4,13 @@ import { IWantTracer } from '../src/tracer.js'
 import * as constants from '../src/constants.js'
 import { makeTestMessage, getMsgId, getMsgIdStr } from './utils/index.js'
 import { createEd25519PeerId } from '@libp2p/peer-id-factory'
+import { messageIdToString } from '../src/utils/messageIdToString.js'
 
 describe('IWantTracer', () => {
   it('should track broken promises', async function () {
     // tests that unfulfilled promises are tracked correctly
     this.timeout(6000)
-    const t = new IWantTracer(constants.GossipsubIWantFollowupTime, null)
+    const t = new IWantTracer(constants.GossipsubIWantFollowupTime, messageIdToString, null)
     const peerA = (await createEd25519PeerId()).toString()
     const peerB = (await createEd25519PeerId()).toString()
 
@@ -37,7 +38,7 @@ describe('IWantTracer', () => {
   it('should track unbroken promises', async function () {
     // like above, but this time we deliver messages to fullfil the promises
     this.timeout(6000)
-    const t = new IWantTracer(constants.GossipsubIWantFollowupTime, null)
+    const t = new IWantTracer(constants.GossipsubIWantFollowupTime, messageIdToString, null)
     const peerA = (await createEd25519PeerId()).toString()
     const peerB = (await createEd25519PeerId()).toString()
 
