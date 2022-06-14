@@ -91,8 +91,6 @@ type ReceivedMessageResult =
 export const multicodec: string = constants.GossipsubIDv11
 
 export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
-  /** if incoming messages on a subscribed topic should be automatically gossiped */
-  gossipIncoming: boolean
   /** if dial should fallback to floodsub */
   fallbackToFloodsub: boolean
   /** if self-published messages should be sent to all peers */
@@ -330,7 +328,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     super()
 
     const opts = {
-      gossipIncoming: true,
       fallbackToFloodsub: true,
       floodPublish: true,
       doPX: false,
