@@ -1,4 +1,3 @@
-import { fromString } from 'uint8arrays/from-string'
 import { toString } from 'uint8arrays/to-string'
 
 /**
@@ -6,11 +5,4 @@ import { toString } from 'uint8arrays/to-string'
  */
 export function messageIdToString(msgId: Uint8Array): string {
   return toString(msgId, 'base64')
-}
-
-/**
- * Browser friendly function to convert base64 message id string to Uint8Array
- */
-export function messageIdFromString(msgId: string): Uint8Array {
-  return fromString(msgId, 'base64')
 }

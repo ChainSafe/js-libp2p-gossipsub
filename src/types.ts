@@ -162,6 +162,15 @@ export enum MessageStatus {
 }
 
 /**
+ * Store both Uint8Array and string message id so that we don't have to convert data between the two.
+ * See https://github.com/ChainSafe/js-libp2p-gossipsub/pull/274
+ */
+export type MessageId = {
+  msgId: Uint8Array
+  msgIdStr: MsgIdStr
+}
+
+/**
  * Typesafe conversion of MessageAcceptance -> RejectReason. TS ensures all values covered
  */
 export function rejectReasonFromAcceptance(

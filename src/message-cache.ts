@@ -1,9 +1,7 @@
 import type { RPC } from './message/rpc.js'
-import type { MsgIdStr, PeerIdStr, TopicStr, MsgIdToStrFn } from './types.js'
-import { messageIdFromString } from './utils/messageIdToString.js'
+import type { MessageId, MsgIdStr, PeerIdStr, TopicStr, MsgIdToStrFn } from './types.js'
 
-export interface CacheEntry {
-  msgId: Uint8Array
+export type CacheEntry = MessageId & {
   topic: TopicStr
 }
 
@@ -57,7 +55,8 @@ export class MessageCache {
    * Adds a message to the current window and the cache
    * Returns true if the message is not known and is inserted in the cache
    */
-  put(msgIdStr: MsgIdStr, msg: RPC.Message): boolean {
+  put(messageId: MessageId, msg: RPC.Message): boolean {
+    const { msgIdStr } = messageId
     // Don't add duplicate entries to the cache.
     if (this.msgs.has(msgIdStr)) {
       return false
@@ -70,8 +69,7 @@ export class MessageCache {
       iwantCounts: new Map()
     })
 
-    const msgId = messageIdFromString(msgIdStr)
-    this.history[0].push({ msgId: msgId, topic: msg.topic })
+    this.history[0].push({ ...messageId, topic: msg.topic })
 
     return true
   }
@@ -153,8 +151,7 @@ export class MessageCache {
   shift(): void {
     const last = this.history[this.history.length - 1]
     last.forEach((entry) => {
-      const msgIdStr = this.msgIdToStrFn(entry.msgId)
-      this.msgs.delete(msgIdStr)
+      this.msgs.delete(entry.msgIdStr)
     })
 
     this.history.pop()

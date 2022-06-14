@@ -5,6 +5,14 @@ import { MessageCache } from '../src/message-cache.js'
 import * as utils from '@libp2p/pubsub/utils'
 import { getMsgId } from './utils/index.js'
 import type { RPC } from '../src/message/rpc.js'
+import { MessageId } from '../src/types.js'
+
+const toMessageId = (msgId: Uint8Array): MessageId => {
+  return {
+    msgId,
+    msgIdStr: messageIdToString(msgId)
+  }
+}
 
 describe('Testing Message Cache Operations', () => {
   const messageCache = new MessageCache(3, 5, messageIdToString)
@@ -25,7 +33,7 @@ describe('Testing Message Cache Operations', () => {
     }
 
     for (let i = 0; i < 10; i++) {
-      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
+      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i])
     }
   })
 
@@ -50,7 +58,7 @@ describe('Testing Message Cache Operations', () => {
   it('Shift message cache', async () => {
     messageCache.shift()
     for (let i = 10; i < 20; i++) {
-      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
+      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i])
     }
 
     for (let i = 0; i < 20; i++) {
@@ -74,22 +82,22 @@ describe('Testing Message Cache Operations', () => {
 
     messageCache.shift()
     for (let i = 20; i < 30; i++) {
-      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
+      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i])
     }
 
     messageCache.shift()
     for (let i = 30; i < 40; i++) {
-      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
+      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i])
     }
 
     messageCache.shift()
     for (let i = 40; i < 50; i++) {
-      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
+      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i])
     }
 
     messageCache.shift()
     for (let i = 50; i < 60; i++) {
-      messageCache.put(messageIdToString(getMsgId(testMessages[i])), testMessages[i])
+      messageCache.put(toMessageId(getMsgId(testMessages[i])), testMessages[i])
     }
 
     expect(messageCache.msgs.size).to.equal(50)
