@@ -15,6 +15,29 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [1.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v1.1.2...v1.2.0) (2022-06-15)
+
+
+### Features
+
+* add msgIdToStrFn option ([#270](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/270)) ([7f475c5](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/7f475c5e02a6dae4b490ec8608b0cc60d9dd19f1))
+* improve heartbeat performance ([#268](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/268)) ([840883d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/840883dabe02520164ff889e649c76d57fbf0d09))
+* remove messageIdFromString ([#274](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/274)) ([43faf93](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/43faf93a16e3cb0dc5dabe2ec63e866bbd0dbc82))
+
+
+### Bug Fixes
+
+* finding outbound peers in heartbeat ([#266](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/266)) ([17c25a1](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/17c25a1b4af1446615c42bdb2ed2f208b3f6a5ad))
+* only gossip validated messages ([#277](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/277)) ([c8784c7](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/c8784c7f41593cdd9ffa8670fd306ccab6c1e671))
+
+
+### Miscellaneous
+
+* add linting to tests ([#279](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/279)) ([4b9b040](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/4b9b0402b898b71e6de4e6e4f1ce17688d8f1d13))
+* add missing release token ([#280](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/280)) ([fd75b2a](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/fd75b2a76ba05bf572e3e408274054a459655fc2))
+* remove gossipIncoming param ([#281](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/281)) ([d327999](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/d327999f790047e545f90a44dd920abf00b5c4fd))
+* update aegir ([#285](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/285)) ([e487d08](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/e487d0886e1b90fb87cd102af493240e629de7c9))
+
 ## [1.1.2](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v1.1.1...v1.1.2) (2022-06-03)
 
 
