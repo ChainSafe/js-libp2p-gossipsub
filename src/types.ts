@@ -1,8 +1,8 @@
-import type { PeerId } from '@libp2p/interfaces/peer-id'
-import type { PrivateKey } from '@libp2p/interfaces/keys'
+import type { PeerId } from '@libp2p/interface-peer-id'
+import type { PrivateKey } from '@libp2p/interface-keys'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import type { RPC } from './message/rpc.js'
-import type { Message } from '@libp2p/interfaces/pubsub'
+import type { Message } from '@libp2p/interface-pubsub'
 
 export type MsgIdStr = string
 export type PeerIdStr = string

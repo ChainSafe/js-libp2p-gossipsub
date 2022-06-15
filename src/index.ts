@@ -1,11 +1,11 @@
 import { pipe } from 'it-pipe'
-import type { Connection } from '@libp2p/interfaces/connection'
+import type { Connection } from '@libp2p/interface-connection'
 import { RecordEnvelope } from '@libp2p/peer-record'
 import { peerIdFromBytes, peerIdFromString } from '@libp2p/peer-id'
 import { Logger, logger } from '@libp2p/logger'
 import { createTopology } from '@libp2p/topology'
 import { PeerStreams } from '@libp2p/pubsub/peer-streams'
-import type { PeerId } from '@libp2p/interfaces/peer-id'
+import type { PeerId } from '@libp2p/interface-peer-id'
 import { CustomEvent, EventEmitter } from '@libp2p/interfaces/events'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 
@@ -63,7 +63,7 @@ import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js'
 import { computeAllPeersScoreWeights } from './score/scoreMetrics.js'
 import { getPublishConfigFromPeerId } from './utils/publishConfig.js'
 import type { GossipsubOptsSpec } from './config.js'
-import { Components, Initializable } from '@libp2p/interfaces/components'
+import { Components, Initializable } from '@libp2p/components'
 import {
   Message,
   PublishResult,
@@ -73,8 +73,8 @@ import {
   StrictNoSign,
   StrictSign,
   SubscriptionChangeData
-} from '@libp2p/interfaces/pubsub'
-import type { IncomingStreamData } from '@libp2p/interfaces/registrar'
+} from '@libp2p/interface-pubsub'
+import type { IncomingStreamData } from '@libp2p/interface-registrar'
 import { removeFirstNItemsFromSet, removeItemsFromSet } from './utils/set.js'
 
 // From 'bl' library
@@ -164,7 +164,7 @@ enum GossipStatusCode {
 type GossipStatus =
   | {
       code: GossipStatusCode.started
-      registrarTopologyId: string
+      registrarTopologyIds: string[]
       heartbeatTimeout: ReturnType<typeof setTimeout>
       hearbeatStartMs: number
     }
@@ -479,9 +479,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       })
     )
 
+    const registrar = this.components.getRegistrar()
     // Incoming streams
     // Called after a peer dials us
-    await this.components.getRegistrar().handle(this.multicodecs, this.onIncomingStream.bind(this))
+    await Promise.all(
+      this.multicodecs.map((multicodec) => registrar.handle(multicodec, this.onIncomingStream.bind(this)))
+    )
 
     // # How does Gossipsub interact with libp2p? Rough guide from Mar 2022
     //
@@ -506,7 +509,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       onConnect: this.onPeerConnected.bind(this),
       onDisconnect: this.onPeerDisconnected.bind(this)
     })
-    const registrarTopologyId = await this.components.getRegistrar().register(this.multicodecs, topology)
+    const registrarTopologyIds = await Promise.all(
+      this.multicodecs.map((multicodec) => registrar.register(multicodec, topology))
+    )
 
     // Schedule to start heartbeat after `GossipsubHeartbeatInitialDelay`
     const heartbeatTimeout = setTimeout(this.runHeartbeat, constants.GossipsubHeartbeatInitialDelay)
@@ -514,7 +519,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     this.status = {
       code: GossipStatusCode.started,
-      registrarTopologyId,
+      registrarTopologyIds,
       heartbeatTimeout: heartbeatTimeout,
       hearbeatStartMs: Date.now() + constants.GossipsubHeartbeatInitialDelay
     }
@@ -545,11 +550,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       return
     }
 
-    const { registrarTopologyId } = this.status
+    const { registrarTopologyIds } = this.status
     this.status = { code: GossipStatusCode.stopped }
 
     // unregister protocol and handlers
-    this.components.getRegistrar().unregister(registrarTopologyId)
+    const registrar = this.components.getRegistrar()
+    registrarTopologyIds.forEach((id) => registrar.unregister(id))
 
     for (const peerStreams of this.peers.values()) {
       peerStreams.close()

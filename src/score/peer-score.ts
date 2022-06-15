@@ -5,7 +5,7 @@ import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries.js
 import { logger } from '@libp2p/logger'
 import { MsgIdStr, PeerIdStr, RejectReason, TopicStr, IPStr } from '../types.js'
 import type { Metrics, ScorePenalty } from '../metrics.js'
-import { Components } from '@libp2p/interfaces/components'
+import { Components } from '@libp2p/components'
 import { peerIdFromString } from '@libp2p/peer-id'
 
 const log = logger('libp2p:gossipsub:score')

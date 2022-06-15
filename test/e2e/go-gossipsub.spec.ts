@@ -7,11 +7,11 @@ import type { GossipSub } from '../../src/index.js'
 import { MessageAcceptance } from '../../src/types.js'
 import { GossipsubD } from '../../src/constants.js'
 import { fastMsgIdFn } from '../utils/index.js'
-import type { Message } from '@libp2p/interfaces/pubsub'
+import type { Message } from '@libp2p/interface-pubsub'
 import type { RPC } from '../../src/message/rpc.js'
-import type { ConnectionManagerEvents } from '@libp2p/interfaces/connection-manager'
+import type { ConnectionManagerEvents } from '@libp2p/interface-connection-manager'
 import pWaitFor from 'p-wait-for'
-import { Components } from '@libp2p/interfaces/components'
+import { Components } from '@libp2p/components'
 import {
   sparseConnect,
   denseConnect,
@@ -21,7 +21,7 @@ import {
   connectPubsubNodes
 } from '../utils/create-pubsub.js'
 import { FloodSub } from '@libp2p/floodsub'
-import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
+import { mockNetwork } from '@libp2p/interface-mocks'
 import { stop } from '@libp2p/interfaces/startable'
 import { TopicScoreParams } from '../../src/score/peer-score-params.js'
 import { awaitEvents, checkReceivedSubscription, checkReceivedSubscriptions } from '../utils/events.js'

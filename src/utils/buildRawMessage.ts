@@ -3,12 +3,12 @@ import { concat as uint8ArrayConcat } from 'uint8arrays/concat'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { unmarshalPublicKey } from '@libp2p/crypto/keys'
 import { peerIdFromBytes } from '@libp2p/peer-id'
-import type { PublicKey } from '@libp2p/interfaces/keys'
-import type { PeerId } from '@libp2p/interfaces/peer-id'
+import type { PublicKey } from '@libp2p/interface-keys'
+import type { PeerId } from '@libp2p/interface-peer-id'
 import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
 import { RPC } from '../message/rpc.js'
 import { PublishConfig, PublishConfigType, TopicStr, ValidateError } from '../types.js'
-import { StrictSign, StrictNoSign } from '@libp2p/interfaces/pubsub'
+import { StrictSign, StrictNoSign } from '@libp2p/interface-pubsub'
 
 export const SignPrefix = uint8ArrayFromString('libp2p-pubsub:')
 

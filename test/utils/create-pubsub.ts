@@ -1,14 +1,9 @@
-import { Components } from '@libp2p/interfaces/components'
+import { Components } from '@libp2p/components'
 import { createRSAPeerId } from '@libp2p/peer-id-factory'
-import {
-  mockRegistrar,
-  mockConnectionManager,
-  mockConnectionGater,
-  mockNetwork
-} from '@libp2p/interface-compliance-tests/mocks'
+import { mockRegistrar, mockConnectionManager, mockConnectionGater, mockNetwork } from '@libp2p/interface-mocks'
 import { MemoryDatastore } from 'datastore-core'
 import { GossipSub, GossipsubOpts } from '../../src/index.js'
-import { PubSub } from '@libp2p/interfaces/pubsub'
+import { PubSub } from '@libp2p/interface-pubsub'
 import { setMaxListeners } from 'events'
 import { PersistentPeerStore } from '@libp2p/peer-store'
 import { start } from '@libp2p/interfaces/startable'
