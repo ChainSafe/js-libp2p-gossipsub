@@ -1,4 +1,4 @@
-import { Components } from '@libp2p/interfaces/components'
+import { Components } from '@libp2p/components'
 import { expect } from 'aegir/chai'
 import sinon from 'sinon'
 import { GossipSub } from '../src/index.js'

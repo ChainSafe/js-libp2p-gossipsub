@@ -2,7 +2,7 @@ import { itBench, setBenchOpts } from '@dapplion/benchmark'
 import { GossipSub } from '../../src/index.js'
 import { connectPubsubNodes, createComponentsArray, denseConnect } from '../utils/create-pubsub.js'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { Components } from '@libp2p/interfaces/dist/src/components'
+import { Components } from '@libp2p/components'
 import { awaitEvents, checkReceivedSubscriptions, checkReceivedSubscription } from '../utils/events.js'
 import { expect } from 'aegir/chai'
 
