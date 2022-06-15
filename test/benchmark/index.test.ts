@@ -4,7 +4,7 @@ import { connectPubsubNodes, createComponentsArray, denseConnect } from '../util
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { Components } from '@libp2p/interfaces/dist/src/components'
 import { awaitEvents, checkReceivedSubscriptions, checkReceivedSubscription } from '../utils/events.js'
-import { expect } from 'chai'
+import { expect } from 'aegir/chai'
 
 describe.only('heartbeat', function () {
   this.timeout(0)

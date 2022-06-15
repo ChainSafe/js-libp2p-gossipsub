@@ -1,7 +1,7 @@
 import { Components } from '@libp2p/interfaces/dist/src/components'
 import type { SubscriptionChangeData } from '@libp2p/interfaces/pubsub'
 import type { EventEmitter } from '@libp2p/interfaces/events'
-import { expect } from 'chai'
+import { expect } from 'aegir/chai'
 import pWaitFor from 'p-wait-for'
 import { GossipSub, GossipsubEvents } from '../../src/index.js'
 

@@ -1,4 +1,4 @@
-import { expect } from 'aegir/utils/chai.js'
+import { expect } from 'aegir/chai'
 import { createPeerScoreThresholds, validatePeerScoreThresholds } from '../src/score/index.js'
 
 describe('PeerScoreThresholds validation', () => {
