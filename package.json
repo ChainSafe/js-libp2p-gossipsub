@@ -37,7 +37,7 @@
   "scripts": {
     "lint": "eslint --ext .ts src test",
     "release": "aegir release --no-types",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "aegir build",
     "generate": "protons ./src/message/rpc.proto",
     "prepare": "npm run build",
     "pretest": "npm run build",
@@ -93,7 +93,6 @@
     "@typescript-eslint/parser": "^3.0.2",
     "aegir": "^37.2.0",
     "benchmark": "^2.1.4",
-    "chai": "^4.3.6",
     "datastore-core": "^7.0.1",
     "delay": "^5.0.0",
     "detect-node": "^2.1.0",

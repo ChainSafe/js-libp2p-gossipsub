@@ -1,4 +1,4 @@
-import { expect } from 'aegir/utils/chai.js'
+import { expect } from 'aegir/chai'
 import delay from 'delay'
 import { GossipsubDhi } from '../src/constants.js'
 import type { GossipSub } from '../src/index.js'

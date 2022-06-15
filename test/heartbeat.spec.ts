@@ -1,4 +1,4 @@
-import { expect } from 'aegir/utils/chai.js'
+import { expect } from 'aegir/chai'
 import { GossipsubHeartbeatInterval } from '../src/constants.js'
 import { pEvent } from 'p-event'
 import { Components } from '@libp2p/interfaces/components'

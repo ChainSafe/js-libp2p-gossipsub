@@ -1,5 +1,5 @@
 import sinon from 'sinon'
-import { expect } from 'aegir/utils/chai.js'
+import { expect } from 'aegir/chai'
 import delay from 'delay'
 import type { ConnectionManager } from '@libp2p/interfaces/connection-manager'
 import { PeerScore, createPeerScoreParams, createTopicScoreParams } from '../src/score/index.js'

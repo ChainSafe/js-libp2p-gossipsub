@@ -1,4 +1,4 @@
-import { expect } from 'aegir/utils/chai.js'
+import { expect } from 'aegir/chai'
 import sinon, { SinonStubbedInstance } from 'sinon'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { GossipsubDhi } from '../src/constants.js'

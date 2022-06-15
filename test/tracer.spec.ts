@@ -1,4 +1,4 @@
-import { expect } from 'aegir/utils/chai.js'
+import { expect } from 'aegir/chai'
 import delay from 'delay'
 import { IWantTracer } from '../src/tracer.js'
 import * as constants from '../src/constants.js'

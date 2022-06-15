@@ -1,4 +1,4 @@
-import { expect } from 'aegir/utils/chai.js'
+import { expect } from 'aegir/chai'
 import { messageIdToString } from '../src/utils/messageIdToString.js'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { MessageCache } from '../src/message-cache.js'

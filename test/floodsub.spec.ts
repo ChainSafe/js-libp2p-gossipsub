@@ -1,4 +1,4 @@
-import { expect } from 'aegir/utils/chai.js'
+import { expect } from 'aegir/chai'
 import delay from 'delay'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { pEvent } from 'p-event'
