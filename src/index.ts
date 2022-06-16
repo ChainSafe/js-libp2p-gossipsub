@@ -898,7 +898,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    * May forward to all peers in the mesh.
    */
   private async handleReceivedMessage(from: PeerId, rpcMsg: RPC.Message): Promise<void> {
-    this.metrics?.onMsgRecvPreValidation(rpcMsg.topic)
+    // this.metrics?.onMsgRecvPreValidation(rpcMsg.topic)
 
     const validationResult = await this.validateReceivedMessage(from, rpcMsg)
 
@@ -1135,7 +1135,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     const score = this.score.score(id)
     if (score < this.opts.scoreThresholds.gossipThreshold) {
       this.log('IHAVE: ignoring peer %s with score below threshold [ score = %d ]', id, score)
-      this.metrics?.ihaveRcvIgnored.inc({ reason: IHaveIgnoreReason.LowScore })
+      this.metrics?.ihaveRcvIgnored.inc(IHaveIgnoreReason.LowScore)
       return []
     }
 
@@ -1148,14 +1148,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         id,
         peerhave
       )
-      this.metrics?.ihaveRcvIgnored.inc({ reason: IHaveIgnoreReason.MaxIhave })
+      this.metrics?.ihaveRcvIgnored.inc(IHaveIgnoreReason.MaxIhave)
       return []
     }
 
     const iasked = this.iasked.get(id) ?? 0
     if (iasked >= constants.GossipsubMaxIHaveLength) {
       this.log('IHAVE: peer %s has already advertised too many messages (%d); ignoring', id, iasked)
-      this.metrics?.ihaveRcvIgnored.inc({ reason: IHaveIgnoreReason.MaxIasked })
+      this.metrics?.ihaveRcvIgnored.inc(IHaveIgnoreReason.MaxIasked)
       return []
     }
 

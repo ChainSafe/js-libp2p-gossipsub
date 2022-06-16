@@ -156,6 +156,148 @@ export type ScoreWeights<T> = {
 
 export type Metrics = ReturnType<typeof getMetrics>
 
+type Flushable = { flush(): void }
+
+/**
+ * Register cached gauge and flush all of them when needed.
+ */
+class CachedRegistry {
+  private static instance: CachedRegistry | undefined
+  private cachedGauges: Flushable[]
+
+  private constructor() {
+    this.cachedGauges = []
+  }
+
+  static getInstance(): CachedRegistry {
+    if (!CachedRegistry.instance) {
+      CachedRegistry.instance = new CachedRegistry()
+    }
+    return CachedRegistry.instance
+  }
+
+  createNoLabelCachedGauge(gauge: Gauge): NoLabelCachedGauge {
+    const cachedGauge = new NoLabelCachedGauge(gauge)
+    this.cachedGauges.push(cachedGauge)
+    return cachedGauge
+  }
+
+  createLabelCachedGauge<Labels extends LabelsGeneric>(
+    gauge: Gauge<Labels>,
+    labelKey1: keyof Labels,
+    labelKey2?: keyof Labels
+  ): LabelCachedGauge<Labels> {
+    const cachedGauge = new LabelCachedGauge(gauge, labelKey1, labelKey2)
+    this.cachedGauges.push(cachedGauge)
+    return cachedGauge
+  }
+
+  getCachedMetrics(): Flushable[] {
+    return this.cachedGauges
+  }
+}
+
+/**
+ * No label cached gauge, an `inc()` call simply increase the counter
+ * without pushing to hash like in prom-client.
+ * It's a 7x improvement compared to prom-client no-label gauge.
+ */
+class NoLabelCachedGauge {
+  private cache = 0
+  private gauge: Gauge
+  constructor(gauge: Gauge) {
+    this.gauge = gauge
+  }
+
+  inc(value = 1): void {
+    this.cache += value
+  }
+
+  set(value: number): void {
+    this.cache = value
+  }
+  // create more methods if needed
+
+  flush(): void {
+    this.gauge.inc(this.cache)
+    this.cache = 0
+  }
+}
+
+/**
+ * Support caching one label or two label gauge.
+ * This saves some hashObject() call in prom-client.
+ * Performance shows that this is a 1.2x and 2.5x improvement if
+ * we flush per 100 times
+ */
+class LabelCachedGauge<Labels extends LabelsGeneric> {
+  private twoLabelsCache: Map<string, Map<string, number>> | undefined
+  private oneLabelCache: Map<string, number> | undefined
+
+  constructor(
+    private readonly gauge: Gauge<Labels>,
+    private readonly label1Key: keyof Labels,
+    private readonly label2Key?: keyof Labels
+  ) {
+    if (label2Key !== undefined) {
+      this.twoLabelsCache = new Map()
+    } else {
+      this.oneLabelCache = new Map()
+    }
+  }
+
+  // for one-label gauge, may have to pass undefined as 2nd param if value !== 1
+  inc(label1: string, label2?: string, value = 1): void {
+    if (label2 !== undefined && this.twoLabelsCache !== undefined) {
+      let label2Cache = this.twoLabelsCache.get(label1)
+      if (!label2Cache) {
+        label2Cache = new Map<string, number>()
+        this.twoLabelsCache.set(label1, label2Cache)
+      }
+      label2Cache.set(label2, (label2Cache.get(label2) ?? 0) + value)
+    }
+
+    if (this.oneLabelCache) {
+      this.oneLabelCache.set(label1, (this.oneLabelCache.get(label1) ?? 0) + value)
+    }
+  }
+
+  set(label1: string, label2: string | undefined, value: number): void {
+    if (label2 !== undefined && this.twoLabelsCache !== undefined) {
+      let label2Cache = this.twoLabelsCache.get(label1)
+      if (!label2Cache) {
+        label2Cache = new Map<string, number>()
+        this.twoLabelsCache.set(label1, label2Cache)
+      }
+      label2Cache.set(label2, value)
+    } else {
+      this.oneLabelCache?.set(label1, value)
+    }
+  }
+
+  // create more methods if needed
+
+  flush(): void {
+    // two label
+    if (this.twoLabelsCache && this.label2Key !== undefined) {
+      for (const [label1Value, label2Cache] of this.twoLabelsCache) {
+        for (const [label2Value, count] of label2Cache) {
+          this.gauge.inc({ [this.label1Key]: label1Value, [this.label2Key]: label2Value } as Labels, count)
+        }
+      }
+      this.twoLabelsCache.clear()
+    }
+
+    // one label
+    if (this.oneLabelCache) {
+      for (const [label, count] of this.oneLabelCache) {
+        this.gauge.inc({ [this.label1Key]: label } as Labels, count)
+      }
+      this.oneLabelCache.clear()
+    }
+  }
+}
+
 /**
  * A collection of metrics used throughout the Gossipsub behaviour.
  */
@@ -163,7 +305,12 @@ export type Metrics = ReturnType<typeof getMetrics>
 export function getMetrics(
   register: MetricsRegister,
   topicStrToLabel: TopicStrToLabel,
-  opts: { gossipPromiseExpireSec: number; behaviourPenaltyThreshold: number; maxMeshMessageDeliveriesWindowSec: number }
+  opts: {
+    gossipPromiseExpireSec: number
+    behaviourPenaltyThreshold: number
+    maxMeshMessageDeliveriesWindowSec: number
+  },
+  cachedRegistry = CachedRegistry.getInstance()
 ) {
   // Using function style instead of class to prevent having to re-declare all MetricsPrometheus types.
 
@@ -203,18 +350,26 @@ export function getMetrics(
     }),
     /** Number of times we include peers in a topic mesh for different reasons.
      *  = rust-libp2p `mesh_peer_inclusion_events` */
-    meshPeerInclusionEvents: register.gauge<{ topic: TopicLabel; reason: InclusionReason }>({
-      name: 'gossipsub_mesh_peer_inclusion_events_total',
-      help: 'Number of times we include peers in a topic mesh for different reasons',
-      labelNames: ['topic', 'reason']
-    }),
+    meshPeerInclusionEvents: cachedRegistry.createLabelCachedGauge(
+      register.gauge<{ topic: TopicLabel; reason: InclusionReason }>({
+        name: 'gossipsub_mesh_peer_inclusion_events_total',
+        help: 'Number of times we include peers in a topic mesh for different reasons',
+        labelNames: ['topic', 'reason']
+      }),
+      'topic',
+      'reason'
+    ),
     /** Number of times we remove peers in a topic mesh for different reasons.
      *  = rust-libp2p `mesh_peer_churn_events` */
-    meshPeerChurnEvents: register.gauge<{ topic: TopicLabel; reason: ChurnReason }>({
-      name: 'gossipsub_peer_churn_events_total',
-      help: 'Number of times we remove peers in a topic mesh for different reasons',
-      labelNames: ['topic', 'reason']
-    }),
+    meshPeerChurnEvents: cachedRegistry.createLabelCachedGauge(
+      register.gauge<{ topic: TopicLabel; reason: ChurnReason }>({
+        name: 'gossipsub_peer_churn_events_total',
+        help: 'Number of times we remove peers in a topic mesh for different reasons',
+        labelNames: ['topic', 'reason']
+      }),
+      'topic',
+      'reason'
+    ),
 
     /* General Metrics */
     /** Gossipsub supports floodsub, gossipsub v1.0 and gossipsub v1.1. Peers are classified based
@@ -233,19 +388,24 @@ export function getMetrics(
       buckets: [0.01, 0.1, 1]
     }),
     /** Heartbeat run took longer than heartbeat interval so next is skipped */
-    heartbeatSkipped: register.gauge({
-      name: 'gossipsub_heartbeat_skipped',
-      help: 'Heartbeat run took longer than heartbeat interval so next is skipped'
-    }),
-
+    heartbeatSkipped: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({
+        name: 'gossipsub_heartbeat_skipped',
+        help: 'Heartbeat run took longer than heartbeat interval so next is skipped'
+      })
+    ),
     /** Message validation results for each topic.
      *  Invalid == Reject?
      *  = rust-libp2p `invalid_messages`, `accepted_messages`, `ignored_messages`, `rejected_messages` */
-    asyncValidationResult: register.gauge<{ topic: TopicLabel; acceptance: MessageAcceptance }>({
-      name: 'gossipsub_async_validation_result_total',
-      help: 'Message validation result for each topic',
-      labelNames: ['topic', 'acceptance']
-    }),
+    asyncValidationResult: cachedRegistry.createLabelCachedGauge(
+      register.gauge<{ topic: TopicLabel; acceptance: MessageAcceptance }>({
+        name: 'gossipsub_async_validation_result_total',
+        help: 'Message validation result for each topic',
+        labelNames: ['topic', 'acceptance']
+      }),
+      'topic',
+      'acceptance'
+    ),
     /** When the user validates a message, it tries to re propagate it to its mesh peers. If the
      *  message expires from the memcache before it can be validated, we count this a cache miss
      *  and it is an indicator that the memcache size should be increased.
@@ -257,32 +417,70 @@ export function getMetrics(
     }),
 
     // RPC outgoing. Track byte length + data structure sizes
-    rpcRecvBytes: register.gauge({ name: 'gossipsub_rpc_recv_bytes_total', help: 'RPC recv' }),
-    rpcRecvCount: register.gauge({ name: 'gossipsub_rpc_recv_count_total', help: 'RPC recv' }),
-    rpcRecvSubscription: register.gauge({ name: 'gossipsub_rpc_recv_subscription_total', help: 'RPC recv' }),
-    rpcRecvMessage: register.gauge({ name: 'gossipsub_rpc_recv_message_total', help: 'RPC recv' }),
-    rpcRecvControl: register.gauge({ name: 'gossipsub_rpc_recv_control_total', help: 'RPC recv' }),
-    rpcRecvIHave: register.gauge({ name: 'gossipsub_rpc_recv_ihave_total', help: 'RPC recv' }),
-    rpcRecvIWant: register.gauge({ name: 'gossipsub_rpc_recv_iwant_total', help: 'RPC recv' }),
-    rpcRecvGraft: register.gauge({ name: 'gossipsub_rpc_recv_graft_total', help: 'RPC recv' }),
-    rpcRecvPrune: register.gauge({ name: 'gossipsub_rpc_recv_prune_total', help: 'RPC recv' }),
+    rpcRecvBytes: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_recv_bytes_total', help: 'RPC recv' })
+    ),
+    rpcRecvCount: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_recv_count_total', help: 'RPC recv' })
+    ),
+    rpcRecvSubscription: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_recv_subscription_total', help: 'RPC recv' })
+    ),
+    rpcRecvMessage: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_recv_message_total', help: 'RPC recv' })
+    ),
+    rpcRecvControl: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_recv_control_total', help: 'RPC recv' })
+    ),
+    rpcRecvIHave: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_recv_ihave_total', help: 'RPC recv' })
+    ),
+    rpcRecvIWant: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_recv_iwant_total', help: 'RPC recv' })
+    ),
+    rpcRecvGraft: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_recv_graft_total', help: 'RPC recv' })
+    ),
+    rpcRecvPrune: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_recv_prune_total', help: 'RPC recv' })
+    ),
 
     /** Total count of RPC dropped because acceptFrom() == false */
-    rpcRecvNotAccepted: register.gauge({
-      name: 'gossipsub_rpc_rcv_not_accepted_total',
-      help: 'Total count of RPC dropped because acceptFrom() == false'
-    }),
+    rpcRecvNotAccepted: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({
+        name: 'gossipsub_rpc_rcv_not_accepted_total',
+        help: 'Total count of RPC dropped because acceptFrom() == false'
+      })
+    ),
 
     // RPC incoming. Track byte length + data structure sizes
-    rpcSentBytes: register.gauge({ name: 'gossipsub_rpc_sent_bytes_total', help: 'RPC sent' }),
-    rpcSentCount: register.gauge({ name: 'gossipsub_rpc_sent_count_total', help: 'RPC sent' }),
-    rpcSentSubscription: register.gauge({ name: 'gossipsub_rpc_sent_subscription_total', help: 'RPC sent' }),
-    rpcSentMessage: register.gauge({ name: 'gossipsub_rpc_sent_message_total', help: 'RPC sent' }),
-    rpcSentControl: register.gauge({ name: 'gossipsub_rpc_sent_control_total', help: 'RPC sent' }),
-    rpcSentIHave: register.gauge({ name: 'gossipsub_rpc_sent_ihave_total', help: 'RPC sent' }),
-    rpcSentIWant: register.gauge({ name: 'gossipsub_rpc_sent_iwant_total', help: 'RPC sent' }),
-    rpcSentGraft: register.gauge({ name: 'gossipsub_rpc_sent_graft_total', help: 'RPC sent' }),
-    rpcSentPrune: register.gauge({ name: 'gossipsub_rpc_sent_prune_total', help: 'RPC sent' }),
+    rpcSentBytes: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_sent_bytes_total', help: 'RPC sent' })
+    ),
+    rpcSentCount: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_sent_count_total', help: 'RPC sent' })
+    ),
+    rpcSentSubscription: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_sent_subscription_total', help: 'RPC sent' })
+    ),
+    rpcSentMessage: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_sent_message_total', help: 'RPC sent' })
+    ),
+    rpcSentControl: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_sent_control_total', help: 'RPC sent' })
+    ),
+    rpcSentIHave: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_sent_ihave_total', help: 'RPC sent' })
+    ),
+    rpcSentIWant: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_sent_iwant_total', help: 'RPC sent' })
+    ),
+    rpcSentGraft: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_sent_graft_total', help: 'RPC sent' })
+    ),
+    rpcSentPrune: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({ name: 'gossipsub_rpc_sent_prune_total', help: 'RPC sent' })
+    ),
 
     // publish message. Track peers sent to and bytes
     /** Total count of msg published by topic */
@@ -299,11 +497,15 @@ export function getMetrics(
     }),
     /** Total count of peers (by group) that we publish a msg to */
     // NOTE: Do not use 'group' label since it's a generic already used by Prometheus to group instances
-    msgPublishPeersByGroup: register.gauge<{ topic: TopicLabel; peerGroup: keyof ToSendGroupCount }>({
-      name: 'gossipsub_msg_publish_peers_by_group',
-      help: 'Total count of peers (by group) that we publish a msg to',
-      labelNames: ['topic', 'peerGroup']
-    }),
+    msgPublishPeersByGroup: cachedRegistry.createLabelCachedGauge(
+      register.gauge<{ topic: TopicLabel; peerGroup: keyof ToSendGroupCount }>({
+        name: 'gossipsub_msg_publish_peers_by_group',
+        help: 'Total count of peers (by group) that we publish a msg to',
+        labelNames: ['topic', 'peerGroup']
+      }),
+      'topic',
+      'peerGroup'
+    ),
     /** Total count of msg publish data.length bytes */
     msgPublishBytes: register.gauge<{ topic: TopicLabel }>({
       name: 'gossipsub_msg_publish_bytes_total',
@@ -331,11 +533,15 @@ export function getMetrics(
       labelNames: ['topic']
     }),
     /** Tracks distribution of recv msgs by duplicate, invalid, valid */
-    msgReceivedStatus: register.gauge<{ topic: TopicLabel; status: MessageStatus }>({
-      name: 'gossipsub_msg_received_status_total',
-      help: 'Tracks distribution of recv msgs by duplicate, invalid, valid',
-      labelNames: ['topic', 'status']
-    }),
+    msgReceivedStatus: cachedRegistry.createLabelCachedGauge(
+      register.gauge<{ topic: TopicLabel; status: MessageStatus }>({
+        name: 'gossipsub_msg_received_status_total',
+        help: 'Tracks distribution of recv msgs by duplicate, invalid, valid',
+        labelNames: ['topic', 'status']
+      }),
+      'topic',
+      'status'
+    ),
     /** Tracks specific reason of invalid */
     msgReceivedInvalid: register.gauge<{ topic: TopicLabel; error: RejectReason | ValidateError }>({
       name: 'gossipsub_msg_received_invalid_total',
@@ -356,23 +562,30 @@ export function getMetrics(
       ]
     }),
     /** Total count of late msg delivery total by topic */
-    duplicateMsgLateDelivery: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossisub_duplicate_msg_late_delivery_total',
-      help: 'Total count of late duplicate message delivery by topic, which triggers P3 penalty',
-      labelNames: ['topic']
-    }),
+    duplicateMsgLateDelivery: cachedRegistry.createLabelCachedGauge(
+      register.gauge<{ topic: TopicLabel }>({
+        name: 'gossisub_duplicate_msg_late_delivery_total',
+        help: 'Total count of late duplicate message delivery by topic, which triggers P3 penalty',
+        labelNames: ['topic']
+      }),
+      'topic'
+    ),
 
     /* Metrics related to scoring */
     /** Total times score() is called */
-    scoreFnCalls: register.gauge({
-      name: 'gossipsub_score_fn_calls_total',
-      help: 'Total times score() is called'
-    }),
+    scoreFnCalls: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({
+        name: 'gossipsub_score_fn_calls_total',
+        help: 'Total times score() is called'
+      })
+    ),
     /** Total times score() call actually computed computeScore(), no cache */
-    scoreFnRuns: register.gauge({
-      name: 'gossipsub_score_fn_runs_total',
-      help: 'Total times score() call actually computed computeScore(), no cache'
-    }),
+    scoreFnRuns: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({
+        name: 'gossipsub_score_fn_runs_total',
+        help: 'Total times score() call actually computed computeScore(), no cache'
+      })
+    ),
     scoreCachedDelta: register.histogram({
       name: 'gossipsub_score_cache_delta',
       help: 'Delta of score between cached values that expired',
@@ -426,56 +639,78 @@ export function getMetrics(
     // - when promise is resolved, track messages from promises
 
     /** Total received IHAVE messages that we ignore for some reason */
-    ihaveRcvIgnored: register.gauge<{ reason: IHaveIgnoreReason }>({
-      name: 'gossipsub_ihave_rcv_ignored_total',
-      help: 'Total received IHAVE messages that we ignore for some reason',
-      labelNames: ['reason']
-    }),
+    ihaveRcvIgnored: cachedRegistry.createLabelCachedGauge(
+      register.gauge<{ reason: IHaveIgnoreReason }>({
+        name: 'gossipsub_ihave_rcv_ignored_total',
+        help: 'Total received IHAVE messages that we ignore for some reason',
+        labelNames: ['reason']
+      }),
+      'reason'
+    ),
     /** Total received IHAVE messages by topic */
-    ihaveRcvMsgids: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossipsub_ihave_rcv_msgids_total',
-      help: 'Total received IHAVE messages by topic',
-      labelNames: ['topic']
-    }),
+    ihaveRcvMsgids: cachedRegistry.createLabelCachedGauge(
+      register.gauge<{ topic: TopicLabel }>({
+        name: 'gossipsub_ihave_rcv_msgids_total',
+        help: 'Total received IHAVE messages by topic',
+        labelNames: ['topic']
+      }),
+      'topic'
+    ),
     /** Total messages per topic we don't have. Not actual requests.
      *  The number of times we have decided that an IWANT control message is required for this
      *  topic. A very high metric might indicate an underperforming network.
      *  = rust-libp2p `topic_iwant_msgs` */
-    ihaveRcvNotSeenMsgids: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossipsub_ihave_rcv_not_seen_msgids_total',
-      help: 'Total messages per topic we do not have, not actual requests',
-      labelNames: ['topic']
-    }),
+    ihaveRcvNotSeenMsgids: cachedRegistry.createLabelCachedGauge(
+      register.gauge<{ topic: TopicLabel }>({
+        name: 'gossipsub_ihave_rcv_not_seen_msgids_total',
+        help: 'Total messages per topic we do not have, not actual requests',
+        labelNames: ['topic']
+      }),
+      'topic'
+    ),
 
     /** Total received IWANT messages by topic */
-    iwantRcvMsgids: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossipsub_iwant_rcv_msgids_total',
-      help: 'Total received IWANT messages by topic',
-      labelNames: ['topic']
-    }),
+    iwantRcvMsgids: cachedRegistry.createLabelCachedGauge(
+      register.gauge<{ topic: TopicLabel }>({
+        name: 'gossipsub_iwant_rcv_msgids_total',
+        help: 'Total received IWANT messages by topic',
+        labelNames: ['topic']
+      }),
+      'topic'
+    ),
     /** Total requested messageIDs that we don't have */
-    iwantRcvDonthaveMsgids: register.gauge({
-      name: 'gossipsub_iwant_rcv_dont_have_msgids_total',
-      help: 'Total requested messageIDs that we do not have'
-    }),
-    iwantPromiseStarted: register.gauge({
-      name: 'gossipsub_iwant_promise_sent_total',
-      help: 'Total count of started IWANT promises'
-    }),
+    iwantRcvDonthaveMsgids: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({
+        name: 'gossipsub_iwant_rcv_dont_have_msgids_total',
+        help: 'Total requested messageIDs that we do not have'
+      })
+    ),
+    iwantPromiseStarted: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({
+        name: 'gossipsub_iwant_promise_sent_total',
+        help: 'Total count of started IWANT promises'
+      })
+    ),
     /** Total count of resolved IWANT promises */
-    iwantPromiseResolved: register.gauge({
-      name: 'gossipsub_iwant_promise_resolved_total',
-      help: 'Total count of resolved IWANT promises'
-    }),
+    iwantPromiseResolved: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({
+        name: 'gossipsub_iwant_promise_resolved_total',
+        help: 'Total count of resolved IWANT promises'
+      })
+    ),
     /** Total count of peers we have asked IWANT promises that are resolved */
-    iwantPromiseResolvedPeers: register.gauge({
-      name: 'gossipsub_iwant_promise_resolved_peers',
-      help: 'Total count of peers we have asked IWANT promises that are resolved'
-    }),
-    iwantPromiseBroken: register.gauge({
-      name: 'gossipsub_iwant_promise_broken',
-      help: 'Total count of broken IWANT promises'
-    }),
+    iwantPromiseResolvedPeers: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({
+        name: 'gossipsub_iwant_promise_resolved_peers',
+        help: 'Total count of peers we have asked IWANT promises that are resolved'
+      })
+    ),
+    iwantPromiseBroken: cachedRegistry.createNoLabelCachedGauge(
+      register.gauge({
+        name: 'gossipsub_iwant_promise_broken',
+        help: 'Total count of broken IWANT promises'
+      })
+    ),
     /** Histogram of delivery time of resolved IWANT promises */
     iwantPromiseDeliveryTime: register.histogram({
       name: 'gossipsub_iwant_promise_delivery_seconds',
@@ -503,6 +738,7 @@ export function getMetrics(
 
     topicStrToLabel: topicStrToLabel,
 
+    // 0.28%
     toTopic(topicStr: TopicStr): TopicLabel {
       return this.topicStrToLabel.get(topicStr) ?? topicStr
     },
@@ -522,7 +758,7 @@ export function getMetrics(
     /** Register the inclusion of peers in our mesh due to some reason. */
     onAddToMesh(topicStr: TopicStr, reason: InclusionReason, count: number): void {
       const topic = this.toTopic(topicStr)
-      this.meshPeerInclusionEvents.inc({ topic, reason }, count)
+      this.meshPeerInclusionEvents.inc(topic, reason, count)
     },
 
     /** Register the removal of peers in our mesh due to some reason */
@@ -532,16 +768,18 @@ export function getMetrics(
     // - on_disconnect() Churn::Ds
     onRemoveFromMesh(topicStr: TopicStr, reason: ChurnReason, count: number): void {
       const topic = this.toTopic(topicStr)
-      this.meshPeerChurnEvents.inc({ topic, reason }, count)
+      this.meshPeerChurnEvents.inc(topic, reason, count)
     },
 
+    // 0.04%
     onReportValidationMcacheHit(hit: boolean): void {
       this.asyncValidationMcacheHit.inc({ hit: hit ? 'hit' : 'miss' })
     },
 
+    // 0.05%
     onReportValidation(topicStr: TopicStr, acceptance: MessageAcceptance): void {
       const topic = this.toTopic(topicStr)
-      this.asyncValidationResult.inc({ topic: topic, acceptance })
+      this.asyncValidationResult.inc(topic, acceptance)
     },
 
     /**
@@ -555,21 +793,23 @@ export function getMetrics(
       this.scoringPenalties.inc({ penalty }, 1)
     },
 
+    // 0.06%
     onIhaveRcv(topicStr: TopicStr, ihave: number, idonthave: number): void {
       const topic = this.toTopic(topicStr)
-      this.ihaveRcvMsgids.inc({ topic }, ihave)
-      this.ihaveRcvNotSeenMsgids.inc({ topic }, idonthave)
+      this.ihaveRcvMsgids.inc(topic, undefined, ihave)
+      this.ihaveRcvNotSeenMsgids.inc(topic, undefined, idonthave)
     },
 
     onIwantRcv(iwantByTopic: Map<TopicStr, number>, iwantDonthave: number): void {
       for (const [topicStr, iwant] of iwantByTopic) {
         const topic = this.toTopic(topicStr)
-        this.iwantRcvMsgids.inc({ topic }, iwant)
+        this.iwantRcvMsgids.inc(topic, undefined, iwant)
       }
 
       this.iwantRcvDonthaveMsgids.inc(iwantDonthave)
     },
 
+    // 0.05%
     onForwardMsg(topicStr: TopicStr, tosendCount: number): void {
       const topic = this.toTopic(topicStr)
       this.msgForwardCount.inc({ topic }, 1)
@@ -581,20 +821,23 @@ export function getMetrics(
       this.msgPublishCount.inc({ topic }, 1)
       this.msgPublishBytes.inc({ topic }, tosendCount * dataLen)
       this.msgPublishPeers.inc({ topic }, tosendCount)
-      this.msgPublishPeersByGroup.inc({ topic, peerGroup: 'direct' }, tosendGroupCount.direct)
-      this.msgPublishPeersByGroup.inc({ topic, peerGroup: 'floodsub' }, tosendGroupCount.floodsub)
-      this.msgPublishPeersByGroup.inc({ topic, peerGroup: 'mesh' }, tosendGroupCount.mesh)
-      this.msgPublishPeersByGroup.inc({ topic, peerGroup: 'fanout' }, tosendGroupCount.fanout)
+      this.msgPublishPeersByGroup.inc(topic, 'direct', tosendGroupCount.direct)
+      this.msgPublishPeersByGroup.inc(topic, 'floodsub', tosendGroupCount.floodsub)
+      this.msgPublishPeersByGroup.inc(topic, 'mesh', tosendGroupCount.mesh)
+      this.msgPublishPeersByGroup.inc(topic, 'fanout', tosendGroupCount.fanout)
     },
 
-    onMsgRecvPreValidation(topicStr: TopicStr): void {
-      const topic = this.toTopic(topicStr)
-      this.msgReceivedPreValidation.inc({ topic }, 1)
-    },
+    // 0.9%
+    // onMsgRecvPreValidation(topicStr: TopicStr): void {
+    //   const topic = this.toTopic(topicStr)
+    //   this.msgReceivedPreValidation.inc({ topic }, 1)
+    // },
 
+    // 0.93%
     onMsgRecvResult(topicStr: TopicStr, status: MessageStatus): void {
       const topic = this.toTopic(topicStr)
-      this.msgReceivedStatus.inc({ topic, status })
+      // Don't call metric.inc() directly to improve performance
+      this.msgReceivedStatus.inc(topic, status)
     },
 
     onMsgRecvInvalid(topicStr: TopicStr, reason: RejectReasonObj): void {
@@ -608,24 +851,30 @@ export function getMetrics(
       this.duplicateMsgDeliveryDelay.observe(deliveryDelayMs / 1000)
       if (isLateDelivery) {
         const topic = this.toTopic(topicStr)
-        this.duplicateMsgLateDelivery.inc({ topic }, 1)
+        this.duplicateMsgLateDelivery.inc(topic, undefined, 1)
       }
     },
 
+    // 0.48%
     onRpcRecv(rpc: RPC, rpcBytes: number): void {
       this.rpcRecvBytes.inc(rpcBytes)
       this.rpcRecvCount.inc(1)
       this.rpcRecvSubscription.inc(rpc.subscriptions.length)
       this.rpcRecvMessage.inc(rpc.messages.length)
       if (rpc.control) {
-        this.rpcRecvControl.inc(1)
-        this.rpcRecvIHave.inc(rpc.control.ihave.length)
-        this.rpcRecvIWant.inc(rpc.control.iwant.length)
-        this.rpcRecvGraft.inc(rpc.control.graft.length)
-        this.rpcRecvPrune.inc(rpc.control.prune.length)
+        const ihave = rpc.control.ihave.length
+        const iwant = rpc.control.iwant.length
+        const graft = rpc.control.graft.length
+        const prune = rpc.control.prune.length
+        if (ihave > 0) this.rpcRecvIHave.inc(rpc.control.ihave.length)
+        if (iwant > 0) this.rpcRecvIWant.inc(rpc.control.iwant.length)
+        if (graft > 0) this.rpcRecvGraft.inc(rpc.control.graft.length)
+        if (prune > 0) this.rpcRecvPrune.inc(rpc.control.prune.length)
+        if (ihave > 0 || iwant > 0 || graft > 0 || prune > 0) this.rpcRecvControl.inc(1)
       }
     },
 
+    // 0.06%
     onRpcSent(rpc: RPC, rpcBytes: number): void {
       this.rpcSentBytes.inc(rpcBytes)
       this.rpcSentCount.inc(1)
@@ -642,6 +891,17 @@ export function getMetrics(
         if (prune > 0) this.rpcSentPrune.inc(prune)
         if (ihave > 0 || iwant > 0 || graft > 0 || prune > 0) this.rpcSentControl.inc(1)
       }
+    },
+
+    /**
+     * Increasing metrics by 1 all the time is not efficient as it involves:
+     *   - hashObject(labels)
+     *   - get from the map
+     *   - set from the map
+     * Instead we cache it and only flushing per scrape
+     */
+    onScrapeMetrics(): void {
+      cachedRegistry.getCachedMetrics().forEach((cachedMetric) => cachedMetric.flush())
     },
 
     registerScores(scores: number[], scoreThresholds: PeerScoreThresholds): void {
