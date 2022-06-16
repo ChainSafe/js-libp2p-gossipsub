@@ -182,12 +182,21 @@ class CachedRegistry {
     return cachedGauge
   }
 
-  createLabelCachedGauge<Labels extends LabelsGeneric>(
+  createOneLabelCachedGauge<Labels extends LabelsGeneric>(
+    gauge: Gauge<Labels>,
+    label: keyof Labels
+  ): OneLabelCachedGauge<Labels> {
+    const cachedGauge = new OneLabelCachedGauge(gauge, label)
+    this.cachedGauges.push(cachedGauge)
+    return cachedGauge
+  }
+
+  createTwoLabelCachedGauge<Labels extends LabelsGeneric>(
     gauge: Gauge<Labels>,
     labelKey1: keyof Labels,
-    labelKey2?: keyof Labels
-  ): LabelCachedGauge<Labels> {
-    const cachedGauge = new LabelCachedGauge(gauge, labelKey1, labelKey2)
+    labelKey2: keyof Labels
+  ): TwoLabelCachedGauge<Labels> {
+    const cachedGauge = new TwoLabelCachedGauge(gauge, labelKey1, labelKey2)
     this.cachedGauges.push(cachedGauge)
     return cachedGauge
   }
@@ -199,7 +208,7 @@ class CachedRegistry {
 
 /**
  * No label cached gauge, an `inc()` call simply increase the counter
- * without pushing to hash like in prom-client.
+ * without pushing to map like in prom-client.
  * It's a 7x improvement compared to prom-client no-label gauge.
  */
 class NoLabelCachedGauge {
@@ -224,77 +233,90 @@ class NoLabelCachedGauge {
   }
 }
 
+export class MapDef<K, V> extends Map<K, V> {
+  constructor(private readonly getDefault: () => V) {
+    super()
+  }
+
+  getOrDefault(key: K): V {
+    let value = super.get(key)
+    if (value === undefined) {
+      value = this.getDefault()
+      this.set(key, value)
+    }
+    return value
+  }
+}
+
+class CounterMap<K> extends MapDef<K, number> {
+  inc(key: K, value = 1): void {
+    this.set(key, (this.get(key) ?? 0) + value)
+  }
+}
+
 /**
- * Support caching one label or two label gauge.
+ * Support caching one label gauge.
  * This saves some hashObject() call in prom-client.
- * Performance shows that this is a 1.2x and 2.5x improvement if
- * we flush per 100 times
+ * This is 1.2x improvement if we flush per 100 times
  */
-class LabelCachedGauge<Labels extends LabelsGeneric> {
-  private twoLabelsCache: Map<string, Map<string, number>> | undefined
-  private oneLabelCache: Map<string, number> | undefined
+class OneLabelCachedGauge<Labels extends LabelsGeneric> {
+  private cache: CounterMap<string>
+  constructor(private readonly gauge: Gauge<Labels>, private readonly labelKey: keyof Labels) {
+    this.cache = new CounterMap(() => 0)
+  }
+
+  inc(label: string, value = 1): void {
+    this.cache.inc(label, value)
+  }
+
+  set(label: string, value: number): void {
+    this.cache.set(label, value)
+  }
+
+  flush(): void {
+    for (const [label, count] of this.cache) {
+      this.gauge.inc({ [this.labelKey]: label } as Labels, count)
+    }
+    this.cache.clear()
+  }
+}
+
+/**
+ * Support caching two label gauge.
+ * This saves some hashObject() call in prom-client.
+ * This is 2.5x improvement if we flush per 100 times
+ */
+class TwoLabelCachedGauge<Labels extends LabelsGeneric> {
+  private cache: MapDef<string, CounterMap<string>>
 
   constructor(
     private readonly gauge: Gauge<Labels>,
     private readonly label1Key: keyof Labels,
-    private readonly label2Key?: keyof Labels
+    private readonly label2Key: keyof Labels
   ) {
-    if (label2Key !== undefined) {
-      this.twoLabelsCache = new Map()
-    } else {
-      this.oneLabelCache = new Map()
-    }
+    this.cache = new MapDef(() => new CounterMap<string>(() => 0))
   }
 
   // for one-label gauge, may have to pass undefined as 2nd param if value !== 1
-  inc(label1: string, label2?: string, value = 1): void {
-    if (label2 !== undefined && this.twoLabelsCache !== undefined) {
-      let label2Cache = this.twoLabelsCache.get(label1)
-      if (!label2Cache) {
-        label2Cache = new Map<string, number>()
-        this.twoLabelsCache.set(label1, label2Cache)
-      }
-      label2Cache.set(label2, (label2Cache.get(label2) ?? 0) + value)
-    }
-
-    if (this.oneLabelCache) {
-      this.oneLabelCache.set(label1, (this.oneLabelCache.get(label1) ?? 0) + value)
-    }
+  inc(label1: string, label2: string, value = 1): void {
+    const label2Cache = this.cache.getOrDefault(label1)
+    label2Cache.inc(label2, value)
   }
 
-  set(label1: string, label2: string | undefined, value: number): void {
-    if (label2 !== undefined && this.twoLabelsCache !== undefined) {
-      let label2Cache = this.twoLabelsCache.get(label1)
-      if (!label2Cache) {
-        label2Cache = new Map<string, number>()
-        this.twoLabelsCache.set(label1, label2Cache)
-      }
-      label2Cache.set(label2, value)
-    } else {
-      this.oneLabelCache?.set(label1, value)
-    }
+  set(label1: string, label2: string, value: number): void {
+    const label2Cache = this.cache.getOrDefault(label1)
+    label2Cache.set(label2, value)
   }
 
   // create more methods if needed
 
   flush(): void {
-    // two label
-    if (this.twoLabelsCache && this.label2Key !== undefined) {
-      for (const [label1Value, label2Cache] of this.twoLabelsCache) {
-        for (const [label2Value, count] of label2Cache) {
-          this.gauge.inc({ [this.label1Key]: label1Value, [this.label2Key]: label2Value } as Labels, count)
-        }
+    for (const [label1Value, label2Cache] of this.cache) {
+      for (const [label2Value, count] of label2Cache) {
+        this.gauge.inc({ [this.label1Key]: label1Value, [this.label2Key]: label2Value } as Labels, count)
       }
-      this.twoLabelsCache.clear()
     }
-
-    // one label
-    if (this.oneLabelCache) {
-      for (const [label, count] of this.oneLabelCache) {
-        this.gauge.inc({ [this.label1Key]: label } as Labels, count)
-      }
-      this.oneLabelCache.clear()
-    }
+    this.cache.clear()
   }
 }
 
@@ -350,7 +372,7 @@ export function getMetrics(
     }),
     /** Number of times we include peers in a topic mesh for different reasons.
      *  = rust-libp2p `mesh_peer_inclusion_events` */
-    meshPeerInclusionEvents: cachedRegistry.createLabelCachedGauge(
+    meshPeerInclusionEvents: cachedRegistry.createTwoLabelCachedGauge(
       register.gauge<{ topic: TopicLabel; reason: InclusionReason }>({
         name: 'gossipsub_mesh_peer_inclusion_events_total',
         help: 'Number of times we include peers in a topic mesh for different reasons',
@@ -361,7 +383,7 @@ export function getMetrics(
     ),
     /** Number of times we remove peers in a topic mesh for different reasons.
      *  = rust-libp2p `mesh_peer_churn_events` */
-    meshPeerChurnEvents: cachedRegistry.createLabelCachedGauge(
+    meshPeerChurnEvents: cachedRegistry.createTwoLabelCachedGauge(
       register.gauge<{ topic: TopicLabel; reason: ChurnReason }>({
         name: 'gossipsub_peer_churn_events_total',
         help: 'Number of times we remove peers in a topic mesh for different reasons',
@@ -397,7 +419,7 @@ export function getMetrics(
     /** Message validation results for each topic.
      *  Invalid == Reject?
      *  = rust-libp2p `invalid_messages`, `accepted_messages`, `ignored_messages`, `rejected_messages` */
-    asyncValidationResult: cachedRegistry.createLabelCachedGauge(
+    asyncValidationResult: cachedRegistry.createTwoLabelCachedGauge(
       register.gauge<{ topic: TopicLabel; acceptance: MessageAcceptance }>({
         name: 'gossipsub_async_validation_result_total',
         help: 'Message validation result for each topic',
@@ -497,7 +519,7 @@ export function getMetrics(
     }),
     /** Total count of peers (by group) that we publish a msg to */
     // NOTE: Do not use 'group' label since it's a generic already used by Prometheus to group instances
-    msgPublishPeersByGroup: cachedRegistry.createLabelCachedGauge(
+    msgPublishPeersByGroup: cachedRegistry.createTwoLabelCachedGauge(
       register.gauge<{ topic: TopicLabel; peerGroup: keyof ToSendGroupCount }>({
         name: 'gossipsub_msg_publish_peers_by_group',
         help: 'Total count of peers (by group) that we publish a msg to',
@@ -533,7 +555,7 @@ export function getMetrics(
       labelNames: ['topic']
     }),
     /** Tracks distribution of recv msgs by duplicate, invalid, valid */
-    msgReceivedStatus: cachedRegistry.createLabelCachedGauge(
+    msgReceivedStatus: cachedRegistry.createTwoLabelCachedGauge(
       register.gauge<{ topic: TopicLabel; status: MessageStatus }>({
         name: 'gossipsub_msg_received_status_total',
         help: 'Tracks distribution of recv msgs by duplicate, invalid, valid',
@@ -562,7 +584,7 @@ export function getMetrics(
       ]
     }),
     /** Total count of late msg delivery total by topic */
-    duplicateMsgLateDelivery: cachedRegistry.createLabelCachedGauge(
+    duplicateMsgLateDelivery: cachedRegistry.createOneLabelCachedGauge(
       register.gauge<{ topic: TopicLabel }>({
         name: 'gossisub_duplicate_msg_late_delivery_total',
         help: 'Total count of late duplicate message delivery by topic, which triggers P3 penalty',
@@ -639,7 +661,7 @@ export function getMetrics(
     // - when promise is resolved, track messages from promises
 
     /** Total received IHAVE messages that we ignore for some reason */
-    ihaveRcvIgnored: cachedRegistry.createLabelCachedGauge(
+    ihaveRcvIgnored: cachedRegistry.createOneLabelCachedGauge(
       register.gauge<{ reason: IHaveIgnoreReason }>({
         name: 'gossipsub_ihave_rcv_ignored_total',
         help: 'Total received IHAVE messages that we ignore for some reason',
@@ -648,7 +670,7 @@ export function getMetrics(
       'reason'
     ),
     /** Total received IHAVE messages by topic */
-    ihaveRcvMsgids: cachedRegistry.createLabelCachedGauge(
+    ihaveRcvMsgids: cachedRegistry.createOneLabelCachedGauge(
       register.gauge<{ topic: TopicLabel }>({
         name: 'gossipsub_ihave_rcv_msgids_total',
         help: 'Total received IHAVE messages by topic',
@@ -660,7 +682,7 @@ export function getMetrics(
      *  The number of times we have decided that an IWANT control message is required for this
      *  topic. A very high metric might indicate an underperforming network.
      *  = rust-libp2p `topic_iwant_msgs` */
-    ihaveRcvNotSeenMsgids: cachedRegistry.createLabelCachedGauge(
+    ihaveRcvNotSeenMsgids: cachedRegistry.createOneLabelCachedGauge(
       register.gauge<{ topic: TopicLabel }>({
         name: 'gossipsub_ihave_rcv_not_seen_msgids_total',
         help: 'Total messages per topic we do not have, not actual requests',
@@ -670,7 +692,7 @@ export function getMetrics(
     ),
 
     /** Total received IWANT messages by topic */
-    iwantRcvMsgids: cachedRegistry.createLabelCachedGauge(
+    iwantRcvMsgids: cachedRegistry.createOneLabelCachedGauge(
       register.gauge<{ topic: TopicLabel }>({
         name: 'gossipsub_iwant_rcv_msgids_total',
         help: 'Total received IWANT messages by topic',
@@ -796,14 +818,14 @@ export function getMetrics(
     // 0.06%
     onIhaveRcv(topicStr: TopicStr, ihave: number, idonthave: number): void {
       const topic = this.toTopic(topicStr)
-      this.ihaveRcvMsgids.inc(topic, undefined, ihave)
-      this.ihaveRcvNotSeenMsgids.inc(topic, undefined, idonthave)
+      this.ihaveRcvMsgids.inc(topic, ihave)
+      this.ihaveRcvNotSeenMsgids.inc(topic, idonthave)
     },
 
     onIwantRcv(iwantByTopic: Map<TopicStr, number>, iwantDonthave: number): void {
       for (const [topicStr, iwant] of iwantByTopic) {
         const topic = this.toTopic(topicStr)
-        this.iwantRcvMsgids.inc(topic, undefined, iwant)
+        this.iwantRcvMsgids.inc(topic, iwant)
       }
 
       this.iwantRcvDonthaveMsgids.inc(iwantDonthave)
@@ -851,7 +873,7 @@ export function getMetrics(
       this.duplicateMsgDeliveryDelay.observe(deliveryDelayMs / 1000)
       if (isLateDelivery) {
         const topic = this.toTopic(topicStr)
-        this.duplicateMsgLateDelivery.inc(topic, undefined, 1)
+        this.duplicateMsgLateDelivery.inc(topic, 1)
       }
     },
 
