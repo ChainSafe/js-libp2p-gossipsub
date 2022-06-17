@@ -850,10 +850,10 @@ export function getMetrics(
     },
 
     // 0.9%
-    // onMsgRecvPreValidation(topicStr: TopicStr): void {
-    //   const topic = this.toTopic(topicStr)
-    //   this.msgReceivedPreValidation.inc({ topic }, 1)
-    // },
+    onMsgRecvPreValidation(topicStr: TopicStr): void {
+      const topic = this.toTopic(topicStr)
+      this.msgReceivedPreValidation.inc({ topic }, 1)
+    },
 
     // 0.93%
     onMsgRecvResult(topicStr: TopicStr, status: MessageStatus): void {

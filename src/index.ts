@@ -898,7 +898,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    * May forward to all peers in the mesh.
    */
   private async handleReceivedMessage(from: PeerId, rpcMsg: RPC.Message): Promise<void> {
-    // this.metrics?.onMsgRecvPreValidation(rpcMsg.topic)
+    this.metrics?.onMsgRecvPreValidation(rpcMsg.topic)
 
     const validationResult = await this.validateReceivedMessage(from, rpcMsg)
 
