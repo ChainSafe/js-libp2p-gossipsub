@@ -598,16 +598,20 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   /**
    * On an inbound stream opened
    */
-  private onIncomingStream({ protocol, stream, connection }: IncomingStreamData) {
+  private onIncomingStream({ stream, connection }: IncomingStreamData) {
     if (!this.isStarted()) {
       return
     }
+    const protocol = stream.stat.protocol
+    if (protocol !== undefined) {
+      const peerId = connection.remotePeer
+      const peer = this.addPeer(peerId, protocol, connection.stat.direction)
+      const inboundStream = peer.attachInboundStream(stream)
 
-    const peerId = connection.remotePeer
-    const peer = this.addPeer(peerId, protocol, connection.stat.direction)
-    const inboundStream = peer.attachInboundStream(stream)
-
-    this.pipePeerReadStream(peerId, inboundStream).catch((err) => this.log(err))
+      this.pipePeerReadStream(peerId, inboundStream).catch((err) => this.log(err))
+    } else {
+      this.log('`.protocol` is not defined on incoming stream, peer will not be added to router')
+    }
   }
 
   /**
@@ -622,9 +626,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     Promise.resolve().then(async () => {
       try {
-        const { stream, protocol } = await conn.newStream(this.multicodecs)
-        const peer = this.addPeer(peerId, protocol, conn.stat.direction)
-        await peer.attachOutboundStream(stream)
+        const stream = await conn.newStream(this.multicodecs)
+        const protocol = stream.stat.protocol
+        if (protocol !== undefined) {
+          const peer = this.addPeer(peerId, protocol, conn.stat.direction)
+          await peer.attachOutboundStream(stream)
+        } else {
+          this.log('`.protocol` is not defined on new stream, peer will not be added to router')
+        }
       } catch (err) {
         this.log(err)
       }
