@@ -598,13 +598,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   /**
    * On an inbound stream opened
    */
-  private onIncomingStream({ protocol, stream, connection }: IncomingStreamData) {
+  private onIncomingStream({ stream, connection }: IncomingStreamData) {
     if (!this.isStarted()) {
       return
     }
 
     const peerId = connection.remotePeer
-    const peer = this.addPeer(peerId, protocol, connection.stat.direction)
+    // TODO remove this non-nullish assertion after https://github.com/libp2p/js-libp2p-interfaces/pull/265 is incorporated
+    const peer = this.addPeer(peerId, stream.stat.protocol!, stream.stat.direction)
     const inboundStream = peer.attachInboundStream(stream)
 
     this.pipePeerReadStream(peerId, inboundStream).catch((err) => this.log(err))
@@ -622,8 +623,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     Promise.resolve().then(async () => {
       try {
-        const { stream, protocol } = await conn.newStream(this.multicodecs)
-        const peer = this.addPeer(peerId, protocol, conn.stat.direction)
+        const stream = await conn.newStream(this.multicodecs)
+        // TODO remove this non-nullish assertion after https://github.com/libp2p/js-libp2p-interfaces/pull/265 is incorporated
+        const peer = this.addPeer(peerId, stream.stat.protocol!, conn.stat.direction)
         await peer.attachOutboundStream(stream)
       } catch (err) {
         this.log(err)
