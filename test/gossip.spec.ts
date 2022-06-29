@@ -2,12 +2,15 @@ import { expect } from 'aegir/chai'
 import sinon, { SinonStubbedInstance } from 'sinon'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { GossipsubDhi } from '../src/constants.js'
-import type { GossipSub } from '../src/index.js'
+import { GossipSub } from '../src/index.js'
 import { pEvent } from 'p-event'
 import { connectAllPubSubNodes, createComponentsArray } from './utils/create-pubsub.js'
 import { Components } from '@libp2p/components'
 import { stop } from '@libp2p/interfaces/startable'
 import { mockNetwork } from '@libp2p/interface-mocks'
+import { stubInterface } from 'ts-sinon'
+import { Registrar } from '@libp2p/interface-registrar'
+import { createEd25519PeerId } from '@libp2p/peer-id-factory'
 
 describe('gossip', () => {
   let nodes: Components[]
@@ -149,5 +152,30 @@ describe('gossip', () => {
 
     // unset spy
     nodeASpy.restore()
+  })
+
+  it('should allow configuring stream limits', async () => {
+    const maxInboundStreams = 7
+    const maxOutboundStreams = 5
+
+    const registrar = stubInterface<Registrar>()
+    const components = new Components({
+      peerId: await createEd25519PeerId(),
+      registrar
+    })
+
+    const pubsub = new GossipSub({
+      maxInboundStreams,
+      maxOutboundStreams
+    })
+    pubsub.init(components)
+
+    await pubsub.start()
+
+    expect(registrar.register.called).to.be.true()
+    expect(registrar.handle.getCall(0)).to.have.nested.property('args[2].maxInboundStreams', maxInboundStreams)
+    expect(registrar.handle.getCall(0)).to.have.nested.property('args[2].maxOutboundStreams', maxOutboundStreams)
+
+    await pubsub.stop()
   })
 })
