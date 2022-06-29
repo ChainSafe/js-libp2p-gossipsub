@@ -15,6 +15,18 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [3.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v2.0.0...v3.0.0) (2022-06-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* connection interface updated
+
+### Miscellaneous
+
+* fix link to interface doc ([#290](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/290)) ([4801f19](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/4801f1937b8fb4503186fa2f331a085760c2f17f))
+* update interface dependencies ([#291](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/291)) ([6399072](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/6399072001aaba3cb47b6263d93cb7443cf07f20))
+
 ## [2.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v1.2.0...v2.0.0) (2022-06-15)
 
 
