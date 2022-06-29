@@ -1002,13 +1002,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       return { code: MessageStatus.invalid, reason: RejectReason.Error, error: ValidateError.TransformFailed }
     }
 
-    if (rpcMsg.from == null) {
-      this.log('Invalid message, transform failed')
-      return { code: MessageStatus.invalid, reason: RejectReason.Error, error: ValidateError.TransformFailed }
-    }
-
     const msg: Message = {
-      from: peerIdFromBytes(rpcMsg.from),
+      // TODO fix types upstream, see https://github.com/libp2p/js-libp2p-interfaces/pull/266
+      from: (rpcMsg.from == null ? undefined : peerIdFromBytes(rpcMsg.from)) as PeerId,
       data: data,
       sequenceNumber: rpcMsg.seqno == null ? undefined : BigInt(`0x${uint8ArrayToString(rpcMsg.seqno, 'base16')}`),
       topic: rpcMsg.topic
