@@ -1851,13 +1851,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // Prepare raw message with user's publishConfig
     const rawMsg = await buildRawMessage(this.publishConfig, topic, transformedData)
 
-    if (rawMsg.from == null) {
-      throw Error('PublishError.InvalidMessage')
-    }
-
     // calculate the message id from the un-transformed data
     const msg: Message = {
-      from: peerIdFromBytes(rawMsg.from),
+      // TODO fix types upstream, see https://github.com/libp2p/js-libp2p-interfaces/pull/266
+      from: (rawMsg.from ? peerIdFromBytes(rawMsg.from) : undefined) as PeerId,
       data, // the uncompressed form
       sequenceNumber: rawMsg.seqno == null ? undefined : BigInt(`0x${uint8ArrayToString(rawMsg.seqno, 'base16')}`),
       topic,
