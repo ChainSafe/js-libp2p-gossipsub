@@ -15,6 +15,13 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [3.0.2](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v3.0.1...v3.0.2) (2022-06-30)
+
+
+### Bug Fixes
+
+* allow publish of no-sign messages ([#296](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/296)) ([40dadb8](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/40dadb8d8b70257459a266271adf83457bb3a3fc))
+
 ## [3.0.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v3.0.0...v3.0.1) (2022-06-29)
 
 
