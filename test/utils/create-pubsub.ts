@@ -41,7 +41,11 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Comp
 export const createComponentsArray = async (
   opts: CreateComponentsOpts & { number: number; connected?: boolean } = { number: 1, connected: true }
 ): Promise<Components[]> => {
-  const output = await Promise.all(Array.from({ length: opts.number }).map(async () => createComponents(opts)))
+  const output = await Promise.all(
+    Array.from({ length: opts.number }).map(async (_, i) =>
+      createComponents({ ...opts, init: { ...opts.init, debugName: `libp2p:gossipsub:${i}` } })
+    )
+  )
 
   if (opts.connected) {
     await connectAllPubSubNodes(output)

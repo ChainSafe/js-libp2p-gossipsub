@@ -10,7 +10,7 @@ import {
   createComponentsArray
 } from './utils/create-pubsub.js'
 
-describe.only('signature policy', () => {
+describe('signature policy', () => {
   describe('strict-sign', () => {
     const numNodes = 3
     let nodes: Components[]

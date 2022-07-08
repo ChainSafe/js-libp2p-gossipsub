@@ -118,9 +118,7 @@ describe('gossip', () => {
     ).to.include(peerB, "did not know about peerB's subscription to topic")
 
     // should be able to send them messages
-    expect((nodeA.getPubSub() as GossipSub).peers.get(peerB)).to.have.property(
-      'isWritable',
-      true,
+    expect((nodeA.getPubSub() as GossipSub).streamsOutbound.has(peerB)).to.be.true(
       'nodeA did not have connection open to peerB'
     )
 
