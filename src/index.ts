@@ -1602,9 +1602,13 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    */
   private async connect(id: PeerIdStr): Promise<void> {
     this.log('Initiating connection with %s', id)
-    const connection = await this.components.getConnectionManager().openConnection(peerIdFromString(id))
-    await connection.newStream(this.multicodecs)
-    // TODO: what happens to the stream?
+    const peerId = peerIdFromString(id)
+    const connection = await this.components.getConnectionManager().openConnection(peerId)
+    for (const multicodec of this.multicodecs) {
+      for (const topology of this.components.getRegistrar().getTopologies(multicodec)) {
+        topology.onConnect(peerId, connection)
+      }
+    }
   }
 
   /**

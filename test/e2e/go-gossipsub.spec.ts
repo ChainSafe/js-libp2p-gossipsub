@@ -992,6 +992,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       checkReceivedSubscription(psubs[2], peerIdStrs[1], topic, 1, 10000)
     ]
     await psubs[1].getConnectionManager().closeConnections(psubs[2].getPeerId())
+    // TODO remove when https://github.com/libp2p/js-libp2p-interfaces/pull/268 is merged
+    await psubs[2].getConnectionManager().closeConnections(psubs[1].getPeerId())
 
     await Promise.all(psubs.map((ps) => awaitEvents(ps.getPubSub(), 'gossipsub:heartbeat', 5)))
     await Promise.all(connectPromises)
