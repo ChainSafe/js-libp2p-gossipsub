@@ -59,7 +59,11 @@ export const connectPubsubNodes = async (componentsA: Components, componentsB: C
 
   const connection = await componentsA.getConnectionManager().openConnection(componentsB.getPeerId())
 
-  connection.newStream(Array.from(multicodecs))
+  for (const multicodec of multicodecs) {
+    for (const topology of componentsA.getRegistrar().getTopologies(multicodec)) {
+      topology.onConnect(componentsB.getPeerId(), connection)
+    }
+  }
 }
 
 export const connectAllPubSubNodes = async (components: Components[]): Promise<void> => {
