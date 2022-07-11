@@ -55,9 +55,7 @@ export const checkReceivedSubscriptions = async (
   }
   await pWaitFor(() => {
     return recvPeerIdStrs.every((peerIdStr) => {
-      const peerStream = (node.getPubSub() as GossipSub).peers.get(peerIdStr)
-
-      return peerStream?.isWritable
+      return (node.getPubSub() as GossipSub).streamsOutbound.has(peerIdStr)
     })
   })
 }

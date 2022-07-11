@@ -323,7 +323,7 @@ export class PeerScore {
     // defensive check that this is the first delivery trace -- delivery status should be unknown
     if (drec.status !== DeliveryRecordStatus.unknown) {
       log(
-        'unexpected delivery: message from %s was first seen %s ago and has delivery status %d',
+        'unexpected delivery: message from %s was first seen %s ago and has delivery status %s',
         from,
         now - drec.firstSeen,
         DeliveryRecordStatus[drec.status]

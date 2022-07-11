@@ -385,7 +385,7 @@ describe('2 nodes', () => {
     })
 
     it("nodes don't have peers after stopped", async () => {
-      stop(nodes)
+      await stop(...nodes)
       expect(nodes[0].getPubSub().getPeers()).to.be.empty()
       expect(nodes[1].getPubSub().getPeers()).to.be.empty()
     })

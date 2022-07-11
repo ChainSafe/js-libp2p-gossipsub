@@ -1,10 +1,9 @@
 import { pipe } from 'it-pipe'
-import type { Connection } from '@libp2p/interface-connection'
+import type { Connection, Stream } from '@libp2p/interface-connection'
 import { RecordEnvelope } from '@libp2p/peer-record'
 import { peerIdFromBytes, peerIdFromString } from '@libp2p/peer-id'
 import { Logger, logger } from '@libp2p/logger'
 import { createTopology } from '@libp2p/topology'
-import { PeerStreams } from '@libp2p/pubsub/peer-streams'
 import type { PeerId } from '@libp2p/interface-peer-id'
 import { CustomEvent, EventEmitter } from '@libp2p/interfaces/events'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
@@ -76,6 +75,8 @@ import {
 } from '@libp2p/interface-pubsub'
 import type { IncomingStreamData } from '@libp2p/interface-registrar'
 import { removeFirstNItemsFromSet, removeItemsFromSet } from './utils/set.js'
+import { pushable } from 'it-pushable'
+import { InboundStream, OutboundStream } from './stream.js'
 
 // From 'bl' library
 interface BufferList {
@@ -197,7 +198,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
   // State
 
-  public readonly peers = new Map<PeerIdStr, PeerStreams>()
+  public readonly peers = new Set<PeerIdStr>()
+  public readonly streamsInbound = new Map<PeerIdStr, InboundStream>()
+  public readonly streamsOutbound = new Map<PeerIdStr, OutboundStream>()
+
+  /** Ensures outbound streams are created sequentially */
+  private outboundInflightQueue = pushable<{ peerId: PeerId; connection: Connection }>({ objectMode: true })
 
   /** Direct peers */
   public readonly direct = new Set<PeerIdStr>()
@@ -472,6 +478,15 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     this.publishConfig = await getPublishConfigFromPeerId(this.globalSignaturePolicy, this.components.getPeerId())
 
+    // Create the outbound inflight queue
+    // This ensures that outbound stream creation happens sequentially
+    this.outboundInflightQueue = pushable({ objectMode: true })
+    pipe(this.outboundInflightQueue, async (source) => {
+      for await (const { peerId, connection } of source) {
+        await this.createOutboundStream(peerId, connection)
+      }
+    }).catch((e) => this.log.error('outbound inflight queue error', e))
+
     // set direct peer addresses in the address book
     await Promise.all(
       this.opts.directPeers.map(async (p) => {
@@ -524,8 +539,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       hearbeatStartMs: Date.now() + constants.GossipsubHeartbeatInitialDelay
     }
 
-    this.log('started')
-
     this.score.start()
     // connect to direct peers
     this.directPeerInitial = setTimeout(() => {
@@ -537,6 +550,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
           this.log(err)
         })
     }, constants.GossipsubDirectConnectInitialDelay)
+
+    this.log('started')
   }
 
   /**
@@ -557,9 +572,17 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     const registrar = this.components.getRegistrar()
     registrarTopologyIds.forEach((id) => registrar.unregister(id))
 
-    for (const peerStreams of this.peers.values()) {
-      peerStreams.close()
+    this.outboundInflightQueue.end()
+
+    for (const outboundStream of this.streamsOutbound.values()) {
+      outboundStream.close()
     }
+    this.streamsOutbound.clear()
+
+    for (const inboundStream of this.streamsInbound.values()) {
+      inboundStream.close()
+    }
+    this.streamsInbound.clear()
 
     this.peers.clear()
     this.subscriptions.clear()
@@ -604,38 +627,24 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     }
 
     const peerId = connection.remotePeer
-    // TODO remove this non-nullish assertion after https://github.com/libp2p/js-libp2p-interfaces/pull/265 is incorporated
-    const peer = this.addPeer(peerId, stream.stat.protocol!, stream.stat.direction)
-    const inboundStream = peer.attachInboundStream(stream)
-
-    this.pipePeerReadStream(peerId, inboundStream).catch((err) => this.log(err))
+    // add peer to router
+    this.addPeer(peerId, connection.stat.direction)
+    // create inbound stream
+    this.createInboundStream(peerId, stream)
+    // attempt to create outbound stream
+    this.outboundInflightQueue.push({ peerId, connection })
   }
 
   /**
    * Registrar notifies an established connection with pubsub protocol
    */
-  private onPeerConnected(peerId: PeerId, conn: Connection): void {
+  private onPeerConnected(peerId: PeerId, connection: Connection): void {
     if (!this.isStarted()) {
       return
     }
 
-    this.log('topology peer connected %p %s', peerId, conn.stat.direction)
-
-    Promise.resolve().then(async () => {
-      try {
-        const stream = await conn.newStream(this.multicodecs)
-        // TODO remove this non-nullish assertion after https://github.com/libp2p/js-libp2p-interfaces/pull/265 is incorporated
-        const peer = this.addPeer(peerId, stream.stat.protocol!, conn.stat.direction)
-        await peer.attachOutboundStream(stream)
-      } catch (err) {
-        this.log(err)
-      }
-
-      // Immediately send my own subscriptions to the newly established conn
-      if (this.subscriptions.size > 0) {
-        this.sendSubscriptions(peerId.toString(), Array.from(this.subscriptions), true)
-      }
-    })
+    this.addPeer(peerId, connection.stat.direction)
+    this.outboundInflightQueue.push({ peerId, connection })
   }
 
   /**
@@ -646,67 +655,133 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     this.removePeer(peerId)
   }
 
+  private async createOutboundStream(peerId: PeerId, connection: Connection): Promise<void> {
+    if (!this.isStarted()) {
+      return
+    }
+
+    const id = peerId.toString()
+
+    if (!this.peers.has(id)) {
+      return
+    }
+
+    // TODO make this behavior more robust
+    // This behavior is different than for inbound streams
+    // If an outbound stream already exists, don't create a new stream
+    if (this.streamsOutbound.has(id)) {
+      return
+    }
+
+    try {
+      const stream = new OutboundStream(await connection.newStream(this.multicodecs), (e) =>
+        this.log.error('outbound pipe error', e)
+      )
+
+      this.log('create outbound stream %p', peerId)
+
+      this.streamsOutbound.set(id, stream)
+
+      const protocol = stream.protocol
+      if (protocol === constants.FloodsubID) {
+        this.floodsubPeers.add(id)
+      }
+      this.metrics?.peersPerProtocol.inc({ protocol }, 1)
+
+      // Immediately send own subscriptions via the newly attached stream
+      if (this.subscriptions.size > 0) {
+        this.log('send subscriptions to', id)
+        this.sendSubscriptions(id, Array.from(this.subscriptions), true)
+      }
+    } catch (e) {
+      this.log.error('createOutboundStream error', e)
+    }
+  }
+
+  private async createInboundStream(peerId: PeerId, stream: Stream): Promise<void> {
+    if (!this.isStarted()) {
+      return
+    }
+
+    const id = peerId.toString()
+
+    if (!this.peers.has(id)) {
+      return
+    }
+
+    // TODO make this behavior more robust
+    // This behavior is different than for outbound streams
+    // If a peer initiates a new inbound connection
+    // we assume that one is the new canonical inbound stream
+    const priorInboundStream = this.streamsInbound.get(id)
+    if (priorInboundStream !== undefined) {
+      this.log('replacing existing inbound steam %s', id)
+      priorInboundStream.close()
+    }
+
+    this.log('create inbound stream %s', id)
+
+    const inboundStream = new InboundStream(stream)
+    this.streamsInbound.set(id, inboundStream)
+
+    this.pipePeerReadStream(peerId, inboundStream.source).catch((err) => this.log(err))
+  }
+
   /**
    * Add a peer to the router
    */
-  private addPeer(peerId: PeerId, protocol: string, direction: ConnectionDirection): PeerStreams {
-    const peerIdStr = peerId.toString()
-    let peerStreams = this.peers.get(peerIdStr)
+  private addPeer(peerId: PeerId, direction: ConnectionDirection): void {
+    const id = peerId.toString()
 
-    // If peer streams already exists, do nothing
-    if (peerStreams === undefined) {
-      // else create a new peer streams
+    if (!this.peers.has(id)) {
       this.log('new peer %p', peerId)
 
-      peerStreams = new PeerStreams({
-        id: peerId,
-        protocol
-      })
+      this.peers.add(id)
 
-      this.peers.set(peerIdStr, peerStreams)
-      peerStreams.addEventListener('close', () => this.removePeer(peerId))
+      // Add to peer scoring
+      this.score.addPeer(id)
+      // track the connection direction. Don't allow to unset outbound
+      if (!this.outbound.has(id)) {
+        this.outbound.set(id, direction === 'outbound')
+      }
     }
-
-    // Add to peer scoring
-    this.score.addPeer(peerIdStr)
-    if (protocol === constants.FloodsubID) {
-      this.floodsubPeers.add(peerIdStr)
-    }
-    this.metrics?.peersPerProtocol.inc({ protocol }, 1)
-
-    // track the connection direction. Don't allow to unset outbound
-    if (!this.outbound.get(peerIdStr)) {
-      this.outbound.set(peerIdStr, direction === 'outbound')
-    }
-
-    return peerStreams
   }
 
   /**
    * Removes a peer from the router
    */
-  private removePeer(peerId: PeerId): PeerStreams | undefined {
+  private removePeer(peerId: PeerId): void {
     const id = peerId.toString()
-    const peerStreams = this.peers.get(id)
 
-    if (peerStreams != null) {
-      this.metrics?.peersPerProtocol.inc({ protocol: peerStreams.protocol }, -1)
+    if (!this.peers.has(id)) {
+      return
+    }
 
-      // delete peer streams. Must delete first to prevent re-entracy loop in .close()
-      this.log('delete peer %p', peerId)
-      this.peers.delete(id)
+    // delete peer
+    this.log('delete peer %p', peerId)
+    this.peers.delete(id)
 
-      // close peer streams
-      peerStreams.close()
+    const outboundStream = this.streamsOutbound.get(id)
+    const inboundStream = this.streamsInbound.get(id)
 
-      // remove peer from topics map
-      for (const peers of this.topics.values()) {
-        peers.delete(id)
-      }
+    if (outboundStream) {
+      this.metrics?.peersPerProtocol.inc({ protocol: outboundStream.protocol }, -1)
+    }
+
+    // close streams
+    outboundStream?.close()
+    inboundStream?.close()
+
+    // remove streams
+    this.streamsOutbound.delete(id)
+    this.streamsInbound.delete(id)
+
+    // remove peer from topics map
+    for (const peers of this.topics.values()) {
+      peers.delete(id)
     }
 
     // Remove this peer from the mesh
-    // eslint-disable-next-line no-unused-vars
     for (const [topicStr, peers] of this.mesh) {
       if (peers.delete(id) === true) {
         this.metrics?.onRemoveFromMesh(topicStr, ChurnReason.Dc, 1)
@@ -714,7 +789,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     }
 
     // Remove this peer from the fanout
-    // eslint-disable-next-line no-unused-vars
     for (const peers of this.fanout.values()) {
       peers.delete(id)
     }
@@ -732,8 +806,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     this.score.removePeer(id)
 
     this.acceptFromWhitelist.delete(id)
-
-    return peerStreams
   }
 
   // API METHODS
@@ -1462,8 +1534,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   private async directConnect(): Promise<void> {
     const toconnect: string[] = []
     this.direct.forEach((id) => {
-      const peer = this.peers.get(id)
-      if (!peer || !peer.isWritable) {
+      if (!this.streamsOutbound.has(id)) {
         toconnect.push(id)
       }
     })
@@ -1531,9 +1602,13 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    */
   private async connect(id: PeerIdStr): Promise<void> {
     this.log('Initiating connection with %s', id)
-    const connection = await this.components.getConnectionManager().openConnection(peerIdFromString(id))
-    await connection.newStream(this.multicodecs)
-    // TODO: what happens to the stream?
+    const peerId = peerIdFromString(id)
+    const connection = await this.components.getConnectionManager().openConnection(peerId)
+    for (const multicodec of this.multicodecs) {
+      for (const topology of this.components.getRegistrar().getTopologies(multicodec)) {
+        topology.onConnect(peerId, connection)
+      }
+    }
   }
 
   /**
@@ -2010,8 +2085,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    * Send an rpc object to a peer
    */
   private sendRpc(id: PeerIdStr, rpc: RPC): boolean {
-    const peerStreams = this.peers.get(id)
-    if (!peerStreams || !peerStreams.isWritable) {
+    const outboundStream = this.streamsOutbound.get(id)
+    if (!outboundStream) {
       this.log(`Cannot send RPC to ${id} as there is no open stream to it available`)
       return false
     }
@@ -2031,7 +2106,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     }
 
     const rpcBytes = RPC.encode(rpc)
-    peerStreams.write(rpcBytes)
+    outboundStream.push(rpcBytes)
 
     this.metrics?.onRpcSent(rpc, rpcBytes.length)
 
@@ -2189,7 +2264,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    */
   private async makePrune(id: PeerIdStr, topic: string, doPX: boolean): Promise<RPC.ControlPrune> {
     this.score.prune(id, topic)
-    if (this.peers.get(id)!.protocol === constants.GossipsubIDv10) {
+    if (this.streamsOutbound.get(id)!.protocol === constants.GossipsubIDv10) {
       // Gossipsub v1.0 -- no backoff, the peer won't be able to parse it anyway
       return {
         topicID: topic,
@@ -2335,7 +2410,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         const shuffledPeers = shuffle(Array.from(peersInTopic))
         const backoff = this.backoff.get(topic)
         for (const id of shuffledPeers) {
-          const peerStreams = this.peers.get(id)
+          const peerStreams = this.streamsOutbound.get(id)
           if (peerStreams && hasGossipProtocol(peerStreams.protocol) && !peers.has(id) && !this.direct.has(id)) {
             const score = getScore(id)
             if ((!backoff || !backoff.has(id)) && score >= 0) candidateMeshPeers.add(id)
@@ -2539,7 +2614,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       if (peersInTopic) {
         const shuffledPeers = shuffle(Array.from(peersInTopic))
         for (const id of shuffledPeers) {
-          const peerStreams = this.peers.get(id)
+          const peerStreams = this.streamsOutbound.get(id)
           if (peerStreams && hasGossipProtocol(peerStreams.protocol) && !fanoutPeers.has(id) && !this.direct.has(id)) {
             const score = getScore(id)
             if (score >= this.opts.scoreThresholds.publishThreshold) candidateFanoutPeers.push(id)
@@ -2597,7 +2672,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // that also pass the filter function
     let peers: string[] = []
     peersInTopic.forEach((id) => {
-      const peerStreams = this.peers.get(id)
+      const peerStreams = this.streamsOutbound.get(id)
       if (!peerStreams) {
         return
       }
