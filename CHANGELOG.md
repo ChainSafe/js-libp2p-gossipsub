@@ -15,6 +15,13 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [3.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v3.0.2...v3.1.0) (2022-07-11)
+
+
+### Features
+
+* tweak stream handling ([#298](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/298)) ([7eda34b](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/7eda34b16cf00077038f82ac243dcf0ed52a8892))
+
 ## [3.0.2](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v3.0.1...v3.0.2) (2022-06-30)
 
 
