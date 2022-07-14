@@ -12,10 +12,17 @@ onlyLabels: []
 
 # Issues or Pull Requests with these labels will never be considered stale. Set to `[]` to disable
 exemptLabels:
-  - 'PR state: on-ice'
-#  - pinned
-#  - security
-#  - "[Status] Maybe Later"
+  - "Epic"
+  - "meta-good-first-issue"
+  - "meta-help-wanted"
+  - "meta-discussion"
+  - "meta-pm"
+  - "prio-critical"
+  - "prio-high"
+  - "prio-medium"
+  - "prio-low"
+  - "status-blocked"
+  - "status-do-not-merge"
 
 # Set to true to ignore issues in a project (defaults to false)
 exemptProjects: false
