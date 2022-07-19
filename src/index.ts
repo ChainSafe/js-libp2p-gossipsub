@@ -11,7 +11,7 @@ import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import { MessageCache } from './message-cache.js'
 import { RPC } from './message/rpc.js'
 import * as constants from './constants.js'
-import { createGossipRpc, shuffle, hasGossipProtocol, messageIdToString } from './utils/index.js'
+import { createGossipRpc, shuffle, messageIdToString } from './utils/index.js'
 import {
   PeerScore,
   PeerScoreParams,
@@ -2411,7 +2411,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         const backoff = this.backoff.get(topic)
         for (const id of shuffledPeers) {
           const peerStreams = this.streamsOutbound.get(id)
-          if (peerStreams && hasGossipProtocol(peerStreams.protocol) && !peers.has(id) && !this.direct.has(id)) {
+          if (
+            peerStreams &&
+            this.multicodecs.includes(peerStreams.protocol) &&
+            !peers.has(id) &&
+            !this.direct.has(id)
+          ) {
             const score = getScore(id)
             if ((!backoff || !backoff.has(id)) && score >= 0) candidateMeshPeers.add(id)
             // instead of having to find gossip peers after heartbeat which require another loop
@@ -2615,7 +2620,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         const shuffledPeers = shuffle(Array.from(peersInTopic))
         for (const id of shuffledPeers) {
           const peerStreams = this.streamsOutbound.get(id)
-          if (peerStreams && hasGossipProtocol(peerStreams.protocol) && !fanoutPeers.has(id) && !this.direct.has(id)) {
+          if (
+            peerStreams &&
+            this.multicodecs.includes(peerStreams.protocol) &&
+            !fanoutPeers.has(id) &&
+            !this.direct.has(id)
+          ) {
             const score = getScore(id)
             if (score >= this.opts.scoreThresholds.publishThreshold) candidateFanoutPeers.push(id)
             // instead of having to find gossip peers after heartbeat which require another loop
@@ -2676,7 +2686,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       if (!peerStreams) {
         return
       }
-      if (hasGossipProtocol(peerStreams.protocol) && filter(id)) {
+      if (this.multicodecs.includes(peerStreams.protocol) && filter(id)) {
         peers.push(id)
       }
     })
