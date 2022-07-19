@@ -15,6 +15,13 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [3.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v3.1.0...v3.2.0) (2022-07-19)
+
+
+### Features
+
+* allow usage of custom codecs ([#288](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/288)) ([0e76f49](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/0e76f49d2924d65a6e76ecd1e842db66f2eddd34))
+
 ## [3.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v3.0.2...v3.1.0) (2022-07-11)
 
 
