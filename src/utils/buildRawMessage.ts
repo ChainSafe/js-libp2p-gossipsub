@@ -1,7 +1,7 @@
-import { randomBytes } from 'iso-random-stream'
 import { concat as uint8ArrayConcat } from 'uint8arrays/concat'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { unmarshalPublicKey } from '@libp2p/crypto/keys'
+import { randomBytes } from '@libp2p/crypto'
 import { peerIdFromBytes } from '@libp2p/peer-id'
 import type { PublicKey } from '@libp2p/interface-keys'
 import type { PeerId } from '@libp2p/interface-peer-id'
