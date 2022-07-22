@@ -330,8 +330,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   readonly opts: Required<GossipOptions>
   private readonly metrics: Metrics | null
   private status: GossipStatus = { code: GossipStatusCode.stopped }
-  private maxInboundStreams: number
-  private maxOutboundStreams: number
+  private maxInboundStreams?: number
+  private maxOutboundStreams?: number
 
   private heartbeatTimer: {
     _intervalId: ReturnType<typeof setInterval> | undefined
