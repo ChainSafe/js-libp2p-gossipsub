@@ -453,8 +453,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       scoreCacheValidityMs: opts.heartbeatInterval
     })
 
-    this.maxInboundStreams = options.maxInboundStreams ?? 32
-    this.maxOutboundStreams = options.maxOutboundStreams ?? 128
+    this.maxInboundStreams = options.maxInboundStreams
+    this.maxOutboundStreams = options.maxOutboundStreams
   }
 
   getPeers(): PeerId[] {
