@@ -144,7 +144,16 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   /** Prefix tag for debug logs */
   debugName?: string
 
+  /**
+   * Specify the maximum number of inbound gossipsub protocol
+   * streams that are allowed to be open concurrently
+   */
   maxInboundStreams?: number
+
+  /**
+   * Specify the maximum number of outbound gossipsub protocol
+   * streams that are allowed to be open concurrently
+   */
   maxOutboundStreams?: number
 }
 
