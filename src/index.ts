@@ -144,6 +144,18 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   // Debug
   /** Prefix tag for debug logs */
   debugName?: string
+
+  /**
+   * Specify the maximum number of inbound gossipsub protocol
+   * streams that are allowed to be open concurrently
+   */
+  maxInboundStreams?: number
+
+  /**
+   * Specify the maximum number of outbound gossipsub protocol
+   * streams that are allowed to be open concurrently
+   */
+  maxOutboundStreams?: number
 }
 
 export interface GossipsubMessage {
@@ -324,6 +336,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   readonly opts: Required<GossipOptions>
   private readonly metrics: Metrics | null
   private status: GossipStatus = { code: GossipStatusCode.stopped }
+  private maxInboundStreams?: number
+  private maxOutboundStreams?: number
 
   private heartbeatTimer: {
     _intervalId: ReturnType<typeof setInterval> | undefined
@@ -444,6 +458,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     this.score = new PeerScore(this.opts.scoreParams, this.metrics, {
       scoreCacheValidityMs: opts.heartbeatInterval
     })
+
+    this.maxInboundStreams = options.maxInboundStreams
+    this.maxOutboundStreams = options.maxOutboundStreams
   }
 
   getPeers(): PeerId[] {
@@ -498,7 +515,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // Incoming streams
     // Called after a peer dials us
     await Promise.all(
-      this.multicodecs.map((multicodec) => registrar.handle(multicodec, this.onIncomingStream.bind(this)))
+      this.multicodecs.map((multicodec) =>
+        registrar.handle(multicodec, this.onIncomingStream.bind(this), {
+          maxInboundStreams: this.maxInboundStreams,
+          maxOutboundStreams: this.maxOutboundStreams
+        })
+      )
     )
 
     // # How does Gossipsub interact with libp2p? Rough guide from Mar 2022
