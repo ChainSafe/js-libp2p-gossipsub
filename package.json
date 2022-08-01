@@ -38,7 +38,6 @@
     "lint": "eslint --ext .ts src test",
     "release": "aegir release --no-types",
     "build": "aegir build",
-    "generate": "protons ./src/message/rpc.proto",
     "prepare": "npm run build",
     "pretest": "npm run build",
     "pretest:e2e": "npm run build",
@@ -85,7 +84,7 @@
     "it-pipe": "^2.0.3",
     "it-pushable": "^3.0.0",
     "multiformats": "^9.6.4",
-    "protons-runtime": "^1.0.4",
+    "protobufjs": "^6.11.2",
     "uint8arrays": "^3.0.0"
   },
   "devDependencies": {
@@ -122,7 +121,6 @@
     "p-wait-for": "^3.2.0",
     "prettier": "^2.0.5",
     "promisify-es6": "^1.0.3",
-    "protons": "^3.0.4",
     "sinon": "^11.1.1",
     "time-cache": "^0.3.0",
     "ts-node": "^10.7.0",

@@ -8,7 +8,7 @@ import { MessageAcceptance } from '../../src/types.js'
 import { GossipsubD } from '../../src/constants.js'
 import { fastMsgIdFn } from '../utils/index.js'
 import type { Message } from '@libp2p/interface-pubsub'
-import type { RPC } from '../../src/message/rpc.js'
+import type { IRPC } from '../../src/message/rpc.js'
 import type { ConnectionManagerEvents } from '@libp2p/interface-connection-manager'
 import pWaitFor from 'p-wait-for'
 import { Components } from '@libp2p/components'
@@ -1182,7 +1182,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     psub.mesh.set(test1, new Set([otherId]))
     psub.mesh.set(test2, new Set())
 
-    const rpc: RPC = {
+    const rpc: IRPC = {
       subscriptions: [],
       messages: []
     }

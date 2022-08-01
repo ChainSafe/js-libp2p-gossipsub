@@ -16,7 +16,7 @@ const toMessageId = (msgId: Uint8Array): MessageId => {
 
 describe('Testing Message Cache Operations', () => {
   const messageCache = new MessageCache(3, 5, messageIdToString)
-  const testMessages: RPC.Message[] = []
+  const testMessages: RPC.IMessage[] = []
   const topic = 'test'
   const getGossipIDs = (mcache: MessageCache, topic: string): Uint8Array[] => {
     const gossipIDsByTopic = mcache.getGossipIDs(new Set([topic]))
@@ -24,7 +24,7 @@ describe('Testing Message Cache Operations', () => {
   }
 
   before(async () => {
-    const makeTestMessage = (n: number): RPC.Message => {
+    const makeTestMessage = (n: number): RPC.IMessage => {
       return {
         from: new Uint8Array(0),
         data: uint8ArrayFromString(n.toString()),
