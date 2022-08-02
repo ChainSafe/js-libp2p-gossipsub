@@ -15,6 +15,13 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [3.5.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v3.4.0...v3.5.0) (2022-08-02)
+
+
+### Features
+
+* switch back to protobufjs ([#310](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/310)) ([64b40fc](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/64b40fc597dbfd39e7c4941ba43cb62aec0dce23))
+
 ## [3.4.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v3.3.0...v3.4.0) (2022-07-22)
 
 
