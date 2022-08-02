@@ -16,10 +16,10 @@ export async function buildRawMessage(
   publishConfig: PublishConfig,
   topic: TopicStr,
   transformedData: Uint8Array
-): Promise<RPC.Message> {
+): Promise<RPC.IMessage> {
   switch (publishConfig.type) {
     case PublishConfigType.Signing: {
-      const rpcMsg: RPC.Message = {
+      const rpcMsg: RPC.IMessage = {
         from: publishConfig.author.toBytes(),
         data: transformedData,
         seqno: randomBytes(8),
@@ -30,7 +30,7 @@ export async function buildRawMessage(
 
       // Get the message in bytes, and prepend with the pubsub prefix
       // the signature is over the bytes "libp2p-pubsub:<protobuf-message>"
-      const bytes = uint8ArrayConcat([SignPrefix, RPC.Message.encode(rpcMsg)])
+      const bytes = uint8ArrayConcat([SignPrefix, RPC.Message.encode(rpcMsg).finish()])
 
       rpcMsg.signature = await publishConfig.privateKey.sign(bytes)
       rpcMsg.key = publishConfig.key
@@ -66,7 +66,7 @@ export type ValidationResult = { valid: true; fromPeerId: PeerId | null } | { va
 
 export async function validateToRawMessage(
   signaturePolicy: typeof StrictNoSign | typeof StrictSign,
-  msg: RPC.Message
+  msg: RPC.IMessage
 ): Promise<ValidationResult> {
   // If strict-sign, verify all
   // If anonymous (no-sign), ensure no preven
@@ -118,7 +118,7 @@ export async function validateToRawMessage(
         publicKey = unmarshalPublicKey(fromPeerId.publicKey)
       }
 
-      const rpcMsgPreSign: RPC.Message = {
+      const rpcMsgPreSign: RPC.IMessage = {
         from: msg.from,
         data: msg.data,
         seqno: msg.seqno,
@@ -129,7 +129,7 @@ export async function validateToRawMessage(
 
       // Get the message in bytes, and prepend with the pubsub prefix
       // the signature is over the bytes "libp2p-pubsub:<protobuf-message>"
-      const bytes = uint8ArrayConcat([SignPrefix, RPC.Message.encode(rpcMsgPreSign)])
+      const bytes = uint8ArrayConcat([SignPrefix, RPC.Message.encode(rpcMsgPreSign).finish()])
 
       if (!(await publicKey.verify(bytes, msg.signature))) {
         return { valid: false, error: ValidateError.InvalidSignature }

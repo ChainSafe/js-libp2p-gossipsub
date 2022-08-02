@@ -18,7 +18,7 @@ export interface AddrInfo {
  * Compute a local non-spec'ed msg-id for faster de-duplication of seen messages.
  * Used exclusively for a local seen_cache
  */
-export type FastMsgIdFn = (msg: RPC.Message) => string
+export type FastMsgIdFn = (msg: RPC.IMessage) => string
 
 /**
  * By default, gossipsub only provide a browser friendly function to convert Uint8Array message id to string.
