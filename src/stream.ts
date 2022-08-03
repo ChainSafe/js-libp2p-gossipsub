@@ -3,6 +3,7 @@ import { abortableSource } from 'abortable-iterator'
 import { pipe } from 'it-pipe'
 import { pushable, Pushable } from 'it-pushable'
 import { encode, decode } from 'it-length-prefixed'
+import { Uint8ArrayList } from 'uint8arraylist'
 
 export class OutboundStream {
   private readonly rawStream: Stream
@@ -37,7 +38,7 @@ export class OutboundStream {
 }
 
 export class InboundStream {
-  public readonly source: AsyncIterable<Uint8Array>
+  public readonly source: AsyncIterable<Uint8ArrayList>
 
   private readonly rawStream: Stream
   private readonly closeController: AbortController

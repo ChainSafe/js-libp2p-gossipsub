@@ -80,11 +80,12 @@
     "abortable-iterator": "^4.0.2",
     "denque": "^1.5.0",
     "err-code": "^3.0.1",
-    "it-length-prefixed": "^7.0.1",
+    "it-length-prefixed": "^8.0.2",
     "it-pipe": "^2.0.3",
     "it-pushable": "^3.0.0",
     "multiformats": "^9.6.4",
     "protobufjs": "^6.11.2",
+    "uint8arraylist": "^2.0.0",
     "uint8arrays": "^3.0.0"
   },
   "devDependencies": {
