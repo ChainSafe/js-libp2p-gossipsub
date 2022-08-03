@@ -77,11 +77,7 @@ import type { IncomingStreamData } from '@libp2p/interface-registrar'
 import { removeFirstNItemsFromSet, removeItemsFromSet } from './utils/set.js'
 import { pushable } from 'it-pushable'
 import { InboundStream, OutboundStream } from './stream.js'
-
-// From 'bl' library
-interface BufferList {
-  slice: () => Buffer
-}
+import { Uint8ArrayList } from 'uint8arraylist'
 
 type ConnectionDirection = 'inbound' | 'outbound'
 
@@ -866,21 +862,13 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   /**
    * Responsible for processing each RPC message received by other peers.
    */
-  private async pipePeerReadStream(peerId: PeerId, stream: AsyncIterable<Uint8Array | BufferList>): Promise<void> {
+  private async pipePeerReadStream(peerId: PeerId, stream: AsyncIterable<Uint8ArrayList>): Promise<void> {
     try {
       await pipe(stream, async (source) => {
         for await (const data of source) {
           try {
             // TODO: Check max gossip message size, before decodeRpc()
-
-            // Note: `stream` maybe a BufferList which requires calling .slice to concat all the chunks into
-            // a single Buffer instance that protobuf js can deal with.
-            // Otherwise it will throw:
-            // ```
-            // Error: illegal buffer
-            //   at create_typed_array (js-libp2p-gossipsub/node_modules/protobufjs/src/reader.js:47:15)
-            const rpcBytes = data instanceof Uint8Array ? data : data.slice()
-
+            const rpcBytes = data.subarray()
             // Note: This function may throw, it must be wrapped in a try {} catch {} to prevent closing the stream.
             // TODO: What should we do if the entire RPC is invalid?
             const rpc = RPC.decode(rpcBytes)
