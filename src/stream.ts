@@ -33,6 +33,8 @@ export class OutboundStream {
 
   close(): void {
     this.closeController.abort()
+    // similar to pushable.end() but clear the internal buffer
+    this.pushable.return()
     this.rawStream.close()
   }
 }
