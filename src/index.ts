@@ -2736,6 +2736,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     metrics.cacheSize.set({ cache: 'fanout' }, this.fanout.size)
     // Bounded by peer
     metrics.cacheSize.set({ cache: 'peers' }, this.peers.size)
+    metrics.cacheSize.set({ cache: 'streamsOutbound' }, this.streamsOutbound.size)
+    metrics.cacheSize.set({ cache: 'streamsInbound' }, this.streamsInbound.size)
     metrics.cacheSize.set({ cache: 'acceptFromWhitelist' }, this.acceptFromWhitelist.size)
     metrics.cacheSize.set({ cache: 'gossip' }, this.gossip.size)
     metrics.cacheSize.set({ cache: 'control' }, this.control.size)
