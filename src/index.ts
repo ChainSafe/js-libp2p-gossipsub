@@ -475,6 +475,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   async init(components: Components): Promise<void> {
     this.components = components
     this.score.init(components)
+    this.components.getConnectionManager().addEventListener('peer:disconnect', this.onConnectionClosed.bind(this))
   }
 
   /**
@@ -583,6 +584,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       return
     }
 
+    this.components.getConnectionManager().removeEventListener('peer:disconnect', this.onConnectionClosed)
+
     const { registrarTopologyIds } = this.status
     this.status = { code: GossipStatusCode.stopped }
 
@@ -663,6 +666,17 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     this.addPeer(peerId, connection.stat.direction)
     this.outboundInflightQueue.push({ peerId, connection })
+  }
+
+  /**
+   * Sometimes onPeerDisconnected is not called by the topology so we need to handle this
+   * from connection manager.
+   * See https://github.com/ChainSafe/js-libp2p-gossipsub/issues/313
+   */
+  private onConnectionClosed(evt: CustomEvent<Connection>): void {
+    const connection = evt.detail
+    this.log('connection ended by connection manager %p', connection.remotePeer)
+    this.onPeerDisconnected(connection.remotePeer)
   }
 
   /**
