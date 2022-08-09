@@ -475,7 +475,11 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   async init(components: Components): Promise<void> {
     this.components = components
     this.score.init(components)
-    this.components.getConnectionManager().addEventListener('peer:disconnect', this.onConnectionClosed.bind(this))
+    try {
+      this.components.getConnectionManager().addEventListener('peer:disconnect', this.onConnectionClosed.bind(this))
+    } catch (e) {
+      this.log.error('not able to listen for peer:disconnect event', e)
+    }
   }
 
   /**
@@ -584,7 +588,11 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       return
     }
 
-    this.components.getConnectionManager().removeEventListener('peer:disconnect', this.onConnectionClosed)
+    try {
+      this.components.getConnectionManager().removeEventListener('peer:disconnect', this.onConnectionClosed)
+    } catch (e) {
+      this.log.error('not able to unregister peer:disconnect event listener', e)
+    }
 
     const { registrarTopologyIds } = this.status
     this.status = { code: GossipStatusCode.stopped }
