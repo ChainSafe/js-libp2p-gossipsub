@@ -178,6 +178,9 @@ describe('2 nodes', () => {
 
       const evt = await promise
 
+      if (evt.detail.type !== 'signed') {
+        throw new Error('unexpected msg type')
+      }
       expect(evt.detail.data).to.equalBytes(data)
       expect(evt.detail.from.toString()).to.equal(nodes[0].getPeerId().toString())
 
@@ -193,6 +196,9 @@ describe('2 nodes', () => {
 
       const evt = await promise
 
+      if (evt.detail.type !== 'signed') {
+        throw new Error('unexpected msg type')
+      }
       expect(evt.detail.data).to.equalBytes(data)
       expect(evt.detail.from.toString()).to.equal(nodes[1].getPeerId().toString())
 
@@ -211,6 +217,10 @@ describe('2 nodes', () => {
         const msg = evt.detail
 
         expect(uint8ArrayToString(msg.data)).to.startWith('banana')
+
+        if (msg.type !== 'signed') {
+          throw new Error('unexpected msg type')
+        }
         expect(msg.from.toString()).to.equal(nodes[1].getPeerId().toString())
         expect(msg.sequenceNumber).to.be.a('BigInt')
         expect(msg.topic).to.equal(topic)

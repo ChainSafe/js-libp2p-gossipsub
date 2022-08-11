@@ -86,7 +86,6 @@ export enum SignaturePolicy {
 
 export enum PublishConfigType {
   Signing,
-  Author,
   Anonymous
 }
 
@@ -97,7 +96,6 @@ export type PublishConfig =
       key: Uint8Array
       privateKey: PrivateKey
     }
-  | { type: PublishConfigType.Author; author: PeerId }
   | { type: PublishConfigType.Anonymous }
 
 export enum MessageAcceptance {
