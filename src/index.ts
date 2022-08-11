@@ -6,7 +6,6 @@ import { Logger, logger } from '@libp2p/logger'
 import { createTopology } from '@libp2p/topology'
 import type { PeerId } from '@libp2p/interface-peer-id'
 import { CustomEvent, EventEmitter } from '@libp2p/interfaces/events'
-import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 
 import { MessageCache } from './message-cache.js'
 import { RPC, IRPC } from './message/rpc.js'
@@ -1076,22 +1075,16 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       return { code: MessageStatus.invalid, reason: RejectReason.Error, error: validationResult.error }
     }
 
+    const msg = validationResult.message
+
     // Try and perform the data transform to the message. If it fails, consider it invalid.
-    let data: Uint8Array
     try {
-      const transformedData = rpcMsg.data ?? new Uint8Array(0)
-      data = this.dataTransform ? this.dataTransform.inboundTransform(rpcMsg.topic, transformedData) : transformedData
+      if (this.dataTransform) {
+        msg.data = this.dataTransform.inboundTransform(rpcMsg.topic, msg.data)
+      }
     } catch (e) {
       this.log('Invalid message, transform failed', e)
       return { code: MessageStatus.invalid, reason: RejectReason.Error, error: ValidateError.TransformFailed }
-    }
-
-    const msg: Message = {
-      // TODO fix types upstream, see https://github.com/libp2p/js-libp2p-interfaces/pull/266
-      from: (rpcMsg.from == null ? undefined : peerIdFromBytes(rpcMsg.from)) as PeerId,
-      data: data,
-      sequenceNumber: rpcMsg.seqno == null ? undefined : BigInt(`0x${uint8ArrayToString(rpcMsg.seqno, 'base16')}`),
-      topic: rpcMsg.topic
     }
 
     // TODO: Check if message is from a blacklisted source or propagation origin
@@ -1937,18 +1930,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     }
 
     // Prepare raw message with user's publishConfig
-    const rawMsg = await buildRawMessage(this.publishConfig, topic, transformedData)
+    const { raw: rawMsg, msg } = await buildRawMessage(this.publishConfig, topic, data, transformedData)
 
     // calculate the message id from the un-transformed data
-    const msg: Message = {
-      // TODO fix types upstream, see https://github.com/libp2p/js-libp2p-interfaces/pull/266
-      from: (rawMsg.from ? peerIdFromBytes(rawMsg.from) : undefined) as PeerId,
-      data, // the uncompressed form
-      sequenceNumber: rawMsg.seqno == null ? undefined : BigInt(`0x${uint8ArrayToString(rawMsg.seqno, 'base16')}`),
-      topic,
-      signature: rawMsg.signature ?? undefined,
-      key: rawMsg.key ?? undefined
-    }
     const msgId = await this.msgIdFn(msg)
     const msgIdStr = this.msgIdToStrFn(msgId)
 
@@ -1958,7 +1942,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       throw Error('PublishError.Duplicate')
     }
 
-    const { tosend, tosendCount } = this.selectPeersToPublish(rawMsg.topic)
+    const { tosend, tosendCount } = this.selectPeersToPublish(topic)
     const willSendToSelf = this.opts.emitSelf === true && this.subscriptions.has(topic)
 
     if (tosend.size === 0 && !this.opts.allowPublishToZeroPeers && !willSendToSelf) {

@@ -6,6 +6,9 @@ import { msgId } from '@libp2p/pubsub/utils'
  * Generate a message id, based on the `key` and `seqno`
  */
 export function msgIdFnStrictSign(msg: Message): Uint8Array {
+  if (msg.type !== 'signed') {
+    throw new Error('expected signed message type')
+  }
   // Should never happen
   if (msg.sequenceNumber == null) throw Error('missing seqno field')
 

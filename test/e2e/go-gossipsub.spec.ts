@@ -1092,6 +1092,9 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
 
     psubs.slice(1).forEach((ps) =>
       ps.getPubSub().addEventListener('message', (evt) => {
+        if (evt.detail.type !== 'signed') {
+          throw new Error('unexpected message type')
+        }
         expect(evt.detail.from.equals(psubs[0].getPeerId())).to.be.false()
       })
     )

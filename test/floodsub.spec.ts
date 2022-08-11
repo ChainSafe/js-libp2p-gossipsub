@@ -189,6 +189,9 @@ describe('gossipsub fallbacks to floodsub', () => {
       await nodeGs.getPubSub().publish(topic, data)
 
       const evt = await promise
+      if (evt.detail.type !== 'signed') {
+        throw new Error('unexpected message type')
+      }
       expect(evt.detail.data).to.equalBytes(data)
       expect(evt.detail.from.toString()).to.be.eql(nodeGs.getPeerId().toString())
     })
@@ -200,6 +203,9 @@ describe('gossipsub fallbacks to floodsub', () => {
       await nodeFs.getPubSub().publish(topic, data)
 
       const evt = await promise
+      if (evt.detail.type !== 'signed') {
+        throw new Error('unexpected message type')
+      }
       expect(evt.detail.data).to.equalBytes(data)
       expect(evt.detail.from.toString()).to.be.eql(nodeFs.getPeerId().toString())
     })
