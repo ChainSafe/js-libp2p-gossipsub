@@ -1,6 +1,6 @@
 {
   "name": "@chainsafe/libp2p-gossipsub",
-  "version": "3.5.1",
+  "version": "4.0.0",
   "description": "A typescript implementation of gossipsub",
   "leadMaintainer": "Cayman Nava <caymannava@gmail.com>",
   "files": [
