@@ -15,6 +15,20 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [3.5.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v3.5.0...v3.5.1) (2022-08-11)
+
+
+### Bug Fixes
+
+* freeze libp2p dependencies to get through build errors ([#316](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/316)) ([5e6ce1f](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/5e6ce1f20a69c821536c4f362eb524f403475bfa))
+* handle closing outbound stream ([#314](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/314)) ([74c08b1](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/74c08b179ae4c77b6adccc53b123121efd0f3509))
+
+
+### Miscellaneous
+
+* benchmark protobuf ([#320](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/320)) ([af51f36](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/af51f36f16dbc99d909037a40b95e034439945d8))
+* migrate to it-length-prefixed 8.0.2 ([#312](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/312)) ([90c2a0b](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/90c2a0ba70ad7004618b14db8a265ab843f906dc))
+
 ## [3.5.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v3.4.0...v3.5.0) (2022-08-02)
 
 
