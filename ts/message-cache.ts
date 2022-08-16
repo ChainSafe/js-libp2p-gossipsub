@@ -53,7 +53,7 @@ export class MessageCache {
    * Adds a message to the current window and the cache
    * Returns true if the message is not known and is inserted in the cache
    */
-  put(msgIdStr: MsgIdStr, msg: RPC.IMessage): boolean {
+  put(msgIdStr: MsgIdStr, msg: RPC.IMessage, validated = false): boolean {
     // Don't add duplicate entries to the cache.
     if (this.msgs.has(msgIdStr)) {
       return false
@@ -61,7 +61,7 @@ export class MessageCache {
 
     this.msgs.set(msgIdStr, {
       message: msg,
-      validated: false,
+      validated,
       originatingPeers: new Set(),
       iwantCounts: new Map()
     })
@@ -115,8 +115,9 @@ export class MessageCache {
     const msgIds: Uint8Array[] = []
     for (let i = 0; i < this.gossip; i++) {
       this.history[i].forEach((entry) => {
-        if (entry.topic === topic) {
-          msgIds.push(entry.msgId)
+        const { msgId } = entry
+        if (entry.topic === topic && this.msgs.get(messageIdToString(msgId))?.validated) {
+          msgIds.push(msgId)
         }
       })
     }
