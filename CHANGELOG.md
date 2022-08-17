@@ -1,3 +1,7 @@
+# [0.14.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.14.1...v0.14.0) (2022-08-19)
+
+- Only gossip validated messages ([#328](https://github.com/ChainSafe/js-libp2p-gossipsub/pull/328))
+
 # [0.14.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v0.14.0...v0.13.2) (2022-04-05)
 
 - New gossipsub implementation: better performance, async validation flow, improved peer scores significantly, add a lot of metrics
