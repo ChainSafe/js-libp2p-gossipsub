@@ -2327,7 +2327,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
           // NodeJS setInterval function is innexact, calls drift by a few miliseconds on each call.
           // To run the heartbeat precisely setTimeout() must be used recomputing the delay on every loop.
-          let msToNextHeartbeat = (Date.now() - this.status.hearbeatStartMs) % this.opts.heartbeatInterval
+          let msToNextHeartbeat =
+            this.opts.heartbeatInterval - ((Date.now() - this.status.hearbeatStartMs) % this.opts.heartbeatInterval)
 
           // If too close to next heartbeat, skip one
           if (msToNextHeartbeat < this.opts.heartbeatInterval * 0.25) {
