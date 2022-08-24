@@ -5,15 +5,20 @@ import { pushable, Pushable } from 'it-pushable'
 import { encode, decode } from 'it-length-prefixed'
 import { Uint8ArrayList } from 'uint8arraylist'
 
+type OutboundStreamOpts = {
+  /** Max size in bytes for pushable buffer. If full, will throw on .push */
+  maxBufferSize?: number
+}
+
 export class OutboundStream {
-  private readonly rawStream: Stream
   private readonly pushable: Pushable<Uint8Array>
   private readonly closeController: AbortController
+  private readonly maxBufferSize: number
 
-  constructor(rawStream: Stream, errCallback: (e: Error) => void) {
-    this.rawStream = rawStream
-    this.pushable = pushable()
+  constructor(private readonly rawStream: Stream, errCallback: (e: Error) => void, opts: OutboundStreamOpts) {
+    this.pushable = pushable({ objectMode: false })
     this.closeController = new AbortController()
+    this.maxBufferSize = opts.maxBufferSize ?? Infinity
 
     pipe(
       abortableSource(this.pushable, this.closeController.signal, { returnOnAbort: true }),
@@ -28,6 +33,10 @@ export class OutboundStream {
   }
 
   push(data: Uint8Array): void {
+    if (this.pushable.readableLength > this.maxBufferSize) {
+      throw Error(`OutboundStream buffer full, size > ${this.maxBufferSize}`)
+    }
+
     this.pushable.push(data)
   }
 

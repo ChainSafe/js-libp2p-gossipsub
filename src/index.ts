@@ -151,6 +151,12 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
    * streams that are allowed to be open concurrently
    */
   maxOutboundStreams?: number
+
+  /**
+   * Specify max buffer size in bytes for OutboundStream.
+   * If full it will throw and reject sending any more data.
+   */
+  maxOutboundBufferSize?: number
 }
 
 export interface GossipsubMessage {
@@ -691,8 +697,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     }
 
     try {
-      const stream = new OutboundStream(await connection.newStream(this.multicodecs), (e) =>
-        this.log.error('outbound pipe error', e)
+      const stream = new OutboundStream(
+        await connection.newStream(this.multicodecs),
+        (e) => this.log.error('outbound pipe error', e),
+        { maxBufferSize: this.opts.maxOutboundBufferSize }
       )
 
       this.log('create outbound stream %p', peerId)
