@@ -15,6 +15,18 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [4.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v4.0.0...v4.1.0) (2022-08-24)
+
+
+### Features
+
+* add option to limit OutboundStream buffer size ([#325](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/325)) ([ce9b671](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/ce9b671fd17b98b8ecc48ec61df6a503c181eaee))
+
+
+### Bug Fixes
+
+* skip heartbeat only if it's close to the next heartbeat ([#332](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/332)) ([0c6c42b](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/0c6c42bce0e6f0aa5fb2e7955d225197bd2b4f5e))
+
 ## [4.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v3.5.1...v4.0.0) (2022-08-11)
 
 
