@@ -2111,7 +2111,21 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     }
 
     const rpcBytes = RPC.encode(rpc).finish()
-    outboundStream.push(rpcBytes)
+    try {
+      outboundStream.push(rpcBytes)
+    } catch (e) {
+      this.log.error(`Cannot send rpc to ${id}`, e)
+
+      // if the peer had control messages or gossip, re-attach
+      if (ctrl) {
+        this.control.set(id, ctrl)
+      }
+      if (ihave) {
+        this.gossip.set(id, ihave)
+      }
+
+      return false
+    }
 
     this.metrics?.onRpcSent(rpc, rpcBytes.length)
 
