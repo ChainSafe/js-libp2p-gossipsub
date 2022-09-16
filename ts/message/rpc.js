@@ -424,6 +424,7 @@
              * @property {string} topic Message topic
              * @property {Uint8Array|null} [signature] Message signature
              * @property {Uint8Array|null} [key] Message key
+             * @property {number|null} [stem] Message stem
              */
     
             /**
@@ -489,6 +490,14 @@
              */
             Message.prototype.key = null;
     
+            /**
+             * Message stem.
+             * @member {number|null|undefined} stem
+             * @memberof RPC.Message
+             * @instance
+             */
+            Message.prototype.stem = null;
+    
             // OneOf field names bound to virtual getters and setters
             var $oneOfFields;
     
@@ -548,6 +557,17 @@
             });
     
             /**
+             * Message _stem.
+             * @member {"stem"|undefined} _stem
+             * @memberof RPC.Message
+             * @instance
+             */
+            Object.defineProperty(Message.prototype, "_stem", {
+                get: $util.oneOfGetter($oneOfFields = ["stem"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+    
+            /**
              * Encodes the specified Message message. Does not implicitly {@link RPC.Message.verify|verify} messages.
              * @function encode
              * @memberof RPC.Message
@@ -570,6 +590,8 @@
                     w.uint32(42).bytes(m.signature);
                 if (m.key != null && Object.hasOwnProperty.call(m, "key"))
                     w.uint32(50).bytes(m.key);
+                if (m.stem != null && Object.hasOwnProperty.call(m, "stem"))
+                    w.uint32(56).uint32(m.stem);
                 return w;
             };
     
@@ -608,6 +630,9 @@
                         break;
                     case 6:
                         m.key = r.bytes();
+                        break;
+                    case 7:
+                        m.stem = r.uint32();
                         break;
                     default:
                         r.skipType(t & 7);
@@ -664,6 +689,9 @@
                     else if (d.key.length)
                         m.key = d.key;
                 }
+                if (d.stem != null) {
+                    m.stem = d.stem >>> 0;
+                }
                 return m;
             };
     
@@ -710,6 +738,11 @@
                     d.key = o.bytes === String ? $util.base64.encode(m.key, 0, m.key.length) : o.bytes === Array ? Array.prototype.slice.call(m.key) : m.key;
                     if (o.oneofs)
                         d._key = "key";
+                }
+                if (m.stem != null && m.hasOwnProperty("stem")) {
+                    d.stem = m.stem;
+                    if (o.oneofs)
+                        d._stem = "stem";
                 }
                 return d;
             };

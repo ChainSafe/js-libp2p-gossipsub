@@ -61,6 +61,7 @@ import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn'
 import { computeAllPeersScoreWeights } from './score/scoreMetrics'
 import { getPublishConfigFromPeerId } from './utils/publishConfig'
 import { GossipsubOptsSpec } from './config'
+import { DANDELION_D, decrementStem, getDandelionStem } from './utils/dandelion'
 
 // From 'bl' library
 interface BufferList {
@@ -1618,7 +1619,12 @@ export default class Gossipsub extends EventEmitter {
     }
   }
 
-  private selectPeersToForward(topic: TopicStr, propagationSource?: PeerIdStr, excludePeers?: Set<PeerIdStr>) {
+  private selectPeersToForward(
+    topic: TopicStr,
+    propagationSource?: PeerIdStr,
+    excludePeers?: Set<PeerIdStr>,
+    maxPeers?: number
+  ) {
     const tosend = new Set<PeerIdStr>()
 
     // Add explicit peers
@@ -1655,10 +1661,17 @@ export default class Gossipsub extends EventEmitter {
       })
     }
 
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    if (maxPeers) {
+      return new Set(shuffle(Array.from(tosend)).slice(0, maxPeers))
+    }
     return tosend
   }
 
-  private selectPeersToPublish(topic: TopicStr): {
+  private selectPeersToPublish(
+    topic: TopicStr,
+    maxPeers?: number
+  ): {
     tosend: Set<PeerIdStr>
     tosendCount: ToSendGroupCount
   } {
@@ -1749,6 +1762,13 @@ export default class Gossipsub extends EventEmitter {
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    if (maxPeers) {
+      return {
+        tosend: new Set(shuffle(Array.from(tosend)).slice(0, maxPeers)),
+        tosendCount
+      }
+    }
     return { tosend, tosendCount }
   }
 
@@ -1768,7 +1788,9 @@ export default class Gossipsub extends EventEmitter {
       this.score.deliverMessage(propagationSource, msgIdStr, rawMsg.topic)
     }
 
-    const tosend = this.selectPeersToForward(rawMsg.topic, propagationSource, excludePeers)
+    rawMsg.stem = decrementStem(rawMsg.stem)
+    const dandelionD = rawMsg.stem ? DANDELION_D : undefined
+    const tosend = this.selectPeersToForward(rawMsg.topic, propagationSource, excludePeers, dandelionD)
 
     // Note: Don't throw if tosend is empty, we can have a mesh with a single peer
 
@@ -1810,7 +1832,8 @@ export default class Gossipsub extends EventEmitter {
       throw Error('PublishError.Duplicate')
     }
 
-    const { tosend, tosendCount } = this.selectPeersToPublish(rawMsg.topic)
+    rawMsg.stem = getDandelionStem()
+    const { tosend, tosendCount } = this.selectPeersToPublish(rawMsg.topic, DANDELION_D)
 
     if (tosend.size === 0 && !this.opts.allowPublishToZeroPeers) {
       throw Error('PublishError.InsufficientPeers')

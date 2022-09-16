@@ -17,6 +17,7 @@ message RPC {
     required string topic = 4;
     optional bytes signature = 5;
     optional bytes key = 6;
+    optional uint32 stem = 7;
   }
 
   message ControlMessage {

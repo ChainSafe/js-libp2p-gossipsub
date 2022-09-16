@@ -166,6 +166,9 @@ export namespace RPC {
 
         /** Message key */
         key?: (Uint8Array|null);
+
+        /** Message stem */
+        stem?: (number|null);
     }
 
     /** Represents a Message. */
@@ -195,6 +198,9 @@ export namespace RPC {
         /** Message key. */
         public key?: (Uint8Array|null);
 
+        /** Message stem. */
+        public stem?: (number|null);
+
         /** Message _from. */
         public _from?: "from";
 
@@ -209,6 +215,9 @@ export namespace RPC {
 
         /** Message _key. */
         public _key?: "key";
+
+        /** Message _stem. */
+        public _stem?: "stem";
 
         /**
          * Encodes the specified Message message. Does not implicitly {@link RPC.Message.verify|verify} messages.
