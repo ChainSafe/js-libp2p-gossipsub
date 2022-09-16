@@ -1769,8 +1769,9 @@ export default class Gossipsub extends EventEmitter {
       this.score.deliverMessage(propagationSource, msgIdStr, rawMsg.topic)
     }
 
-    if (rawMsg.stem != null) {
-      rawMsg.stem = rawMsg.stem - 1
+    const stemLength = rawMsg.stem ?? null
+    if (stemLength != null) {
+      rawMsg.stem = stemLength - 1
     }
 
     const maxPeersToForward = rawMsg.stem == null || rawMsg.stem <= 0 ? DANDELION_D : undefined
@@ -1790,7 +1791,7 @@ export default class Gossipsub extends EventEmitter {
       this.sendRpc(id, rpc)
     })
 
-    this.metrics?.onForwardMsg(rawMsg.topic, tosendArr.length)
+    this.metrics?.onForwardMsg(rawMsg.topic, tosendArr.length, stemLength)
   }
 
   /**

@@ -9,6 +9,7 @@ import {
   TopicStr,
   ValidateError
 } from './types'
+import { DANDELION_STEM_HI } from './utils/dandelion'
 
 /** Topic label as provided in `topicStrToLabel` */
 export type TopicLabel = string
@@ -323,6 +324,12 @@ export function getMetrics(
       help: 'Total count of peers that we forward a msg to',
       labelNames: ['topic']
     }),
+    /** Total count of peers that we forward a msg to */
+    msgForwardStemLength: register.gauge<{ length: string }>({
+      name: 'gossipsub_msg_forward_stem_length_total',
+      help: 'Total count of peers that we forward a msg with specific stem length to',
+      labelNames: ['length']
+    }),
 
     /** Total count of recv msgs before any validation */
     msgReceivedPreValidation: register.gauge<{ topic: TopicLabel }>({
@@ -570,10 +577,13 @@ export function getMetrics(
       this.iwantRcvDonthaveMsgids.inc(iwantDonthave)
     },
 
-    onForwardMsg(topicStr: TopicStr, tosendCount: number): void {
+    onForwardMsg(topicStr: TopicStr, tosendCount: number, stemLength: number | null): void {
       const topic = this.toTopic(topicStr)
       this.msgForwardCount.inc({ topic }, 1)
       this.msgForwardPeers.inc({ topic }, tosendCount)
+      if (stemLength !== null) {
+        this.msgForwardStemLength.inc({ length: String(Math.min(stemLength, DANDELION_STEM_HI)) }, 1)
+      }
     },
 
     onPublishMsg(topicStr: TopicStr, tosendGroupCount: ToSendGroupCount, tosendCount: number, dataLen: number): void {
