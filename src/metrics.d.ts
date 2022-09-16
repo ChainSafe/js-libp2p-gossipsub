@@ -229,6 +229,10 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     msgForwardPeers: Gauge<{
         topic: TopicLabel;
     }>;
+    /** Total count of peers that we forward a msg to */
+    msgForwardStemLength: Gauge<{
+        length: string;
+    }>;
     /** Total count of recv msgs before any validation */
     msgReceivedPreValidation: Gauge<{
         topic: TopicLabel;
@@ -329,7 +333,7 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     onScorePenalty(penalty: ScorePenalty): void;
     onIhaveRcv(topicStr: TopicStr, ihave: number, idonthave: number): void;
     onIwantRcv(iwantByTopic: Map<TopicStr, number>, iwantDonthave: number): void;
-    onForwardMsg(topicStr: TopicStr, tosendCount: number): void;
+    onForwardMsg(topicStr: TopicStr, tosendCount: number, stemLength: number | null): void;
     onPublishMsg(topicStr: TopicStr, tosendGroupCount: ToSendGroupCount, tosendCount: number, dataLen: number): void;
     onMsgRecvPreValidation(topicStr: TopicStr): void;
     onMsgRecvResult(topicStr: TopicStr, status: MessageStatus): void;

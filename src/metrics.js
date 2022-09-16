@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getMetrics = exports.ScoreThreshold = exports.IHaveIgnoreReason = exports.ScorePenalty = exports.ChurnReason = exports.InclusionReason = exports.MessageSource = void 0;
 const types_1 = require("./types");
+const dandelion_1 = require("./utils/dandelion");
 var MessageSource;
 (function (MessageSource) {
     MessageSource["forward"] = "forward";
@@ -213,6 +214,12 @@ function getMetrics(register, topicStrToLabel, opts) {
             name: 'gossipsub_msg_forward_peers_total',
             help: 'Total count of peers that we forward a msg to',
             labelNames: ['topic']
+        }),
+        /** Total count of peers that we forward a msg to */
+        msgForwardStemLength: register.gauge({
+            name: 'gossipsub_msg_forward_stem_length_total',
+            help: 'Total count of peers that we forward a msg with specific stem length to',
+            labelNames: ['length']
         }),
         /** Total count of recv msgs before any validation */
         msgReceivedPreValidation: register.gauge({
@@ -442,10 +449,13 @@ function getMetrics(register, topicStrToLabel, opts) {
             }
             this.iwantRcvDonthaveMsgids.inc(iwantDonthave);
         },
-        onForwardMsg(topicStr, tosendCount) {
+        onForwardMsg(topicStr, tosendCount, stemLength) {
             const topic = this.toTopic(topicStr);
             this.msgForwardCount.inc({ topic }, 1);
             this.msgForwardPeers.inc({ topic }, tosendCount);
+            if (stemLength !== null) {
+                this.msgForwardStemLength.inc({ length: String(Math.min(stemLength, dandelion_1.DANDELION_STEM_HI)) }, 1);
+            }
         },
         onPublishMsg(topicStr, tosendGroupCount, tosendCount, dataLen) {
             const topic = this.toTopic(topicStr);

@@ -1370,8 +1370,9 @@ class Gossipsub extends libp2p_1.EventEmitter {
         if (propagationSource) {
             this.score.deliverMessage(propagationSource, msgIdStr, rawMsg.topic);
         }
-        if (rawMsg.stem != null) {
-            rawMsg.stem = rawMsg.stem - 1;
+        const stemLength = rawMsg.stem ?? null;
+        if (stemLength != null) {
+            rawMsg.stem = stemLength - 1;
         }
         const maxPeersToForward = rawMsg.stem == null || rawMsg.stem <= 0 ? dandelion_1.DANDELION_D : undefined;
         const tosend = this.selectPeersToForward(rawMsg.topic, propagationSource, excludePeers);
@@ -1384,7 +1385,7 @@ class Gossipsub extends libp2p_1.EventEmitter {
             // self.send_message(*peer_id, event.clone())?;
             this.sendRpc(id, rpc);
         });
-        this.metrics?.onForwardMsg(rawMsg.topic, tosendArr.length);
+        this.metrics?.onForwardMsg(rawMsg.topic, tosendArr.length, stemLength);
     }
     /**
      * App layer publishes a message to peers, return number of peers this message is published to
