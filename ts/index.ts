@@ -61,7 +61,7 @@ import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn'
 import { computeAllPeersScoreWeights } from './score/scoreMetrics'
 import { getPublishConfigFromPeerId } from './utils/publishConfig'
 import { GossipsubOptsSpec } from './config'
-import { DANDELION_D, decrementStem, getDandelionStem } from './utils/dandelion'
+import { DANDELION_D, getDandelionStem } from './utils/dandelion'
 
 // From 'bl' library
 interface BufferList {
@@ -1619,12 +1619,7 @@ export default class Gossipsub extends EventEmitter {
     }
   }
 
-  private selectPeersToForward(
-    topic: TopicStr,
-    propagationSource?: PeerIdStr,
-    excludePeers?: Set<PeerIdStr>,
-    maxPeers?: number
-  ) {
+  private selectPeersToForward(topic: TopicStr, propagationSource?: PeerIdStr, excludePeers?: Set<PeerIdStr>) {
     const tosend = new Set<PeerIdStr>()
 
     // Add explicit peers
@@ -1661,17 +1656,10 @@ export default class Gossipsub extends EventEmitter {
       })
     }
 
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (maxPeers) {
-      return new Set(shuffle(Array.from(tosend)).slice(0, maxPeers))
-    }
     return tosend
   }
 
-  private selectPeersToPublish(
-    topic: TopicStr,
-    maxPeers?: number
-  ): {
+  private selectPeersToPublish(topic: TopicStr): {
     tosend: Set<PeerIdStr>
     tosendCount: ToSendGroupCount
   } {
@@ -1762,13 +1750,6 @@ export default class Gossipsub extends EventEmitter {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (maxPeers) {
-      return {
-        tosend: new Set(shuffle(Array.from(tosend)).slice(0, maxPeers)),
-        tosendCount
-      }
-    }
     return { tosend, tosendCount }
   }
 
@@ -1788,20 +1769,28 @@ export default class Gossipsub extends EventEmitter {
       this.score.deliverMessage(propagationSource, msgIdStr, rawMsg.topic)
     }
 
-    rawMsg.stem = decrementStem(rawMsg.stem)
-    const dandelionD = rawMsg.stem ? DANDELION_D : undefined
-    const tosend = this.selectPeersToForward(rawMsg.topic, propagationSource, excludePeers, dandelionD)
+    if (rawMsg.stem != null) {
+      rawMsg.stem = rawMsg.stem - 1
+    }
+
+    const maxPeersToForward = rawMsg.stem == null || rawMsg.stem <= 0 ? DANDELION_D : undefined
+    const tosend = this.selectPeersToForward(rawMsg.topic, propagationSource, excludePeers)
 
     // Note: Don't throw if tosend is empty, we can have a mesh with a single peer
 
     // forward the message to peers
     const rpc = createGossipRpc([rawMsg])
-    tosend.forEach((id) => {
+
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    const tosendArr =
+      maxPeersToForward != null ? shuffle(Array.from(tosend)).slice(0, maxPeersToForward) : Array.from(tosend)
+
+    tosendArr.forEach((id) => {
       // self.send_message(*peer_id, event.clone())?;
       this.sendRpc(id, rpc)
     })
 
-    this.metrics?.onForwardMsg(rawMsg.topic, tosend.size)
+    this.metrics?.onForwardMsg(rawMsg.topic, tosendArr.length)
   }
 
   /**
@@ -1833,7 +1822,7 @@ export default class Gossipsub extends EventEmitter {
     }
 
     rawMsg.stem = getDandelionStem()
-    const { tosend, tosendCount } = this.selectPeersToPublish(rawMsg.topic, DANDELION_D)
+    const { tosend, tosendCount } = this.selectPeersToPublish(rawMsg.topic)
 
     if (tosend.size === 0 && !this.opts.allowPublishToZeroPeers) {
       throw Error('PublishError.InsufficientPeers')
@@ -1848,14 +1837,18 @@ export default class Gossipsub extends EventEmitter {
     // If the message is anonymous or has a random author add it to the published message ids cache.
     this.publishedMessageIds.put(msgIdStr)
 
+    const tosendArr = shuffle(Array.from(tosend)).slice(0, DANDELION_D)
+
     // Send to set of peers aggregated from direct, mesh, fanout
     const rpc = createGossipRpc([rawMsg])
-    tosend.forEach((id) => {
+    tosendArr.forEach((id) => {
       // self.send_message(*peer_id, event.clone())?;
       this.sendRpc(id, rpc)
     })
 
-    this.metrics?.onPublishMsg(topic, tosendCount, tosend.size, rawMsg.data ? rawMsg.data.length : 0)
+    // TODO: This tosendCount metric is wrong, does not reflect reality. However with current impl we don't
+    // know where the randomly selected peers came from
+    this.metrics?.onPublishMsg(topic, tosendCount, tosendArr.length, rawMsg.data ? rawMsg.data.length : 0)
 
     // Dispatch the message to the user if we are subscribed to the topic
     if (this.opts.emitSelf && this.subscriptions.has(topic)) {
