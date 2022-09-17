@@ -61,7 +61,7 @@ import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn'
 import { computeAllPeersScoreWeights } from './score/scoreMetrics'
 import { getPublishConfigFromPeerId } from './utils/publishConfig'
 import { GossipsubOptsSpec } from './config'
-import { DANDELION_D, getDandelionStem } from './utils/dandelion'
+import { DANDELION_D, DANDELION_STEM_HI, DANDELION_STEM_LO, getDandelionStem } from './utils/dandelion'
 
 // From 'bl' library
 interface BufferList {
@@ -127,6 +127,10 @@ export type GossipsubOpts = GossipsubOptsSpec & {
   // Debug
   /** Prefix tag for debug logs */
   debugName?: string
+
+  dandelionD?: number
+  dandelionStemHi?: number
+  dandelionStemLo?: number
 }
 
 export type GossipsubEvents = {
@@ -328,6 +332,9 @@ export default class Gossipsub extends EventEmitter {
       mcacheGossip: constants.GossipsubHistoryGossip,
       seenTTL: constants.GossipsubSeenTTL,
       gossipsubIWantFollowupMs: constants.GossipsubIWantFollowupTime,
+      dandelionD: DANDELION_D,
+      dandelionStemHi: DANDELION_STEM_HI,
+      dandelionStemLo: DANDELION_STEM_LO,
       ...options,
       scoreParams: createPeerScoreParams(options.scoreParams),
       scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
@@ -1774,7 +1781,7 @@ export default class Gossipsub extends EventEmitter {
       rawMsg.stem = stemLength - 1
     }
 
-    const maxPeersToForward = rawMsg.stem == null || rawMsg.stem <= 0 ? DANDELION_D : undefined
+    const maxPeersToForward = rawMsg.stem == null || rawMsg.stem <= 0 ? this.opts.dandelionD : undefined
     const tosend = this.selectPeersToForward(rawMsg.topic, propagationSource, excludePeers)
 
     // Note: Don't throw if tosend is empty, we can have a mesh with a single peer
@@ -1822,7 +1829,7 @@ export default class Gossipsub extends EventEmitter {
       throw Error('PublishError.Duplicate')
     }
 
-    rawMsg.stem = getDandelionStem()
+    rawMsg.stem = getDandelionStem(this.opts.dandelionStemHi!, this.opts.dandelionStemLo!)
     const { tosend, tosendCount } = this.selectPeersToPublish(rawMsg.topic)
 
     if (tosend.size === 0 && !this.opts.allowPublishToZeroPeers) {
@@ -1838,7 +1845,7 @@ export default class Gossipsub extends EventEmitter {
     // If the message is anonymous or has a random author add it to the published message ids cache.
     this.publishedMessageIds.put(msgIdStr)
 
-    const tosendArr = shuffle(Array.from(tosend)).slice(0, DANDELION_D)
+    const tosendArr = shuffle(Array.from(tosend)).slice(0, this.opts.dandelionD)
 
     // Send to set of peers aggregated from direct, mesh, fanout
     const rpc = createGossipRpc([rawMsg])
