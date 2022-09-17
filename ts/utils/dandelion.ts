@@ -6,6 +6,6 @@ export const DANDELION_STEM_HI = 6
 /**
  * Randomly select a stem length between STEM_LO and STEM_HI
  */
-export function getDandelionStem(): number {
-  return Math.floor(Math.random() * (DANDELION_STEM_HI - DANDELION_STEM_LO) + DANDELION_STEM_LO)
+export function getDandelionStem(hi: number, lo: number): number {
+  return Math.floor(Math.random() * (hi - lo) + lo)
 }
