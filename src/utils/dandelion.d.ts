@@ -5,4 +5,4 @@ export declare const DANDELION_STEM_HI = 6;
 /**
  * Randomly select a stem length between STEM_LO and STEM_HI
  */
-export declare function getDandelionStem(): number;
+export declare function getDandelionStem(hi: number, lo: number): number;

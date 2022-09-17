@@ -67,6 +67,9 @@ export declare type GossipsubOpts = GossipsubOptsSpec & {
     metricsTopicStrToLabel?: TopicStrToLabel;
     /** Prefix tag for debug logs */
     debugName?: string;
+    dandelionD?: number;
+    dandelionStemHi?: number;
+    dandelionStemLo?: number;
 };
 export declare type GossipsubEvents = {
     'gossipsub:message': {

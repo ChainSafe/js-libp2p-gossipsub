@@ -167,6 +167,9 @@ class Gossipsub extends libp2p_1.EventEmitter {
             mcacheGossip: constants.GossipsubHistoryGossip,
             seenTTL: constants.GossipsubSeenTTL,
             gossipsubIWantFollowupMs: constants.GossipsubIWantFollowupTime,
+            dandelionD: dandelion_1.DANDELION_D,
+            dandelionStemHi: dandelion_1.DANDELION_STEM_HI,
+            dandelionStemLo: dandelion_1.DANDELION_STEM_LO,
             ...options,
             scoreParams: (0, score_1.createPeerScoreParams)(options.scoreParams),
             scoreThresholds: (0, score_1.createPeerScoreThresholds)(options.scoreThresholds)
@@ -1374,7 +1377,7 @@ class Gossipsub extends libp2p_1.EventEmitter {
         if (stemLength != null) {
             rawMsg.stem = stemLength - 1;
         }
-        const maxPeersToForward = rawMsg.stem == null || rawMsg.stem <= 0 ? dandelion_1.DANDELION_D : undefined;
+        const maxPeersToForward = rawMsg.stem == null || rawMsg.stem <= 0 ? this.opts.dandelionD : undefined;
         const tosend = this.selectPeersToForward(rawMsg.topic, propagationSource, excludePeers);
         // Note: Don't throw if tosend is empty, we can have a mesh with a single peer
         // forward the message to peers
@@ -1411,7 +1414,7 @@ class Gossipsub extends libp2p_1.EventEmitter {
             // been published on the network.
             throw Error('PublishError.Duplicate');
         }
-        rawMsg.stem = (0, dandelion_1.getDandelionStem)();
+        rawMsg.stem = (0, dandelion_1.getDandelionStem)(this.opts.dandelionStemHi, this.opts.dandelionStemLo);
         const { tosend, tosendCount } = this.selectPeersToPublish(rawMsg.topic);
         if (tosend.size === 0 && !this.opts.allowPublishToZeroPeers) {
             throw Error('PublishError.InsufficientPeers');
@@ -1423,7 +1426,7 @@ class Gossipsub extends libp2p_1.EventEmitter {
         this.mcache.put(msgIdStr, rawMsg, true);
         // If the message is anonymous or has a random author add it to the published message ids cache.
         this.publishedMessageIds.put(msgIdStr);
-        const tosendArr = (0, utils_1.shuffle)(Array.from(tosend)).slice(0, dandelion_1.DANDELION_D);
+        const tosendArr = (0, utils_1.shuffle)(Array.from(tosend)).slice(0, this.opts.dandelionD);
         // Send to set of peers aggregated from direct, mesh, fanout
         const rpc = (0, utils_1.createGossipRpc)([rawMsg]);
         tosendArr.forEach((id) => {

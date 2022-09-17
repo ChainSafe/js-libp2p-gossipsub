@@ -8,7 +8,7 @@ exports.DANDELION_STEM_HI = 6;
 /**
  * Randomly select a stem length between STEM_LO and STEM_HI
  */
-function getDandelionStem() {
-    return Math.floor(Math.random() * (exports.DANDELION_STEM_HI - exports.DANDELION_STEM_LO) + exports.DANDELION_STEM_LO);
+function getDandelionStem(hi, lo) {
+    return Math.floor(Math.random() * (hi - lo) + lo);
 }
 exports.getDandelionStem = getDandelionStem;
