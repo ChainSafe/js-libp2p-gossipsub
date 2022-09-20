@@ -60,7 +60,7 @@ export const checkReceivedSubscriptions = async (
   })
 }
 
-export const awaitEvents = async <Events = GossipsubEvents>(
+export const awaitEvents = async <Events extends { [s: string]: any } = GossipsubEvents>(
   emitter: EventEmitter<Events>,
   event: keyof Events,
   number: number,
