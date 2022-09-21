@@ -4,7 +4,8 @@
   "description": "A typescript implementation of gossipsub",
   "leadMaintainer": "Cayman Nava <caymannava@gmail.com>",
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "type": "module",
   "types": "dist/src/index.d.ts",
