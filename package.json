@@ -37,7 +37,7 @@
   "scripts": {
     "lint": "eslint --ext .ts src test",
     "release": "aegir release --no-types",
-    "build": "aegir build && cp src/message/rpc.d.ts dist/src/message",
+    "build": "mkdir -p dist/src/message && cp src/message/*.* dist/src/message && aegir build",
     "prepare": "npm run build",
     "pretest": "npm run build",
     "pretest:e2e": "npm run build",
