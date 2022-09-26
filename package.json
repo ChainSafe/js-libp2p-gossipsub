@@ -37,7 +37,8 @@
   "scripts": {
     "lint": "eslint --ext .ts src test",
     "release": "aegir release --no-types",
-    "build": "aegir build && cp src/message/rpc.d.ts dist/src/message",
+    "copy": "mkdirp dist/src/message && cp src/message/*.* dist/src/message",
+    "build": "npm run copy && aegir build",
     "prepare": "npm run build",
     "pretest": "npm run build",
     "pretest:e2e": "npm run build",
@@ -126,6 +127,7 @@
     "time-cache": "^0.3.0",
     "ts-node": "^10.7.0",
     "ts-sinon": "^2.0.2",
+    "mkdirp": "^1.0.4",
     "util": "^0.12.3"
   },
   "engines": {
