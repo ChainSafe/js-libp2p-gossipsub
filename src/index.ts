@@ -6,6 +6,7 @@ import { Logger, logger } from '@libp2p/logger'
 import { createTopology } from '@libp2p/topology'
 import type { PeerId } from '@libp2p/interface-peer-id'
 import { CustomEvent, EventEmitter } from '@libp2p/interfaces/events'
+import { encode } from 'it-length-prefixed'
 
 import { MessageCache } from './message-cache.js'
 import { RPC, IRPC } from './message/rpc.js'
@@ -1930,7 +1931,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    *
    * For messages not from us, this class uses `forwardMessage`.
    */
-  async publish(topic: TopicStr, data: Uint8Array): Promise<PublishResult> {
+  async publish(topic: TopicStr, data: Uint8Array, batch = false): Promise<PublishResult> {
     const transformedData = this.dataTransform ? this.dataTransform.outboundTransform(topic, data) : data
 
     if (this.publishConfig == null) {
@@ -1969,13 +1970,17 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // Send to set of peers aggregated from direct, mesh, fanout
     const rpc = createGossipRpc([rawMsg])
 
-    for (const id of tosend) {
-      // self.send_message(*peer_id, event.clone())?;
-      const sent = this.sendRpc(id, rpc)
+    if (batch) {
+      this.sendRpcInBatch(tosend, rpc)
+    } else {
+      for (const id of tosend) {
+        // self.send_message(*peer_id, event.clone())?;
+        const sent = this.sendRpc(id, rpc)
 
-      // did not actually send the message
-      if (!sent) {
-        tosend.delete(id)
+        // did not actually send the message
+        if (!sent) {
+          tosend.delete(id)
+        }
       }
     }
 
@@ -2084,6 +2089,31 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     const out = createGossipRpc([], { prune })
     this.sendRpc(id, out)
+  }
+
+  /**
+   * Send the same data in batch to tosend without considering cached control messages
+   * this is faster, see https://github.com/ChainSafe/js-libp2p-gossipsub/issues/344
+   */
+  private sendRpcInBatch(tosend: Set<PeerIdStr>, rpc: IRPC): void {
+    const rpcBytes = RPC.encode(rpc).finish()
+    const prefixed = encode.single(rpcBytes)
+    for (const id of tosend) {
+      const outboundStream = this.streamsOutbound.get(id)
+      if (!outboundStream) {
+        this.log(`Cannot send RPC to ${id} as there is no open stream to it available`)
+        tosend.delete(id)
+        continue
+      }
+      try {
+        outboundStream.pushPrefixed(prefixed)
+      } catch (e) {
+        tosend.delete(id)
+        this.log.error(`Cannot send rpc to ${id}`, e)
+      }
+
+      this.metrics?.onRpcSent(rpc, rpcBytes.length)
+    }
   }
 
   /**

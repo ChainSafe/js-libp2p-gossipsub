@@ -12,11 +12,13 @@ type OutboundStreamOpts = {
 
 export class OutboundStream {
   private readonly pushable: Pushable<Uint8Array>
+  private readonly lpPushable: Pushable<Uint8ArrayList>
   private readonly closeController: AbortController
   private readonly maxBufferSize: number
 
   constructor(private readonly rawStream: Stream, errCallback: (e: Error) => void, opts: OutboundStreamOpts) {
     this.pushable = pushable({ objectMode: false })
+    this.lpPushable = pushable({ objectMode: false })
     this.closeController = new AbortController()
     this.maxBufferSize = opts.maxBufferSize ?? Infinity
 
@@ -25,6 +27,10 @@ export class OutboundStream {
       encode(),
       this.rawStream
     ).catch(errCallback)
+
+    pipe(abortableSource(this.lpPushable, this.closeController.signal, { returnOnAbort: true }), this.rawStream).catch(
+      errCallback
+    )
   }
 
   get protocol(): string {
@@ -38,6 +44,16 @@ export class OutboundStream {
     }
 
     this.pushable.push(data)
+  }
+
+  /**
+   * Same to push() but this is prefixed data so no need to encode length prefixed again
+   */
+  pushPrefixed(data: Uint8ArrayList): void {
+    if (this.lpPushable.readableLength > this.maxBufferSize) {
+      throw Error(`OutboundStream buffer full, size > ${this.maxBufferSize}`)
+    }
+    this.lpPushable.push(data)
   }
 
   close(): void {
