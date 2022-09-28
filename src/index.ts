@@ -1915,10 +1915,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // Note: Don't throw if tosend is empty, we can have a mesh with a single peer
 
     // forward the message to peers
-    const rpc = createGossipRpc([rawMsg])
     tosend.forEach((id) => {
       // self.send_message(*peer_id, event.clone())?;
-      this.sendRpc(id, rpc)
+      this.sendRpc(id, createGossipRpc([rawMsg]))
     })
 
     this.metrics?.onForwardMsg(rawMsg.topic, tosend.size)
@@ -1967,11 +1966,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     this.publishedMessageIds.put(msgIdStr)
 
     // Send to set of peers aggregated from direct, mesh, fanout
-    const rpc = createGossipRpc([rawMsg])
-
     for (const id of tosend) {
       // self.send_message(*peer_id, event.clone())?;
-      const sent = this.sendRpc(id, rpc)
+      const sent = this.sendRpc(id, createGossipRpc([rawMsg]))
 
       // did not actually send the message
       if (!sent) {
