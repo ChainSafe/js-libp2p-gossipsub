@@ -10,6 +10,11 @@ type OutboundStreamOpts = {
   maxBufferSize?: number
 }
 
+type InboundStreamOpts = {
+  /** Max size in bytes for reading messages from the stream */
+  maxDataLength?: number
+}
+
 export class OutboundStream {
   private readonly pushable: Pushable<Uint8Array>
   private readonly closeController: AbortController
@@ -54,11 +59,11 @@ export class InboundStream {
   private readonly rawStream: Stream
   private readonly closeController: AbortController
 
-  constructor(rawStream: Stream) {
+  constructor(rawStream: Stream, opts: InboundStreamOpts) {
     this.rawStream = rawStream
     this.closeController = new AbortController()
 
-    this.source = abortableSource(pipe(this.rawStream, decode()), this.closeController.signal, { returnOnAbort: true })
+    this.source = abortableSource(pipe(this.rawStream, decode(opts)), this.closeController.signal, { returnOnAbort: true })
   }
 
   close(): void {
