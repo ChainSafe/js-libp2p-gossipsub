@@ -1,4 +1,4 @@
-import { expect } from 'chai'
+import { expect } from 'aegir/chai'
 import { decodeRpc, DecodeRPCLimits, defaultDecodeRpcLimits } from '../src/message/decodeRpc.js'
 import { RPC, IRPC } from '../src/message/index.js'
 
