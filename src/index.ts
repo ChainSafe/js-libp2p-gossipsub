@@ -10,7 +10,7 @@ import { CustomEvent, EventEmitter } from '@libp2p/interfaces/events'
 import { MessageCache } from './message-cache.js'
 import { RPC, IRPC } from './message/rpc.js'
 import * as constants from './constants.js'
-import { createGossipRpc, shuffle, messageIdToString } from './utils/index.js'
+import { shuffle, messageIdToString } from './utils/index.js'
 import {
   PeerScore,
   PeerScoreParams,
@@ -1150,8 +1150,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    */
   private sendSubscriptions(toPeer: PeerIdStr, topics: string[], subscribe: boolean): void {
     this.sendRpc(toPeer, {
-      subscriptions: topics.map((topic) => ({ topic, subscribe })),
-      messages: []
+      subscriptions: topics.map((topic) => ({ topic, subscribe }))
     })
   }
 
@@ -1172,7 +1171,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       return
     }
 
-    this.sendRpc(id, createGossipRpc(ihave, { iwant, prune }))
+    this.sendRpc(id, { messages: ihave, control: { iwant, prune } })
   }
 
   /**
@@ -1916,8 +1915,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     // forward the message to peers
     tosend.forEach((id) => {
-      // self.send_message(*peer_id, event.clone())?;
-      this.sendRpc(id, createGossipRpc([rawMsg]))
+      // sendRpc may mutate RPC message on piggyback, create a new message for each peer
+      this.sendRpc(id, { messages: [rawMsg] })
     })
 
     this.metrics?.onForwardMsg(rawMsg.topic, tosend.size)
@@ -1967,8 +1966,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     // Send to set of peers aggregated from direct, mesh, fanout
     for (const id of tosend) {
-      // self.send_message(*peer_id, event.clone())?;
-      const sent = this.sendRpc(id, createGossipRpc([rawMsg]))
+      // sendRpc may mutate RPC message on piggyback, create a new message for each peer
+      const sent = this.sendRpc(id, { messages: [rawMsg] })
 
       // did not actually send the message
       if (!sent) {
@@ -2069,8 +2068,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       }
     ]
 
-    const out = createGossipRpc([], { graft })
-    this.sendRpc(id, out)
+    this.sendRpc(id, { control: { graft } })
   }
 
   /**
@@ -2079,8 +2077,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   private async sendPrune(id: PeerIdStr, topic: string): Promise<void> {
     const prune = [await this.makePrune(id, topic, this.opts.doPX)]
 
-    const out = createGossipRpc([], { prune })
-    this.sendRpc(id, out)
+    this.sendRpc(id, { control: { prune } })
   }
 
   /**
@@ -2129,30 +2126,32 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     return true
   }
 
+  /** Mutates `outRpc` adding graft and prune control messages */
   public piggybackControl(id: PeerIdStr, outRpc: IRPC, ctrl: RPC.IControlMessage): void {
-    const tograft = (ctrl.graft || []).filter(({ topicID }) =>
-      ((topicID && this.mesh.get(topicID)) || new Set()).has(id)
-    )
-    const toprune = (ctrl.prune || []).filter(
-      ({ topicID }) => !((topicID && this.mesh.get(topicID)) || new Set()).has(id)
-    )
-
-    if (!tograft.length && !toprune.length) {
-      return
+    if (ctrl.graft) {
+      if (!outRpc.control) outRpc.control = {}
+      if (!outRpc.control.graft) outRpc.control.graft = []
+      for (const graft of ctrl.graft) {
+        if (graft.topicID && this.mesh.get(graft.topicID)?.has(id)) {
+          outRpc.control.graft.push(graft)
+        }
+      }
     }
 
-    if (outRpc.control) {
-      outRpc.control.graft = outRpc.control.graft && outRpc.control.graft.concat(tograft)
-      outRpc.control.prune = outRpc.control.prune && outRpc.control.prune.concat(toprune)
-    } else {
-      outRpc.control = { graft: tograft, prune: toprune, ihave: [], iwant: [] }
+    if (ctrl.prune) {
+      if (!outRpc.control) outRpc.control = {}
+      if (!outRpc.control.prune) outRpc.control.prune = []
+      for (const prune of ctrl.prune) {
+        if (prune.topicID && this.mesh.get(prune.topicID)?.has(id)) {
+          outRpc.control.prune.push(prune)
+        }
+      }
     }
   }
 
+  /** Mutates `outRpc` adding ihave control messages */
   private piggybackGossip(id: PeerIdStr, outRpc: IRPC, ihave: RPC.IControlIHave[]): void {
-    if (!outRpc.control) {
-      outRpc.control = { ihave: [], iwant: [], graft: [], prune: [] }
-    }
+    if (!outRpc.control) outRpc.control = {}
     outRpc.control.ihave = ihave
   }
 
@@ -2180,15 +2179,13 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
         toprune.delete(id)
       }
 
-      const outRpc = createGossipRpc([], { graft, prune })
-      this.sendRpc(id, outRpc)
+      this.sendRpc(id, { control: { graft, prune } })
     }
     for (const [id, topics] of toprune) {
       const prune = await Promise.all(
         topics.map(async (topicID) => await this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false)))
       )
-      const outRpc = createGossipRpc([], { prune })
-      this.sendRpc(id, outRpc)
+      this.sendRpc(id, { control: { prune } })
     }
   }
 
@@ -2261,12 +2258,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // send gossip first, which will also piggyback control
     for (const [peer, ihave] of this.gossip.entries()) {
       this.gossip.delete(peer)
-      this.sendRpc(peer, createGossipRpc([], { ihave }))
+      this.sendRpc(peer, { control: { ihave } })
     }
     // send the remaining control messages
     for (const [peer, control] of this.control.entries()) {
       this.control.delete(peer)
-      this.sendRpc(peer, createGossipRpc([], { graft: control.graft, prune: control.prune }))
+      this.sendRpc(peer, { control: { graft: control.graft, prune: control.prune } })
     }
   }
 
