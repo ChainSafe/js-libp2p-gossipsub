@@ -28,6 +28,9 @@ export class MessageCache {
 
   history: CacheEntry[][] = []
 
+  /** Track with accounting of messages in the mcache that are not yet validated */
+  notValidatedCount = 0
+
   /**
    * Holds history of messages in timebounded history arrays
    */
@@ -70,6 +73,10 @@ export class MessageCache {
     })
 
     this.history[0].push({ ...messageId, topic: msg.topic })
+
+    if (!validated) {
+      this.notValidatedCount++
+    }
 
     return true
   }
@@ -143,6 +150,10 @@ export class MessageCache {
       return null
     }
 
+    if (!entry.validated) {
+      this.notValidatedCount--
+    }
+
     const { message, originatingPeers } = entry
     entry.validated = true
     // Clear the known peers list (after a message is validated, it is forwarded and we no
@@ -155,9 +166,15 @@ export class MessageCache {
    * Shifts the current window, discarding messages older than this.history.length of the cache
    */
   shift(): void {
-    const last = this.history[this.history.length - 1]
-    last.forEach((entry) => {
-      this.msgs.delete(entry.msgIdStr)
+    const lastCacheEntries = this.history[this.history.length - 1]
+    lastCacheEntries.forEach((cacheEntry) => {
+      const entry = this.msgs.get(cacheEntry.msgIdStr)
+      if (entry) {
+        this.msgs.delete(cacheEntry.msgIdStr)
+        if (!entry.validated) {
+          this.notValidatedCount--
+        }
+      }
     })
 
     this.history.pop()
