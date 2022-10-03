@@ -38,8 +38,10 @@ describe('decodeRpc', () => {
     const decodeRpcLimits: DecodeRPCLimits = {
       maxSubscriptions: 2,
       maxMessages: 2,
-      maxMessageIDs: 2,
-      maxControlMessages: 2
+      maxControlMessages: 2,
+      maxIhaveMessageIDs: 2,
+      maxIwantMessageIDs: 2,
+      maxPeerInfos: 2
     }
 
     const rpcEmpty: IRPC = {

@@ -4,21 +4,29 @@ import protobuf from 'protobufjs/minimal.js'
 export type DecodeRPCLimits = {
   maxSubscriptions: number
   maxMessages: number
-  maxMessageIDs: number
+  maxIhaveMessageIDs: number
+  maxIwantMessageIDs: number
   maxControlMessages: number
+  maxPeerInfos: number
 }
 
 export const defaultDecodeRpcLimits: DecodeRPCLimits = {
   maxSubscriptions: Infinity,
   maxMessages: Infinity,
-  maxMessageIDs: Infinity,
-  maxControlMessages: Infinity
+  maxIhaveMessageIDs: Infinity,
+  maxIwantMessageIDs: Infinity,
+  maxControlMessages: Infinity,
+  maxPeerInfos: Infinity
 }
 
 /**
  * Copied code from src/message/rpc.cjs but with decode limits to prevent OOM attacks
  */
 export function decodeRpc(bytes: Uint8Array, opts: DecodeRPCLimits): IRPC {
+  // Mutate to use the option as stateful counter. Must limit the total count of messageIDs across all IWANT, IHAVE
+  // else one count put 100 messageIDs into each 100 IWANT and "get around" the limit
+  opts = { ...opts }
+
   const r = protobuf.Reader.create(bytes)
   const l = bytes.length
 
@@ -146,7 +154,7 @@ function decodeControlIHave(r: protobuf.Reader, l: number, opts: DecodeRPCLimits
         break
       case 2:
         if (!(m.messageIDs && m.messageIDs.length)) m.messageIDs = []
-        if (m.messageIDs.length < opts.maxMessageIDs) m.messageIDs.push(r.bytes())
+        if (m.messageIDs.length < opts.maxIhaveMessageIDs--) m.messageIDs.push(r.bytes())
         else r.skipType(t & 7)
         break
       default:
@@ -165,7 +173,7 @@ function decodeControlIWant(r: protobuf.Reader, l: number, opts: DecodeRPCLimits
     switch (t >>> 3) {
       case 1:
         if (!(m.messageIDs && m.messageIDs.length)) m.messageIDs = []
-        if (m.messageIDs.length < opts.maxMessageIDs) m.messageIDs.push(r.bytes())
+        if (m.messageIDs.length < opts.maxIwantMessageIDs--) m.messageIDs.push(r.bytes())
         else r.skipType(t & 7)
         break
       default:
@@ -204,7 +212,7 @@ function decodeControlPrune(r: protobuf.Reader, l: number, opts: DecodeRPCLimits
         break
       case 2:
         if (!(m.peers && m.peers.length)) m.peers = []
-        if (m.peers.length < opts.maxMessages) m.peers.push(decodePeerInfo(r, r.uint32()))
+        if (m.peers.length < opts.maxPeerInfos--) m.peers.push(decodePeerInfo(r, r.uint32()))
         else r.skipType(t & 7)
         break
       case 3:
