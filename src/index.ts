@@ -157,6 +157,11 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
    * If full it will throw and reject sending any more data.
    */
   maxOutboundBufferSize?: number
+
+  /**
+   * If provided, only allow topics in this list
+   */
+  allowedTopics?: string[] | Set<string>
 }
 
 export interface GossipsubMessage {
@@ -339,6 +344,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   private status: GossipStatus = { code: GossipStatusCode.stopped }
   private maxInboundStreams?: number
   private maxOutboundStreams?: number
+  private allowedTopics: Set<TopicStr> | null
 
   private heartbeatTimer: {
     _intervalId: ReturnType<typeof setInterval> | undefined
@@ -462,6 +468,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     this.maxInboundStreams = options.maxInboundStreams
     this.maxOutboundStreams = options.maxOutboundStreams
+
+    this.allowedTopics = opts.allowedTopics ? new Set(opts.allowedTopics) : null
   }
 
   getPeers(): PeerId[] {
@@ -918,23 +926,29 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // Handle received subscriptions
     if (rpc.subscriptions && rpc.subscriptions.length > 0) {
       // update peer subscriptions
+
+      const subscriptions: { topic: TopicStr; subscribe: boolean }[] = []
+
       rpc.subscriptions.forEach((subOpt) => {
-        this.handleReceivedSubscription(from, subOpt)
+        const topic = subOpt.topic
+        const subscribe = subOpt.subscribe === true
+
+        if (topic != null) {
+          if (this.allowedTopics && !this.allowedTopics.has(topic)) {
+            // Not allowed: subscription data-structures are not bounded by topic count
+            // TODO: Should apply behaviour penalties?
+            return
+          }
+
+          this.handleReceivedSubscription(from, topic, subscribe)
+
+          subscriptions.push({ topic, subscribe })
+        }
       })
 
       this.dispatchEvent(
         new CustomEvent<SubscriptionChangeData>('subscription-change', {
-          detail: {
-            peerId: from,
-            subscriptions: rpc.subscriptions
-              .filter((sub) => sub.topic !== null)
-              .map((sub) => {
-                return {
-                  topic: sub.topic ?? '',
-                  subscribe: Boolean(sub.subscribe)
-                }
-              })
-          }
+          detail: { peerId: from, subscriptions }
         })
       )
     }
@@ -943,6 +957,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // TODO: (up to limit)
     if (rpc.messages) {
       for (const message of rpc.messages) {
+        if (this.allowedTopics && !this.allowedTopics.has(message.topic)) {
+          // Not allowed: message cache data-structures are not bounded by topic count
+          // TODO: Should apply behaviour penalties?
+          continue
+        }
+
         const handleReceivedMessagePromise = this.handleReceivedMessage(from, message)
           // Should never throw, but handle just in case
           .catch((err) => this.log(err))
@@ -962,20 +982,16 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   /**
    * Handles a subscription change from a peer
    */
-  private handleReceivedSubscription(from: PeerId, subOpt: RPC.ISubOpts): void {
-    if (subOpt.topic == null) {
-      return
-    }
+  private handleReceivedSubscription(from: PeerId, topic: TopicStr, subscribe: boolean): void {
+    this.log('subscription update from %p topic %s', from, topic)
 
-    this.log('subscription update from %p topic %s', from, subOpt.topic)
-
-    let topicSet = this.topics.get(subOpt.topic)
+    let topicSet = this.topics.get(topic)
     if (topicSet == null) {
       topicSet = new Set()
-      this.topics.set(subOpt.topic, topicSet)
+      this.topics.set(topic, topicSet)
     }
 
-    if (subOpt.subscribe) {
+    if (subscribe) {
       // subscribe peer to new topic
       topicSet.add(from.toString())
     } else {
