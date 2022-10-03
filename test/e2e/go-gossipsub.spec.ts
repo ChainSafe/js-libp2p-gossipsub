@@ -8,7 +8,7 @@ import { MessageAcceptance } from '../../src/types.js'
 import { GossipsubD } from '../../src/constants.js'
 import { fastMsgIdFn } from '../utils/index.js'
 import type { Message } from '@libp2p/interface-pubsub'
-import type { IRPC } from '../../src/message/rpc.js'
+import type { IRPC, RPC } from '../../src/message/rpc.js'
 import type { ConnectionManagerEvents } from '@libp2p/interface-connection-manager'
 import pWaitFor from 'p-wait-for'
 import { Components } from '@libp2p/components'
@@ -1179,33 +1179,37 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     const otherId = psubs[1].getPeerId().toString()
     const psub = psubs[0].getPubSub() as GossipSub
 
-    const test1 = 'test1'
-    const test2 = 'test2'
-    const test3 = 'test3'
-    psub.mesh.set(test1, new Set([otherId]))
-    psub.mesh.set(test2, new Set())
+    const topic1 = 'topic_1'
+    const topic2 = 'topic_2'
+    const topic3 = 'topic_3'
+    psub.mesh.set(topic1, new Set([otherId]))
+    psub.mesh.set(topic2, new Set())
 
     const rpc: IRPC = {
       subscriptions: [],
       messages: []
     }
+
+    const toGraft = (topicID: string): RPC.IControlGraft => ({ topicID })
+    const toPrune = (topicID: string): RPC.IControlPrune => ({ topicID, peers: [] })
+
     psub.piggybackControl(otherId, rpc, {
-      graft: [{ topicID: test1 }, { topicID: test2 }, { topicID: test3 }],
-      prune: [
-        { topicID: test1, peers: [] },
-        { topicID: test2, peers: [] },
-        { topicID: test3, peers: [] }
-      ],
+      graft: [toGraft(topic1), toGraft(topic2), toGraft(topic3)],
+      prune: [toPrune(topic1), toPrune(topic2), toPrune(topic3)],
       ihave: [],
       iwant: []
     })
 
-    expect(rpc.control).to.be.ok()
-    expect(rpc).to.have.nested.property('control.graft.length', 1)
-    expect(rpc).to.have.nested.property('control.graft[0].topicID', test1)
-    expect(rpc).to.have.nested.property('control.prune.length', 2)
-    expect(rpc).to.have.nested.property('control.prune[0].topicID', test2)
-    expect(rpc).to.have.nested.property('control.prune[1].topicID', test3)
+    const expectedRpc: IRPC = {
+      subscriptions: [],
+      messages: [],
+      control: {
+        graft: [toGraft(topic1)],
+        prune: [toPrune(topic2), toPrune(topic3)]
+      }
+    }
+
+    expect(rpc).deep.equals(expectedRpc)
 
     await psub.stop()
   })

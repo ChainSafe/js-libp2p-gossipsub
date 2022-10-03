@@ -2158,7 +2158,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       if (!outRpc.control) outRpc.control = {}
       if (!outRpc.control.prune) outRpc.control.prune = []
       for (const prune of ctrl.prune) {
-        if (prune.topicID && this.mesh.get(prune.topicID)?.has(id)) {
+        if (prune.topicID && !this.mesh.get(prune.topicID)?.has(id)) {
           outRpc.control.prune.push(prune)
         }
       }
