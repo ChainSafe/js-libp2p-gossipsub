@@ -1,7 +1,7 @@
 import type { PeerId } from '@libp2p/interface-peer-id'
 import type { PrivateKey } from '@libp2p/interface-keys'
 import type { Multiaddr } from '@multiformats/multiaddr'
-import type { RPC } from './message/rpc.js'
+import { IRPC, RPC } from './message/rpc.js'
 import type { Message } from '@libp2p/interface-pubsub'
 
 export type MsgIdStr = string
@@ -167,6 +167,8 @@ export type MessageId = {
   msgId: Uint8Array
   msgIdStr: MsgIdStr
 }
+
+export type DecodeRpcFn = (rpcBytes: Uint8Array) => IRPC
 
 /**
  * Typesafe conversion of MessageAcceptance -> RejectReason. TS ensures all values covered

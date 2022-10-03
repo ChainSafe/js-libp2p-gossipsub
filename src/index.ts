@@ -54,7 +54,8 @@ import {
   TopicValidatorFn,
   rejectReasonFromAcceptance,
   MsgIdToStrFn,
-  MessageId
+  MessageId,
+  DecodeRpcFn
 } from './types.js'
 import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage.js'
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js'
@@ -115,6 +116,8 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   fastMsgIdFn: FastMsgIdFn
   /** Uint8Array message id to string function */
   msgIdToStrFn: MsgIdToStrFn
+  /** Override default decode RPC function */
+  decodeRpcFn: DecodeRpcFn
   /** override the default MessageCache */
   messageCache: MessageCache
   /** peer score parameters */
@@ -289,13 +292,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    */
   private readonly outbound = new Map<PeerIdStr, boolean>()
   private readonly msgIdFn: MsgIdFn
-
-  /**
-   * A fast message id function used for internal message de-duplication
-   */
+  /** A fast message id function used for internal message de-duplication */
   private readonly fastMsgIdFn: FastMsgIdFn | undefined
-
   private readonly msgIdToStrFn: MsgIdToStrFn
+  private readonly decodeRpcFn: DecodeRpcFn
 
   /** Maps fast message-id to canonical message-id */
   private readonly fastMsgIdCache: SimpleTimeCache<MsgIdStr> | undefined
@@ -415,6 +415,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     // By default, gossipsub only provide a browser friendly function to convert Uint8Array message id to string.
     this.msgIdToStrFn = options.msgIdToStrFn ?? messageIdToString
+
+    this.decodeRpcFn = options.decodeRpcFn ?? RPC.decode
 
     this.mcache = options.messageCache || new MessageCache(opts.mcacheGossip, opts.mcacheLength, this.msgIdToStrFn)
 
@@ -873,12 +875,20 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     try {
       await pipe(stream, async (source) => {
         for await (const data of source) {
+          // Note: This function may throw, it must be wrapped in a try {} catch {} to prevent closing the stream.
           try {
             // TODO: Check max gossip message size, before decodeRpc()
             const rpcBytes = data.subarray()
-            // Note: This function may throw, it must be wrapped in a try {} catch {} to prevent closing the stream.
-            // TODO: What should we do if the entire RPC is invalid?
-            const rpc = RPC.decode(rpcBytes)
+
+            let rpc: IRPC
+            try {
+              // decodeRpcFn throws if the RPC is invalid. Penalize peers so they are eventually disconnected
+              rpc = this.decodeRpcFn(rpcBytes)
+            } catch (err) {
+              this.log.error(err)
+              this.score.addPenalty(peerId.toString(), 1, ScorePenalty.InvalidRPC)
+              continue
+            }
 
             this.metrics?.onRpcRecv(rpc, rpcBytes.length)
 

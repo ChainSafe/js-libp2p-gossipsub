@@ -111,7 +111,9 @@ export enum ScorePenalty {
   /// A Peer did not send enough messages as expected.
   MessageDeficit = 'message_deficit',
   /// Too many peers under one IP address.
-  IPColocation = 'IP_colocation'
+  IPColocation = 'IP_colocation',
+  /** Invalid RPC message */
+  InvalidRPC = 'invalid_rpc'
 }
 
 export enum IHaveIgnoreReason {
