@@ -154,7 +154,7 @@ function decodeControlIHave(r: protobuf.Reader, l: number, opts: DecodeRPCLimits
         break
       case 2:
         if (!(m.messageIDs && m.messageIDs.length)) m.messageIDs = []
-        if (m.messageIDs.length < opts.maxIhaveMessageIDs--) m.messageIDs.push(r.bytes())
+        if (opts.maxIhaveMessageIDs-- > 0) m.messageIDs.push(r.bytes())
         else r.skipType(t & 7)
         break
       default:
@@ -173,7 +173,7 @@ function decodeControlIWant(r: protobuf.Reader, l: number, opts: DecodeRPCLimits
     switch (t >>> 3) {
       case 1:
         if (!(m.messageIDs && m.messageIDs.length)) m.messageIDs = []
-        if (m.messageIDs.length < opts.maxIwantMessageIDs--) m.messageIDs.push(r.bytes())
+        if (opts.maxIwantMessageIDs-- > 0) m.messageIDs.push(r.bytes())
         else r.skipType(t & 7)
         break
       default:
@@ -212,7 +212,7 @@ function decodeControlPrune(r: protobuf.Reader, l: number, opts: DecodeRPCLimits
         break
       case 2:
         if (!(m.peers && m.peers.length)) m.peers = []
-        if (m.peers.length < opts.maxPeerInfos--) m.peers.push(decodePeerInfo(r, r.uint32()))
+        if (opts.maxPeerInfos-- > 0) m.peers.push(decodePeerInfo(r, r.uint32()))
         else r.skipType(t & 7)
         break
       case 3:
