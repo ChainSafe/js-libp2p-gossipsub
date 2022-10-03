@@ -2727,6 +2727,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   private onScrapeMetrics(metrics: Metrics): void {
     /* Data structure sizes */
     metrics.mcacheSize.set(this.mcache.size)
+    metrics.mcacheNotValidatedCount.set(this.mcache.notValidatedCount)
     // Arbitrary size
     metrics.cacheSize.set({ cache: 'direct' }, this.direct.size)
     metrics.cacheSize.set({ cache: 'seenCache' }, this.seenCache.size)

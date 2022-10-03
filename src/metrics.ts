@@ -500,6 +500,10 @@ export function getMetrics(
       name: 'gossipsub_mcache_size',
       help: 'Current mcache msg count'
     }),
+    mcacheNotValidatedCount: register.gauge({
+      name: 'gossipsub_mcache_not_validated_count',
+      help: 'Current mcache msg count not validated'
+    }),
 
     topicStrToLabel: topicStrToLabel,
 
