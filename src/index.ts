@@ -161,6 +161,13 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   maxOutboundBufferSize?: number
 
   /**
+   * Specify max size to skip decoding messages whose data
+   * section exceeds this size.
+   *
+   */
+  maxInboundDataLength?: number
+
+  /**
    * If provided, only allow topics in this list
    */
   allowedTopics?: string[] | Set<string>
@@ -772,7 +779,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     this.log('create inbound stream %s', id)
 
-    const inboundStream = new InboundStream(stream)
+    const inboundStream = new InboundStream(stream, { maxDataLength: this.opts.maxInboundDataLength })
     this.streamsInbound.set(id, inboundStream)
 
     this.pipePeerReadStream(peerId, inboundStream.source).catch((err) => this.log(err))
