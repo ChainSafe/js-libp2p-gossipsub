@@ -61,7 +61,9 @@ const checkReceivedMessage =
     })
 
 describe('go-libp2p-pubsub gossipsub tests', function () {
-  this.timeout(200000)
+  // In Github runners it takes ~10sec the longest test
+  this.timeout(60 * 1000)
+  this.retries(3)
 
   let psubs: Components[]
 
