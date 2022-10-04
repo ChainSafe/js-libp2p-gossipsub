@@ -77,6 +77,7 @@ import { removeFirstNItemsFromSet, removeItemsFromSet } from './utils/set.js'
 import { pushable } from 'it-pushable'
 import { InboundStream, OutboundStream } from './stream.js'
 import { Uint8ArrayList } from 'uint8arraylist'
+import { decodeRpc, DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
 
 type ConnectionDirection = 'inbound' | 'outbound'
 
@@ -162,6 +163,11 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
    * If provided, only allow topics in this list
    */
   allowedTopics?: string[] | Set<string>
+
+  /**
+   * Limits to bound protobuf decoding
+   */
+  decodeRpcLimits?: DecodeRPCLimits
 }
 
 export interface GossipsubMessage {
@@ -339,7 +345,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
   public static multicodec: string = constants.GossipsubIDv11
 
+  // Options
   readonly opts: Required<GossipOptions>
+  private readonly decodeRpcLimits: DecodeRPCLimits
+
   private readonly metrics: Metrics | null
   private status: GossipStatus = { code: GossipStatusCode.stopped }
   private maxInboundStreams?: number
@@ -382,6 +391,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       scoreParams: createPeerScoreParams(options.scoreParams),
       scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
     }
+
+    this.decodeRpcLimits = opts.decodeRpcLimits ?? defaultDecodeRpcLimits
 
     this.globalSignaturePolicy = opts.globalSignaturePolicy ?? StrictSign
 
@@ -886,7 +897,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
             const rpcBytes = data.subarray()
             // Note: This function may throw, it must be wrapped in a try {} catch {} to prevent closing the stream.
             // TODO: What should we do if the entire RPC is invalid?
-            const rpc = RPC.decode(rpcBytes)
+            const rpc = decodeRpc(rpcBytes, this.decodeRpcLimits)
 
             this.metrics?.onRpcRecv(rpc, rpcBytes.length)
 
