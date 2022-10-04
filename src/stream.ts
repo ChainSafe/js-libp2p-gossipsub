@@ -59,11 +59,13 @@ export class InboundStream {
   private readonly rawStream: Stream
   private readonly closeController: AbortController
 
-  constructor(rawStream: Stream, opts: InboundStreamOpts) {
+  constructor(rawStream: Stream, opts: InboundStreamOpts = {}) {
     this.rawStream = rawStream
     this.closeController = new AbortController()
 
-    this.source = abortableSource(pipe(this.rawStream, decode(opts)), this.closeController.signal, { returnOnAbort: true })
+    this.source = abortableSource(pipe(this.rawStream, decode(opts)), this.closeController.signal, {
+      returnOnAbort: true
+    })
   }
 
   close(): void {
