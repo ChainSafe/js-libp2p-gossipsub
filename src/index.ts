@@ -1085,7 +1085,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   ): Promise<ReceivedMessageResult> {
     // Fast message ID stuff
     const fastMsgIdStr = this.fastMsgIdFn?.(rpcMsg)
-    const msgIdCached = fastMsgIdStr ? this.fastMsgIdCache?.get(fastMsgIdStr) : undefined
+    const msgIdCached = fastMsgIdStr !== undefined ? this.fastMsgIdCache?.get(fastMsgIdStr) : undefined
 
     if (msgIdCached) {
       // This message has been seen previously. Ignore it
@@ -1122,7 +1122,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     const messageId = { msgId, msgIdStr }
 
     // Add the message to the duplicate caches
-    if (fastMsgIdStr) this.fastMsgIdCache?.put(fastMsgIdStr, msgIdStr)
+    if (fastMsgIdStr !== undefined) this.fastMsgIdCache?.put(fastMsgIdStr, msgIdStr)
 
     if (this.seenCache.has(msgIdStr)) {
       return { code: MessageStatus.duplicate, msgIdStr }

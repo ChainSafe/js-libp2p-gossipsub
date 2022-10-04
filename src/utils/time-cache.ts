@@ -13,7 +13,7 @@ type CacheValue<T> = {
  * This gives 4x - 5x performance gain compared to npm TimeCache
  */
 export class SimpleTimeCache<T> {
-  private readonly entries = new Map<string, CacheValue<T>>()
+  private readonly entries = new Map<string | number, CacheValue<T>>()
   private readonly validityMs: number
 
   constructor(opts: SimpleTimeCacheOpts) {
@@ -27,7 +27,7 @@ export class SimpleTimeCache<T> {
     return this.entries.size
   }
 
-  put(key: string, value: T): void {
+  put(key: string | number, value: T): void {
     this.entries.set(key, { value, validUntilMs: Date.now() + this.validityMs })
   }
 
@@ -48,7 +48,7 @@ export class SimpleTimeCache<T> {
     return this.entries.has(key)
   }
 
-  get(key: string): T | undefined {
+  get(key: string | number): T | undefined {
     const value = this.entries.get(key)
     return value && value.validUntilMs >= Date.now() ? value.value : undefined
   }
