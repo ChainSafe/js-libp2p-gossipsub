@@ -25,7 +25,8 @@ describe('gossip', () => {
       init: {
         scoreParams: {
           IPColocationFactorThreshold: GossipsubDhi + 3
-        }
+        },
+        maxInboundDataLength: 4000000
       }
     })
   })
@@ -77,6 +78,38 @@ describe('gossip', () => {
 
     // unset spy
     nodeASpy.pushGossip.restore()
+  })
+
+  it('should reject incoming messages bigger than maxInboundDataLength limit', async function () {
+    this.timeout(10e4)
+    const nodeA = nodes[0]
+    const nodeB = nodes[1]
+
+    const twoNodes = [nodeA, nodeB]
+    const topic = 'Z'
+    // add subscriptions to each node
+    twoNodes.forEach((n) => n.getPubSub().subscribe(topic))
+
+    // every node connected to every other
+    await connectAllPubSubNodes(twoNodes)
+
+    // wait for subscriptions to be transmitted
+    await Promise.all(twoNodes.map(async (n) => await pEvent(n.getPubSub(), 'subscription-change')))
+
+    // await mesh rebalancing
+    await Promise.all(twoNodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
+
+    // set spy. NOTE: Forcing private property to be public
+    const nodeBSpy = nodeB.getPubSub() as Partial<GossipSub> as SinonStubbedInstance<{
+      handlePeerReadStreamError: GossipSub['handlePeerReadStreamError']
+    }>
+    sinon.spy(nodeBSpy, 'handlePeerReadStreamError')
+
+    // This should lead to handlePeerReadStreamError at nodeB
+    await nodeA.getPubSub().publish(topic, new Uint8Array(5000000))
+    await pEvent(nodeA.getPubSub(), 'gossipsub:heartbeat')
+    const expectedError = nodeBSpy.handlePeerReadStreamError.getCalls()[0]?.args[0]
+    expect(expectedError !== undefined && (expectedError as unknown as { code: string }).code, 'ERR_MSG_DATA_TOO_LONG')
   })
 
   it('should send piggyback control into other sent messages', async function () {

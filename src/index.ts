@@ -930,9 +930,17 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         }
       })
     } catch (err) {
-      this.log.error(err)
-      this.onPeerDisconnected(peerId)
+      this.handlePeerReadStreamError(err as Error, peerId)
     }
+  }
+
+  /**
+   * Handle error when read stream pipe throws, less of the functional use but more
+   * to for testing purposes to spy on the error handling
+   * */
+  private handlePeerReadStreamError(err: Error, peerId: PeerId): void {
+    this.log.error(err)
+    this.onPeerDisconnected(peerId)
   }
 
   /**
