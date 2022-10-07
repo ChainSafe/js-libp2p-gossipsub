@@ -24,5 +24,9 @@ describe('npm TimeCache vs SimpleTimeCache', () => {
     itBench(`SimpleTimeCache.put x${iteration}`, () => {
       for (let j = 0; j < iteration; j++) simpleTimeCache.put(String(j), true)
     })
+
+    itBench(`SimpleTimeCache.putUnsafe x${iteration}`, () => {
+      for (let j = 0; j < iteration; j++) simpleTimeCache.putUnsafe(String(j), true)
+    })
   }
 })

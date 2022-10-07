@@ -27,8 +27,22 @@ export class SimpleTimeCache<T> {
     return this.entries.size
   }
 
+  /**
+   * Consumer should check for has() or get() before using this api.
+   */
   put(key: string | number, value: T): void {
     this.entries.set(key, { value, validUntilMs: Date.now() + this.validityMs })
+  }
+
+  /**
+   * Similar to put but if there's an old entry, it'd delete old entry first.
+   * This is to ensure validUntilMs is in ascending order in order to prune
+   * to avoid memory leak.
+   * See https://github.com/ChainSafe/js-libp2p-gossipsub/issues/356
+   */
+  putUnsafe(key: string | number, value: T): void {
+    if (this.has(key)) this.entries.delete(key)
+    this.put(key, value)
   }
 
   prune(): void {
@@ -44,7 +58,7 @@ export class SimpleTimeCache<T> {
     }
   }
 
-  has(key: string): boolean {
+  has(key: string | number): boolean {
     return this.entries.has(key)
   }
 

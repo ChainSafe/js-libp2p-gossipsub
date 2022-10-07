@@ -1132,8 +1132,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     const msgIdStr = this.msgIdToStrFn(msgId)
     const messageId = { msgId, msgIdStr }
 
-    // Add the message to the duplicate caches
-    if (fastMsgIdStr !== undefined) this.fastMsgIdCache?.put(fastMsgIdStr, msgIdStr)
+    // Add the message to the duplicate caches, putUnsafe because multiple messages can reach here
+    // with the same fastMsgIdStr due to the hash data collision
+    if (fastMsgIdStr !== undefined) this.fastMsgIdCache?.putUnsafe(fastMsgIdStr, msgIdStr)
 
     if (this.seenCache.has(msgIdStr)) {
       return { code: MessageStatus.duplicate, msgIdStr }
