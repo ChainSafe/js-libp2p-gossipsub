@@ -78,6 +78,7 @@ import { pushable } from 'it-pushable'
 import { InboundStream, OutboundStream } from './stream.js'
 import { Uint8ArrayList } from 'uint8arraylist'
 import { decodeRpc, DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
+import { SubscriptionFilter } from './subscriptionsFilter.js'
 
 type ConnectionDirection = 'inbound' | 'outbound'
 
@@ -160,9 +161,9 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   maxOutboundBufferSize?: number
 
   /**
-   * If provided, only allow topics in this list
+   * Filter incoming subscriptions
    */
-  allowedTopics?: string[] | Set<string>
+  subscriptionFilter?: SubscriptionFilter
 
   /**
    * Limits to bound protobuf decoding
@@ -326,6 +327,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   public readonly score: PeerScore
 
   public readonly topicValidators = new Map<TopicStr, TopicValidatorFn>()
+  private readonly subscriptionFilter: SubscriptionFilter | null
 
   /**
    * Number of heartbeats since the beginning of time
@@ -353,7 +355,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   private status: GossipStatus = { code: GossipStatusCode.stopped }
   private maxInboundStreams?: number
   private maxOutboundStreams?: number
-  private allowedTopics: Set<TopicStr> | null
 
   private heartbeatTimer: {
     _intervalId: ReturnType<typeof setInterval> | undefined
@@ -480,7 +481,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     this.maxInboundStreams = options.maxInboundStreams
     this.maxOutboundStreams = options.maxOutboundStreams
 
-    this.allowedTopics = opts.allowedTopics ? new Set(opts.allowedTopics) : null
+    this.subscriptionFilter = opts.subscriptionFilter ?? null
   }
 
   getPeers(): PeerId[] {
@@ -940,17 +941,15 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
       const subscriptions: { topic: TopicStr; subscribe: boolean }[] = []
 
-      rpc.subscriptions.forEach((subOpt) => {
+      const filteredSubscriptions = this.subscriptionFilter
+        ? this.subscriptionFilter.filterIncomingSubscriptions(from, rpc.subscriptions)
+        : rpc.subscriptions
+
+      filteredSubscriptions.forEach((subOpt) => {
         const topic = subOpt.topic
         const subscribe = subOpt.subscribe === true
 
         if (topic != null) {
-          if (this.allowedTopics && !this.allowedTopics.has(topic)) {
-            // Not allowed: subscription data-structures are not bounded by topic count
-            // TODO: Should apply behaviour penalties?
-            return
-          }
-
           this.handleReceivedSubscription(from, topic, subscribe)
 
           subscriptions.push({ topic, subscribe })

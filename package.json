@@ -21,6 +21,9 @@
     "./score": {
       "import": "./dist/src/score/index.js"
     },
+    "./subscriptionsFilter": {
+      "import": "./dist/src/subscriptionsFilter.js"
+    },
     "./types": {
       "import": "./dist/src/types.js"
     }
