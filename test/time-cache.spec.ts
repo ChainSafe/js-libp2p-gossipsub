@@ -15,7 +15,7 @@ describe('SimpleTimeCache', () => {
     sandbox.restore()
   })
 
-  it('should delete items after 1sec', () => {
+  it('put - should delete items after 1sec', () => {
     timeCache.put('aFirst')
     timeCache.put('bFirst')
     timeCache.put('cFirst')
@@ -37,6 +37,38 @@ describe('SimpleTimeCache', () => {
     expect(timeCache.has('bSecond')).to.be.true()
     expect(timeCache.has('cSecond')).to.be.true()
     expect(timeCache.has('aFirst')).to.be.false()
+    expect(timeCache.has('bFirst')).to.be.false()
+    expect(timeCache.has('cFirst')).to.be.false()
+  })
+
+  it('putUnsafe - should delete items after 1sec', () => {
+    timeCache.putUnsafe('aFirst')
+    timeCache.putUnsafe('bFirst')
+    timeCache.putUnsafe('cFirst')
+
+    expect(timeCache.has('aFirst')).to.be.true()
+    expect(timeCache.has('bFirst')).to.be.true()
+    expect(timeCache.has('cFirst')).to.be.true()
+
+    sandbox.clock.tick(validityMs * 0.5)
+
+    // should delete the old item and recreate new
+    timeCache.putUnsafe('aFirst')
+
+    sandbox.clock.tick(validityMs * 0.5 + 1)
+
+    // https://github.com/ChainSafe/js-libp2p-gossipsub/issues/232#issuecomment-1109589919
+    timeCache.prune()
+
+    timeCache.putUnsafe('aSecond')
+    timeCache.putUnsafe('bSecond')
+    timeCache.putUnsafe('cSecond')
+
+    expect(timeCache.has('aSecond')).to.be.true()
+    expect(timeCache.has('bSecond')).to.be.true()
+    expect(timeCache.has('cSecond')).to.be.true()
+    // should still has aFirst while bFirst and cFirst are deleted
+    expect(timeCache.has('aFirst')).to.be.true()
     expect(timeCache.has('bFirst')).to.be.false()
     expect(timeCache.has('cFirst')).to.be.false()
   })
