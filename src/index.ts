@@ -1140,7 +1140,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const messageId = { msgId, msgIdStr }
 
     // Add the message to the duplicate caches
-    if (fastMsgIdStr !== undefined) this.fastMsgIdCache?.put(fastMsgIdStr, msgIdStr)
+    if (fastMsgIdStr !== undefined && this.fastMsgIdCache) {
+      const collision = this.fastMsgIdCache.put(fastMsgIdStr, msgIdStr)
+      if (collision) {
+        this.metrics?.fastMsgIdCacheCollision.inc()
+      }
+    }
 
     if (this.seenCache.has(msgIdStr)) {
       return { code: MessageStatus.duplicate, msgIdStr }
