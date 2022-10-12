@@ -1,12 +1,12 @@
-import { Components } from '@libp2p/components'
 import type { SubscriptionChangeData } from '@libp2p/interface-pubsub'
 import type { EventEmitter } from '@libp2p/interfaces/events'
 import { expect } from 'aegir/chai'
 import pWaitFor from 'p-wait-for'
 import { GossipSub, GossipsubEvents } from '../../src/index.js'
+import { GossipSubAndComponents } from './create-pubsub.js'
 
 export const checkReceivedSubscription = (
-  node: Components,
+  node: GossipSubAndComponents,
   peerIdStr: string,
   topic: string,
   peerIdx: number,
@@ -24,9 +24,9 @@ export const checkReceivedSubscription = (
       // console.log('@@@ in test received subscriptions from peer id', peerId.toString())
       if (peerId.toString() === peerIdStr && subscriptions[0].topic === topic && subscriptions[0].subscribe === true) {
         clearTimeout(t)
-        node.getPubSub().removeEventListener(event, cb)
+        node.pubsub.removeEventListener(event, cb)
         if (
-          Array.from(node.getPubSub().getSubscribers(topic))
+          Array.from(node.pubsub.getSubscribers(topic))
             .map((p) => p.toString())
             .includes(peerIdStr)
         ) {
@@ -36,26 +36,26 @@ export const checkReceivedSubscription = (
         }
       }
     }
-    node.getPubSub().addEventListener(event, cb)
+    node.pubsub.addEventListener(event, cb)
   })
 
 export const checkReceivedSubscriptions = async (
-  node: Components,
+  node: GossipSubAndComponents,
   peerIdStrs: string[],
   topic: string,
   timeout = 5000
 ): Promise<void> => {
-  const recvPeerIdStrs = peerIdStrs.filter((peerIdStr) => peerIdStr !== node.getPeerId().toString())
+  const recvPeerIdStrs = peerIdStrs.filter((peerIdStr) => peerIdStr !== node.components.peerId.toString())
   const promises = recvPeerIdStrs.map(
     async (peerIdStr, idx) => await checkReceivedSubscription(node, peerIdStr, topic, idx, timeout)
   )
   await Promise.all(promises)
   for (const str of recvPeerIdStrs) {
-    expect(Array.from(node.getPubSub().getSubscribers(topic)).map((p) => p.toString())).to.include(str)
+    expect(Array.from(node.pubsub.getSubscribers(topic)).map((p) => p.toString())).to.include(str)
   }
   await pWaitFor(() => {
     return recvPeerIdStrs.every((peerIdStr) => {
-      return (node.getPubSub() as GossipSub).streamsOutbound.has(peerIdStr)
+      return (node.pubsub as GossipSub).streamsOutbound.has(peerIdStr)
     })
   })
 }

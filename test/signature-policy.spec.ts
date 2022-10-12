@@ -1,19 +1,19 @@
 import { expect } from 'aegir/chai'
 import { pEvent } from 'p-event'
-import { Components } from '@libp2p/components'
 import { mockNetwork } from '@libp2p/interface-mocks'
 import { stop } from '@libp2p/interfaces/startable'
 import {
   connectAllPubSubNodes,
   connectPubsubNodes,
   createComponents,
-  createComponentsArray
+  createComponentsArray,
+  GossipSubAndComponents
 } from './utils/create-pubsub.js'
 
 describe('signature policy', () => {
   describe('strict-sign', () => {
     const numNodes = 3
-    let nodes: Components[]
+    let nodes: GossipSubAndComponents[]
 
     beforeEach(async () => {
       mockNetwork.reset()
@@ -31,7 +31,7 @@ describe('signature policy', () => {
     })
 
     afterEach(async () => {
-      await stop(...nodes)
+      await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
       mockNetwork.reset()
     })
 
@@ -39,19 +39,19 @@ describe('signature policy', () => {
       const topic = 'foo'
 
       // add subscriptions to each node
-      nodes.forEach((n) => n.getPubSub().subscribe(topic))
+      nodes.forEach((n) => n.pubsub.subscribe(topic))
 
       // connect all nodes
       await connectAllPubSubNodes(nodes)
 
       // wait for subscriptions to be transmitted
-      await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'subscription-change')))
+      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change')))
 
       // await mesh rebalancing
-      await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
+      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
       // publish a message on the topic
-      const result = await nodes[0].getPubSub().publish(topic, new Uint8Array())
+      const result = await nodes[0].pubsub.publish(topic, new Uint8Array())
       expect(result.recipients).to.length(numNodes - 1)
     })
 
@@ -59,23 +59,23 @@ describe('signature policy', () => {
       const topic = 'foo'
 
       // add subscriptions to each node
-      nodes.forEach((n) => n.getPubSub().subscribe(topic))
+      nodes.forEach((n) => n.pubsub.subscribe(topic))
 
       // connect in a line
       await Promise.all(Array.from({ length: numNodes - 1 }, (_, i) => connectPubsubNodes(nodes[i], nodes[i + 1])))
 
       // wait for subscriptions to be transmitted
-      await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'subscription-change')))
+      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change')))
 
       // await mesh rebalancing
-      await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
+      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
       // publish a message on the topic
-      const result = await nodes[0].getPubSub().publish(topic, new Uint8Array())
+      const result = await nodes[0].pubsub.publish(topic, new Uint8Array())
       expect(result.recipients).to.length(1)
 
       // the last node should get the message
-      await pEvent(nodes[nodes.length - 1].getPubSub(), 'gossipsub:message')
+      await pEvent(nodes[nodes.length - 1].pubsub, 'gossipsub:message')
     })
 
     it('should not forward an strict-no-sign message', async () => {
@@ -91,21 +91,21 @@ describe('signature policy', () => {
       )
 
       // add subscriptions to each node
-      nodes.forEach((n) => n.getPubSub().subscribe(topic))
+      nodes.forEach((n) => n.pubsub.subscribe(topic))
 
       // connect in a line
       await Promise.all(Array.from({ length: numNodes - 1 }, (_, i) => connectPubsubNodes(nodes[i], nodes[i + 1])))
 
       // await mesh rebalancing
-      await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
+      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
       // publish a message on the topic
-      const result = await nodes[0].getPubSub().publish(topic, new Uint8Array())
+      const result = await nodes[0].pubsub.publish(topic, new Uint8Array())
       expect(result.recipients).to.length(1)
 
       // the last node should NOT get the message
       try {
-        await pEvent(nodes[nodes.length - 1].getPubSub(), 'gossipsub:message', { timeout: 200 })
+        await pEvent(nodes[nodes.length - 1].pubsub, 'gossipsub:message', { timeout: 200 })
         expect.fail('no-sign message should not be emitted from strict-sign peer')
       } catch (e) {}
     })
@@ -113,7 +113,7 @@ describe('signature policy', () => {
 
   describe('strict-no-sign', () => {
     const numNodes = 3
-    let nodes: Components[]
+    let nodes: GossipSubAndComponents[]
 
     beforeEach(async () => {
       mockNetwork.reset()
@@ -131,7 +131,7 @@ describe('signature policy', () => {
     })
 
     afterEach(async () => {
-      await stop(...nodes)
+      await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
       mockNetwork.reset()
     })
 
@@ -139,19 +139,19 @@ describe('signature policy', () => {
       const topic = 'foo'
 
       // add subscriptions to each node
-      nodes.forEach((n) => n.getPubSub().subscribe(topic))
+      nodes.forEach((n) => n.pubsub.subscribe(topic))
 
       // connect all nodes
       await connectAllPubSubNodes(nodes)
 
       // wait for subscriptions to be transmitted
-      await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'subscription-change')))
+      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change')))
 
       // await mesh rebalancing
-      await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
+      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
       // publish a message on the topic
-      const result = await nodes[0].getPubSub().publish(topic, new Uint8Array())
+      const result = await nodes[0].pubsub.publish(topic, new Uint8Array())
       expect(result.recipients).to.length(numNodes - 1)
     })
 
@@ -159,23 +159,23 @@ describe('signature policy', () => {
       const topic = 'foo'
 
       // add subscriptions to each node
-      nodes.forEach((n) => n.getPubSub().subscribe(topic))
+      nodes.forEach((n) => n.pubsub.subscribe(topic))
 
       // connect in a line
       await Promise.all(Array.from({ length: numNodes - 1 }, (_, i) => connectPubsubNodes(nodes[i], nodes[i + 1])))
 
       // wait for subscriptions to be transmitted
-      await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'subscription-change')))
+      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change')))
 
       // await mesh rebalancing
-      await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
+      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
       // publish a message on the topic
-      const result = await nodes[0].getPubSub().publish(topic, new Uint8Array())
+      const result = await nodes[0].pubsub.publish(topic, new Uint8Array())
       expect(result.recipients).to.length(1)
 
       // the last node should get the message
-      await pEvent(nodes[nodes.length - 1].getPubSub(), 'gossipsub:message')
+      await pEvent(nodes[nodes.length - 1].pubsub, 'gossipsub:message')
     })
 
     it('should not forward an strict-sign message', async () => {
@@ -191,21 +191,21 @@ describe('signature policy', () => {
       )
 
       // add subscriptions to each node
-      nodes.forEach((n) => n.getPubSub().subscribe(topic))
+      nodes.forEach((n) => n.pubsub.subscribe(topic))
 
       // connect in a line
       await Promise.all(Array.from({ length: numNodes - 1 }, (_, i) => connectPubsubNodes(nodes[i], nodes[i + 1])))
 
       // await mesh rebalancing
-      await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
+      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
       // publish a message on the topic
-      const result = await nodes[0].getPubSub().publish(topic, new Uint8Array())
+      const result = await nodes[0].pubsub.publish(topic, new Uint8Array())
       expect(result.recipients).to.length(1)
 
       // the last node should NOT get the message
       try {
-        await pEvent(nodes[nodes.length - 1].getPubSub(), 'gossipsub:message', { timeout: 200 })
+        await pEvent(nodes[nodes.length - 1].pubsub, 'gossipsub:message', { timeout: 200 })
         expect.fail('no-sign message should not be emitted from strict-sign peer')
       } catch (e) {}
     })

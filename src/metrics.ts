@@ -1,14 +1,7 @@
+import { TopicValidatorResult } from '@libp2p/interface-pubsub'
 import type { IRPC } from './message/rpc.js'
 import type { PeerScoreThresholds } from './score/peer-score-thresholds.js'
-import {
-  MessageAcceptance,
-  MessageStatus,
-  PeerIdStr,
-  RejectReason,
-  RejectReasonObj,
-  TopicStr,
-  ValidateError
-} from './types.js'
+import { MessageStatus, PeerIdStr, RejectReason, RejectReasonObj, TopicStr, ValidateError } from './types.js'
 
 /** Topic label as provided in `topicStrToLabel` */
 export type TopicLabel = string
@@ -241,7 +234,7 @@ export function getMetrics(
     /** Message validation results for each topic.
      *  Invalid == Reject?
      *  = rust-libp2p `invalid_messages`, `accepted_messages`, `ignored_messages`, `rejected_messages` */
-    asyncValidationResult: register.gauge<{ topic: TopicLabel; acceptance: MessageAcceptance }>({
+    asyncValidationResult: register.gauge<{ topic: TopicLabel; acceptance: TopicValidatorResult }>({
       name: 'gossipsub_async_validation_result_total',
       help: 'Message validation result for each topic',
       labelNames: ['topic', 'acceptance']
@@ -543,7 +536,7 @@ export function getMetrics(
       this.asyncValidationMcacheHit.inc({ hit: hit ? 'hit' : 'miss' })
     },
 
-    onReportValidation(topicStr: TopicStr, acceptance: MessageAcceptance): void {
+    onReportValidation(topicStr: TopicStr, acceptance: TopicValidatorResult): void {
       const topic = this.toTopic(topicStr)
       this.asyncValidationResult.inc({ topic: topic, acceptance })
     },

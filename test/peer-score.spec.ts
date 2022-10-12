@@ -8,7 +8,6 @@ import { RejectReason } from '../src/types.js'
 import { ScorePenalty } from '../src/metrics.js'
 import { stubInterface } from 'ts-sinon'
 import { createEd25519PeerId } from '@libp2p/peer-id-factory'
-import { Components } from '@libp2p/components'
 import { PeerStats } from '../src/score/peer-stats.js'
 import type { PeerScoreParams, TopicScoreParams } from '../src/score/peer-score-params.js'
 
@@ -33,8 +32,7 @@ describe('PeerScore', () => {
     }))
     const peerA = (await createEd25519PeerId()).toString()
     // Peer score should start at 0
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
 
     let aScore = ps.score(peerA)
@@ -63,8 +61,7 @@ describe('PeerScore', () => {
     }))
     const peerA = (await createEd25519PeerId()).toString()
     // Peer score should start at 0
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
 
     let aScore = ps.score(peerA)
@@ -96,8 +93,7 @@ describe('PeerScore', () => {
     }))
     const peerA = (await createEd25519PeerId()).toString()
     // Peer score should start at 0
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
 
@@ -132,8 +128,7 @@ describe('PeerScore', () => {
     }))
     const peerA = (await createEd25519PeerId()).toString()
     // Peer score should start at 0
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
 
     let aScore = ps.score(peerA)
@@ -176,8 +171,7 @@ describe('PeerScore', () => {
     }))
     const peerA = (await createEd25519PeerId()).toString()
     // Peer score should start at 0
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
 
     let aScore = ps.score(peerA)
@@ -240,8 +234,7 @@ describe('PeerScore', () => {
     const peerC = (await createEd25519PeerId()).toString()
     const peers = [peerA, peerB, peerC]
     // Peer score should start at 0
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     peers.forEach((p) => {
       ps.addPeer(p)
       ps.graft(p, mytopic)
@@ -302,8 +295,7 @@ describe('PeerScore', () => {
     }))
     const peerA = (await createEd25519PeerId()).toString()
     // Peer score should start at 0
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
 
@@ -363,8 +355,7 @@ describe('PeerScore', () => {
     const peerA = (await createEd25519PeerId()).toString()
     const peerB = (await createEd25519PeerId()).toString()
     const peers = [peerA, peerB]
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     peers.forEach((p) => {
       ps.addPeer(p)
       ps.graft(p, mytopic)
@@ -412,8 +403,7 @@ describe('PeerScore', () => {
       timeInMeshWeight: 0
     }))
     const peerA = (await createEd25519PeerId()).toString()
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
 
@@ -444,8 +434,7 @@ describe('PeerScore', () => {
       timeInMeshWeight: 0
     }))
     const peerA = (await createEd25519PeerId()).toString()
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
 
@@ -485,8 +474,7 @@ describe('PeerScore', () => {
     })
     const peerA = (await createEd25519PeerId()).toString()
     const peerB = (await createEd25519PeerId()).toString()
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.addPeer(peerB)
 
@@ -564,8 +552,7 @@ describe('PeerScore', () => {
       appSpecificWeight: 0.5
     })
     const peerA = (await createEd25519PeerId()).toString()
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
 
@@ -590,8 +577,7 @@ describe('PeerScore', () => {
     const peerD = (await createEd25519PeerId()).toString()
     const peers = [peerA, peerB, peerC, peerD]
 
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     peers.forEach((p) => {
       ps.addPeer(p)
       ps.graft(p, mytopic)
@@ -635,8 +621,7 @@ describe('PeerScore', () => {
     })
     const peerA = (await createEd25519PeerId()).toString()
 
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
 
     // add penalty on a non-existent peer
     ps.addPenalty(peerA, 1, ScorePenalty.MessageDeficit)
@@ -672,8 +657,7 @@ describe('PeerScore', () => {
     })
     const peerA = (await createEd25519PeerId()).toString()
 
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
     // score should equal -1000 (app-specific score)
@@ -719,11 +703,10 @@ describe.skip('PeerScore score cache', function () {
     sandbox.useFakeTimers(now)
     computeStoreStub = sinon.stub<[string, PeerStats, PeerScoreParams, Map<string, Set<string>>], number>()
 
-    ps2 = new PeerScore(params, null, {
+    ps2 = new PeerScore({ connectionManager }, params, null, {
       scoreCacheValidityMs: 10,
       computeScore: computeStoreStub
     })
-    ps2.init(new Components({ connectionManager }))
   })
 
   afterEach(() => {
