@@ -1,4 +1,4 @@
-import { itBench, setBenchOpts } from '@dapplion/benchmark'
+import { itBench } from '@dapplion/benchmark'
 import { GossipSub } from '../../src/index.js'
 import { connectPubsubNodes, createComponentsArray, denseConnect } from '../utils/create-pubsub.js'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
@@ -6,14 +6,7 @@ import { Components } from '@libp2p/components'
 import { awaitEvents, checkReceivedSubscriptions, checkReceivedSubscription } from '../utils/events.js'
 import { expect } from 'aegir/chai'
 
-describe.only('heartbeat', function () {
-  this.timeout(0)
-  setBenchOpts({
-    maxMs: 200 * 1000,
-    minMs: 120 * 1000,
-    minRuns: 200
-  })
-
+describe('heartbeat', function () {
   const topic = 'foobar'
   const numTopic = 70
   const numPeers = 50
