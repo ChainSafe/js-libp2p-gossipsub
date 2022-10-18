@@ -15,6 +15,31 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [4.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v4.1.1...v4.2.0) (2022-10-18)
+
+
+### Features
+
+* allow only defined list of topics ([#348](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/348)) ([6b5ff4d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/6b5ff4d3e40139b2a6cf8cbf670564c9d1b91090))
+* limit RPC lists on decode ([#352](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/352)) ([8fbcb4c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/8fbcb4cab0157631641d5281daf9cefe69eb18ec))
+* support FastMsgIdFn returning a number ([#355](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/355)) ([4df9677](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/4df9677fbc4c54bf189a874ec7a93dd483c4c9fe))
+* track mcache not validated count ([#351](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/351)) ([27bdee7](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/27bdee7b99f3a605d8d7a8983887d692a5185ea1))
+
+
+### Bug Fixes
+
+* copy js files to dist manually ([#340](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/340)) ([4c73e81](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/4c73e81c4b441149f4858aad7beccdd76ad27959))
+* flip conditional in piggyback control - typo from [#347](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/347) ([#353](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/353)) ([cad96c2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/cad96c21322a788b19fb3aa37f7ffe34cbc7d09c))
+* sendRpc in a for loop ([#347](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/347)) ([74cb495](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/74cb495a9f2171b5a08161880a6709013fbeb2c0))
+* update @multiformats/multiaddr to 11.0.0 ([#339](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/339)) ([940dafc](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/940dafca97d142aeb026ba469fcd58887d256124))
+* update event type to extend `{ [s: string]: any }` ([#336](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/336)) ([5c0db52](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/5c0db528a677c6c196b74222256ba032f1fe7d80))
+
+
+### Miscellaneous
+
+* commit package-lock.json ([#359](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/359)) ([eb1a145](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/eb1a145ee8d5fee8a18d87434fc8bcfb3b60f950))
+* retry tests ([#354](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/354)) ([494ffbb](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/494ffbb534f9aa62e6b74d618e2378eae0e51c09))
+
 ## [4.1.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v4.1.0...v4.1.1) (2022-08-24)
 
 
