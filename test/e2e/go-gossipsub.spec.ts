@@ -1221,7 +1221,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     // Subscribe to the topic, all real nodes
     // Publish 300 messages from the real nodes
     // Wait for opgraft
-    // Assert the real peer meshes have at least 3 honest peers
+    // Assert the real peer meshes have at least 2 honest peers
     const topic = 'test'
     psubs = await createComponentsArray({
       number: 20,
@@ -1312,7 +1312,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
             }
           })
 
-          if (count < 3) {
+          if (count < 2) {
             await delay(100)
             throw new Error('Count was less than 3')
           }
