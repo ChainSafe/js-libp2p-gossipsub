@@ -2,7 +2,7 @@ import type { PeerId } from '@libp2p/interface-peer-id'
 import type { PrivateKey } from '@libp2p/interface-keys'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import type { RPC } from './message/rpc.js'
-import type { Message } from '@libp2p/interface-pubsub'
+import { Message, TopicValidatorResult } from '@libp2p/interface-pubsub'
 
 export type MsgIdStr = string
 export type PeerIdStr = string
@@ -49,18 +49,6 @@ export interface DataTransform {
   outboundTransform(topic: TopicStr, data: Uint8Array): Uint8Array
 }
 
-/**
- * Custom validator function per topic.
- * Must return or resolve quickly (< 100ms) to prevent causing penalties for late messages.
- * If you need to apply validation that may require longer times use `asyncValidation` option and callback the
- * validation result through `Gossipsub.reportValidationResult`
- */
-export type TopicValidatorFn = (
-  topic: TopicStr,
-  msg: Message,
-  propagationSource: PeerId
-) => MessageAcceptance | Promise<MessageAcceptance>
-
 export enum SignaturePolicy {
   /**
    * On the producing side:
@@ -97,16 +85,6 @@ export type PublishConfig =
       privateKey: PrivateKey
     }
   | { type: PublishConfigType.Anonymous }
-
-export enum MessageAcceptance {
-  /// The message is considered valid, and it should be delivered and forwarded to the network.
-  Accept = 'accept',
-  /// The message is neither delivered nor forwarded to the network, but the router does not
-  /// trigger the P₄ penalty.
-  Ignore = 'ignore',
-  /// The message is considered invalid, and it should be rejected and trigger the P₄ penalty.
-  Reject = 'reject'
-}
 
 export type RejectReasonObj =
   | { reason: RejectReason.Error; error: ValidateError }
@@ -172,12 +150,12 @@ export type MessageId = {
  * Typesafe conversion of MessageAcceptance -> RejectReason. TS ensures all values covered
  */
 export function rejectReasonFromAcceptance(
-  acceptance: Exclude<MessageAcceptance, MessageAcceptance.Accept>
+  acceptance: Exclude<TopicValidatorResult, TopicValidatorResult.Accept>
 ): RejectReason.Ignore | RejectReason.Reject {
   switch (acceptance) {
-    case MessageAcceptance.Ignore:
+    case TopicValidatorResult.Ignore:
       return RejectReason.Ignore
-    case MessageAcceptance.Reject:
+    case TopicValidatorResult.Reject:
       return RejectReason.Reject
   }
 }

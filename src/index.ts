@@ -38,7 +38,6 @@ import {
   ToSendGroupCount
 } from './metrics.js'
 import {
-  MessageAcceptance,
   MsgIdFn,
   PublishConfig,
   TopicStr,
@@ -51,7 +50,6 @@ import {
   FastMsgIdFn,
   AddrInfo,
   DataTransform,
-  TopicValidatorFn,
   rejectReasonFromAcceptance,
   MsgIdToStrFn,
   MessageId
@@ -61,7 +59,6 @@ import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js'
 import { computeAllPeersScoreWeights } from './score/scoreMetrics.js'
 import { getPublishConfigFromPeerId } from './utils/publishConfig.js'
 import type { GossipsubOptsSpec } from './config.js'
-import { Components, Initializable } from '@libp2p/components'
 import {
   Message,
   PublishResult,
@@ -70,14 +67,18 @@ import {
   PubSubInit,
   StrictNoSign,
   StrictSign,
-  SubscriptionChangeData
+  SubscriptionChangeData,
+  TopicValidatorFn,
+  TopicValidatorResult
 } from '@libp2p/interface-pubsub'
-import type { IncomingStreamData } from '@libp2p/interface-registrar'
+import type { IncomingStreamData, Registrar } from '@libp2p/interface-registrar'
 import { removeFirstNItemsFromSet, removeItemsFromSet } from './utils/set.js'
 import { pushable } from 'it-pushable'
 import { InboundStream, OutboundStream } from './stream.js'
 import { Uint8ArrayList } from 'uint8arraylist'
 import { decodeRpc, DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
+import { ConnectionManager } from '@libp2p/interface-connection-manager'
+import { PeerStore } from '@libp2p/interface-peer-store'
 
 type ConnectionDirection = 'inbound' | 'outbound'
 
@@ -209,7 +210,14 @@ interface AcceptFromWhitelistEntry {
   acceptUntil: number
 }
 
-export class GossipSub extends EventEmitter<GossipsubEvents> implements Initializable, PubSub<GossipsubEvents> {
+export interface GossipSubComponents {
+  peerId: PeerId
+  peerStore: PeerStore
+  registrar: Registrar
+  connectionManager: ConnectionManager
+}
+
+export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<GossipsubEvents> {
   /**
    * The signature policy to follow by default
    */
@@ -325,6 +333,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   /** Peer score tracking */
   public readonly score: PeerScore
 
+  /**
+   * Custom validator function per topic.
+   * Must return or resolve quickly (< 100ms) to prevent causing penalties for late messages.
+   * If you need to apply validation that may require longer times use `asyncValidation` option and callback the
+   * validation result through `Gossipsub.reportValidationResult`
+   */
   public readonly topicValidators = new Map<TopicStr, TopicValidatorFn>()
 
   /**
@@ -338,7 +352,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    */
   readonly gossipTracer: IWantTracer
 
-  private components = new Components()
+  private readonly components: GossipSubComponents
 
   private directPeerInitial: ReturnType<typeof setTimeout> | null = null
   private readonly log: Logger
@@ -361,7 +375,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     cancel: () => void
   } | null = null
 
-  constructor(options: Partial<GossipsubOpts> = {}) {
+  constructor(components: GossipSubComponents, options: Partial<GossipsubOpts> = {}) {
     super()
 
     const opts = {
@@ -392,6 +406,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
       scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
     }
 
+    this.components = components
     this.decodeRpcLimits = opts.decodeRpcLimits ?? defaultDecodeRpcLimits
 
     this.globalSignaturePolicy = opts.globalSignaturePolicy ?? StrictSign
@@ -473,7 +488,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     /**
      * libp2p
      */
-    this.score = new PeerScore(this.opts.scoreParams, this.metrics, {
+    this.score = new PeerScore(components, this.opts.scoreParams, this.metrics, {
       scoreCacheValidityMs: opts.heartbeatInterval
     })
 
@@ -494,14 +509,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   // LIFECYCLE METHODS
 
   /**
-   * Pass libp2p components to interested system components
-   */
-  async init(components: Components): Promise<void> {
-    this.components = components
-    this.score.init(components)
-  }
-
-  /**
    * Mounts the gossipsub protocol onto the libp2p node and sends our
    * our subscriptions to every peer connected
    */
@@ -513,7 +520,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     this.log('starting')
 
-    this.publishConfig = await getPublishConfigFromPeerId(this.globalSignaturePolicy, this.components.getPeerId())
+    this.publishConfig = await getPublishConfigFromPeerId(this.globalSignaturePolicy, this.components.peerId)
 
     // Create the outbound inflight queue
     // This ensures that outbound stream creation happens sequentially
@@ -527,11 +534,11 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // set direct peer addresses in the address book
     await Promise.all(
       this.opts.directPeers.map(async (p) => {
-        await this.components.getPeerStore().addressBook.add(p.id, p.addrs)
+        await this.components.peerStore.addressBook.add(p.id, p.addrs)
       })
     )
 
-    const registrar = this.components.getRegistrar()
+    const registrar = this.components.registrar
     // Incoming streams
     // Called after a peer dials us
     await Promise.all(
@@ -611,7 +618,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     this.status = { code: GossipStatusCode.stopped }
 
     // unregister protocol and handlers
-    const registrar = this.components.getRegistrar()
+    const registrar = this.components.registrar
     registrarTopologyIds.forEach((id) => registrar.unregister(id))
 
     this.outboundInflightQueue.end()
@@ -1059,7 +1066,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
         // Dispatch the message to the user if we are subscribed to the topic
         if (this.subscriptions.has(rpcMsg.topic)) {
-          const isFromSelf = this.components.getPeerId().equals(from)
+          const isFromSelf = this.components.peerId.equals(from)
 
           if (!isFromSelf || this.opts.emitSelf) {
             super.dispatchEvent(
@@ -1146,18 +1153,18 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
     // to not penalize peers for long validation times.
     const topicValidator = this.topicValidators.get(rpcMsg.topic)
     if (topicValidator != null) {
-      let acceptance: MessageAcceptance
+      let acceptance: TopicValidatorResult
       // Use try {} catch {} in case topicValidator() is synchronous
       try {
-        acceptance = await topicValidator(msg.topic, msg, propagationSource)
+        acceptance = await topicValidator(propagationSource, msg)
       } catch (e) {
         const errCode = (e as { code: string }).code
-        if (errCode === constants.ERR_TOPIC_VALIDATOR_IGNORE) acceptance = MessageAcceptance.Ignore
-        if (errCode === constants.ERR_TOPIC_VALIDATOR_REJECT) acceptance = MessageAcceptance.Reject
-        else acceptance = MessageAcceptance.Ignore
+        if (errCode === constants.ERR_TOPIC_VALIDATOR_IGNORE) acceptance = TopicValidatorResult.Ignore
+        if (errCode === constants.ERR_TOPIC_VALIDATOR_REJECT) acceptance = TopicValidatorResult.Reject
+        else acceptance = TopicValidatorResult.Ignore
       }
 
-      if (acceptance !== MessageAcceptance.Accept) {
+      if (acceptance !== TopicValidatorResult.Accept) {
         return { code: MessageStatus.invalid, reason: rejectReasonFromAcceptance(acceptance), msgIdStr }
       }
     }
@@ -1619,7 +1626,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
             this.log("bogus peer record obtained through px: peer ID %p doesn't match expected peer %p", eid, p)
             return
           }
-          if (!(await this.components.getPeerStore().addressBook.consumePeerRecord(envelope))) {
+          if (!(await this.components.peerStore.addressBook.consumePeerRecord(envelope))) {
             this.log('bogus peer record obtained through px: could not add peer record to address book')
             return
           }
@@ -1643,9 +1650,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
   private async connect(id: PeerIdStr): Promise<void> {
     this.log('Initiating connection with %s', id)
     const peerId = peerIdFromString(id)
-    const connection = await this.components.getConnectionManager().openConnection(peerId)
+    const connection = await this.components.connectionManager.openConnection(peerId)
     for (const multicodec of this.multicodecs) {
-      for (const topology of this.components.getRegistrar().getTopologies(multicodec)) {
+      for (const topology of this.components.registrar.getTopologies(multicodec)) {
         topology.onConnect(peerId, connection)
       }
     }
@@ -2006,12 +2013,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     // Dispatch the message to the user if we are subscribed to the topic
     if (willSendToSelf) {
-      tosend.add(this.components.getPeerId().toString())
+      tosend.add(this.components.peerId.toString())
 
       super.dispatchEvent(
         new CustomEvent<GossipsubMessage>('gossipsub:message', {
           detail: {
-            propagationSource: this.components.getPeerId(),
+            propagationSource: this.components.peerId,
             msgId: msgIdStr,
             msg
           }
@@ -2047,8 +2054,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
    *
    * This should only be called once per message.
    */
-  reportMessageValidationResult(msgId: MsgIdStr, propagationSource: PeerId, acceptance: MessageAcceptance): void {
-    if (acceptance === MessageAcceptance.Accept) {
+  reportMessageValidationResult(msgId: MsgIdStr, propagationSource: PeerId, acceptance: TopicValidatorResult): void {
+    if (acceptance === TopicValidatorResult.Accept) {
       const cacheEntry = this.mcache.validate(msgId)
       this.metrics?.onReportValidationMcacheHit(cacheEntry !== null)
 
@@ -2340,7 +2347,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
         return {
           peerID: id.toBytes(),
-          signedPeerRecord: await this.components.getPeerStore().addressBook.getRawEnvelope(id)
+          signedPeerRecord: await this.components.peerStore.addressBook.getRawEnvelope(id)
         }
       })
     )
@@ -2820,4 +2827,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements Initiali
 
     metrics.registerScoreWeights(sw)
   }
+}
+
+export function gossipsub(
+  init: Partial<GossipsubOpts> = {}
+): (components: GossipSubComponents) => PubSub<GossipsubEvents> {
+  return (components: GossipSubComponents) => new GossipSub(components, init)
 }

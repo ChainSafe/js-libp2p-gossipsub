@@ -5,7 +5,6 @@ import { ScorePenalty } from '../src/metrics.js'
 import { expect } from 'aegir/chai'
 import { stubInterface } from 'ts-sinon'
 import { createEd25519PeerId } from '@libp2p/peer-id-factory'
-import { Components } from '@libp2p/components'
 
 const connectionManager = stubInterface<ConnectionManager>()
 connectionManager.getConnections.returns([])
@@ -31,8 +30,7 @@ describe('score / scoreMetrics', () => {
 
     const peerA = (await createEd25519PeerId()).toString()
     // Peer score should start at 0
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
-    ps.init(new Components({ connectionManager }))
+    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
 
     // Do some actions that penalize the peer

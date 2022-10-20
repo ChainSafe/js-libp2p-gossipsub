@@ -4,16 +4,17 @@ import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { GossipsubDhi } from '../src/constants.js'
 import { GossipSub } from '../src/index.js'
 import { pEvent } from 'p-event'
-import { connectAllPubSubNodes, createComponentsArray } from './utils/create-pubsub.js'
-import { Components } from '@libp2p/components'
+import { connectAllPubSubNodes, createComponentsArray, GossipSubAndComponents } from './utils/create-pubsub.js'
 import { stop } from '@libp2p/interfaces/startable'
 import { mockNetwork } from '@libp2p/interface-mocks'
 import { stubInterface } from 'ts-sinon'
 import { Registrar } from '@libp2p/interface-registrar'
 import { createEd25519PeerId } from '@libp2p/peer-id-factory'
+import { PeerStore } from '@libp2p/interface-peer-store'
+import { ConnectionManager } from '@libp2p/interface-connection-manager'
 
 describe('gossip', () => {
-  let nodes: Components[]
+  let nodes: GossipSubAndComponents[]
 
   // Create pubsub nodes
   beforeEach(async () => {
@@ -30,7 +31,7 @@ describe('gossip', () => {
   })
 
   afterEach(async () => {
-    await stop(...nodes)
+    await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
     mockNetwork.reset()
   })
 
@@ -39,29 +40,29 @@ describe('gossip', () => {
     const nodeA = nodes[0]
     const topic = 'Z'
     // add subscriptions to each node
-    nodes.forEach((n) => n.getPubSub().subscribe(topic))
+    nodes.forEach((n) => n.pubsub.subscribe(topic))
 
     // every node connected to every other
     await connectAllPubSubNodes(nodes)
 
     // wait for subscriptions to be transmitted
-    await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'subscription-change')))
+    await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change')))
 
     // await mesh rebalancing
-    await Promise.all(nodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
+    await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
     // set spy. NOTE: Forcing private property to be public
-    const nodeASpy = nodeA.getPubSub() as Partial<GossipSub> as SinonStubbedInstance<{
+    const nodeASpy = nodeA.pubsub as Partial<GossipSub> as SinonStubbedInstance<{
       pushGossip: GossipSub['pushGossip']
     }>
     sinon.spy(nodeASpy, 'pushGossip')
 
-    await nodeA.getPubSub().publish(topic, uint8ArrayFromString('hey'))
+    await nodeA.pubsub.publish(topic, uint8ArrayFromString('hey'))
 
     // gossip happens during the heartbeat
-    await pEvent(nodeA.getPubSub(), 'gossipsub:heartbeat')
+    await pEvent(nodeA.pubsub, 'gossipsub:heartbeat')
 
-    const mesh = (nodeA.getPubSub() as GossipSub).mesh.get(topic)
+    const mesh = (nodeA.pubsub as GossipSub).mesh.get(topic)
 
     if (mesh == null) {
       throw new Error('No mesh for topic')
@@ -83,9 +84,9 @@ describe('gossip', () => {
     const nodeA = nodes[0]
     const topic = 'Z'
 
-    const promises = nodes.map(async (n) => await pEvent(n.getPubSub(), 'subscription-change'))
+    const promises = nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change'))
     // add subscriptions to each node
-    nodes.forEach((n) => n.getPubSub().subscribe(topic))
+    nodes.forEach((n) => n.pubsub.subscribe(topic))
 
     // every node connected to every other
     await connectAllPubSubNodes(nodes)
@@ -94,9 +95,9 @@ describe('gossip', () => {
     await Promise.all(promises)
 
     // await nodeA mesh rebalancing
-    await pEvent(nodeA.getPubSub(), 'gossipsub:heartbeat')
+    await pEvent(nodeA.pubsub, 'gossipsub:heartbeat')
 
-    const mesh = (nodeA.getPubSub() as GossipSub).mesh.get(topic)
+    const mesh = (nodeA.pubsub as GossipSub).mesh.get(topic)
 
     if (mesh == null) {
       throw new Error('No mesh for topic')
@@ -113,26 +114,24 @@ describe('gossip', () => {
     }
 
     // should have peerB as a subscriber to the topic
-    expect(
-      nodeA
-        .getPubSub()
-        .getSubscribers(topic)
-        .map((p) => p.toString())
-    ).to.include(peerB, "did not know about peerB's subscription to topic")
+    expect(nodeA.pubsub.getSubscribers(topic).map((p) => p.toString())).to.include(
+      peerB,
+      "did not know about peerB's subscription to topic"
+    )
 
     // should be able to send them messages
-    expect((nodeA.getPubSub() as GossipSub).streamsOutbound.has(peerB)).to.be.true(
+    expect((nodeA.pubsub as GossipSub).streamsOutbound.has(peerB)).to.be.true(
       'nodeA did not have connection open to peerB'
     )
 
     // set spy. NOTE: Forcing private property to be public
-    const nodeASpy = sinon.spy(nodeA.getPubSub() as GossipSub, 'piggybackControl')
+    const nodeASpy = sinon.spy(nodeA.pubsub as GossipSub, 'piggybackControl')
     // manually add control message to be sent to peerB
     const graft = { ihave: [], iwant: [], graft: [{ topicID: topic }], prune: [] }
-    ;(nodeA.getPubSub() as GossipSub).control.set(peerB, graft)
-    ;(nodeA.getPubSub() as GossipSub).gossip.set(peerB, [])
+    ;(nodeA.pubsub as GossipSub).control.set(peerB, graft)
+    ;(nodeA.pubsub as GossipSub).gossip.set(peerB, [])
 
-    const publishResult = await nodeA.getPubSub().publish(topic, uint8ArrayFromString('hey'))
+    const publishResult = await nodeA.pubsub.publish(topic, uint8ArrayFromString('hey'))
 
     // should have sent message to peerB
     expect(publishResult.recipients.map((p) => p.toString())).to.include(peerB, 'did not send pubsub message to peerB')
@@ -157,16 +156,19 @@ describe('gossip', () => {
     const maxOutboundStreams = 5
 
     const registrar = stubInterface<Registrar>()
-    const components = new Components({
-      peerId: await createEd25519PeerId(),
-      registrar
-    })
 
-    const pubsub = new GossipSub({
-      maxInboundStreams,
-      maxOutboundStreams
-    })
-    pubsub.init(components)
+    const pubsub = new GossipSub(
+      {
+        peerId: await createEd25519PeerId(),
+        registrar,
+        peerStore: stubInterface<PeerStore>(),
+        connectionManager: stubInterface<ConnectionManager>()
+      },
+      {
+        maxInboundStreams,
+        maxOutboundStreams
+      }
+    )
 
     await pubsub.start()
 

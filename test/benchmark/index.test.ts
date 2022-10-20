@@ -1,8 +1,12 @@
 import { itBench, setBenchOpts } from '@dapplion/benchmark'
 import { GossipSub } from '../../src/index.js'
-import { connectPubsubNodes, createComponentsArray, denseConnect } from '../utils/create-pubsub.js'
+import {
+  connectPubsubNodes,
+  createComponentsArray,
+  denseConnect,
+  GossipSubAndComponents
+} from '../utils/create-pubsub.js'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { Components } from '@libp2p/components'
 import { awaitEvents, checkReceivedSubscriptions, checkReceivedSubscription } from '../utils/events.js'
 import { expect } from 'aegir/chai'
 
@@ -74,20 +78,20 @@ describe.only('heartbeat', function () {
 
       // build the star
       await Promise.all(psubs.slice(1).map((ps) => connectPubsubNodes(psubs[0], ps)))
-      await Promise.all(psubs.map((ps) => awaitEvents(ps.getPubSub(), 'gossipsub:heartbeat', 2)))
+      await Promise.all(psubs.map((ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
 
       await denseConnect(psubs)
 
       // make sure psub 0 has `numPeers - 1` peers
-      expect(psubs[0].getPubSub().getPeers().length).to.be.gte(
+      expect(psubs[0].pubsub.getPeers().length).to.be.gte(
         numPeers - 1,
         `peer 0 should have at least ${numPeers - 1} peers`
       )
 
-      const peerIds = psubs.map((psub) => psub.getPeerId().toString())
+      const peerIds = psubs.map((psub) => psub.components.peerId.toString())
       for (let topicIndex = 0; topicIndex < numTopic; topicIndex++) {
         const topic = getTopic(topicIndex)
-        psubs.forEach((ps) => ps.getPubSub().subscribe(topic))
+        psubs.forEach((ps) => ps.pubsub.subscribe(topic))
         const peerIndices = getTopicPeerIndices(topicIndex)
         const peerIdsOnTopic = peerIndices.map((peerIndex) => peerIds[peerIndex])
         // peer 0 see all subscriptions from other
@@ -97,21 +101,21 @@ describe.only('heartbeat', function () {
           .slice(1)
           .map((peerIndex) => psubs[peerIndex])
           .map((psub) => checkReceivedSubscription(psub, peerIds[0], topic, 0))
-        peerIndices.map((peerIndex) => psubs[peerIndex].getPubSub().subscribe(topic))
+        peerIndices.map((peerIndex) => psubs[peerIndex].pubsub.subscribe(topic))
         await Promise.all([subscription, ...otherSubscriptions])
       }
 
       // wait for heartbeats to build mesh
-      await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.getPubSub(), 'gossipsub:heartbeat', 3)))
+      await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 3)))
 
       // make sure psubs 0 have at least 10 topic peers and 4 mesh peers for each topic
       for (let i = 0; i < numTopic; i++) {
-        expect((psubs[0].getPubSub() as GossipSub).getSubscribers(getTopic(i)).length).to.be.gte(
+        expect((psubs[0].pubsub as GossipSub).getSubscribers(getTopic(i)).length).to.be.gte(
           10,
           `psub 0: topic ${i} does not have enough topic peers`
         )
 
-        expect((psubs[0].getPubSub() as GossipSub).getMeshPeers(getTopic(i)).length).to.be.gte(
+        expect((psubs[0].pubsub as GossipSub).getMeshPeers(getTopic(i)).length).to.be.gte(
           4,
           `psub 0: topic ${i} does not have enough mesh peers`
         )
@@ -126,9 +130,10 @@ describe.only('heartbeat', function () {
       for (let topicIndex = 0; topicIndex < numTopic; topicIndex++) {
         for (const peerIndex of getTopicPeerIndices(topicIndex)) {
           promises.push(
-            psubs[peerIndex]
-              .getPubSub()
-              .publish(getTopic(topicIndex), uint8ArrayFromString(psubs[peerIndex].getPeerId().toString() + msg))
+            psubs[peerIndex].pubsub.publish(
+              getTopic(topicIndex),
+              uint8ArrayFromString(psubs[peerIndex].components.peerId.toString() + msg)
+            )
           )
         }
       }
@@ -136,8 +141,8 @@ describe.only('heartbeat', function () {
 
       return psubs[0]
     },
-    fn: (firstPsub: Components) => {
-      ;(firstPsub.getPubSub() as GossipSub).heartbeat()
+    fn: (firstPsub: GossipSubAndComponents) => {
+      ;(firstPsub.pubsub as GossipSub).heartbeat()
     }
   })
 })

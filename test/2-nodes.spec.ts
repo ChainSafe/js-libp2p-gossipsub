@@ -6,27 +6,28 @@ import { pEvent } from 'p-event'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import defer from 'p-defer'
 import pWaitFor from 'p-wait-for'
-import { Components } from '@libp2p/components'
-import { connectAllPubSubNodes, connectPubsubNodes, createComponentsArray } from './utils/create-pubsub.js'
+import {
+  connectAllPubSubNodes,
+  connectPubsubNodes,
+  createComponentsArray,
+  GossipSubAndComponents
+} from './utils/create-pubsub.js'
 import { stop } from '@libp2p/interfaces/startable'
 import { mockNetwork } from '@libp2p/interface-mocks'
 
 const shouldNotHappen = () => expect.fail()
 
-async function nodesArePubSubPeers(node0: Components, node1: Components, timeout = 60000) {
+async function nodesArePubSubPeers(node0: GossipSubAndComponents, node1: GossipSubAndComponents, timeout = 60000) {
   await pWaitFor(
     () => {
-      const node0SeesNode1 = node0
-        .getPubSub()
+      const node0SeesNode1 = node0.pubsub
         .getPeers()
         .map((p) => p.toString())
-        .includes(node1.getPeerId().toString())
-      const node1SeesNode0 = node1
-        .getPubSub()
+        .includes(node1.components.peerId.toString())
+      const node1SeesNode0 = node1.pubsub
         .getPeers()
         .map((p) => p.toString())
-        .includes(node0.getPeerId().toString())
-
+        .includes(node0.components.peerId.toString())
       return node0SeesNode1 && node1SeesNode0
     },
     {
@@ -37,7 +38,7 @@ async function nodesArePubSubPeers(node0: Components, node1: Components, timeout
 
 describe('2 nodes', () => {
   describe('Pubsub dial', () => {
-    let nodes: Components[]
+    let nodes: GossipSubAndComponents[]
 
     // Create pubsub nodes
     beforeEach(async () => {
@@ -46,7 +47,7 @@ describe('2 nodes', () => {
     })
 
     afterEach(async () => {
-      await stop(...nodes)
+      await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
       mockNetwork.reset()
     })
 
@@ -57,7 +58,7 @@ describe('2 nodes', () => {
   })
 
   describe('basics', () => {
-    let nodes: Components[]
+    let nodes: GossipSubAndComponents[]
 
     // Create pubsub nodes
     beforeEach(async () => {
@@ -66,7 +67,7 @@ describe('2 nodes', () => {
     })
 
     afterEach(async () => {
-      await stop(...nodes)
+      await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
       mockNetwork.reset()
     })
 
@@ -77,7 +78,7 @@ describe('2 nodes', () => {
   })
 
   describe('subscription functionality', () => {
-    let nodes: Components[]
+    let nodes: GossipSubAndComponents[]
 
     // Create pubsub nodes
     beforeEach(async () => {
@@ -90,58 +91,52 @@ describe('2 nodes', () => {
     })
 
     afterEach(async () => {
-      await stop(...nodes)
+      await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
       mockNetwork.reset()
     })
 
     it('Subscribe to a topic', async () => {
       const topic = 'test_topic'
 
-      nodes[0].getPubSub().subscribe(topic)
-      nodes[1].getPubSub().subscribe(topic)
+      nodes[0].pubsub.subscribe(topic)
+      nodes[1].pubsub.subscribe(topic)
 
       // await subscription change
       const [evt0] = await Promise.all([
-        pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(nodes[0].getPubSub(), 'subscription-change'),
-        pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(nodes[1].getPubSub(), 'subscription-change')
+        pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(nodes[0].pubsub, 'subscription-change'),
+        pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(nodes[1].pubsub, 'subscription-change')
       ])
 
       const { peerId: changedPeerId, subscriptions: changedSubs } = evt0.detail
 
-      expect(nodes[0].getPubSub().getTopics()).to.include(topic)
-      expect(nodes[1].getPubSub().getTopics()).to.include(topic)
-      expect(
-        nodes[0]
-          .getPubSub()
-          .getSubscribers(topic)
-          .map((p) => p.toString())
-      ).to.include(nodes[1].getPeerId().toString())
-      expect(
-        nodes[1]
-          .getPubSub()
-          .getSubscribers(topic)
-          .map((p) => p.toString())
-      ).to.include(nodes[0].getPeerId().toString())
+      expect(nodes[0].pubsub.getTopics()).to.include(topic)
+      expect(nodes[1].pubsub.getTopics()).to.include(topic)
+      expect(nodes[0].pubsub.getSubscribers(topic).map((p) => p.toString())).to.include(
+        nodes[1].components.peerId.toString()
+      )
+      expect(nodes[1].pubsub.getSubscribers(topic).map((p) => p.toString())).to.include(
+        nodes[0].components.peerId.toString()
+      )
 
-      expect(changedPeerId.toString()).to.equal(nodes[1].getPeerId().toString())
+      expect(changedPeerId.toString()).to.equal(nodes[1].components.peerId.toString())
       expect(changedSubs).to.have.lengthOf(1)
       expect(changedSubs[0].topic).to.equal(topic)
       expect(changedSubs[0].subscribe).to.equal(true)
 
       // await heartbeats
       await Promise.all([
-        pEvent(nodes[0].getPubSub(), 'gossipsub:heartbeat'),
-        pEvent(nodes[1].getPubSub(), 'gossipsub:heartbeat')
+        pEvent(nodes[0].pubsub, 'gossipsub:heartbeat'),
+        pEvent(nodes[1].pubsub, 'gossipsub:heartbeat')
       ])
 
-      expect((nodes[0].getPubSub() as GossipSub).mesh.get(topic)?.has(nodes[1].getPeerId().toString())).to.be.true()
-      expect((nodes[1].getPubSub() as GossipSub).mesh.get(topic)?.has(nodes[0].getPeerId().toString())).to.be.true()
+      expect((nodes[0].pubsub as GossipSub).mesh.get(topic)?.has(nodes[1].components.peerId.toString())).to.be.true()
+      expect((nodes[1].pubsub as GossipSub).mesh.get(topic)?.has(nodes[0].components.peerId.toString())).to.be.true()
     })
   })
 
   describe('publish functionality', () => {
     const topic = 'Z'
-    let nodes: Components[]
+    let nodes: GossipSubAndComponents[]
 
     // Create pubsub nodes
     beforeEach(async () => {
@@ -152,29 +147,29 @@ describe('2 nodes', () => {
       })
 
       // Create subscriptions
-      nodes[0].getPubSub().subscribe(topic)
-      nodes[1].getPubSub().subscribe(topic)
+      nodes[0].pubsub.subscribe(topic)
+      nodes[1].pubsub.subscribe(topic)
 
       // await subscription change and heartbeat
       await Promise.all([
-        pEvent(nodes[0].getPubSub(), 'subscription-change'),
-        pEvent(nodes[1].getPubSub(), 'subscription-change'),
-        pEvent(nodes[0].getPubSub(), 'gossipsub:heartbeat'),
-        pEvent(nodes[1].getPubSub(), 'gossipsub:heartbeat')
+        pEvent(nodes[0].pubsub, 'subscription-change'),
+        pEvent(nodes[1].pubsub, 'subscription-change'),
+        pEvent(nodes[0].pubsub, 'gossipsub:heartbeat'),
+        pEvent(nodes[1].pubsub, 'gossipsub:heartbeat')
       ])
     })
 
     afterEach(async () => {
-      await stop(...nodes)
+      await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
       mockNetwork.reset()
     })
 
     it('Publish to a topic - nodeA', async () => {
-      const promise = pEvent<'message', CustomEvent<Message>>(nodes[1].getPubSub(), 'message')
-      nodes[0].getPubSub().addEventListener('message', shouldNotHappen)
+      const promise = pEvent<'message', CustomEvent<Message>>(nodes[1].pubsub, 'message')
+      nodes[0].pubsub.addEventListener('message', shouldNotHappen)
       const data = uint8ArrayFromString('hey')
 
-      await nodes[0].getPubSub().publish(topic, data)
+      await nodes[0].pubsub.publish(topic, data)
 
       const evt = await promise
 
@@ -182,17 +177,17 @@ describe('2 nodes', () => {
         throw new Error('unexpected msg type')
       }
       expect(evt.detail.data).to.equalBytes(data)
-      expect(evt.detail.from.toString()).to.equal(nodes[0].getPeerId().toString())
+      expect(evt.detail.from.toString()).to.equal(nodes[0].components.peerId.toString())
 
-      nodes[0].getPubSub().removeEventListener('message', shouldNotHappen)
+      nodes[0].pubsub.removeEventListener('message', shouldNotHappen)
     })
 
     it('Publish to a topic - nodeB', async () => {
-      const promise = pEvent<'message', CustomEvent<Message>>(nodes[0].getPubSub(), 'message')
-      nodes[1].getPubSub().addEventListener('message', shouldNotHappen)
+      const promise = pEvent<'message', CustomEvent<Message>>(nodes[0].pubsub, 'message')
+      nodes[1].pubsub.addEventListener('message', shouldNotHappen)
       const data = uint8ArrayFromString('banana')
 
-      await nodes[1].getPubSub().publish(topic, data)
+      await nodes[1].pubsub.publish(topic, data)
 
       const evt = await promise
 
@@ -200,16 +195,16 @@ describe('2 nodes', () => {
         throw new Error('unexpected msg type')
       }
       expect(evt.detail.data).to.equalBytes(data)
-      expect(evt.detail.from.toString()).to.equal(nodes[1].getPeerId().toString())
+      expect(evt.detail.from.toString()).to.equal(nodes[1].components.peerId.toString())
 
-      nodes[1].getPubSub().removeEventListener('message', shouldNotHappen)
+      nodes[1].pubsub.removeEventListener('message', shouldNotHappen)
     })
 
     it('Publish 10 msg to a topic', async () => {
       let counter = 0
 
-      nodes[1].getPubSub().addEventListener('message', shouldNotHappen)
-      nodes[0].getPubSub().addEventListener('message', receivedMsg)
+      nodes[1].pubsub.addEventListener('message', shouldNotHappen)
+      nodes[0].pubsub.addEventListener('message', receivedMsg)
 
       const done = defer()
 
@@ -221,20 +216,20 @@ describe('2 nodes', () => {
         if (msg.type !== 'signed') {
           throw new Error('unexpected msg type')
         }
-        expect(msg.from.toString()).to.equal(nodes[1].getPeerId().toString())
+        expect(msg.from.toString()).to.equal(nodes[1].components.peerId.toString())
         expect(msg.sequenceNumber).to.be.a('BigInt')
         expect(msg.topic).to.equal(topic)
 
         if (++counter === 10) {
-          nodes[0].getPubSub().removeEventListener('message', receivedMsg)
-          nodes[1].getPubSub().removeEventListener('message', shouldNotHappen)
+          nodes[0].pubsub.removeEventListener('message', receivedMsg)
+          nodes[1].pubsub.removeEventListener('message', shouldNotHappen)
           done.resolve()
         }
       }
 
       await Promise.all(
         Array.from({ length: 10 }).map(async (_, i) => {
-          await nodes[1].getPubSub().publish(topic, uint8ArrayFromString(`banana${i}`))
+          await nodes[1].pubsub.publish(topic, uint8ArrayFromString(`banana${i}`))
         })
       )
 
@@ -244,7 +239,7 @@ describe('2 nodes', () => {
 
   describe('publish after unsubscribe', () => {
     const topic = 'Z'
-    let nodes: Components[]
+    let nodes: GossipSubAndComponents[]
 
     // Create pubsub nodes
     beforeEach(async () => {
@@ -253,67 +248,64 @@ describe('2 nodes', () => {
       await connectAllPubSubNodes(nodes)
 
       // Create subscriptions
-      nodes[0].getPubSub().subscribe(topic)
-      nodes[1].getPubSub().subscribe(topic)
+      nodes[0].pubsub.subscribe(topic)
+      nodes[1].pubsub.subscribe(topic)
 
       // await subscription change and heartbeat
       await Promise.all([
-        pEvent(nodes[0].getPubSub(), 'subscription-change'),
-        pEvent(nodes[1].getPubSub(), 'subscription-change')
+        pEvent(nodes[0].pubsub, 'subscription-change'),
+        pEvent(nodes[1].pubsub, 'subscription-change')
       ])
       await Promise.all([
-        pEvent(nodes[0].getPubSub(), 'gossipsub:heartbeat'),
-        pEvent(nodes[1].getPubSub(), 'gossipsub:heartbeat')
+        pEvent(nodes[0].pubsub, 'gossipsub:heartbeat'),
+        pEvent(nodes[1].pubsub, 'gossipsub:heartbeat')
       ])
     })
 
     afterEach(async () => {
-      await stop(...nodes)
+      await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
       mockNetwork.reset()
     })
 
     it('Unsubscribe from a topic', async () => {
-      nodes[0].getPubSub().unsubscribe(topic)
-      expect(nodes[0].getPubSub().getTopics()).to.be.empty()
+      nodes[0].pubsub.unsubscribe(topic)
+      expect(nodes[0].pubsub.getTopics()).to.be.empty()
 
       const evt = await pEvent<'subscription-change', CustomEvent<SubscriptionChangeData>>(
-        nodes[1].getPubSub(),
+        nodes[1].pubsub,
         'subscription-change'
       )
       const { peerId: changedPeerId, subscriptions: changedSubs } = evt.detail
 
-      await pEvent(nodes[1].getPubSub(), 'gossipsub:heartbeat')
+      await pEvent(nodes[1].pubsub, 'gossipsub:heartbeat')
 
-      expect(nodes[1].getPubSub().getPeers()).to.have.lengthOf(1)
-      expect(nodes[1].getPubSub().getSubscribers(topic)).to.be.empty()
+      expect(nodes[1].pubsub.getPeers()).to.have.lengthOf(1)
+      expect(nodes[1].pubsub.getSubscribers(topic)).to.be.empty()
 
-      expect(changedPeerId.toString()).to.equal(nodes[0].getPeerId().toString())
+      expect(changedPeerId.toString()).to.equal(nodes[0].components.peerId.toString())
       expect(changedSubs).to.have.lengthOf(1)
       expect(changedSubs[0].topic).to.equal(topic)
       expect(changedSubs[0].subscribe).to.equal(false)
     })
 
     it('Publish to a topic after unsubscribe', async () => {
-      const promises = [
-        pEvent(nodes[1].getPubSub(), 'subscription-change'),
-        pEvent(nodes[1].getPubSub(), 'gossipsub:heartbeat')
-      ]
+      const promises = [pEvent(nodes[1].pubsub, 'subscription-change'), pEvent(nodes[1].pubsub, 'gossipsub:heartbeat')]
 
-      nodes[0].getPubSub().unsubscribe(topic)
+      nodes[0].pubsub.unsubscribe(topic)
 
       await Promise.all(promises)
 
       const promise = new Promise<void>((resolve, reject) => {
-        nodes[0].getPubSub().addEventListener('message', reject)
+        nodes[0].pubsub.addEventListener('message', reject)
 
         setTimeout(() => {
-          nodes[0].getPubSub().removeEventListener('message', reject)
+          nodes[0].pubsub.removeEventListener('message', reject)
           resolve()
         }, 100)
       })
 
-      await nodes[1].getPubSub().publish('Z', uint8ArrayFromString('banana'))
-      await nodes[0].getPubSub().publish('Z', uint8ArrayFromString('banana'))
+      await nodes[1].pubsub.publish('Z', uint8ArrayFromString('banana'))
+      await nodes[0].pubsub.publish('Z', uint8ArrayFromString('banana'))
 
       try {
         await promise
@@ -324,7 +316,7 @@ describe('2 nodes', () => {
   })
 
   describe('nodes send state on connection', () => {
-    let nodes: Components[]
+    let nodes: GossipSubAndComponents[]
 
     // Create pubsub nodes
     beforeEach(async () => {
@@ -334,17 +326,17 @@ describe('2 nodes', () => {
       })
 
       // Make subscriptions prior to new nodes
-      nodes[0].getPubSub().subscribe('Za')
-      nodes[1].getPubSub().subscribe('Zb')
+      nodes[0].pubsub.subscribe('Za')
+      nodes[1].pubsub.subscribe('Zb')
 
-      expect(nodes[0].getPubSub().getPeers()).to.be.empty()
-      expect(nodes[0].getPubSub().getTopics()).to.include('Za')
-      expect(nodes[1].getPubSub().getPeers()).to.be.empty()
-      expect(nodes[1].getPubSub().getTopics()).to.include('Zb')
+      expect(nodes[0].pubsub.getPeers()).to.be.empty()
+      expect(nodes[0].pubsub.getTopics()).to.include('Za')
+      expect(nodes[1].pubsub.getPeers()).to.be.empty()
+      expect(nodes[1].pubsub.getTopics()).to.include('Zb')
     })
 
     afterEach(async () => {
-      await stop(...nodes)
+      await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
       mockNetwork.reset()
     })
 
@@ -353,32 +345,26 @@ describe('2 nodes', () => {
 
       await Promise.all([
         connectPubsubNodes(nodes[0], nodes[1]),
-        pEvent(nodes[0].getPubSub(), 'subscription-change'),
-        pEvent(nodes[1].getPubSub(), 'subscription-change')
+        pEvent(nodes[0].pubsub, 'subscription-change'),
+        pEvent(nodes[1].pubsub, 'subscription-change')
       ])
 
-      expect(nodes[0].getPubSub().getTopics()).to.include('Za')
-      expect(nodes[1].getPubSub().getPeers()).to.have.lengthOf(1)
-      expect(
-        nodes[1]
-          .getPubSub()
-          .getSubscribers('Za')
-          .map((p) => p.toString())
-      ).to.include(nodes[0].getPeerId().toString())
+      expect(nodes[0].pubsub.getTopics()).to.include('Za')
+      expect(nodes[1].pubsub.getPeers()).to.have.lengthOf(1)
+      expect(nodes[1].pubsub.getSubscribers('Za').map((p) => p.toString())).to.include(
+        nodes[0].components.peerId.toString()
+      )
 
-      expect(nodes[1].getPubSub().getTopics()).to.include('Zb')
-      expect(nodes[0].getPubSub().getPeers()).to.have.lengthOf(1)
-      expect(
-        nodes[0]
-          .getPubSub()
-          .getSubscribers('Zb')
-          .map((p) => p.toString())
-      ).to.include(nodes[1].getPeerId().toString())
+      expect(nodes[1].pubsub.getTopics()).to.include('Zb')
+      expect(nodes[0].pubsub.getPeers()).to.have.lengthOf(1)
+      expect(nodes[0].pubsub.getSubscribers('Zb').map((p) => p.toString())).to.include(
+        nodes[1].components.peerId.toString()
+      )
     })
   })
 
   describe('nodes handle stopping', () => {
-    let nodes: Components[]
+    let nodes: GossipSubAndComponents[]
 
     // Create pubsub nodes
     beforeEach(async () => {
@@ -390,14 +376,14 @@ describe('2 nodes', () => {
     })
 
     afterEach(async () => {
-      await stop(...nodes)
+      await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
       mockNetwork.reset()
     })
 
     it("nodes don't have peers after stopped", async () => {
-      await stop(...nodes)
-      expect(nodes[0].getPubSub().getPeers()).to.be.empty()
-      expect(nodes[1].getPubSub().getPeers()).to.be.empty()
+      await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
+      expect(nodes[0].pubsub.getPeers()).to.be.empty()
+      expect(nodes[1].pubsub.getPeers()).to.be.empty()
     })
   })
 })

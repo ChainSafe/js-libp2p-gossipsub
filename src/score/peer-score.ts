@@ -5,7 +5,7 @@ import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries.js
 import { logger } from '@libp2p/logger'
 import { MsgIdStr, PeerIdStr, RejectReason, TopicStr, IPStr } from '../types.js'
 import type { Metrics, ScorePenalty } from '../metrics.js'
-import { Components } from '@libp2p/components'
+import { ConnectionManager } from '@libp2p/interface-connection-manager'
 import { peerIdFromString } from '@libp2p/peer-id'
 
 const log = logger('libp2p:gossipsub:score')
@@ -28,6 +28,10 @@ interface ScoreCacheEntry {
 
 export type PeerScoreStatsDump = Record<PeerIdStr, PeerStats>
 
+export interface PeerScoreComponents {
+  connectionManager: ConnectionManager
+}
+
 export class PeerScore {
   /**
    * Per-peer stats for score calculation
@@ -49,17 +53,19 @@ export class PeerScore {
   _backgroundInterval?: ReturnType<typeof setInterval>
 
   private readonly scoreCacheValidityMs: number
-  private components = new Components()
+  private readonly components: PeerScoreComponents
   private readonly computeScore: typeof computeScore
 
-  constructor(readonly params: PeerScoreParams, private readonly metrics: Metrics | null, opts: PeerScoreOpts) {
+  constructor(
+    components: PeerScoreComponents,
+    readonly params: PeerScoreParams,
+    private readonly metrics: Metrics | null,
+    opts: PeerScoreOpts
+  ) {
     validatePeerScoreParams(params)
+    this.components = components
     this.scoreCacheValidityMs = opts.scoreCacheValidityMs
     this.computeScore = opts.computeScore ?? computeScore
-  }
-
-  init(components: Components): void {
-    this.components = components
   }
 
   get size(): number {
@@ -498,8 +504,7 @@ export class PeerScore {
    * Gets the current IPs for a peer.
    */
   private getIPs(id: PeerIdStr): IPStr[] {
-    return this.components
-      .getConnectionManager()
+    return this.components.connectionManager
       .getConnections(peerIdFromString(id))
       .map((c) => c.remoteAddr.toOptions().host)
   }
