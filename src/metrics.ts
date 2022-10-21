@@ -498,6 +498,11 @@ export function getMetrics(
       help: 'Current mcache msg count not validated'
     }),
 
+    fastMsgIdCacheCollision: register.gauge({
+      name: 'gossipsub_fastmsgid_cache_collision_total',
+      help: 'Total count of key collisions on fastmsgid cache put'
+    }),
+
     topicStrToLabel: topicStrToLabel,
 
     toTopic(topicStr: TopicStr): TopicLabel {

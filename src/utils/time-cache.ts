@@ -27,8 +27,19 @@ export class SimpleTimeCache<T> {
     return this.entries.size
   }
 
-  put(key: string | number, value: T): void {
+  /** Returns true if there was a key collision and the entry is dropped */
+  put(key: string | number, value: T): boolean {
+    if (this.entries.has(key)) {
+      // Key collisions break insertion order in the entries cache, which break prune logic.
+      // prune relies on each iterated entry to have strictly ascending validUntilMs, else it
+      // won't prune expired entries and SimpleTimeCache will grow unexpectedly.
+      // As of Oct 2022 NodeJS v16, inserting the same key twice with different value does not
+      // change the key position in the iterator stream. A unit test asserts this behaviour.
+      return true
+    }
+
     this.entries.set(key, { value, validUntilMs: Date.now() + this.validityMs })
+    return false
   }
 
   prune(): void {
@@ -38,7 +49,8 @@ export class SimpleTimeCache<T> {
       if (v.validUntilMs < now) {
         this.entries.delete(k)
       } else {
-        // sort by insertion order
+        // Entries are inserted with strictly ascending validUntilMs.
+        // Stop early to save iterations
         break
       }
     }
