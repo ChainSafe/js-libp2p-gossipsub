@@ -15,6 +15,19 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [5.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v4.2.0...v5.0.0) (2022-10-22)
+
+
+### Bug Fixes
+
+* TimeCache handle key collision to prevent leak ([#358](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/358)) ([8f0ba37](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/8f0ba37a73560f3ffd12567603720564d7c2862a))
+
+
+### Miscellaneous
+
+* bump version ([#364](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/364)) ([7a8ff3e](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/7a8ff3ecb796eab0304aaff031f1defacc1ee0fe))
+* release 5.0.0 ([d13c44d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/d13c44d827fb206a6bac5e003da27c61ac849362))
+
 ## [4.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v4.1.1...v4.2.0) (2022-10-18)
 
 
