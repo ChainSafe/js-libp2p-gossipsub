@@ -88,28 +88,31 @@ describe('gossip', () => {
     const twoNodes = [nodeA, nodeB]
     const topic = 'Z'
     // add subscriptions to each node
-    twoNodes.forEach((n) => n.getPubSub().subscribe(topic))
+    twoNodes.forEach((n) => n.pubsub.subscribe(topic))
 
     // every node connected to every other
     await connectAllPubSubNodes(twoNodes)
 
     // wait for subscriptions to be transmitted
-    await Promise.all(twoNodes.map(async (n) => await pEvent(n.getPubSub(), 'subscription-change')))
+    await Promise.all(twoNodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change')))
 
     // await mesh rebalancing
-    await Promise.all(twoNodes.map(async (n) => await pEvent(n.getPubSub(), 'gossipsub:heartbeat')))
+    await Promise.all(twoNodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
     // set spy. NOTE: Forcing private property to be public
-    const nodeBSpy = nodeB.getPubSub() as Partial<GossipSub> as SinonStubbedInstance<{
+    const nodeBSpy = nodeB.pubsub as Partial<GossipSub> as SinonStubbedInstance<{
       handlePeerReadStreamError: GossipSub['handlePeerReadStreamError']
     }>
     sinon.spy(nodeBSpy, 'handlePeerReadStreamError')
 
     // This should lead to handlePeerReadStreamError at nodeB
-    await nodeA.getPubSub().publish(topic, new Uint8Array(5000000))
-    await pEvent(nodeA.getPubSub(), 'gossipsub:heartbeat')
+    await nodeA.pubsub.publish(topic, new Uint8Array(5000000))
+    await pEvent(nodeA.pubsub, 'gossipsub:heartbeat')
     const expectedError = nodeBSpy.handlePeerReadStreamError.getCalls()[0]?.args[0]
     expect(expectedError !== undefined && (expectedError as unknown as { code: string }).code, 'ERR_MSG_DATA_TOO_LONG')
+
+    // unset spy
+    nodeBSpy.handlePeerReadStreamError.restore()
   })
 
   it('should send piggyback control into other sent messages', async function () {
