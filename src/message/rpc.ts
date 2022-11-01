@@ -1495,14 +1495,5 @@ export interface IRPC {
     control?: (RPC.IControlMessage | null);
 }
 
-
-
 // Exported root namespace
-/* var $root = protobuf.roots["default"] || (protobuf.roots["default"] = {});
-
-
-
-$root.RPC = RPC */
-/* protobuf.roots.
- */
 export { RPC }
