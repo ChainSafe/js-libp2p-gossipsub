@@ -15,6 +15,18 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [5.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.0.0...v5.1.0) (2022-10-28)
+
+
+### Features
+
+* Add stream option to limit inbound message size ([#349](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/349)) ([3475242](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/3475242ed254f7647798ab7f36b21909f6cb61da))
+
+
+### Bug Fixes
+
+* mark import as type ([#365](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/365)) ([19507d9](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/19507d9da5e11702182cfc97300642c5fb78f964))
+
 ## [5.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v4.2.0...v5.0.0) (2022-10-22)
 
 
