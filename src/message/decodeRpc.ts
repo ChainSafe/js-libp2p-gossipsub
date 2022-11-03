@@ -1,4 +1,5 @@
-import type { IRPC, RPC } from './rpc'
+import { IRPC, RPC } from './rpc.js'
+
 import protobuf from 'protobufjs/minimal.js'
 
 export type DecodeRPCLimits = {

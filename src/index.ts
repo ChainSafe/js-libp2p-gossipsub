@@ -8,7 +8,7 @@ import type { PeerId } from '@libp2p/interface-peer-id'
 import { CustomEvent, EventEmitter } from '@libp2p/interfaces/events'
 
 import { MessageCache } from './message-cache.js'
-import { RPC, IRPC } from './message/rpc.js'
+import { IRPC, RPC } from './message/rpc.js'
 import * as constants from './constants.js'
 import { shuffle, messageIdToString } from './utils/index.js'
 import {
@@ -196,14 +196,14 @@ enum GossipStatusCode {
 
 type GossipStatus =
   | {
-      code: GossipStatusCode.started
-      registrarTopologyIds: string[]
-      heartbeatTimeout: ReturnType<typeof setTimeout>
-      hearbeatStartMs: number
-    }
+    code: GossipStatusCode.started
+    registrarTopologyIds: string[]
+    heartbeatTimeout: ReturnType<typeof setTimeout>
+    hearbeatStartMs: number
+  }
   | {
-      code: GossipStatusCode.stopped
-    }
+    code: GossipStatusCode.stopped
+  }
 
 interface GossipOptions extends GossipsubOpts {
   scoreParams: PeerScoreParams
