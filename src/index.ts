@@ -592,7 +592,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     // Then, run heartbeat every `heartbeatInterval` offset by `GossipsubHeartbeatInitialDelay`
 
     // TODO: Implement 'peer:addressChange' or similar
-    // this.components.connectionManager.addEventListener('peer:addressChange', this.onPeerAddressChange)
+    this.components.connectionManager.addEventListener('peer:addressChange', this.onPeerAddressChange)
 
     this.status = {
       code: GossipStatusCode.started,
@@ -631,7 +631,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     this.status = { code: GossipStatusCode.stopped }
 
     // TODO: Implement 'peer:addressChange' or similar
-    // this.components.connectionManager.removeEventListener('peer:addressChange', this.onPeerAddressChange)
+    this.components.connectionManager.removeEventListener('peer:addressChange', this.onPeerAddressChange)
 
     // unregister protocol and handlers
     const registrar = this.components.registrar
