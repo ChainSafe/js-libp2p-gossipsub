@@ -52,7 +52,8 @@ import {
   DataTransform,
   rejectReasonFromAcceptance,
   MsgIdToStrFn,
-  MessageId
+  MessageId,
+  IPStr
 } from './types.js'
 import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage.js'
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js'
@@ -79,6 +80,8 @@ import { Uint8ArrayList } from 'uint8arraylist'
 import { decodeRpc, DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
 import { ConnectionManager } from '@libp2p/interface-connection-manager'
 import { PeerStore } from '@libp2p/interface-peer-store'
+import { Multiaddr } from '@multiformats/multiaddr'
+import { multiaddrToIPStr } from './utils/multiaddr.js'
 
 type ConnectionDirection = 'inbound' | 'outbound'
 
@@ -495,7 +498,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     /**
      * libp2p
      */
-    this.score = new PeerScore(components, this.opts.scoreParams, this.metrics, {
+    this.score = new PeerScore(this.opts.scoreParams, this.metrics, {
       scoreCacheValidityMs: opts.heartbeatInterval
     })
 
@@ -588,6 +591,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const heartbeatTimeout = setTimeout(this.runHeartbeat, constants.GossipsubHeartbeatInitialDelay)
     // Then, run heartbeat every `heartbeatInterval` offset by `GossipsubHeartbeatInitialDelay`
 
+    // TODO: Implement 'peer:addressChange' or similar
+    // this.components.connectionManager.addEventListener('peer:addressChange', this.onPeerAddressChange)
+
     this.status = {
       code: GossipStatusCode.started,
       registrarTopologyIds,
@@ -623,6 +629,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     const { registrarTopologyIds } = this.status
     this.status = { code: GossipStatusCode.stopped }
+
+    // TODO: Implement 'peer:addressChange' or similar
+    // this.components.connectionManager.removeEventListener('peer:addressChange', this.onPeerAddressChange)
 
     // unregister protocol and handlers
     const registrar = this.components.registrar
@@ -684,7 +693,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     const peerId = connection.remotePeer
     // add peer to router
-    this.addPeer(peerId, connection.stat.direction)
+    this.addPeer(peerId, connection.stat.direction, connection.remoteAddr)
     // create inbound stream
     this.createInboundStream(peerId, stream)
     // attempt to create outbound stream
@@ -699,7 +708,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       return
     }
 
-    this.addPeer(peerId, connection.stat.direction)
+    this.addPeer(peerId, connection.stat.direction, connection.remoteAddr)
     this.outboundInflightQueue.push({ peerId, connection })
   }
 
@@ -788,7 +797,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
   /**
    * Add a peer to the router
    */
-  private addPeer(peerId: PeerId, direction: ConnectionDirection): void {
+  private addPeer(peerId: PeerId, direction: ConnectionDirection, addr: Multiaddr): void {
     const id = peerId.toString()
 
     if (!this.peers.has(id)) {
@@ -798,6 +807,13 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
       // Add to peer scoring
       this.score.addPeer(id)
+      const currentIP = multiaddrToIPStr(addr)
+      if (currentIP !== null) {
+        this.score.addIP(id, currentIP)
+      } else {
+        this.log('Added peer has no IP in current address %s %s', id, addr.toString())
+      }
+
       // track the connection direction. Don't allow to unset outbound
       if (!this.outbound.has(id)) {
         this.outbound.set(id, direction === 'outbound')
@@ -864,6 +880,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     this.score.removePeer(id)
 
     this.acceptFromWhitelist.delete(id)
+  }
+
+  private onPeerAddressChange(peerId: PeerId, previousAddr: IPStr, currentAddr: IPStr): void {
+    const id = peerId.toString()
+    this.score.removeIP(id, previousAddr)
+    this.score.addIP(id, currentAddr)
   }
 
   // API METHODS

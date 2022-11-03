@@ -1,13 +1,8 @@
-import type { ConnectionManager } from '@libp2p/interface-connection-manager'
 import { computeAllPeersScoreWeights } from '../src/score/scoreMetrics.js'
 import { createPeerScoreParams, createTopicScoreParams, PeerScore } from '../src/score/index.js'
 import { ScorePenalty } from '../src/metrics.js'
 import { expect } from 'aegir/chai'
-import { stubInterface } from 'ts-sinon'
 import { createEd25519PeerId } from '@libp2p/peer-id-factory'
-
-const connectionManager = stubInterface<ConnectionManager>()
-connectionManager.getConnections.returns([])
 
 describe('score / scoreMetrics', () => {
   it('computeScoreWeights', async () => {
@@ -30,7 +25,7 @@ describe('score / scoreMetrics', () => {
 
     const peerA = (await createEd25519PeerId()).toString()
     // Peer score should start at 0
-    const ps = new PeerScore({ connectionManager }, params, null, { scoreCacheValidityMs: 0 })
+    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
 
     // Do some actions that penalize the peer

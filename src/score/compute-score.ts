@@ -70,7 +70,7 @@ export function computeScore(
   score += p5 * params.appSpecificWeight
 
   // P6: IP colocation factor
-  pstats.ips.forEach((ip) => {
+  pstats.knownIPs.forEach((ip) => {
     if (params.IPColocationFactorWhitelist.has(ip)) {
       return
     }
