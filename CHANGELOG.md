@@ -15,6 +15,13 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [5.1.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.1.0...v5.1.1) (2022-11-03)
+
+
+### Bug Fixes
+
+* add .js extension to imported file ([#370](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/370)) ([129b9cd](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/129b9cdc26bb5fca02c717d9c1c599536a3f64a4))
+
 ## [5.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.0.0...v5.1.0) (2022-10-28)
 
 
