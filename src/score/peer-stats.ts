@@ -7,7 +7,7 @@ export interface PeerStats {
   expire: number
   /** per topic stats */
   topics: Record<TopicStr, TopicStats>
-  /** IP tracking; store as string for easy processing */
+  /** IP tracking; store as set for easy processing */
   knownIPs: Set<string>
   /** behavioural pattern penalties (applied by the router) */
   behaviourPenalty: number

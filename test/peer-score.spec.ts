@@ -579,9 +579,8 @@ describe('PeerScore', () => {
     })
 
     const setIPsForPeer = (p: string, ips: string[]) => {
-      const pstats = ps.peerStats.get(p)
-      if (pstats != null) {
-        pstats.knownIPs = new Set(ips)
+      for (const ip of ips) {
+        ps.addIP(p, ip)
       }
     }
     // peerA should have no penalty, but B, C, and D should be penalized for sharing an IP

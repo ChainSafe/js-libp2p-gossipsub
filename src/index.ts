@@ -52,8 +52,7 @@ import {
   DataTransform,
   rejectReasonFromAcceptance,
   MsgIdToStrFn,
-  MessageId,
-  IPStr
+  MessageId
 } from './types.js'
 import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage.js'
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js'
@@ -79,7 +78,7 @@ import { InboundStream, OutboundStream } from './stream.js'
 import { Uint8ArrayList } from 'uint8arraylist'
 import { decodeRpc, DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
 import { ConnectionManager } from '@libp2p/interface-connection-manager'
-import { PeerStore } from '@libp2p/interface-peer-store'
+import { PeerMultiaddrsChangeData, PeerStore } from '@libp2p/interface-peer-store'
 import { Multiaddr } from '@multiformats/multiaddr'
 import { multiaddrToIPStr } from './utils/multiaddr.js'
 
@@ -591,8 +590,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const heartbeatTimeout = setTimeout(this.runHeartbeat, constants.GossipsubHeartbeatInitialDelay)
     // Then, run heartbeat every `heartbeatInterval` offset by `GossipsubHeartbeatInitialDelay`
 
-    // TODO: Implement 'peer:addressChange' or similar
-    this.components.connectionManager.addEventListener('peer:addressChange', this.onPeerAddressChange)
+    this.components.peerStore.addEventListener('change:multiaddrs', this.onPeerAddressChange)
 
     this.status = {
       code: GossipStatusCode.started,
@@ -630,8 +628,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const { registrarTopologyIds } = this.status
     this.status = { code: GossipStatusCode.stopped }
 
-    // TODO: Implement 'peer:addressChange' or similar
-    this.components.connectionManager.removeEventListener('peer:addressChange', this.onPeerAddressChange)
+    this.components.peerStore.removeEventListener('change:multiaddrs', this.onPeerAddressChange)
 
     // unregister protocol and handlers
     const registrar = this.components.registrar
@@ -882,10 +879,34 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     this.acceptFromWhitelist.delete(id)
   }
 
-  private onPeerAddressChange(peerId: PeerId, previousAddr: IPStr, currentAddr: IPStr): void {
+  private onPeerAddressChange(evt: CustomEvent<PeerMultiaddrsChangeData>): void {
+    const { peerId, multiaddrs, oldMultiaddrs } = evt.detail
+    const newIps = new Set<string>()
+    const oldIps = new Set<string>()
+    for (const mu of multiaddrs) {
+      const ipStr = multiaddrToIPStr(mu)
+      if (ipStr) {
+        newIps.add(ipStr)
+      }
+    }
+    for (const mu of oldMultiaddrs) {
+      const ipStr = multiaddrToIPStr(mu)
+      if (ipStr) {
+        // Remove multiaddrs that aren't new
+        if (newIps.has(ipStr)) {
+          newIps.delete(ipStr)
+        } else {
+          oldIps.add(ipStr)
+        }
+      }
+    }
     const id = peerId.toString()
-    this.score.removeIP(id, previousAddr)
-    this.score.addIP(id, currentAddr)
+    for (const ipStr of oldIps) {
+      this.score.removeIP(id, ipStr)
+    }
+    for (const ipStr of newIps) {
+      this.score.addIP(id, ipStr)
+    }
   }
 
   // API METHODS
