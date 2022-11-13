@@ -15,6 +15,13 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [5.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.1.1...v5.2.0) (2022-11-13)
+
+
+### Features
+
+* remove unnecessary conversion from Multiaddr to IP ([#369](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/369)) ([e37c7c2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/e37c7c2e7872284093eabc765a4ddafb9e56f690))
+
 ## [5.1.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.1.0...v5.1.1) (2022-11-03)
 
 
