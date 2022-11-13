@@ -5,8 +5,7 @@ import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries.js
 import { logger } from '@libp2p/logger'
 import { MsgIdStr, PeerIdStr, RejectReason, TopicStr, IPStr } from '../types.js'
 import type { Metrics, ScorePenalty } from '../metrics.js'
-import { ConnectionManager } from '@libp2p/interface-connection-manager'
-import { peerIdFromString } from '@libp2p/peer-id'
+import { MapDef } from '../utils/set.js'
 
 const log = logger('libp2p:gossipsub:score')
 
@@ -28,10 +27,6 @@ interface ScoreCacheEntry {
 
 export type PeerScoreStatsDump = Record<PeerIdStr, PeerStats>
 
-export interface PeerScoreComponents {
-  connectionManager: ConnectionManager
-}
-
 export class PeerScore {
   /**
    * Per-peer stats for score calculation
@@ -40,7 +35,7 @@ export class PeerScore {
   /**
    * IP colocation tracking; maps IP => set of peers.
    */
-  readonly peerIPs = new Map<PeerIdStr, Set<IPStr>>()
+  readonly peerIPs = new MapDef<PeerIdStr, Set<IPStr>>(() => new Set())
   /**
    * Cache score up to decayInterval if topic stats are unchanged.
    */
@@ -53,17 +48,10 @@ export class PeerScore {
   _backgroundInterval?: ReturnType<typeof setInterval>
 
   private readonly scoreCacheValidityMs: number
-  private readonly components: PeerScoreComponents
   private readonly computeScore: typeof computeScore
 
-  constructor(
-    components: PeerScoreComponents,
-    readonly params: PeerScoreParams,
-    private readonly metrics: Metrics | null,
-    opts: PeerScoreOpts
-  ) {
+  constructor(readonly params: PeerScoreParams, private readonly metrics: Metrics | null, opts: PeerScoreOpts) {
     validatePeerScoreParams(params)
-    this.components = components
     this.scoreCacheValidityMs = opts.scoreCacheValidityMs
     this.computeScore = opts.computeScore ?? computeScore
   }
@@ -105,7 +93,6 @@ export class PeerScore {
    */
   background(): void {
     this.refreshScores()
-    this.updateIPs()
     this.deliveryRecords.gc()
   }
 
@@ -125,7 +112,7 @@ export class PeerScore {
         // has the retention period expired?
         if (now > pstats.expire) {
           // yes, throw it away (but clean up the IP tracking first)
-          this.removeIPs(id, pstats.ips)
+          this.removeIPsForPeer(id, pstats.knownIPs)
           this.peerStats.delete(id)
           this.scoreCache.delete(id)
         }
@@ -236,15 +223,36 @@ export class PeerScore {
       connected: true,
       expire: 0,
       topics: {},
-      ips: [],
+      knownIPs: new Set(),
       behaviourPenalty: 0
     }
     this.peerStats.set(id, pstats)
+  }
 
-    // get + update peer IPs
-    const ips = this.getIPs(id)
-    this.setIPs(id, ips, pstats.ips)
-    pstats.ips = ips
+  /** Adds a new IP to a peer, if the peer is not known the update is ignored */
+  addIP(id: PeerIdStr, ip: string): void {
+    const pstats = this.peerStats.get(id)
+    if (pstats) {
+      pstats.knownIPs.add(ip)
+    }
+
+    this.peerIPs.getOrDefault(ip).add(id)
+  }
+
+  /** Remove peer association with IP */
+  removeIP(id: PeerIdStr, ip: string): void {
+    const pstats = this.peerStats.get(id)
+    if (pstats) {
+      pstats.knownIPs.delete(ip)
+    }
+
+    const peersWithIP = this.peerIPs.get(ip)
+    if (peersWithIP) {
+      peersWithIP.delete(id)
+      if (peersWithIP.size === 0) {
+        this.peerIPs.delete(ip)
+      }
+    }
   }
 
   removePeer(id: PeerIdStr): void {
@@ -256,7 +264,7 @@ export class PeerScore {
     // decide whether to retain the score; this currently only retains non-positive scores
     // to dissuade attacks on the score function.
     if (this.score(id) > 0) {
-      this.removeIPs(id, pstats.ips)
+      this.removeIPsForPeer(id, pstats.knownIPs)
       this.peerStats.delete(id)
       return
     }
@@ -501,84 +509,18 @@ export class PeerScore {
   }
 
   /**
-   * Gets the current IPs for a peer.
-   */
-  private getIPs(id: PeerIdStr): IPStr[] {
-    return this.components.connectionManager
-      .getConnections(peerIdFromString(id))
-      .map((c) => c.remoteAddr.toOptions().host)
-  }
-
-  /**
-   * Adds tracking for the new IPs in the list, and removes tracking from the obsolete IPs.
-   */
-  public setIPs(id: PeerIdStr, newIPs: IPStr[], oldIPs: IPStr[]): void {
-    // add the new IPs to the tracking
-    // eslint-disable-next-line no-labels
-    addNewIPs: for (const ip of newIPs) {
-      // check if it is in the old ips list
-      for (const xip of oldIPs) {
-        if (ip === xip) {
-          // eslint-disable-next-line no-labels
-          continue addNewIPs
-        }
-      }
-      // no, it's a new one -- add it to the tracker
-      let peers = this.peerIPs.get(ip)
-      if (!peers) {
-        peers = new Set()
-        this.peerIPs.set(ip, peers)
-      }
-      peers.add(id)
-    }
-    // remove the obsolete old IPs from the tracking
-    // eslint-disable-next-line no-labels
-    removeOldIPs: for (const ip of oldIPs) {
-      // check if it is in the new ips list
-      for (const xip of newIPs) {
-        if (ip === xip) {
-          // eslint-disable-next-line no-labels
-          continue removeOldIPs
-        }
-      }
-      // no, its obselete -- remove it from the tracker
-      const peers = this.peerIPs.get(ip)
-      if (!peers) {
-        continue
-      }
-      peers.delete(id)
-      if (!peers.size) {
-        this.peerIPs.delete(ip)
-      }
-    }
-  }
-
-  /**
    * Removes an IP list from the tracking list for a peer.
    */
-  public removeIPs(id: PeerIdStr, ips: IPStr[]): void {
-    ips.forEach((ip) => {
-      const peers = this.peerIPs.get(ip)
-      if (!peers) {
-        return
+  private removeIPsForPeer(id: PeerIdStr, ipsToRemove: Set<IPStr>): void {
+    for (const ipToRemove of ipsToRemove) {
+      const peerSet = this.peerIPs.get(ipToRemove)
+      if (peerSet) {
+        peerSet.delete(id)
+        if (peerSet.size === 0) {
+          this.peerIPs.delete(ipToRemove)
+        }
       }
-
-      peers.delete(id)
-      if (!peers.size) {
-        this.peerIPs.delete(ip)
-      }
-    })
-  }
-
-  /**
-   * Update all peer IPs to currently open connections
-   */
-  public updateIPs(): void {
-    this.peerStats.forEach((pstats, id) => {
-      const newIPs = this.getIPs(id)
-      this.setIPs(id, newIPs, pstats.ips)
-      pstats.ips = newIPs
-    })
+    }
   }
 
   /**
