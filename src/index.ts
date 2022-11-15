@@ -879,7 +879,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     this.acceptFromWhitelist.delete(id)
   }
 
-  private onPeerAddressChange(evt: CustomEvent<PeerMultiaddrsChangeData>): void {
+  private onPeerAddressChange = (evt: CustomEvent<PeerMultiaddrsChangeData>): void => {
     const { peerId, multiaddrs, oldMultiaddrs } = evt.detail
     const newIps = new Set<string>()
     const oldIps = new Set<string>()
