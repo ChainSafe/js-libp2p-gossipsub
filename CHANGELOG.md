@@ -15,6 +15,13 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [5.2.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.2.0...v5.2.1) (2022-11-15)
+
+
+### Bug Fixes
+
+* unbound event listener ([#374](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/374)) ([087a66a](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/087a66aa13a430c973dfeb74735f38b1d3133363))
+
 ## [5.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.1.1...v5.2.0) (2022-11-13)
 
 
