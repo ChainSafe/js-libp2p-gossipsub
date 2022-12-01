@@ -1841,7 +1841,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     this.metrics?.onLeave(topic)
 
     // Send PRUNE to mesh peers
-    this.mesh.delete(topic)
     const meshPeers = this.mesh.get(topic)
     if (meshPeers) {
       Promise.all(
@@ -1852,6 +1851,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       ).catch((err) => {
         this.log('Error sending prunes to mesh peers', err)
       })
+      this.mesh.delete(topic)
     }
   }
 
