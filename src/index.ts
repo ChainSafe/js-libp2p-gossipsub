@@ -1758,9 +1758,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       }
     }
 
-    this.leave(topic).catch((err) => {
-      this.log(err)
-    })
+    this.leave(topic)
   }
 
   /**
@@ -1834,7 +1832,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
   /**
    * Leave topic
    */
-  private async leave(topic: TopicStr): Promise<void> {
+  private leave(topic: TopicStr): void {
     if (this.status.code !== GossipStatusCode.started) {
       throw new Error('Gossipsub has not started')
     }
@@ -1845,12 +1843,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     // Send PRUNE to mesh peers
     const meshPeers = this.mesh.get(topic)
     if (meshPeers) {
-      await Promise.all(
+      Promise.all(
         Array.from(meshPeers).map(async (id) => {
           this.log('LEAVE: Remove mesh link to %s in %s', id, topic)
           return await this.sendPrune(id, topic)
         })
-      )
+      ).catch((err) => {
+        this.log('Error sending prunes to mesh peers', err)
+      })
       this.mesh.delete(topic)
     }
   }
