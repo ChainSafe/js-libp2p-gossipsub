@@ -15,6 +15,18 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [5.3.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.2.1...v5.3.0) (2022-12-01)
+
+
+### Features
+
+* add `src` folder to package to enable access to source map ([#337](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/337)) ([7a20b0c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/7a20b0ca7b0c01c791c71ee89fffdd436bc1dfc2))
+
+
+### Bug Fixes
+
+* sync leave() function ([#378](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/378)) ([ac7fd52](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/ac7fd52c04b9a7f07106221341a765523007c91c))
+
 ## [5.2.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.2.0...v5.2.1) (2022-11-15)
 
 
