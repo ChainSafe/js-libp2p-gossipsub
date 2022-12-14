@@ -144,17 +144,21 @@ export class IWantTracer {
 
   prune(): void {
     const maxMs = Date.now() - this.requestMsByMsgExpire
+    let count = 0
 
     for (const [k, v] of this.requestMsByMsg.entries()) {
       if (v < maxMs) {
         // messages that stay too long in the requestMsByMsg map, delete
         this.requestMsByMsg.delete(k)
+        count++
       } else {
         // recent messages, keep them
         // sort by insertion order
         break
       }
     }
+
+    this.metrics?.iwantPromisePruned.inc(count)
   }
 
   private trackMessage(msgIdStr: MsgIdStr): void {
