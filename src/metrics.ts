@@ -469,6 +469,10 @@ export function getMetrics(
       name: 'gossipsub_iwant_promise_broken',
       help: 'Total count of broken IWANT promises'
     }),
+    iwantMessagePruned: register.gauge({
+      name: 'gossipsub_iwant_message_pruned',
+      help: 'Total count of pruned IWANT messages'
+    }),
     /** Histogram of delivery time of resolved IWANT promises */
     iwantPromiseDeliveryTime: register.histogram({
       name: 'gossipsub_iwant_promise_delivery_seconds',
