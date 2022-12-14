@@ -1093,6 +1093,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       case MessageStatus.duplicate:
         // Report the duplicate
         this.score.duplicateMessage(from.toString(), validationResult.msgIdStr, rpcMsg.topic)
+        this.gossipTracer.deliverMessage(validationResult.msgIdStr)
         this.mcache.observeDuplicate(validationResult.msgIdStr, from.toString())
         return
 
