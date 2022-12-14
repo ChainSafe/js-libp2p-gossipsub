@@ -37,17 +37,19 @@ Gossipsub is an implementation of pubsub based on meshsub and floodsub. You can 
 ```javascript
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 
-const gsub = gossipsub(options)(libp2p)
 
-await gsub.start()
+const libp2p = await createLibp2p({
+  // ...
+  pubsub: gossipsub(options)
+});
 
-gsub.addEventListener('message', (message) => {
+libp2p.pubsub.addEventListener('message', (message) => {
   console.log(`${message.detail.topic}:`, new TextDecoder().decode(message.detail.data))
 })
 
-gsub.subscribe('fruit')
+libp2p.pubsub.subscribe('fruit')
 
-gsub.publish('fruit', new TextEncoder().encode('banana'))
+libp2p.pubsub.publish('fruit', new TextEncoder().encode('banana'))
 ```
 
 ## API
