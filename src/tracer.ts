@@ -158,7 +158,7 @@ export class IWantTracer {
       }
     }
 
-    this.metrics?.iwantPromisePruned.inc(count)
+    this.metrics?.iwantMessagePruned.inc(count)
   }
 
   private trackMessage(msgIdStr: MsgIdStr): void {
