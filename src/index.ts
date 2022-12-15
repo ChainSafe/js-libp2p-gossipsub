@@ -1093,7 +1093,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       case MessageStatus.duplicate:
         // Report the duplicate
         this.score.duplicateMessage(from.toString(), validationResult.msgIdStr, rpcMsg.topic)
-        this.gossipTracer.deliverMessage(validationResult.msgIdStr)
+        // due to the collision of fastMsgIdFn, 2 different messages may end up the same fastMsgId
+        // so we need to also mark the duplicate message as delivered or the promise is not resolved
+        // and peer gets penalized. See https://github.com/ChainSafe/js-libp2p-gossipsub/pull/385
+        this.gossipTracer.deliverMessage(validationResult.msgIdStr, true)
         this.mcache.observeDuplicate(validationResult.msgIdStr, from.toString())
         return
 

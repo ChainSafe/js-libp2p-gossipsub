@@ -105,7 +105,7 @@ export class IWantTracer {
   /**
    * Someone delivered a message, stop tracking promises for it
    */
-  deliverMessage(msgIdStr: MsgIdStr): void {
+  deliverMessage(msgIdStr: MsgIdStr, isDuplicate = false): void {
     this.trackMessage(msgIdStr)
 
     const expireByPeer = this.promises.get(msgIdStr)
@@ -116,6 +116,7 @@ export class IWantTracer {
 
       if (this.metrics) {
         this.metrics.iwantPromiseResolved.inc(1)
+        if (isDuplicate) this.metrics.iwantPromiseResolvedFromDuplicate.inc(1)
         this.metrics.iwantPromiseResolvedPeers.inc(expireByPeer.size)
       }
     }
