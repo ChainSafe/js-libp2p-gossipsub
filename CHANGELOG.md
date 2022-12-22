@@ -15,6 +15,18 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [5.4.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.3.0...v5.4.0) (2022-12-22)
+
+
+### Features
+
+* track pruned messages in tracer ([#384](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/384)) ([dbeb879](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/dbeb8792a380c172f6aade3ab01e6c90140375e5))
+
+
+### Bug Fixes
+
+* tracer to track delivered message if duplicate ([#385](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/385)) ([0c8ddee](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/0c8ddee13a94b44f182ea685cdddc6b7cee43ec4))
+
 ## [5.3.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.2.1...v5.3.0) (2022-12-01)
 
 
