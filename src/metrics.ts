@@ -460,6 +460,11 @@ export function getMetrics(
       name: 'gossipsub_iwant_promise_resolved_total',
       help: 'Total count of resolved IWANT promises'
     }),
+    /** Total count of resolved IWANT promises from duplicate messages */
+    iwantPromiseResolvedFromDuplicate: register.gauge({
+      name: 'gossipsub_iwant_promise_resolved_from_duplicate_total',
+      help: 'Total count of resolved IWANT promises from duplicate messages'
+    }),
     /** Total count of peers we have asked IWANT promises that are resolved */
     iwantPromiseResolvedPeers: register.gauge({
       name: 'gossipsub_iwant_promise_resolved_peers',
