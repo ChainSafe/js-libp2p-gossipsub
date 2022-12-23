@@ -15,6 +15,13 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [5.4.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.4.0...v5.4.1) (2022-12-23)
+
+
+### Bug Fixes
+
+* remove change:multiaddrs listener ([#387](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/387)) ([ad1e6ce](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/ad1e6cee2df68141a263ff16c64240a89961b9ab))
+
 ## [5.4.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.3.0...v5.4.0) (2022-12-22)
 
 
