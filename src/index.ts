@@ -52,7 +52,8 @@ import {
   DataTransform,
   rejectReasonFromAcceptance,
   MsgIdToStrFn,
-  MessageId
+  MessageId,
+  PublishOpts
 } from './types.js'
 import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage.js'
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js'
@@ -1995,7 +1996,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    *
    * For messages not from us, this class uses `forwardMessage`.
    */
-  async publish(topic: TopicStr, data: Uint8Array): Promise<PublishResult> {
+  async publish(topic: TopicStr, data: Uint8Array, opts?: PublishOpts): Promise<PublishResult> {
     const transformedData = this.dataTransform ? this.dataTransform.outboundTransform(topic, data) : data
 
     if (this.publishConfig == null) {
@@ -2018,7 +2019,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const { tosend, tosendCount } = this.selectPeersToPublish(topic)
     const willSendToSelf = this.opts.emitSelf === true && this.subscriptions.has(topic)
 
-    if (tosend.size === 0 && !this.opts.allowPublishToZeroPeers && !willSendToSelf) {
+    // Current publish opt takes precedence global opts, while preserving false value
+    const allowPublishToZeroPeers = opts?.allowPublishToZeroPeers ?? this.opts.allowPublishToZeroPeers
+
+    if (tosend.size === 0 && !allowPublishToZeroPeers && !willSendToSelf) {
       throw Error('PublishError.InsufficientPeers')
     }
 

@@ -72,6 +72,10 @@ export enum SignaturePolicy {
   StrictNoSign = 'StrictNoSign'
 }
 
+export type PublishOpts = {
+  allowPublishToZeroPeers?: boolean
+}
+
 export enum PublishConfigType {
   Signing,
   Anonymous
