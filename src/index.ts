@@ -1995,7 +1995,13 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    *
    * For messages not from us, this class uses `forwardMessage`.
    */
-  async publish(topic: TopicStr, data: Uint8Array): Promise<PublishResult> {
+  async publish(
+    topic: TopicStr,
+    data: Uint8Array,
+    publishOptions: Partial<GossipsubOpts> = {
+      allowPublishToZeroPeers: false
+    }
+  ): Promise<PublishResult> {
     const transformedData = this.dataTransform ? this.dataTransform.outboundTransform(topic, data) : data
 
     if (this.publishConfig == null) {
@@ -2018,7 +2024,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const { tosend, tosendCount } = this.selectPeersToPublish(topic)
     const willSendToSelf = this.opts.emitSelf === true && this.subscriptions.has(topic)
 
-    if (tosend.size === 0 && !this.opts.allowPublishToZeroPeers && !willSendToSelf) {
+    if (
+      tosend.size === 0 &&
+      !this.opts.allowPublishToZeroPeers &&
+      publishOptions.allowPublishToZeroPeers === false &&
+      !willSendToSelf
+    ) {
       throw Error('PublishError.InsufficientPeers')
     }
 
