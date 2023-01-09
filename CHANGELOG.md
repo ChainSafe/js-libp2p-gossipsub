@@ -15,6 +15,23 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [6.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.4.1...v6.0.0) (2023-01-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* update multiformats and related dependencies ([#393](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/393))
+
+### Bug Fixes
+
+* fix browser tests ([dcece33](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/dcece3315c5dab018f069963f93902dcc25a8c15))
+* update multiformats and related dependencies ([#393](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/393)) ([2090501](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/209050194e765a600e8e479bf0ee573ee6e9028d))
+
+
+### Miscellaneous
+
+* update readme code example to new API. ([#382](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/382)) ([b24d1ff](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/b24d1ff75845dc5308df2f00ee5110d0aeefbe6c))
+
 ## [5.4.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.4.0...v5.4.1) (2022-12-23)
 
 
