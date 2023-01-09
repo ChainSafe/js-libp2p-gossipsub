@@ -26,7 +26,8 @@ describe('gossip', () => {
         scoreParams: {
           IPColocationFactorThreshold: GossipsubDhi + 3
         },
-        maxInboundDataLength: 4000000
+        maxInboundDataLength: 4000000,
+        allowPublishToZeroPeers: false
       }
     })
   })
@@ -80,6 +81,22 @@ describe('gossip', () => {
 
     // unset spy
     nodeASpy.pushGossip.restore()
+  })
+
+  it('Should allow publishing to zero peers if flag is passed', async function () {
+    this.timeout(10e4)
+    const nodeA = nodes[0]
+    const topic = 'Z'
+
+    const publishResult = await nodeA.pubsub.publish(topic, uint8ArrayFromString('hey'), {
+      allowPublishToZeroPeers: true
+    })
+
+    // gossip happens during the heartbeat
+    await pEvent(nodeA.pubsub, 'gossipsub:heartbeat')
+
+    // should have sent message to peerB
+    expect(publishResult.recipients).to.deep.equal([])
   })
 
   it('should reject incoming messages bigger than maxInboundDataLength limit', async function () {
