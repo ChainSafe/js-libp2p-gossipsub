@@ -40,6 +40,8 @@ describe('gossip', () => {
     this.timeout(10e4)
     const nodeA = nodes[0]
     const topic = 'Z'
+
+    const subscriptionPromises = nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change'))
     // add subscriptions to each node
     nodes.forEach((n) => n.pubsub.subscribe(topic))
 
@@ -47,7 +49,7 @@ describe('gossip', () => {
     await connectAllPubSubNodes(nodes)
 
     // wait for subscriptions to be transmitted
-    await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change')))
+    await Promise.all(subscriptionPromises)
 
     // await mesh rebalancing
     await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
@@ -87,6 +89,7 @@ describe('gossip', () => {
 
     const twoNodes = [nodeA, nodeB]
     const topic = 'Z'
+    const subscriptionPromises = twoNodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change'))
     // add subscriptions to each node
     twoNodes.forEach((n) => n.pubsub.subscribe(topic))
 
@@ -94,7 +97,7 @@ describe('gossip', () => {
     await connectAllPubSubNodes(twoNodes)
 
     // wait for subscriptions to be transmitted
-    await Promise.all(twoNodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change')))
+    await Promise.all(subscriptionPromises)
 
     // await mesh rebalancing
     await Promise.all(twoNodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
