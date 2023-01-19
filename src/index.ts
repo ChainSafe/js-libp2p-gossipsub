@@ -698,7 +698,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    * Registrar notifies an established connection with pubsub protocol
    */
   private onPeerConnected(peerId: PeerId, connection: Connection): void {
-    if (!this.isStarted()) {
+    this.metrics?.newConnectionCount.inc({ status: connection.stat.status })
+    // libp2p may emit a closed connection and never issue peer:disconnect event
+    // see https://github.com/ChainSafe/js-libp2p-gossipsub/issues/398
+    if (!this.isStarted() || connection.stat.status !== 'OPEN') {
       return
     }
 

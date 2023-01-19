@@ -512,6 +512,12 @@ export function getMetrics(
       help: 'Total count of key collisions on fastmsgid cache put'
     }),
 
+    newConnectionCount: register.gauge<{ status: string }>({
+      name: 'gossipsub_new_connection_total',
+      help: 'Total new connection by status',
+      labelNames: ['status']
+    }),
+
     topicStrToLabel: topicStrToLabel,
 
     toTopic(topicStr: TopicStr): TopicLabel {
