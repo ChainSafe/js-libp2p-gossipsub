@@ -514,7 +514,7 @@ export function getMetrics(
 
     newConnectionCount: register.gauge<{ status: string }>({
       name: 'gossipsub_new_connection_total',
-      help: 'Ttotal new connection by status',
+      help: 'Total new connection by status',
       labelNames: ['status']
     }),
 
