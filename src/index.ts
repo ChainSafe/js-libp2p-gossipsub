@@ -90,6 +90,10 @@ type ReceivedMessageResult =
   | ({ code: MessageStatus.invalid; msgIdStr?: MsgIdStr } & RejectReasonObj)
   | { code: MessageStatus.valid; messageId: MessageId; msg: Message }
 
+export type PublishOpts = {
+  skipDuplicateCheck: boolean
+}
+
 export const multicodec: string = constants.GossipsubIDv11
 
 export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
@@ -2013,7 +2017,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const msgId = await this.msgIdFn(msg)
     const msgIdStr = this.msgIdToStrFn(msgId)
 
-    if (this.seenCache.has(msgIdStr)) {
+    if (!opts?.skipDuplicateCheck && this.seenCache.has(msgIdStr)) {
       // This message has already been seen. We don't re-publish messages that have already
       // been published on the network.
       throw Error('PublishError.Duplicate')
