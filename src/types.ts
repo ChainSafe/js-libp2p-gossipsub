@@ -74,7 +74,7 @@ export enum SignaturePolicy {
 
 export type PublishOpts = {
   allowPublishToZeroPeers?: boolean
-  allowPublishDuplicates?: boolean
+  ignoreDuplicateMessages?: boolean
 }
 
 export enum PublishConfigType {
