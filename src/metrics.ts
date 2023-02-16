@@ -356,8 +356,8 @@ export function getMetrics(
     }),
 
     duplicateMsgIgnored: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossisub_duplicate_msg_ignored_total',
-      help: 'Total count of duplicate message ignored by topic',
+      name: 'gossisub_published_duplicate_msgs_ignored_total',
+      help: 'Total count of published duplicate message ignored by topic',
       labelNames: ['topic']
     }),
 
@@ -635,7 +635,7 @@ export function getMetrics(
       }
     },
 
-    onIgnoreDuplicateMsg(topicStr: TopicStr): void {
+    onIgnorePublishedDuplicateMsg(topicStr: TopicStr): void {
       const topic = this.toTopic(topicStr)
       this.duplicateMsgIgnored.inc({ topic }, 1)
     },

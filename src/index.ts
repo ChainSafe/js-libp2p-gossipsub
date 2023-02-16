@@ -2022,7 +2022,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       // This message has already been seen. We don't re-publish messages that have already
       // been published on the network.
       if (ignoreDuplicateMessages) {
-        this.metrics?.onIgnoreDuplicateMsg(topic)
+        this.metrics?.onIgnorePublishedDuplicateMsg(topic)
         return { recipients: [] }
       }
       throw Error('PublishError.Duplicate')
