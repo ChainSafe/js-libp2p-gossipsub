@@ -635,7 +635,7 @@ export function getMetrics(
       }
     },
 
-    onIgnorePublishedDuplicateMsg(topicStr: TopicStr): void {
+    onPublishDuplicateMsg(topicStr: TopicStr): void {
       const topic = this.toTopic(topicStr)
       this.duplicateMsgIgnored.inc({ topic }, 1)
     },
