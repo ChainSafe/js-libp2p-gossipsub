@@ -356,7 +356,7 @@ export function getMetrics(
     }),
 
     duplicateMsgIgnored: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossisub_published_duplicate_msgs_ignored_total',
+      name: 'gossisub_ignored_published_duplicate_msgs_total',
       help: 'Total count of published duplicate message ignored by topic',
       labelNames: ['topic']
     }),

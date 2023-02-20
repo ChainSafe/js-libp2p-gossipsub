@@ -110,7 +110,7 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   /** Do not throw `InsufficientPeers` error if publishing to zero peers */
   allowPublishToZeroPeers: boolean
   /** Do not throw `PublishError.Duplicate` if publishing duplicate messages */
-  allowPublishDuplicateMessages: boolean
+  ignoreDuplicatePublishError: boolean
   /** For a single stream, await processing each RPC before processing the next */
   awaitRpcHandler: boolean
   /** For a single RPC, await processing each message before processing the next */
@@ -2016,12 +2016,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const msgIdStr = this.msgIdToStrFn(msgId)
 
     // Current publish opt takes precedence global opts, while preserving false value
-    const allowPublishDuplicateMessages = opts?.allowPublishDuplicateMessages ?? this.opts.allowPublishDuplicateMessages
+    const ignoreDuplicatePublishError = opts?.ignoreDuplicatePublishError ?? this.opts.ignoreDuplicatePublishError
 
     if (this.seenCache.has(msgIdStr)) {
       // This message has already been seen. We don't re-publish messages that have already
       // been published on the network.
-      if (allowPublishDuplicateMessages) {
+      if (ignoreDuplicatePublishError) {
         this.metrics?.onPublishDuplicateMsg(topic)
         return { recipients: [] }
       }
