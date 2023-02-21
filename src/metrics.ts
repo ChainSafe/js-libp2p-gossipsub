@@ -355,6 +355,12 @@ export function getMetrics(
       labelNames: ['topic']
     }),
 
+    duplicateMsgIgnored: register.gauge<{ topic: TopicLabel }>({
+      name: 'gossisub_ignored_published_duplicate_msgs_total',
+      help: 'Total count of published duplicate message ignored by topic',
+      labelNames: ['topic']
+    }),
+
     /* Metrics related to scoring */
     /** Total times score() is called */
     scoreFnCalls: register.gauge({
@@ -627,6 +633,11 @@ export function getMetrics(
         const topic = this.toTopic(topicStr)
         this.duplicateMsgLateDelivery.inc({ topic }, 1)
       }
+    },
+
+    onPublishDuplicateMsg(topicStr: TopicStr): void {
+      const topic = this.toTopic(topicStr)
+      this.duplicateMsgIgnored.inc({ topic }, 1)
     },
 
     onRpcRecv(rpc: IRPC, rpcBytes: number): void {
