@@ -15,6 +15,18 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [6.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v6.1.0...v6.2.0) (2023-02-21)
+
+
+### Features
+
+* allow ignoring PublishError.Duplicate ([#404](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/404)) ([dcde3c9](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/dcde3c97ee9eee8c8f1c9c496a5232ea43b21d37))
+
+
+### Miscellaneous
+
+* **deps:** bump http-cache-semantics from 4.1.0 to 4.1.1 ([#400](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/400)) ([bae1492](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/bae14929fe93db8b5e6f24271f5b6c1c900532cb))
+
 ## [6.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v6.0.0...v6.1.0) (2023-01-19)
 
 
