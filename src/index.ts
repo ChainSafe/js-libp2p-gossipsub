@@ -354,6 +354,11 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
   public readonly topicValidators = new Map<TopicStr, TopicValidatorFn>()
 
   /**
+   * Make this protected so child class may want to redirect to its own log.
+   */
+  protected readonly log: Logger
+
+  /**
    * Number of heartbeats since the beginning of time
    * This allows us to amortize some resource cleanup -- eg: backoff cleanup
    */
@@ -367,7 +372,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
   private readonly components: GossipSubComponents
 
   private directPeerInitial: ReturnType<typeof setTimeout> | null = null
-  private readonly log: Logger
 
   public static multicodec: string = constants.GossipsubIDv11
 
