@@ -1,7 +1,6 @@
 .idea/
 node_modules/
 yarn.lock
-dist/
 docs/
 .nyc_output/coverage-final.json
 .vscode/settings.json

@@ -41,7 +41,7 @@ export class IWantTracer {
   /**
    * Track a promise to deliver a message from a list of msgIds we are requesting
    */
-  addPromise(from: PeerIdStr, msgIds: Uint8Array[]): void {
+  addPromise(from: PeerIdStr, msgIds: Uint8Array[]): string {
     // pick msgId randomly from the list
     const ix = Math.floor(Math.random() * msgIds.length)
     const msgId = msgIds[ix]
@@ -66,6 +66,8 @@ export class IWantTracer {
         }
       }
     }
+
+    return msgIdStr
   }
 
   /**
@@ -73,9 +75,9 @@ export class IWantTracer {
    *
    * This should be called not too often relative to the expire times, since it iterates over the whole data.
    */
-  getBrokenPromises(): Map<PeerIdStr, number> {
+  getBrokenPromises(): Map<PeerIdStr, string[]> {
     const now = Date.now()
-    const result = new Map<PeerIdStr, number>()
+    const result = new Map<PeerIdStr, string[]>()
 
     let brokenPromises = 0
 
@@ -84,7 +86,12 @@ export class IWantTracer {
         // the promise has been broken
         if (expire < now) {
           // add 1 to result
-          result.set(p, (result.get(p) ?? 0) + 1)
+          let brokenMsgs = result.get(p)
+          if (!brokenMsgs) {
+            brokenMsgs = []
+            result.set(p, brokenMsgs)
+          }
+          brokenMsgs.push(msgId)
           // delete from tracked promises
           expireByPeer.delete(p)
           // for metrics
@@ -104,9 +111,10 @@ export class IWantTracer {
 
   /**
    * Someone delivered a message, stop tracking promises for it
+   * Return waiting time or null if we didn't wait for it
    */
-  deliverMessage(msgIdStr: MsgIdStr, isDuplicate = false): void {
-    this.trackMessage(msgIdStr)
+  deliverMessage(msgIdStr: MsgIdStr, isDuplicate = false): number | null {
+    const result = this.trackMessage(msgIdStr)
 
     const expireByPeer = this.promises.get(msgIdStr)
 
@@ -120,6 +128,8 @@ export class IWantTracer {
         this.metrics.iwantPromiseResolvedPeers.inc(expireByPeer.size)
       }
     }
+
+    return result
   }
 
   /**
@@ -162,13 +172,15 @@ export class IWantTracer {
     this.metrics?.iwantMessagePruned.inc(count)
   }
 
-  private trackMessage(msgIdStr: MsgIdStr): void {
+  private trackMessage(msgIdStr: MsgIdStr): number | null {
     if (this.metrics) {
       const requestMs = this.requestMsByMsg.get(msgIdStr)
       if (requestMs !== undefined) {
         this.metrics.iwantPromiseDeliveryTime.observe((Date.now() - requestMs) / 1000)
         this.requestMsByMsg.delete(msgIdStr)
+        return Date.now() - requestMs;
       }
     }
+    return null
   }
 }

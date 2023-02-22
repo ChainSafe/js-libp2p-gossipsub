@@ -1064,6 +1064,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const validationResult = await this.validateReceivedMessage(from, rpcMsg)
 
     this.metrics?.onMsgRecvResult(rpcMsg.topic, validationResult.code)
+    let waitingTime
 
     switch (validationResult.code) {
       case MessageStatus.duplicate:
@@ -1072,7 +1073,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         // due to the collision of fastMsgIdFn, 2 different messages may end up the same fastMsgId
         // so we need to also mark the duplicate message as delivered or the promise is not resolved
         // and peer gets penalized. See https://github.com/ChainSafe/js-libp2p-gossipsub/pull/385
-        this.gossipTracer.deliverMessage(validationResult.msgIdStr, true)
+        waitingTime = this.gossipTracer.deliverMessage(validationResult.msgIdStr, true)
+        if (waitingTime != null && waitingTime > 0) this.log(`Received duplicate message ${validationResult.msgIdStr} from ${from} after ${waitingTime}ms`)
         this.mcache.observeDuplicate(validationResult.msgIdStr, from.toString())
         return
 
@@ -1096,7 +1098,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         // Tells score that message arrived (but is maybe not fully validated yet).
         // Consider the message as delivered for gossip promises.
         this.score.validateMessage(validationResult.messageId.msgIdStr)
-        this.gossipTracer.deliverMessage(validationResult.messageId.msgIdStr)
+        waitingTime = this.gossipTracer.deliverMessage(validationResult.messageId.msgIdStr)
+        if (waitingTime != null && waitingTime > 0) this.log(`Received valid message ${validationResult.messageId.msgIdStr} from ${from} after ${waitingTime}ms`)
 
         // Add the message to our memcache
         // if no validation is required, mark the message as validated
@@ -1358,7 +1361,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     iwantList = iwantList.slice(0, iask)
     this.iasked.set(id, iasked + iask)
 
-    this.gossipTracer.addPromise(id, iwantList)
+    const trackedMsgIdStr = this.gossipTracer.addPromise(id, iwantList)
+    this.log(`IHAVE: Asking from peers ${id} message id ${trackedMsgIdStr}`)
 
     return [
       {
@@ -1590,9 +1594,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    * Apply penalties from broken IHAVE/IWANT promises
    */
   private applyIwantPenalties(): void {
-    this.gossipTracer.getBrokenPromises().forEach((count, p) => {
-      this.log("peer %s didn't follow up in %d IWANT requests; adding penalty", p, count)
-      this.score.addPenalty(p, count, ScorePenalty.BrokenPromise)
+    this.gossipTracer.getBrokenPromises().forEach((msgIds, p) => {
+      this.log("peer %s didn't follow up in %s IWANT requests; adding penalty", p, msgIds)
+      this.score.addPenalty(p, msgIds.length, ScorePenalty.BrokenPromise)
     })
   }
 
