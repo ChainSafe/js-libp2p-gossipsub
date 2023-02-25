@@ -67,7 +67,7 @@ Options is an optional object with the following key-value pairs:
 - **`gossipIncoming`**: boolean identifying if incoming messages on a subscribed topic should be automatically gossiped (defaults to **true**).
 - **`fallbackToFloodsub`**: boolean identifying whether the node should fallback to the floodsub protocol, if another connecting peer does not support gossipsub (defaults to **true**).
 - **`floodPublish`**: boolean identifying if self-published messages should be sent to all peers, (defaults to **true**).
-- **`doPX`**: boolean identifying whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes (defaults to **false**).
+- **`doPX`**: boolean identifying whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes (defaults to **false**). Requires [js-libp2p-pubsub-peer-discovery](https://github.com/libp2p/js-libp2p-pubsub-peer-discovery).
 - **`msgIdFn`**: a function with signature `(message) => string` defining the message id given a message, used internally to deduplicate gossip (defaults to `(message) => message.from + message.seqno.toString('hex')`)
 - **`signMessages`**: boolean identifying if we want to sign outgoing messages or not (default: `true`)
 - **`strictSigning`**: boolean identifying if message signing is required for incoming messages or not (default: `true`)
