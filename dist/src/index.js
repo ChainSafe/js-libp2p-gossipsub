@@ -930,8 +930,8 @@ export class GossipSub extends EventEmitter {
         // truncate to the messages we are actually asking for and update the iasked counter
         iwantList = iwantList.slice(0, iask);
         this.iasked.set(id, iasked + iask);
-        const trackedMsgIdStr = this.gossipTracer.addPromise(id, iwantList);
-        this.log(`IHAVE: Asking from peers ${id} message id ${trackedMsgIdStr}`);
+        this.gossipTracer.addPromise(id, iwantList);
+        this.log(`IHAVE: Asking from peers ${id} message id ${iwantList.map((msgId) => this.msgIdToStrFn(msgId)).join(' ')}`);
         return [
             {
                 messageIDs: iwantList
