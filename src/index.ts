@@ -969,7 +969,22 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       return
     }
 
-    this.log('rpc from %p', from)
+    const subscriptions = rpc.subscriptions ? rpc.subscriptions.length : 0
+    const messages = rpc.messages ? rpc.messages.length : 0
+    let ihave = 0
+    let iwant = 0
+    let graft = 0
+    let prune = 0
+    if (rpc.control) {
+      ihave = rpc.control.ihave ? rpc.control.ihave.length : 0
+      iwant = rpc.control.iwant ? rpc.control.iwant.length : 0
+      graft = rpc.control.graft ? rpc.control.graft.length : 0
+      prune = rpc.control.prune ? rpc.control.prune.length : 0
+    }
+    // this.log('rpc from %p', from)
+    this.log(
+      `rpc.from ${from.toString()} subscriptions ${subscriptions} messages ${messages} ihave ${ihave} iwant ${iwant} graft ${graft} prune ${prune}`
+    )
 
     // Handle received subscriptions
     if (rpc.subscriptions && rpc.subscriptions.length > 0) {
