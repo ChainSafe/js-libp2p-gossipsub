@@ -938,7 +938,8 @@ export class GossipSub extends EventEmitter {
         if (iask + iasked > constants.GossipsubMaxIHaveLength) {
             iask = constants.GossipsubMaxIHaveLength - iasked;
         }
-        this.log('IHAVE: Asking for %d out of %d messages from %s', iask, iwant.size, id);
+        // this.log('IHAVE: Asking for %d out of %d messages from %s', iask, iwant.size, id)
+        this.log(`IHAVE: Asking for ${iask} out of ${iwant.size} messages from ${id}`);
         let iwantList = Array.from(iwant.values());
         // ask in random order
         shuffle(iwantList);
