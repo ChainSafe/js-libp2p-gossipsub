@@ -973,7 +973,22 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       return
     }
 
-    this.log('rpc from %p', from)
+    const subscriptions = rpc.subscriptions ? rpc.subscriptions.length : 0
+    const messages = rpc.messages ? rpc.messages.length : 0
+    let ihave = 0
+    let iwant = 0
+    let graft = 0
+    let prune = 0
+    if (rpc.control) {
+      ihave = rpc.control.ihave ? rpc.control.ihave.length : 0
+      iwant = rpc.control.iwant ? rpc.control.iwant.length : 0
+      graft = rpc.control.graft ? rpc.control.graft.length : 0
+      prune = rpc.control.prune ? rpc.control.prune.length : 0
+    }
+    // this.log('rpc from %p', from)
+    this.log(
+      `rpc.from ${from.toString()} subscriptions ${subscriptions} messages ${messages} ihave ${ihave} iwant ${iwant} graft ${graft} prune ${prune}`
+    )
 
     // Handle received subscriptions
     if (rpc.subscriptions && rpc.subscriptions.length > 0) {
@@ -1074,7 +1089,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         // so we need to also mark the duplicate message as delivered or the promise is not resolved
         // and peer gets penalized. See https://github.com/ChainSafe/js-libp2p-gossipsub/pull/385
         waitingTime = this.gossipTracer.deliverMessage(validationResult.msgIdStr, true)
-        if (waitingTime != null && waitingTime > 0) this.log(`Received duplicate message ${validationResult.msgIdStr} from ${from} after ${waitingTime}ms`)
+        if (waitingTime != null && waitingTime > 0) {
+          this.log(`Received duplicate message ${validationResult.msgIdStr} from ${from} after ${waitingTime}ms`)
+        }
         this.mcache.observeDuplicate(validationResult.msgIdStr, from.toString())
         return
 
@@ -1099,7 +1116,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         // Consider the message as delivered for gossip promises.
         this.score.validateMessage(validationResult.messageId.msgIdStr)
         waitingTime = this.gossipTracer.deliverMessage(validationResult.messageId.msgIdStr)
-        if (waitingTime != null && waitingTime > 0) this.log(`Received valid message ${validationResult.messageId.msgIdStr} from ${from} after ${waitingTime}ms`)
+        if (waitingTime != null && waitingTime > 0) {
+          this.log(`Received valid message ${validationResult.messageId.msgIdStr} from ${from} after ${waitingTime}ms`)
+        }
 
         // Add the message to our memcache
         // if no validation is required, mark the message as validated
@@ -1362,7 +1381,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     this.iasked.set(id, iasked + iask)
 
     this.gossipTracer.addPromise(id, iwantList)
-    this.log(`IHAVE: Asking from peers ${id} message id ${iwantList.map((msgId) => this.msgIdToStrFn(msgId)).join(' ')}`)
+    this.log(
+      `IHAVE: Asking from peers ${id} message id ${iwantList.map((msgId) => this.msgIdToStrFn(msgId)).join(' ')}`
+    )
 
     return [
       {
