@@ -249,6 +249,12 @@ export function getMetrics(
       labelNames: ['hit']
     }),
 
+    // peer stream
+    peerReadStreamError: register.gauge({
+      name: 'gossipsub_peer_read_stream_err_count_total',
+      help: 'Peer read stream error'
+    }),
+
     // RPC outgoing. Track byte length + data structure sizes
     rpcRecvBytes: register.gauge({ name: 'gossipsub_rpc_recv_bytes_total', help: 'RPC recv' }),
     rpcRecvCount: register.gauge({ name: 'gossipsub_rpc_recv_count_total', help: 'RPC recv' }),
@@ -259,6 +265,8 @@ export function getMetrics(
     rpcRecvIWant: register.gauge({ name: 'gossipsub_rpc_recv_iwant_total', help: 'RPC recv' }),
     rpcRecvGraft: register.gauge({ name: 'gossipsub_rpc_recv_graft_total', help: 'RPC recv' }),
     rpcRecvPrune: register.gauge({ name: 'gossipsub_rpc_recv_prune_total', help: 'RPC recv' }),
+    rpcDataError: register.gauge({ name: 'gossipsub_rpc_data_err_count_total', help: 'RPC data error' }),
+    rpcRecvError: register.gauge({ name: 'gossipsub_rpc_recv_err_count_total', help: 'RPC recv error' }),
 
     /** Total count of RPC dropped because acceptFrom() == false */
     rpcRecvNotAccepted: register.gauge({
@@ -638,6 +646,18 @@ export function getMetrics(
     onPublishDuplicateMsg(topicStr: TopicStr): void {
       const topic = this.toTopic(topicStr)
       this.duplicateMsgIgnored.inc({ topic }, 1)
+    },
+
+    onPeerReadStreamError(): void {
+      this.peerReadStreamError.inc(1)
+    },
+
+    onRpcRecvError(): void {
+      this.rpcRecvError.inc(1)
+    },
+
+    onRpcDataError(): void {
+      this.rpcDataError.inc(1)
     },
 
     onRpcRecv(rpc: IRPC, rpcBytes: number): void {

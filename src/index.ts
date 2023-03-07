@@ -935,16 +935,26 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
             // to prevent a top-level unhandled exception
             // This processing of rpc messages should happen without awaiting full validation/execution of prior messages
             if (this.opts.awaitRpcHandler) {
-              await this.handleReceivedRpc(peerId, rpc)
+              try {
+                await this.handleReceivedRpc(peerId, rpc)
+              } catch (err) {
+                this.metrics?.onRpcRecvError()
+                this.log(err)
+              }
             } else {
-              this.handleReceivedRpc(peerId, rpc).catch((err) => this.log(err))
+              this.handleReceivedRpc(peerId, rpc).catch((err) => {
+                this.metrics?.onRpcRecvError()
+                this.log(err)
+              })
             }
           } catch (e) {
+            this.metrics?.onRpcDataError()
             this.log(e as Error)
           }
         }
       })
     } catch (err) {
+      this.metrics?.onPeerReadStreamError()
       this.handlePeerReadStreamError(err as Error, peerId)
     }
   }
@@ -981,7 +991,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       graft = rpc.control.graft ? rpc.control.graft.length : 0
       prune = rpc.control.prune ? rpc.control.prune.length : 0
     }
-    // this.log('rpc from %p', from)
     this.log(
       `rpc.from ${from.toString()} subscriptions ${subscriptions} messages ${messages} ihave ${ihave} iwant ${iwant} graft ${graft} prune ${prune}`
     )
