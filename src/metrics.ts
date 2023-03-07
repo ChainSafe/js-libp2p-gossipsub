@@ -331,6 +331,12 @@ export function getMetrics(
       help: 'Total count of recv msgs before any validation',
       labelNames: ['topic']
     }),
+    /** Total count of recv msgs error */
+    msgReceivedError: register.gauge<{ topic: TopicLabel }>({
+      name: 'gossipsub_msg_received_error_total',
+      help: 'Total count of recv msgs error',
+      labelNames: ['topic']
+    }),
     /** Tracks distribution of recv msgs by duplicate, invalid, valid */
     msgReceivedStatus: register.gauge<{ topic: TopicLabel; status: MessageStatus }>({
       name: 'gossipsub_msg_received_status_total',
@@ -621,6 +627,11 @@ export function getMetrics(
     onMsgRecvPreValidation(topicStr: TopicStr): void {
       const topic = this.toTopic(topicStr)
       this.msgReceivedPreValidation.inc({ topic }, 1)
+    },
+
+    onMsgRecvError(topicStr: TopicStr): void {
+      const topic = this.toTopic(topicStr)
+      this.msgReceivedError.inc({ topic }, 1)
     },
 
     onMsgRecvResult(topicStr: TopicStr, status: MessageStatus): void {

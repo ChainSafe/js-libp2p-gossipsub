@@ -1037,7 +1037,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
         const handleReceivedMessagePromise = this.handleReceivedMessage(from, message)
           // Should never throw, but handle just in case
-          .catch((err) => this.log(err))
+          .catch((err) => {
+            this.metrics?.onMsgRecvError(message.topic)
+            this.log(err)
+          })
 
         if (this.opts.awaitRpcMessageHandler) {
           await handleReceivedMessagePromise
