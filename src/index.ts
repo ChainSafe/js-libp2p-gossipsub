@@ -1362,7 +1362,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     iwantList = iwantList.slice(0, iask)
     this.iasked.set(id, iasked + iask)
 
-    // do not add promise here until a successful sendRpc()
+    // do not add gossipTracer promise here until a successful sendRpc()
 
     return [
       {
