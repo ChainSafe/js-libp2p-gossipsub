@@ -1275,7 +1275,15 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       return
     }
 
-    this.sendRpc(id, { messages: ihave, control: { iwant, prune } })
+    const sent = this.sendRpc(id, { messages: ihave, control: { iwant, prune } })
+    const iwantMessageIds = iwant[0]?.messageIDs
+    if (iwantMessageIds) {
+      if (sent) {
+        this.gossipTracer.addPromise(id, iwantMessageIds)
+      } else {
+        this.metrics?.iwantPromiseUntracked.inc(1)
+      }
+    }
   }
 
   /**
@@ -1385,7 +1393,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     iwantList = iwantList.slice(0, iask)
     this.iasked.set(id, iasked + iask)
 
-    this.gossipTracer.addPromise(id, iwantList)
+    // do not add gossipTracer promise here until a successful sendRpc()
 
     return [
       {
