@@ -1100,21 +1100,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
         // Dispatch the message to the user if we are subscribed to the topic
         if (this.subscriptions.has(rpcMsg.topic)) {
-          const isFromSelf = this.components.peerId.equals(from)
-
-          if (!isFromSelf || this.opts.emitSelf) {
-            super.dispatchEvent(
-              new CustomEvent<GossipsubMessage>('gossipsub:message', {
-                detail: {
-                  propagationSource: from,
-                  msgId: validationResult.messageId.msgIdStr,
-                  msg: validationResult.msg
-                }
-              })
-            )
-            // TODO: Add option to switch between emit per topic or all messages in one
-            super.dispatchEvent(new CustomEvent<Message>('message', { detail: validationResult.msg }))
-          }
+          this.onGossipsubMessage(from, validationResult.messageId.msgIdStr, validationResult.msg)
         }
 
         // Forward the message to mesh peers, if no validation is required
@@ -2063,11 +2049,22 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     // Dispatch the message to the user if we are subscribed to the topic
     if (willSendToSelf) {
       tosend.add(this.components.peerId.toString())
+      this.onGossipsubMessage(this.components.peerId, msgIdStr, msg)
+    }
 
+    return {
+      recipients: Array.from(tosend.values()).map((str) => peerIdFromString(str))
+    }
+  }
+
+  onGossipsubMessage(from: PeerId, msgIdStr: string, msg: Message): void {
+    const isFromSelf = this.components.peerId.equals(from)
+
+    if (!isFromSelf || this.opts.emitSelf) {
       super.dispatchEvent(
         new CustomEvent<GossipsubMessage>('gossipsub:message', {
           detail: {
-            propagationSource: this.components.peerId,
+            propagationSource: from,
             msgId: msgIdStr,
             msg
           }
@@ -2075,10 +2072,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       )
       // TODO: Add option to switch between emit per topic or all messages in one
       super.dispatchEvent(new CustomEvent<Message>('message', { detail: msg }))
-    }
-
-    return {
-      recipients: Array.from(tosend.values()).map((str) => peerIdFromString(str))
     }
   }
 
