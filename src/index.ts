@@ -935,16 +935,26 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
             // to prevent a top-level unhandled exception
             // This processing of rpc messages should happen without awaiting full validation/execution of prior messages
             if (this.opts.awaitRpcHandler) {
-              await this.handleReceivedRpc(peerId, rpc)
+              try {
+                await this.handleReceivedRpc(peerId, rpc)
+              } catch (err) {
+                this.metrics?.onRpcRecvError()
+                this.log(err)
+              }
             } else {
-              this.handleReceivedRpc(peerId, rpc).catch((err) => this.log(err))
+              this.handleReceivedRpc(peerId, rpc).catch((err) => {
+                this.metrics?.onRpcRecvError()
+                this.log(err)
+              })
             }
           } catch (e) {
+            this.metrics?.onRpcDataError()
             this.log(e as Error)
           }
         }
       })
     } catch (err) {
+      this.metrics?.onPeerReadStreamError()
       this.handlePeerReadStreamError(err as Error, peerId)
     }
   }
@@ -969,7 +979,21 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       return
     }
 
-    this.log('rpc from %p', from)
+    const subscriptions = rpc.subscriptions ? rpc.subscriptions.length : 0
+    const messages = rpc.messages ? rpc.messages.length : 0
+    let ihave = 0
+    let iwant = 0
+    let graft = 0
+    let prune = 0
+    if (rpc.control) {
+      if (rpc.control.ihave) ihave = rpc.control.ihave.length
+      if (rpc.control.iwant) iwant = rpc.control.iwant.length
+      if (rpc.control.graft) graft = rpc.control.graft.length
+      if (rpc.control.prune) prune = rpc.control.prune.length
+    }
+    this.log(
+      `rpc.from ${from.toString()} subscriptions ${subscriptions} messages ${messages} ihave ${ihave} iwant ${iwant} graft ${graft} prune ${prune}`
+    )
 
     // Handle received subscriptions
     if (rpc.subscriptions && rpc.subscriptions.length > 0) {
@@ -1013,7 +1037,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
         const handleReceivedMessagePromise = this.handleReceivedMessage(from, message)
           // Should never throw, but handle just in case
-          .catch((err) => this.log(err))
+          .catch((err) => {
+            this.metrics?.onMsgRecvError(message.topic)
+            this.log(err)
+          })
 
         if (this.opts.awaitRpcMessageHandler) {
           await handleReceivedMessagePromise
