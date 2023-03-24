@@ -903,7 +903,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    * Get a list of the peer-ids that are subscribed to one topic.
    */
   getSubscribers(topic: TopicStr): PeerId[] {
-    const peersInTopic = this.topics.get(topic)
+    const peersInTopic = this.mesh.get(topic)
     return (peersInTopic ? Array.from(peersInTopic) : []).map((str) => peerIdFromString(str))
   }
 
@@ -2067,9 +2067,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       throw Error('PublishError.Duplicate')
     }
     // For testing purposes only, see https://filecoinproject.slack.com/archives/C04UFPHSM7S/p1679682078799899?thread_ts=1679674509.496669&cid=C04UFPHSM7S
-    if (this.getMeshPeers(topic).length > this.getSubscribers(topic).length) {
-      this.topics.set(topic, new Set(this.getMeshPeers(topic)))
-    }
+    this.topics.set(topic, this.mesh.get(topic) ?? new Set())
 
     const { tosend, tosendCount } = this.selectPeersToPublish(topic)
     const willSendToSelf = this.opts.emitSelf === true && this.subscriptions.has(topic)
