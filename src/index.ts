@@ -109,6 +109,8 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   asyncValidation: boolean
   /** Do not throw `InsufficientPeers` error if publishing to zero peers */
   allowPublishToZeroPeers: boolean
+  /** Do not throw `PublishError.Duplicate` if publishing duplicate messages */
+  ignoreDuplicatePublishError: boolean
   /** For a single stream, await processing each RPC before processing the next */
   awaitRpcHandler: boolean
   /** For a single RPC, await processing each message before processing the next */
@@ -352,6 +354,11 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
   public readonly topicValidators = new Map<TopicStr, TopicValidatorFn>()
 
   /**
+   * Make this protected so child class may want to redirect to its own log.
+   */
+  protected readonly log: Logger
+
+  /**
    * Number of heartbeats since the beginning of time
    * This allows us to amortize some resource cleanup -- eg: backoff cleanup
    */
@@ -365,7 +372,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
   private readonly components: GossipSubComponents
 
   private directPeerInitial: ReturnType<typeof setTimeout> | null = null
-  private readonly log: Logger
 
   public static multicodec: string = constants.GossipsubIDv11
 
@@ -933,16 +939,26 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
             // to prevent a top-level unhandled exception
             // This processing of rpc messages should happen without awaiting full validation/execution of prior messages
             if (this.opts.awaitRpcHandler) {
-              await this.handleReceivedRpc(peerId, rpc)
+              try {
+                await this.handleReceivedRpc(peerId, rpc)
+              } catch (err) {
+                this.metrics?.onRpcRecvError()
+                this.log(err)
+              }
             } else {
-              this.handleReceivedRpc(peerId, rpc).catch((err) => this.log(err))
+              this.handleReceivedRpc(peerId, rpc).catch((err) => {
+                this.metrics?.onRpcRecvError()
+                this.log(err)
+              })
             }
           } catch (e) {
+            this.metrics?.onRpcDataError()
             this.log(e as Error)
           }
         }
       })
     } catch (err) {
+      this.metrics?.onPeerReadStreamError()
       this.handlePeerReadStreamError(err as Error, peerId)
     }
   }
@@ -967,7 +983,21 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       return
     }
 
-    this.log('rpc from %p', from)
+    const subscriptions = rpc.subscriptions ? rpc.subscriptions.length : 0
+    const messages = rpc.messages ? rpc.messages.length : 0
+    let ihave = 0
+    let iwant = 0
+    let graft = 0
+    let prune = 0
+    if (rpc.control) {
+      if (rpc.control.ihave) ihave = rpc.control.ihave.length
+      if (rpc.control.iwant) iwant = rpc.control.iwant.length
+      if (rpc.control.graft) graft = rpc.control.graft.length
+      if (rpc.control.prune) prune = rpc.control.prune.length
+    }
+    this.log(
+      `rpc.from ${from.toString()} subscriptions ${subscriptions} messages ${messages} ihave ${ihave} iwant ${iwant} graft ${graft} prune ${prune}`
+    )
 
     // Handle received subscriptions
     if (rpc.subscriptions && rpc.subscriptions.length > 0) {
@@ -1011,7 +1041,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
         const handleReceivedMessagePromise = this.handleReceivedMessage(from, message)
           // Should never throw, but handle just in case
-          .catch((err) => this.log(err))
+          .catch((err) => {
+            this.metrics?.onMsgRecvError(message.topic)
+            this.log(err)
+          })
 
         if (this.opts.awaitRpcMessageHandler) {
           await handleReceivedMessagePromise
@@ -1242,7 +1275,15 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       return
     }
 
-    this.sendRpc(id, { messages: ihave, control: { iwant, prune } })
+    const sent = this.sendRpc(id, { messages: ihave, control: { iwant, prune } })
+    const iwantMessageIds = iwant[0]?.messageIDs
+    if (iwantMessageIds) {
+      if (sent) {
+        this.gossipTracer.addPromise(id, iwantMessageIds)
+      } else {
+        this.metrics?.iwantPromiseUntracked.inc(1)
+      }
+    }
   }
 
   /**
@@ -1352,7 +1393,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     iwantList = iwantList.slice(0, iask)
     this.iasked.set(id, iasked + iask)
 
-    this.gossipTracer.addPromise(id, iwantList)
+    // do not add gossipTracer promise here until a successful sendRpc()
 
     return [
       {
@@ -2019,9 +2060,16 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const msgId = await this.msgIdFn(msg)
     const msgIdStr = this.msgIdToStrFn(msgId)
 
+    // Current publish opt takes precedence global opts, while preserving false value
+    const ignoreDuplicatePublishError = opts?.ignoreDuplicatePublishError ?? this.opts.ignoreDuplicatePublishError
+
     if (this.seenCache.has(msgIdStr)) {
       // This message has already been seen. We don't re-publish messages that have already
       // been published on the network.
+      if (ignoreDuplicatePublishError) {
+        this.metrics?.onPublishDuplicateMsg(topic)
+        return { recipients: [] }
+      }
       throw Error('PublishError.Duplicate')
     }
 

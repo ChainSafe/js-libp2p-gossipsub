@@ -249,6 +249,12 @@ export function getMetrics(
       labelNames: ['hit']
     }),
 
+    // peer stream
+    peerReadStreamError: register.gauge({
+      name: 'gossipsub_peer_read_stream_err_count_total',
+      help: 'Peer read stream error'
+    }),
+
     // RPC outgoing. Track byte length + data structure sizes
     rpcRecvBytes: register.gauge({ name: 'gossipsub_rpc_recv_bytes_total', help: 'RPC recv' }),
     rpcRecvCount: register.gauge({ name: 'gossipsub_rpc_recv_count_total', help: 'RPC recv' }),
@@ -259,6 +265,8 @@ export function getMetrics(
     rpcRecvIWant: register.gauge({ name: 'gossipsub_rpc_recv_iwant_total', help: 'RPC recv' }),
     rpcRecvGraft: register.gauge({ name: 'gossipsub_rpc_recv_graft_total', help: 'RPC recv' }),
     rpcRecvPrune: register.gauge({ name: 'gossipsub_rpc_recv_prune_total', help: 'RPC recv' }),
+    rpcDataError: register.gauge({ name: 'gossipsub_rpc_data_err_count_total', help: 'RPC data error' }),
+    rpcRecvError: register.gauge({ name: 'gossipsub_rpc_recv_err_count_total', help: 'RPC recv error' }),
 
     /** Total count of RPC dropped because acceptFrom() == false */
     rpcRecvNotAccepted: register.gauge({
@@ -323,6 +331,12 @@ export function getMetrics(
       help: 'Total count of recv msgs before any validation',
       labelNames: ['topic']
     }),
+    /** Total count of recv msgs error */
+    msgReceivedError: register.gauge<{ topic: TopicLabel }>({
+      name: 'gossipsub_msg_received_error_total',
+      help: 'Total count of recv msgs error',
+      labelNames: ['topic']
+    }),
     /** Tracks distribution of recv msgs by duplicate, invalid, valid */
     msgReceivedStatus: register.gauge<{ topic: TopicLabel; status: MessageStatus }>({
       name: 'gossipsub_msg_received_status_total',
@@ -352,6 +366,12 @@ export function getMetrics(
     duplicateMsgLateDelivery: register.gauge<{ topic: TopicLabel }>({
       name: 'gossisub_duplicate_msg_late_delivery_total',
       help: 'Total count of late duplicate message delivery by topic, which triggers P3 penalty',
+      labelNames: ['topic']
+    }),
+
+    duplicateMsgIgnored: register.gauge<{ topic: TopicLabel }>({
+      name: 'gossisub_ignored_published_duplicate_msgs_total',
+      help: 'Total count of published duplicate message ignored by topic',
       labelNames: ['topic']
     }),
 
@@ -489,6 +509,10 @@ export function getMetrics(
         4 * opts.gossipPromiseExpireSec
       ]
     }),
+    iwantPromiseUntracked: register.gauge({
+      name: 'gossip_iwant_promise_untracked',
+      help: 'Total count of untracked IWANT promise'
+    }),
 
     /* Data structure sizes */
     /** Unbounded cache sizes */
@@ -609,6 +633,11 @@ export function getMetrics(
       this.msgReceivedPreValidation.inc({ topic }, 1)
     },
 
+    onMsgRecvError(topicStr: TopicStr): void {
+      const topic = this.toTopic(topicStr)
+      this.msgReceivedError.inc({ topic }, 1)
+    },
+
     onMsgRecvResult(topicStr: TopicStr, status: MessageStatus): void {
       const topic = this.toTopic(topicStr)
       this.msgReceivedStatus.inc({ topic, status })
@@ -627,6 +656,23 @@ export function getMetrics(
         const topic = this.toTopic(topicStr)
         this.duplicateMsgLateDelivery.inc({ topic }, 1)
       }
+    },
+
+    onPublishDuplicateMsg(topicStr: TopicStr): void {
+      const topic = this.toTopic(topicStr)
+      this.duplicateMsgIgnored.inc({ topic }, 1)
+    },
+
+    onPeerReadStreamError(): void {
+      this.peerReadStreamError.inc(1)
+    },
+
+    onRpcRecvError(): void {
+      this.rpcRecvError.inc(1)
+    },
+
+    onRpcDataError(): void {
+      this.rpcDataError.inc(1)
     },
 
     onRpcRecv(rpc: IRPC, rpcBytes: number): void {
