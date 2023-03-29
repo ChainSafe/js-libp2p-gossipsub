@@ -11,18 +11,23 @@
   "types": "dist/src/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/src/index.d.ts",
       "import": "./dist/src/index.js"
     },
     "./metrics": {
+      "types": "./dist/src/metrics.d.ts",
       "import": "./dist/src/metrics.js"
     },
     "./message": {
+      "types": "./dist/src/message/index.d.ts",
       "import": "./dist/src/message/index.js"
     },
     "./score": {
+      "types": "./dist/src/score/index.d.ts",
       "import": "./dist/src/score/index.js"
     },
     "./types": {
+      "types": "./dist/src/types.d.ts",
       "import": "./dist/src/types.js"
     }
   },
