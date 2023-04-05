@@ -573,19 +573,30 @@ export class GossipSub extends EventEmitter {
                         // to prevent a top-level unhandled exception
                         // This processing of rpc messages should happen without awaiting full validation/execution of prior messages
                         if (this.opts.awaitRpcHandler) {
-                            await this.handleReceivedRpc(peerId, rpc);
+                            try {
+                                await this.handleReceivedRpc(peerId, rpc);
+                            }
+                            catch (err) {
+                                this.metrics?.onRpcRecvError();
+                                this.log(err);
+                            }
                         }
                         else {
-                            this.handleReceivedRpc(peerId, rpc).catch((err) => this.log(err));
+                            this.handleReceivedRpc(peerId, rpc).catch((err) => {
+                                this.metrics?.onRpcRecvError();
+                                this.log(err);
+                            });
                         }
                     }
                     catch (e) {
+                        this.metrics?.onRpcDataError();
                         this.log(e);
                     }
                 }
             });
         }
         catch (err) {
+            this.metrics?.onPeerReadStreamError();
             this.handlePeerReadStreamError(err, peerId);
         }
     }
@@ -607,7 +618,23 @@ export class GossipSub extends EventEmitter {
             this.metrics?.rpcRecvNotAccepted.inc();
             return;
         }
-        this.log('rpc from %p', from);
+        const subscriptions = rpc.subscriptions ? rpc.subscriptions.length : 0;
+        const messages = rpc.messages ? rpc.messages.length : 0;
+        let ihave = 0;
+        let iwant = 0;
+        let graft = 0;
+        let prune = 0;
+        if (rpc.control) {
+            if (rpc.control.ihave)
+                ihave = rpc.control.ihave.length;
+            if (rpc.control.iwant)
+                iwant = rpc.control.iwant.length;
+            if (rpc.control.graft)
+                graft = rpc.control.graft.length;
+            if (rpc.control.prune)
+                prune = rpc.control.prune.length;
+        }
+        this.log(`rpc.from ${from.toString()} subscriptions ${subscriptions} messages ${messages} ihave ${ihave} iwant ${iwant} graft ${graft} prune ${prune}`);
         // Handle received subscriptions
         if (rpc.subscriptions && rpc.subscriptions.length > 0) {
             // update peer subscriptions
@@ -640,7 +667,10 @@ export class GossipSub extends EventEmitter {
                 }
                 const handleReceivedMessagePromise = this.handleReceivedMessage(from, message)
                     // Should never throw, but handle just in case
-                    .catch((err) => this.log(err));
+                    .catch((err) => {
+                    this.metrics?.onMsgRecvError(message.topic);
+                    this.log(err);
+                });
                 if (this.opts.awaitRpcMessageHandler) {
                     await handleReceivedMessagePromise;
                 }
@@ -838,7 +868,16 @@ export class GossipSub extends EventEmitter {
         if (!iwant.length && !ihave.length && !prune.length) {
             return;
         }
-        this.sendRpc(id, { messages: ihave, control: { iwant, prune } });
+        const sent = this.sendRpc(id, { messages: ihave, control: { iwant, prune } });
+        const iwantMessageIds = iwant[0]?.messageIDs;
+        if (iwantMessageIds) {
+            if (sent) {
+                this.gossipTracer.addPromise(id, iwantMessageIds);
+            }
+            else {
+                this.metrics?.iwantPromiseUntracked.inc(1);
+            }
+        }
     }
     /**
      * Whether to accept a message from a peer
@@ -925,7 +964,7 @@ export class GossipSub extends EventEmitter {
         // truncate to the messages we are actually asking for and update the iasked counter
         iwantList = iwantList.slice(0, iask);
         this.iasked.set(id, iasked + iask);
-        this.gossipTracer.addPromise(id, iwantList);
+        // do not add gossipTracer promise here until a successful sendRpc()
         return [
             {
                 messageIDs: iwantList
@@ -1475,9 +1514,15 @@ export class GossipSub extends EventEmitter {
         // calculate the message id from the un-transformed data
         const msgId = await this.msgIdFn(msg);
         const msgIdStr = this.msgIdToStrFn(msgId);
+        // Current publish opt takes precedence global opts, while preserving false value
+        const ignoreDuplicatePublishError = opts?.ignoreDuplicatePublishError ?? this.opts.ignoreDuplicatePublishError;
         if (this.seenCache.has(msgIdStr)) {
             // This message has already been seen. We don't re-publish messages that have already
             // been published on the network.
+            if (ignoreDuplicatePublishError) {
+                this.metrics?.onPublishDuplicateMsg(topic);
+                return { recipients: [] };
+            }
             throw Error('PublishError.Duplicate');
         }
         const { tosend, tosendCount } = this.selectPeersToPublish(topic);

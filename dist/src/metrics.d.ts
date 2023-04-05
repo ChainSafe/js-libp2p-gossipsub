@@ -185,6 +185,7 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     asyncValidationMcacheHit: Gauge<{
         hit: 'hit' | 'miss';
     }>;
+    peerReadStreamError: Gauge<LabelsGeneric>;
     rpcRecvBytes: Gauge<LabelsGeneric>;
     rpcRecvCount: Gauge<LabelsGeneric>;
     rpcRecvSubscription: Gauge<LabelsGeneric>;
@@ -194,6 +195,8 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     rpcRecvIWant: Gauge<LabelsGeneric>;
     rpcRecvGraft: Gauge<LabelsGeneric>;
     rpcRecvPrune: Gauge<LabelsGeneric>;
+    rpcDataError: Gauge<LabelsGeneric>;
+    rpcRecvError: Gauge<LabelsGeneric>;
     /** Total count of RPC dropped because acceptFrom() == false */
     rpcRecvNotAccepted: Gauge<LabelsGeneric>;
     rpcSentBytes: Gauge<LabelsGeneric>;
@@ -234,6 +237,10 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     msgReceivedPreValidation: Gauge<{
         topic: TopicLabel;
     }>;
+    /** Total count of recv msgs error */
+    msgReceivedError: Gauge<{
+        topic: TopicLabel;
+    }>;
     /** Tracks distribution of recv msgs by duplicate, invalid, valid */
     msgReceivedStatus: Gauge<{
         topic: TopicLabel;
@@ -248,6 +255,9 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     duplicateMsgDeliveryDelay: Histogram<LabelsGeneric>;
     /** Total count of late msg delivery total by topic */
     duplicateMsgLateDelivery: Gauge<{
+        topic: TopicLabel;
+    }>;
+    duplicateMsgIgnored: Gauge<{
         topic: TopicLabel;
     }>;
     /** Total times score() is called */
@@ -306,6 +316,7 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     iwantMessagePruned: Gauge<LabelsGeneric>;
     /** Histogram of delivery time of resolved IWANT promises */
     iwantPromiseDeliveryTime: Histogram<LabelsGeneric>;
+    iwantPromiseUntracked: Gauge<LabelsGeneric>;
     /** Unbounded cache sizes */
     cacheSize: Gauge<{
         cache: string;
@@ -341,9 +352,14 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     onForwardMsg(topicStr: TopicStr, tosendCount: number): void;
     onPublishMsg(topicStr: TopicStr, tosendGroupCount: ToSendGroupCount, tosendCount: number, dataLen: number): void;
     onMsgRecvPreValidation(topicStr: TopicStr): void;
+    onMsgRecvError(topicStr: TopicStr): void;
     onMsgRecvResult(topicStr: TopicStr, status: MessageStatus): void;
     onMsgRecvInvalid(topicStr: TopicStr, reason: RejectReasonObj): void;
     onDuplicateMsgDelivery(topicStr: TopicStr, deliveryDelayMs: number, isLateDelivery: boolean): void;
+    onPublishDuplicateMsg(topicStr: TopicStr): void;
+    onPeerReadStreamError(): void;
+    onRpcRecvError(): void;
+    onRpcDataError(): void;
     onRpcRecv(rpc: IRPC, rpcBytes: number): void;
     onRpcSent(rpc: IRPC, rpcBytes: number): void;
     registerScores(scores: number[], scoreThresholds: PeerScoreThresholds): void;

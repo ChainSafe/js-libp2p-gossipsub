@@ -1,3 +1,4 @@
+import { Logger } from '@libp2p/logger';
 import type { PeerId } from '@libp2p/interface-peer-id';
 import { EventEmitter } from '@libp2p/interfaces/events';
 import { MessageCache } from './message-cache.js';
@@ -31,6 +32,8 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
     asyncValidation: boolean;
     /** Do not throw `InsufficientPeers` error if publishing to zero peers */
     allowPublishToZeroPeers: boolean;
+    /** Do not throw `PublishError.Duplicate` if publishing duplicate messages */
+    ignoreDuplicatePublishError: boolean;
     /** For a single stream, await processing each RPC before processing the next */
     awaitRpcHandler: boolean;
     /** For a single RPC, await processing each message before processing the next */
@@ -206,6 +209,10 @@ export declare class GossipSub extends EventEmitter<GossipsubEvents> implements 
      */
     readonly topicValidators: Map<string, TopicValidatorFn>;
     /**
+     * Make this protected so child class may want to redirect to its own log.
+     */
+    protected readonly log: Logger;
+    /**
      * Number of heartbeats since the beginning of time
      * This allows us to amortize some resource cleanup -- eg: backoff cleanup
      */
@@ -216,7 +223,6 @@ export declare class GossipSub extends EventEmitter<GossipsubEvents> implements 
     readonly gossipTracer: IWantTracer;
     private readonly components;
     private directPeerInitial;
-    private readonly log;
     static multicodec: string;
     readonly opts: Required<GossipOptions>;
     private readonly decodeRpcLimits;
