@@ -5,10 +5,6 @@
 ![ES Version](https://img.shields.io/badge/ES-2017-yellow)
 ![Node Version](https://img.shields.io/badge/node-10.x-green)
 
-## Lead Maintainer
-
-[Cayman Nava](https://github.com/wemeetagain)
-
 ## Table of Contents
 
 - [js-libp2p-gossipsub](#js-libp2p-gossipsub)
