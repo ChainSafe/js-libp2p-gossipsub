@@ -2,7 +2,6 @@
   "name": "@chainsafe/libp2p-gossipsub",
   "version": "6.2.0",
   "description": "A typescript implementation of gossipsub",
-  "leadMaintainer": "Cayman Nava <caymannava@gmail.com>",
   "files": [
     "dist",
     "src"
