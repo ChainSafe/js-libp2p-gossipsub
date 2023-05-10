@@ -78,7 +78,7 @@ import { InboundStream, OutboundStream } from './stream.js'
 import { Uint8ArrayList } from 'uint8arraylist'
 import { decodeRpc, DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
 import { ConnectionManager } from '@libp2p/interface-connection-manager'
-import { PeerStore } from '@libp2p/interface-peer-store'
+import { Peer, PeerStore } from '@libp2p/interface-peer-store'
 import { Multiaddr } from '@multiformats/multiaddr'
 import { multiaddrToIPStr } from './utils/multiaddr.js'
 
@@ -2428,11 +2428,19 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         // unsigned address records through PX anyways
         // Finding signed records in the DHT is not supported at the time of writing in js-libp2p
         const id = peerIdFromString(peerId)
-        const peerInfo = await this.components.peerStore.get(id)
+        let peerInfo: Peer | undefined
+
+        try {
+          peerInfo = await this.components.peerStore.get(id)
+        } catch (err: any) {
+          if (err.code !== 'ERR_NOT_FOUND') {
+            throw err
+          }
+        }
 
         return {
           peerID: id.toBytes(),
-          signedPeerRecord: peerInfo.peerRecordEnvelope
+          signedPeerRecord: peerInfo?.peerRecordEnvelope
         }
       })
     )
