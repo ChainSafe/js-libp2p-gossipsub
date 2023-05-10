@@ -20,7 +20,7 @@ describe.skip('interface compliance', function () {
           peerStore: new PersistentPeerStore({
             peerId: args.components.peerId,
             datastore: new MemoryDatastore(),
-            events: new EventEmitter<Libp2pEvents>
+            events: new EventEmitter<Libp2pEvents>()
           })
         },
         {
