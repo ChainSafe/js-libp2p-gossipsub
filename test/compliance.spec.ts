@@ -1,4 +1,6 @@
+import { Libp2pEvents } from '@libp2p/interface-libp2p'
 import tests from '@libp2p/interface-pubsub-compliance-tests'
+import { EventEmitter } from '@libp2p/interfaces/events'
 import { PersistentPeerStore } from '@libp2p/peer-store'
 import { MemoryDatastore } from 'datastore-core'
 import { GossipSub } from '../src/index.js'
@@ -17,7 +19,8 @@ describe.skip('interface compliance', function () {
           ...args.components,
           peerStore: new PersistentPeerStore({
             peerId: args.components.peerId,
-            datastore: new MemoryDatastore()
+            datastore: new MemoryDatastore(),
+            events: new EventEmitter<Libp2pEvents>()
           })
         },
         {

@@ -8,29 +8,39 @@ import { PersistentPeerStore } from '@libp2p/peer-store'
 import { start } from '@libp2p/interfaces/startable'
 import { stubInterface } from 'ts-sinon'
 import { ConnectionManager } from '@libp2p/interface-connection-manager'
+import { EventEmitter } from '@libp2p/interfaces/events'
+import { Libp2pEvents } from '@libp2p/interface-libp2p'
 
 export interface CreateComponentsOpts {
   init?: Partial<GossipsubOpts>
   pubsub?: { new (opts?: any): PubSub }
 }
 
+export interface GossipSubTestComponents extends GossipSubComponents {
+  events: EventEmitter<Libp2pEvents>
+}
+
 export interface GossipSubAndComponents {
   pubsub: GossipSub
-  components: GossipSubComponents
+  components: GossipSubTestComponents
 }
 
 export const createComponents = async (opts: CreateComponentsOpts): Promise<GossipSubAndComponents> => {
   const Ctor = opts.pubsub ?? GossipSub
   const peerId = await createRSAPeerId({ bits: 512 })
 
-  const components: GossipSubComponents = {
+  const events = new EventEmitter<Libp2pEvents>()
+
+  const components: GossipSubTestComponents = {
     peerId,
     registrar: mockRegistrar(),
     connectionManager: stubInterface<ConnectionManager>(),
     peerStore: new PersistentPeerStore({
       peerId,
-      datastore: new MemoryDatastore()
-    })
+      datastore: new MemoryDatastore(),
+      events
+    }),
+    events
   }
   components.connectionManager = mockConnectionManager(components)
 
