@@ -15,6 +15,22 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [8.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v7.0.0...v8.0.0) (2023-05-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* update peerstore and releated deps for libp2p@0.45 compat ([#425](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/425))
+
+### Bug Fixes
+
+* update peerstore and releated deps for libp2p@0.45 compat ([#425](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/425)) ([b6225d6](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/b6225d62fa3f372acee31f3ad71579693e0fcdbe))
+
+
+### Miscellaneous
+
+* Update README.md usage example ([#429](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/429)) ([9bd5a3c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/9bd5a3c2f7324a3332c537bfb6bbd26d518d7503))
+
 ## [7.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v6.3.0...v7.0.0) (2023-04-20)
 
 
