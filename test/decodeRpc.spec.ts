@@ -1,6 +1,6 @@
 import { expect } from 'aegir/chai'
-import { decodeRpc, DecodeRPCLimits, defaultDecodeRpcLimits } from '../src/message/decodeRpc.js'
-import { RPC, IRPC } from '../src/message/index.js'
+import { decodeRpc, type DecodeRPCLimits, defaultDecodeRpcLimits } from '../src/message/decodeRpc.js'
+import { RPC, type IRPC } from '../src/message/index.js'
 
 describe('decodeRpc', () => {
   const topicID = 'topic'
@@ -128,7 +128,7 @@ describe('decodeRpc', () => {
       expect(endecode(rpc).control?.prune?.[1].peers).length(1, 'Wrong prune?.[1].peers len')
     })
 
-    function endecode(rpc: IRPC): IRPC {
+    function endecode (rpc: IRPC): IRPC {
       return decodeRpc(RPC.encode(rpc).finish(), decodeRpcLimits)
     }
   })

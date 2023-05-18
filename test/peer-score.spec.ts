@@ -1,12 +1,12 @@
-import sinon from 'sinon'
+import { createEd25519PeerId } from '@libp2p/peer-id-factory'
 import { expect } from 'aegir/chai'
 import delay from 'delay'
-import { PeerScore, createPeerScoreParams, createTopicScoreParams } from '../src/score/index.js'
-import { getMsgIdStr, makeTestMessage } from './utils/index.js'
-import { RejectReason } from '../src/types.js'
+import sinon from 'sinon'
 import { ScorePenalty } from '../src/metrics.js'
-import { createEd25519PeerId } from '@libp2p/peer-id-factory'
-import { PeerStats } from '../src/score/peer-stats.js'
+import { PeerScore, createPeerScoreParams, createTopicScoreParams } from '../src/score/index.js'
+import { type PeerStats } from '../src/score/peer-stats.js'
+import { RejectReason } from '../src/types.js'
+import { getMsgIdStr, makeTestMessage } from './utils/index.js'
 import type { PeerScoreParams, TopicScoreParams } from '../src/score/peer-score-params.js'
 
 /** Placeholder for some ScorePenalty value, only used for metrics */
@@ -578,7 +578,7 @@ describe('PeerScore', () => {
       ps.graft(p, mytopic)
     })
 
-    const setIPsForPeer = (p: string, ips: string[]) => {
+    const setIPsForPeer = (p: string, ips: string[]): void => {
       for (const ip of ips) {
         ps.addIP(p, ip)
       }
@@ -685,6 +685,7 @@ describe.skip('PeerScore score cache', function () {
     appSpecificWeight: 1,
     retainScore: 800,
     decayInterval: 1000,
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     topics: { a: { topicWeight: 10 } as TopicScoreParams }
   })
   let ps2: PeerScore
@@ -718,17 +719,18 @@ describe.skip('PeerScore score cache', function () {
 
   const testCases = [
     { name: 'decayInterval timeout', fun: () => sandbox.clock.tick(params.decayInterval) },
-    { name: 'refreshScores', fun: () => ps2.refreshScores() },
-    { name: 'addPenalty', fun: () => ps2.addPenalty(peerA, 10, scorePenaltyAny) },
-    { name: 'graft', fun: () => ps2.graft(peerA, 'a') },
-    { name: 'prune', fun: () => ps2.prune(peerA, 'a') },
-    { name: 'markInvalidMessageDelivery', fun: () => ps2.markInvalidMessageDelivery(peerA, 'a') },
-    { name: 'markFirstMessageDelivery', fun: () => ps2.markFirstMessageDelivery(peerA, 'a') },
-    { name: 'markDuplicateMessageDelivery', fun: () => ps2.markDuplicateMessageDelivery(peerA, 'a') },
-    { name: 'removeIPs', fun: () => ps2.removeIP(peerA, '127.0.0.1') }
+    { name: 'refreshScores', fun: () => { ps2.refreshScores() } },
+    { name: 'addPenalty', fun: () => { ps2.addPenalty(peerA, 10, scorePenaltyAny) } },
+    { name: 'graft', fun: () => { ps2.graft(peerA, 'a') } },
+    { name: 'prune', fun: () => { ps2.prune(peerA, 'a') } },
+    { name: 'markInvalidMessageDelivery', fun: () => { ps2.markInvalidMessageDelivery(peerA, 'a') } },
+    { name: 'markFirstMessageDelivery', fun: () => { ps2.markFirstMessageDelivery(peerA, 'a') } },
+    { name: 'markDuplicateMessageDelivery', fun: () => { ps2.markDuplicateMessageDelivery(peerA, 'a') } },
+    { name: 'removeIPs', fun: () => { ps2.removeIP(peerA, '127.0.0.1') } }
   ]
 
   for (const { name, fun } of testCases) {
+    // eslint-disable-next-line no-loop-func
     it(`should invalidate the cache after ${name}`, function () {
       // eslint-disable-line no-loop-func
       computeStoreStub.returns(10)

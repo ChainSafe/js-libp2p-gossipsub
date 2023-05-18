@@ -1,9 +1,9 @@
-import { expect } from 'aegir/chai'
-import { GossipsubHeartbeatInterval } from '../src/constants.js'
-import { pEvent } from 'p-event'
-import { createComponents, GossipSubAndComponents } from './utils/create-pubsub.js'
-import { stop } from '@libp2p/interfaces/startable'
 import { mockNetwork } from '@libp2p/interface-mocks'
+import { stop } from '@libp2p/interfaces/startable'
+import { expect } from 'aegir/chai'
+import { pEvent } from 'p-event'
+import { GossipsubHeartbeatInterval } from '../src/constants.js'
+import { createComponents, type GossipSubAndComponents } from './utils/create-pubsub.js'
 
 describe('heartbeat', () => {
   let node: GossipSubAndComponents
@@ -18,7 +18,7 @@ describe('heartbeat', () => {
   })
 
   after(() => {
-    stop(node.pubsub, ...Object.entries(node.components))
+    void stop(node.pubsub, ...Object.entries(node.components))
     mockNetwork.reset()
   })
 

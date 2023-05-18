@@ -1,11 +1,11 @@
-import type { SubscriptionChangeData } from '@libp2p/interface-pubsub'
-import type { EventEmitter } from '@libp2p/interfaces/events'
 import { expect } from 'aegir/chai'
 import pWaitFor from 'p-wait-for'
-import { GossipSub, GossipsubEvents } from '../../src/index.js'
-import { GossipSubAndComponents } from './create-pubsub.js'
+import { type GossipsubEvents } from '../../src/index.js'
+import { type GossipSubAndComponents } from './create-pubsub.js'
+import type { SubscriptionChangeData } from '@libp2p/interface-pubsub'
+import type { EventEmitter } from '@libp2p/interfaces/events'
 
-export const checkReceivedSubscription = (
+export const checkReceivedSubscription = async (
   node: GossipSubAndComponents,
   peerIdStr: string,
   topic: string,
@@ -15,14 +15,15 @@ export const checkReceivedSubscription = (
   new Promise<void>((resolve, reject) => {
     const event = 'subscription-change'
     const t = setTimeout(
-      () => reject(new Error(`Not received subscriptions of psub ${peerIdx}, topic ${topic}`)),
+      () => { reject(new Error(`Not received subscriptions of psub ${peerIdx}, topic ${topic}`)) },
       timeout
     )
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const cb = (evt: CustomEvent<SubscriptionChangeData>) => {
       const { peerId, subscriptions } = evt.detail
 
       // console.log('@@@ in test received subscriptions from peer id', peerId.toString())
-      if (peerId.toString() === peerIdStr && subscriptions[0].topic === topic && subscriptions[0].subscribe === true) {
+      if (peerId.toString() === peerIdStr && subscriptions[0].topic === topic && subscriptions[0].subscribe) {
         clearTimeout(t)
         node.pubsub.removeEventListener(event, cb)
         if (
@@ -47,7 +48,7 @@ export const checkReceivedSubscriptions = async (
 ): Promise<void> => {
   const recvPeerIdStrs = peerIdStrs.filter((peerIdStr) => peerIdStr !== node.components.peerId.toString())
   const promises = recvPeerIdStrs.map(
-    async (peerIdStr, idx) => await checkReceivedSubscription(node, peerIdStr, topic, idx, timeout)
+    async (peerIdStr, idx) => checkReceivedSubscription(node, peerIdStr, topic, idx, timeout)
   )
   await Promise.all(promises)
   for (const str of recvPeerIdStrs) {
@@ -55,12 +56,12 @@ export const checkReceivedSubscriptions = async (
   }
   await pWaitFor(() => {
     return recvPeerIdStrs.every((peerIdStr) => {
-      return (node.pubsub as GossipSub).streamsOutbound.has(peerIdStr)
+      return (node.pubsub).streamsOutbound.has(peerIdStr)
     })
   })
 }
 
-export const awaitEvents = async <Events extends { [s: string]: any } = GossipsubEvents>(
+export const awaitEvents = async <Events extends Record<string, any> = GossipsubEvents>(
   emitter: EventEmitter<Events>,
   event: keyof Events,
   number: number,
@@ -72,7 +73,7 @@ export const awaitEvents = async <Events extends { [s: string]: any } = Gossipsu
       emitter.removeEventListener(event, cb)
       reject(new Error(`${counter} of ${number} '${String(event)}' events received after ${timeout}ms`))
     }, timeout)
-    const cb = () => {
+    const cb = (): void => {
       counter++
       if (counter >= number) {
         clearTimeout(t)

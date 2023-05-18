@@ -3,11 +3,11 @@
  *
  * Mutates the input array
  */
-export function shuffle<T>(arr: T[]): T[] {
+export function shuffle<T> (arr: T[]): T[] {
   if (arr.length <= 1) {
     return arr
   }
-  const randInt = () => {
+  const randInt = (): number => {
     return Math.floor(Math.random() * Math.floor(arr.length))
   }
 

@@ -1,7 +1,7 @@
-import { TopicValidatorResult } from '@libp2p/interface-pubsub'
+import { type TopicValidatorResult } from '@libp2p/interface-pubsub'
+import { type MessageStatus, type PeerIdStr, RejectReason, type RejectReasonObj, type TopicStr, type ValidateError } from './types.js'
 import type { IRPC } from './message/rpc.js'
 import type { PeerScoreThresholds } from './score/peer-score-thresholds.js'
-import { MessageStatus, PeerIdStr, RejectReason, RejectReasonObj, TopicStr, ValidateError } from './types.js'
 
 /** Topic label as provided in `topicStrToLabel` */
 export type TopicLabel = string
@@ -13,57 +13,49 @@ export enum MessageSource {
 }
 
 type LabelsGeneric = Record<string, string | undefined>
-type CollectFn<Labels extends LabelsGeneric> = (metric: Gauge<Labels>) => void
+interface CollectFn<Labels extends LabelsGeneric> { (metric: Gauge<Labels>): void }
 
 interface Gauge<Labels extends LabelsGeneric = never> {
   // Sorry for this mess, `prom-client` API choices are not great
   // If the function signature was `inc(value: number, labels?: Labels)`, this would be simpler
-  inc(value?: number): void
-  inc(labels: Labels, value?: number): void
-  inc(arg1?: Labels | number, arg2?: number): void
+  inc: ((value?: number) => void) & ((labels: Labels, value?: number) => void) & ((arg1?: Labels | number, arg2?: number) => void)
 
-  set(value: number): void
-  set(labels: Labels, value: number): void
-  set(arg1?: Labels | number, arg2?: number): void
+  set: ((value: number) => void) & ((labels: Labels, value: number) => void) & ((arg1?: Labels | number, arg2?: number) => void)
 
-  addCollect(collectFn: CollectFn<Labels>): void
+  addCollect: (collectFn: CollectFn<Labels>) => void
 }
 
 interface Histogram<Labels extends LabelsGeneric = never> {
-  startTimer(): () => void
+  startTimer: () => () => void
 
-  observe(value: number): void
-  observe(labels: Labels, values: number): void
-  observe(arg1: Labels | number, arg2?: number): void
+  observe: ((value: number) => void) & ((labels: Labels, values: number) => void) & ((arg1: Labels | number, arg2?: number) => void)
 
-  reset(): void
+  reset: () => void
 }
 
 interface AvgMinMax<Labels extends LabelsGeneric = never> {
-  set(values: number[]): void
-  set(labels: Labels, values: number[]): void
-  set(arg1?: Labels | number[], arg2?: number[]): void
+  set: ((values: number[]) => void) & ((labels: Labels, values: number[]) => void) & ((arg1?: Labels | number[], arg2?: number[]) => void)
 }
 
-type GaugeConfig<Labels extends LabelsGeneric> = {
+interface GaugeConfig<Labels extends LabelsGeneric> {
   name: string
   help: string
-  labelNames?: keyof Labels extends string ? (keyof Labels)[] : undefined
+  labelNames?: keyof Labels extends string ? Array<keyof Labels> : undefined
 }
 
-type HistogramConfig<Labels extends LabelsGeneric> = {
+interface HistogramConfig<Labels extends LabelsGeneric> {
   name: string
   help: string
-  labelNames?: (keyof Labels)[]
+  labelNames?: Array<keyof Labels>
   buckets?: number[]
 }
 
 type AvgMinMaxConfig<Labels extends LabelsGeneric> = GaugeConfig<Labels>
 
 export interface MetricsRegister {
-  gauge<T extends LabelsGeneric>(config: GaugeConfig<T>): Gauge<T>
-  histogram<T extends LabelsGeneric>(config: HistogramConfig<T>): Histogram<T>
-  avgMinMax<T extends LabelsGeneric>(config: AvgMinMaxConfig<T>): AvgMinMax<T>
+  gauge: <T extends LabelsGeneric>(config: GaugeConfig<T>) => Gauge<T>
+  histogram: <T extends LabelsGeneric>(config: HistogramConfig<T>) => Histogram<T>
+  avgMinMax: <T extends LabelsGeneric>(config: AvgMinMaxConfig<T>) => AvgMinMax<T>
 }
 
 export enum InclusionReason {
@@ -122,24 +114,24 @@ export enum ScoreThreshold {
 
 export type PeersByScoreThreshold = Record<ScoreThreshold, number>
 
-export type ToSendGroupCount = {
+export interface ToSendGroupCount {
   direct: number
   floodsub: number
   mesh: number
   fanout: number
 }
 
-export type ToAddGroupCount = {
+export interface ToAddGroupCount {
   fanout: number
   random: number
 }
 
 export type PromiseDeliveredStats =
-  | { expired: false; requestedCount: number; maxDeliverMs: number }
-  | { expired: true; maxDeliverMs: number }
+  | { expired: false, requestedCount: number, maxDeliverMs: number }
+  | { expired: true, maxDeliverMs: number }
 
-export type TopicScoreWeights<T> = { p1w: T; p2w: T; p3w: T; p3bw: T; p4w: T }
-export type ScoreWeights<T> = {
+export interface TopicScoreWeights<T> { p1w: T, p2w: T, p3w: T, p3bw: T, p4w: T }
+export interface ScoreWeights<T> {
   byTopic: Map<TopicLabel, TopicScoreWeights<T>>
   p5w: T
   p6w: T
@@ -153,11 +145,11 @@ export type Metrics = ReturnType<typeof getMetrics>
  * A collection of metrics used throughout the Gossipsub behaviour.
  */
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function getMetrics(
+export function getMetrics (
   register: MetricsRegister,
   topicStrToLabel: TopicStrToLabel,
-  opts: { gossipPromiseExpireSec: number; behaviourPenaltyThreshold: number; maxMeshMessageDeliveriesWindowSec: number }
-) {
+  opts: { gossipPromiseExpireSec: number, behaviourPenaltyThreshold: number, maxMeshMessageDeliveriesWindowSec: number }
+): any {
   // Using function style instead of class to prevent having to re-declare all MetricsPrometheus types.
 
   return {
@@ -170,8 +162,8 @@ export function getMetrics(
 
     /* Metrics per known topic */
     /** Status of our subscription to this topic. This metric allows analyzing other topic metrics
-     *  filtered by our current subscription status.
-     *  = rust-libp2p `topic_subscription_status` */
+     * filtered by our current subscription status.
+     * = rust-libp2p `topic_subscription_status` */
     topicSubscriptionStatus: register.gauge<{ topicStr: TopicStr }>({
       name: 'gossipsub_topic_subscription_status',
       help: 'Status of our subscription to this topic',
@@ -187,23 +179,23 @@ export function getMetrics(
 
     /* Metrics regarding mesh state */
     /** Number of peers in our mesh. This metric should be updated with the count of peers for a
-     *  topic in the mesh regardless of inclusion and churn events.
-     *  = rust-libp2p `mesh_peer_counts` */
+     * topic in the mesh regardless of inclusion and churn events.
+     * = rust-libp2p `mesh_peer_counts` */
     meshPeerCounts: register.gauge<{ topicStr: TopicStr }>({
       name: 'gossipsub_mesh_peer_count',
       help: 'Number of peers in our mesh',
       labelNames: ['topicStr']
     }),
     /** Number of times we include peers in a topic mesh for different reasons.
-     *  = rust-libp2p `mesh_peer_inclusion_events` */
-    meshPeerInclusionEvents: register.gauge<{ topic: TopicLabel; reason: InclusionReason }>({
+     * = rust-libp2p `mesh_peer_inclusion_events` */
+    meshPeerInclusionEvents: register.gauge<{ topic: TopicLabel, reason: InclusionReason }>({
       name: 'gossipsub_mesh_peer_inclusion_events_total',
       help: 'Number of times we include peers in a topic mesh for different reasons',
       labelNames: ['topic', 'reason']
     }),
     /** Number of times we remove peers in a topic mesh for different reasons.
-     *  = rust-libp2p `mesh_peer_churn_events` */
-    meshPeerChurnEvents: register.gauge<{ topic: TopicLabel; reason: ChurnReason }>({
+     * = rust-libp2p `mesh_peer_churn_events` */
+    meshPeerChurnEvents: register.gauge<{ topic: TopicLabel, reason: ChurnReason }>({
       name: 'gossipsub_peer_churn_events_total',
       help: 'Number of times we remove peers in a topic mesh for different reasons',
       labelNames: ['topic', 'reason']
@@ -211,8 +203,8 @@ export function getMetrics(
 
     /* General Metrics */
     /** Gossipsub supports floodsub, gossipsub v1.0 and gossipsub v1.1. Peers are classified based
-     *  on which protocol they support. This metric keeps track of the number of peers that are
-     *  connected of each type. */
+     * on which protocol they support. This metric keeps track of the number of peers that are
+     * connected of each type. */
     peersPerProtocol: register.gauge<{ protocol: string }>({
       name: 'gossipsub_peers_per_protocol_count',
       help: 'Peers connected for each topic',
@@ -232,17 +224,17 @@ export function getMetrics(
     }),
 
     /** Message validation results for each topic.
-     *  Invalid == Reject?
-     *  = rust-libp2p `invalid_messages`, `accepted_messages`, `ignored_messages`, `rejected_messages` */
-    asyncValidationResult: register.gauge<{ topic: TopicLabel; acceptance: TopicValidatorResult }>({
+     * Invalid == Reject?
+     * = rust-libp2p `invalid_messages`, `accepted_messages`, `ignored_messages`, `rejected_messages` */
+    asyncValidationResult: register.gauge<{ topic: TopicLabel, acceptance: TopicValidatorResult }>({
       name: 'gossipsub_async_validation_result_total',
       help: 'Message validation result for each topic',
       labelNames: ['topic', 'acceptance']
     }),
     /** When the user validates a message, it tries to re propagate it to its mesh peers. If the
-     *  message expires from the memcache before it can be validated, we count this a cache miss
-     *  and it is an indicator that the memcache size should be increased.
-     *  = rust-libp2p `mcache_misses` */
+     * message expires from the memcache before it can be validated, we count this a cache miss
+     * and it is an indicator that the memcache size should be increased.
+     * = rust-libp2p `mcache_misses` */
     asyncValidationMcacheHit: register.gauge<{ hit: 'hit' | 'miss' }>({
       name: 'gossipsub_async_validation_mcache_hit_total',
       help: 'Async validation result reported by the user layer',
@@ -300,7 +292,7 @@ export function getMetrics(
     }),
     /** Total count of peers (by group) that we publish a msg to */
     // NOTE: Do not use 'group' label since it's a generic already used by Prometheus to group instances
-    msgPublishPeersByGroup: register.gauge<{ topic: TopicLabel; peerGroup: keyof ToSendGroupCount }>({
+    msgPublishPeersByGroup: register.gauge<{ topic: TopicLabel, peerGroup: keyof ToSendGroupCount }>({
       name: 'gossipsub_msg_publish_peers_by_group',
       help: 'Total count of peers (by group) that we publish a msg to',
       labelNames: ['topic', 'peerGroup']
@@ -338,13 +330,13 @@ export function getMetrics(
       labelNames: ['topic']
     }),
     /** Tracks distribution of recv msgs by duplicate, invalid, valid */
-    msgReceivedStatus: register.gauge<{ topic: TopicLabel; status: MessageStatus }>({
+    msgReceivedStatus: register.gauge<{ topic: TopicLabel, status: MessageStatus }>({
       name: 'gossipsub_msg_received_status_total',
       help: 'Tracks distribution of recv msgs by duplicate, invalid, valid',
       labelNames: ['topic', 'status']
     }),
     /** Tracks specific reason of invalid */
-    msgReceivedInvalid: register.gauge<{ topic: TopicLabel; error: RejectReason | ValidateError }>({
+    msgReceivedInvalid: register.gauge<{ topic: TopicLabel, error: RejectReason | ValidateError }>({
       name: 'gossipsub_msg_received_invalid_total',
       help: 'Tracks specific reason of invalid',
       labelNames: ['topic', 'error']
@@ -357,7 +349,7 @@ export function getMetrics(
       buckets: [
         0.25 * opts.maxMeshMessageDeliveriesWindowSec,
         0.5 * opts.maxMeshMessageDeliveriesWindowSec,
-        1 * opts.maxMeshMessageDeliveriesWindowSec,
+        Number(opts.maxMeshMessageDeliveriesWindowSec),
         2 * opts.maxMeshMessageDeliveriesWindowSec,
         4 * opts.maxMeshMessageDeliveriesWindowSec
       ]
@@ -403,7 +395,7 @@ export function getMetrics(
       labelNames: ['topic', 'p']
     }),
     /** Separate score weights */
-    scoreWeights: register.avgMinMax<{ topic?: TopicLabel; p: string }>({
+    scoreWeights: register.avgMinMax<{ topic?: TopicLabel, p: string }>({
       name: 'gossipsub_score_weights',
       help: 'Separate score weights',
       labelNames: ['topic', 'p']
@@ -428,7 +420,7 @@ export function getMetrics(
       buckets: [
         0.25 * opts.behaviourPenaltyThreshold,
         0.5 * opts.behaviourPenaltyThreshold,
-        1 * opts.behaviourPenaltyThreshold,
+        Number(opts.behaviourPenaltyThreshold),
         2 * opts.behaviourPenaltyThreshold,
         4 * opts.behaviourPenaltyThreshold
       ]
@@ -451,9 +443,9 @@ export function getMetrics(
       labelNames: ['topic']
     }),
     /** Total messages per topic we don't have. Not actual requests.
-     *  The number of times we have decided that an IWANT control message is required for this
-     *  topic. A very high metric might indicate an underperforming network.
-     *  = rust-libp2p `topic_iwant_msgs` */
+     * The number of times we have decided that an IWANT control message is required for this
+     * topic. A very high metric might indicate an underperforming network.
+     * = rust-libp2p `topic_iwant_msgs` */
     ihaveRcvNotSeenMsgids: register.gauge<{ topic: TopicLabel }>({
       name: 'gossipsub_ihave_rcv_not_seen_msgids_total',
       help: 'Total messages per topic we do not have, not actual requests',
@@ -504,7 +496,7 @@ export function getMetrics(
       help: 'Histogram of delivery time of resolved IWANT promises',
       buckets: [
         0.5 * opts.gossipPromiseExpireSec,
-        1 * opts.gossipPromiseExpireSec,
+        Number(opts.gossipPromiseExpireSec),
         2 * opts.gossipPromiseExpireSec,
         4 * opts.gossipPromiseExpireSec
       ]
@@ -542,26 +534,26 @@ export function getMetrics(
       labelNames: ['status']
     }),
 
-    topicStrToLabel: topicStrToLabel,
+    topicStrToLabel,
 
-    toTopic(topicStr: TopicStr): TopicLabel {
+    toTopic (topicStr: TopicStr): TopicLabel {
       return this.topicStrToLabel.get(topicStr) ?? topicStr
     },
 
     /** We joined a topic */
-    onJoin(topicStr: TopicStr): void {
+    onJoin (topicStr: TopicStr): void {
       this.topicSubscriptionStatus.set({ topicStr }, 1)
       this.meshPeerCounts.set({ topicStr }, 0) // Reset count
     },
 
     /** We left a topic */
-    onLeave(topicStr: TopicStr): void {
+    onLeave (topicStr: TopicStr): void {
       this.topicSubscriptionStatus.set({ topicStr }, 0)
       this.meshPeerCounts.set({ topicStr }, 0) // Reset count
     },
 
     /** Register the inclusion of peers in our mesh due to some reason. */
-    onAddToMesh(topicStr: TopicStr, reason: InclusionReason, count: number): void {
+    onAddToMesh (topicStr: TopicStr, reason: InclusionReason, count: number): void {
       const topic = this.toTopic(topicStr)
       this.meshPeerInclusionEvents.inc({ topic, reason }, count)
     },
@@ -571,18 +563,18 @@ export function getMetrics(
     // - heartbeat() Churn::BadScore
     // - heartbeat() Churn::Excess
     // - on_disconnect() Churn::Ds
-    onRemoveFromMesh(topicStr: TopicStr, reason: ChurnReason, count: number): void {
+    onRemoveFromMesh (topicStr: TopicStr, reason: ChurnReason, count: number): void {
       const topic = this.toTopic(topicStr)
       this.meshPeerChurnEvents.inc({ topic, reason }, count)
     },
 
-    onReportValidationMcacheHit(hit: boolean): void {
+    onReportValidationMcacheHit (hit: boolean): void {
       this.asyncValidationMcacheHit.inc({ hit: hit ? 'hit' : 'miss' })
     },
 
-    onReportValidation(topicStr: TopicStr, acceptance: TopicValidatorResult): void {
+    onReportValidation (topicStr: TopicStr, acceptance: TopicValidatorResult): void {
       const topic = this.toTopic(topicStr)
-      this.asyncValidationResult.inc({ topic: topic, acceptance })
+      this.asyncValidationResult.inc({ topic, acceptance })
     },
 
     /**
@@ -591,18 +583,18 @@ export function getMetrics(
      * - in metric_score() P3 Penalty::MessageDeficit
      * - in metric_score() P6 Penalty::IPColocation
      */
-    onScorePenalty(penalty: ScorePenalty): void {
+    onScorePenalty (penalty: ScorePenalty): void {
       // Can this be labeled by topic too?
       this.scoringPenalties.inc({ penalty }, 1)
     },
 
-    onIhaveRcv(topicStr: TopicStr, ihave: number, idonthave: number): void {
+    onIhaveRcv (topicStr: TopicStr, ihave: number, idonthave: number): void {
       const topic = this.toTopic(topicStr)
       this.ihaveRcvMsgids.inc({ topic }, ihave)
       this.ihaveRcvNotSeenMsgids.inc({ topic }, idonthave)
     },
 
-    onIwantRcv(iwantByTopic: Map<TopicStr, number>, iwantDonthave: number): void {
+    onIwantRcv (iwantByTopic: Map<TopicStr, number>, iwantDonthave: number): void {
       for (const [topicStr, iwant] of iwantByTopic) {
         const topic = this.toTopic(topicStr)
         this.iwantRcvMsgids.inc({ topic }, iwant)
@@ -611,13 +603,13 @@ export function getMetrics(
       this.iwantRcvDonthaveMsgids.inc(iwantDonthave)
     },
 
-    onForwardMsg(topicStr: TopicStr, tosendCount: number): void {
+    onForwardMsg (topicStr: TopicStr, tosendCount: number): void {
       const topic = this.toTopic(topicStr)
       this.msgForwardCount.inc({ topic }, 1)
       this.msgForwardPeers.inc({ topic }, tosendCount)
     },
 
-    onPublishMsg(topicStr: TopicStr, tosendGroupCount: ToSendGroupCount, tosendCount: number, dataLen: number): void {
+    onPublishMsg (topicStr: TopicStr, tosendGroupCount: ToSendGroupCount, tosendCount: number, dataLen: number): void {
       const topic = this.toTopic(topicStr)
       this.msgPublishCount.inc({ topic }, 1)
       this.msgPublishBytes.inc({ topic }, tosendCount * dataLen)
@@ -628,29 +620,29 @@ export function getMetrics(
       this.msgPublishPeersByGroup.inc({ topic, peerGroup: 'fanout' }, tosendGroupCount.fanout)
     },
 
-    onMsgRecvPreValidation(topicStr: TopicStr): void {
+    onMsgRecvPreValidation (topicStr: TopicStr): void {
       const topic = this.toTopic(topicStr)
       this.msgReceivedPreValidation.inc({ topic }, 1)
     },
 
-    onMsgRecvError(topicStr: TopicStr): void {
+    onMsgRecvError (topicStr: TopicStr): void {
       const topic = this.toTopic(topicStr)
       this.msgReceivedError.inc({ topic }, 1)
     },
 
-    onMsgRecvResult(topicStr: TopicStr, status: MessageStatus): void {
+    onMsgRecvResult (topicStr: TopicStr, status: MessageStatus): void {
       const topic = this.toTopic(topicStr)
       this.msgReceivedStatus.inc({ topic, status })
     },
 
-    onMsgRecvInvalid(topicStr: TopicStr, reason: RejectReasonObj): void {
+    onMsgRecvInvalid (topicStr: TopicStr, reason: RejectReasonObj): void {
       const topic = this.toTopic(topicStr)
 
       const error = reason.reason === RejectReason.Error ? reason.error : reason.reason
       this.msgReceivedInvalid.inc({ topic, error }, 1)
     },
 
-    onDuplicateMsgDelivery(topicStr: TopicStr, deliveryDelayMs: number, isLateDelivery: boolean): void {
+    onDuplicateMsgDelivery (topicStr: TopicStr, deliveryDelayMs: number, isLateDelivery: boolean): void {
       this.duplicateMsgDeliveryDelay.observe(deliveryDelayMs / 1000)
       if (isLateDelivery) {
         const topic = this.toTopic(topicStr)
@@ -658,43 +650,43 @@ export function getMetrics(
       }
     },
 
-    onPublishDuplicateMsg(topicStr: TopicStr): void {
+    onPublishDuplicateMsg (topicStr: TopicStr): void {
       const topic = this.toTopic(topicStr)
       this.duplicateMsgIgnored.inc({ topic }, 1)
     },
 
-    onPeerReadStreamError(): void {
+    onPeerReadStreamError (): void {
       this.peerReadStreamError.inc(1)
     },
 
-    onRpcRecvError(): void {
+    onRpcRecvError (): void {
       this.rpcRecvError.inc(1)
     },
 
-    onRpcDataError(): void {
+    onRpcDataError (): void {
       this.rpcDataError.inc(1)
     },
 
-    onRpcRecv(rpc: IRPC, rpcBytes: number): void {
+    onRpcRecv (rpc: IRPC, rpcBytes: number): void {
       this.rpcRecvBytes.inc(rpcBytes)
       this.rpcRecvCount.inc(1)
-      if (rpc.subscriptions) this.rpcRecvSubscription.inc(rpc.subscriptions.length)
-      if (rpc.messages) this.rpcRecvMessage.inc(rpc.messages.length)
-      if (rpc.control) {
+      if (rpc.subscriptions != null) this.rpcRecvSubscription.inc(rpc.subscriptions.length)
+      if (rpc.messages != null) this.rpcRecvMessage.inc(rpc.messages.length)
+      if (rpc.control != null) {
         this.rpcRecvControl.inc(1)
-        if (rpc.control.ihave) this.rpcRecvIHave.inc(rpc.control.ihave.length)
-        if (rpc.control.iwant) this.rpcRecvIWant.inc(rpc.control.iwant.length)
-        if (rpc.control.graft) this.rpcRecvGraft.inc(rpc.control.graft.length)
-        if (rpc.control.prune) this.rpcRecvPrune.inc(rpc.control.prune.length)
+        if (rpc.control.ihave != null) this.rpcRecvIHave.inc(rpc.control.ihave.length)
+        if (rpc.control.iwant != null) this.rpcRecvIWant.inc(rpc.control.iwant.length)
+        if (rpc.control.graft != null) this.rpcRecvGraft.inc(rpc.control.graft.length)
+        if (rpc.control.prune != null) this.rpcRecvPrune.inc(rpc.control.prune.length)
       }
     },
 
-    onRpcSent(rpc: IRPC, rpcBytes: number): void {
+    onRpcSent (rpc: IRPC, rpcBytes: number): void {
       this.rpcSentBytes.inc(rpcBytes)
       this.rpcSentCount.inc(1)
-      if (rpc.subscriptions) this.rpcSentSubscription.inc(rpc.subscriptions.length)
-      if (rpc.messages) this.rpcSentMessage.inc(rpc.messages.length)
-      if (rpc.control) {
+      if (rpc.subscriptions != null) this.rpcSentSubscription.inc(rpc.subscriptions.length)
+      if (rpc.messages != null) this.rpcSentMessage.inc(rpc.messages.length)
+      if (rpc.control != null) {
         const ihave = rpc.control.ihave?.length ?? 0
         const iwant = rpc.control.iwant?.length ?? 0
         const graft = rpc.control.graft?.length ?? 0
@@ -707,7 +699,7 @@ export function getMetrics(
       }
     },
 
-    registerScores(scores: number[], scoreThresholds: PeerScoreThresholds): void {
+    registerScores (scores: number[], scoreThresholds: PeerScoreThresholds): void {
       let graylist = 0
       let publish = 0
       let gossip = 0
@@ -729,7 +721,7 @@ export function getMetrics(
       this.score.set(scores)
     },
 
-    registerScoreWeights(sw: ScoreWeights<number[]>): void {
+    registerScoreWeights (sw: ScoreWeights<number[]>): void {
       for (const [topic, wsTopic] of sw.byTopic) {
         this.scoreWeights.set({ topic, p: 'p1' }, wsTopic.p1w)
         this.scoreWeights.set({ topic, p: 'p2' }, wsTopic.p2w)
@@ -743,14 +735,14 @@ export function getMetrics(
       this.scoreWeights.set({ p: 'p7' }, sw.p7w)
     },
 
-    registerScorePerMesh(mesh: Map<TopicStr, Set<PeerIdStr>>, scoreByPeer: Map<PeerIdStr, number>): void {
+    registerScorePerMesh (mesh: Map<TopicStr, Set<PeerIdStr>>, scoreByPeer: Map<PeerIdStr, number>): void {
       const peersPerTopicLabel = new Map<TopicLabel, Set<PeerIdStr>>()
 
       mesh.forEach((peers, topicStr) => {
         // Aggregate by known topicLabel or throw to 'unknown'. This prevent too high cardinality
         const topicLabel = this.topicStrToLabel.get(topicStr) ?? 'unknown'
         let peersInMesh = peersPerTopicLabel.get(topicLabel)
-        if (!peersInMesh) {
+        if (peersInMesh == null) {
           peersInMesh = new Set()
           peersPerTopicLabel.set(topicLabel, peersInMesh)
         }

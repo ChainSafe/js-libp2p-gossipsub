@@ -1,9 +1,11 @@
-import { expect } from 'aegir/chai'
-import { GossipSub } from '../src/index.js'
-import { pEvent } from 'p-event'
-import { connectAllPubSubNodes, createComponentsArray, GossipSubAndComponents } from './utils/create-pubsub.js'
-import { stop } from '@libp2p/interfaces/startable'
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
+/* eslint-disable @typescript-eslint/dot-notation */
 import { mockNetwork } from '@libp2p/interface-mocks'
+import { stop } from '@libp2p/interfaces/startable'
+import { expect } from 'aegir/chai'
+import { pEvent } from 'p-event'
+import { type GossipSub } from '../src/index.js'
+import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
 
 /* eslint-disable dot-notation */
 describe('gossip / allowedTopics', () => {

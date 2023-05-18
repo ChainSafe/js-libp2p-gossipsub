@@ -1,16 +1,16 @@
+/* eslint-disable @typescript-eslint/restrict-plus-operands */
 import { itBench, setBenchOpts } from '@dapplion/benchmark'
-import { GossipSub } from '../../src/index.js'
+import { expect } from 'aegir/chai'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import {
   connectPubsubNodes,
   createComponentsArray,
   denseConnect,
-  GossipSubAndComponents
+  type GossipSubAndComponents
 } from '../utils/create-pubsub.js'
-import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { awaitEvents, checkReceivedSubscriptions, checkReceivedSubscription } from '../utils/events.js'
-import { expect } from 'aegir/chai'
 
-describe.only('heartbeat', function () {
+describe('heartbeat', function () {
   this.timeout(0)
   setBenchOpts({
     maxMs: 200 * 1000,
@@ -41,7 +41,9 @@ describe.only('heartbeat', function () {
   }
 
   /**
+   *
    * Star topology
+   * ```html
    *         peer 1
    *        /
    * peer 0  - peer 2
@@ -54,6 +56,7 @@ describe.only('heartbeat', function () {
    * |-----|-----------|
    * |  0  | 0, 1, 2, 3|
    * |  1  | 0, 2, 3, 4|
+   * ```
    */
   itBench({
     id: 'heartbeat',
@@ -77,8 +80,8 @@ describe.only('heartbeat', function () {
       })
 
       // build the star
-      await Promise.all(psubs.slice(1).map((ps) => connectPubsubNodes(psubs[0], ps)))
-      await Promise.all(psubs.map((ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+      await Promise.all(psubs.slice(1).map(async (ps) => connectPubsubNodes(psubs[0], ps)))
+      await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
 
       await denseConnect(psubs)
 
@@ -91,7 +94,7 @@ describe.only('heartbeat', function () {
       const peerIds = psubs.map((psub) => psub.components.peerId.toString())
       for (let topicIndex = 0; topicIndex < numTopic; topicIndex++) {
         const topic = getTopic(topicIndex)
-        psubs.forEach((ps) => ps.pubsub.subscribe(topic))
+        psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
         const peerIndices = getTopicPeerIndices(topicIndex)
         const peerIdsOnTopic = peerIndices.map((peerIndex) => peerIds[peerIndex])
         // peer 0 see all subscriptions from other
@@ -100,22 +103,23 @@ describe.only('heartbeat', function () {
         const otherSubscriptions = peerIndices
           .slice(1)
           .map((peerIndex) => psubs[peerIndex])
-          .map((psub) => checkReceivedSubscription(psub, peerIds[0], topic, 0))
-        peerIndices.map((peerIndex) => psubs[peerIndex].pubsub.subscribe(topic))
+          .map(async (psub) => checkReceivedSubscription(psub, peerIds[0], topic, 0))
+        // eslint-disable-next-line array-callback-return
+        peerIndices.map((peerIndex) => { psubs[peerIndex].pubsub.subscribe(topic) })
         await Promise.all([subscription, ...otherSubscriptions])
       }
 
       // wait for heartbeats to build mesh
-      await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 3)))
+      await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 3)))
 
       // make sure psubs 0 have at least 10 topic peers and 4 mesh peers for each topic
       for (let i = 0; i < numTopic; i++) {
-        expect((psubs[0].pubsub as GossipSub).getSubscribers(getTopic(i)).length).to.be.gte(
+        expect((psubs[0].pubsub).getSubscribers(getTopic(i)).length).to.be.gte(
           10,
           `psub 0: topic ${i} does not have enough topic peers`
         )
 
-        expect((psubs[0].pubsub as GossipSub).getMeshPeers(getTopic(i)).length).to.be.gte(
+        expect((psubs[0].pubsub).getMeshPeers(getTopic(i)).length).to.be.gte(
           4,
           `psub 0: topic ${i} does not have enough mesh peers`
         )
@@ -142,7 +146,7 @@ describe.only('heartbeat', function () {
       return psubs[0]
     },
     fn: (firstPsub: GossipSubAndComponents) => {
-      ;(firstPsub.pubsub as GossipSub).heartbeat()
+      void (firstPsub.pubsub).heartbeat()
     }
   })
 })

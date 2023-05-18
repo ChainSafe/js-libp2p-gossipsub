@@ -1,8 +1,8 @@
-import type { PeerId } from '@libp2p/interface-peer-id'
-import type { PrivateKey } from '@libp2p/interface-keys'
-import type { Multiaddr } from '@multiformats/multiaddr'
+import { type Message, TopicValidatorResult } from '@libp2p/interface-pubsub'
 import type { RPC } from './message/rpc.js'
-import { Message, TopicValidatorResult } from '@libp2p/interface-pubsub'
+import type { PrivateKey } from '@libp2p/interface-keys'
+import type { PeerId } from '@libp2p/interface-peer-id'
+import type { Multiaddr } from '@multiformats/multiaddr'
 
 export type MsgIdStr = string
 export type PeerIdStr = string
@@ -18,13 +18,13 @@ export interface AddrInfo {
  * Compute a local non-spec'ed msg-id for faster de-duplication of seen messages.
  * Used exclusively for a local seen_cache
  */
-export type FastMsgIdFn = (msg: RPC.IMessage) => string | number
+export interface FastMsgIdFn { (msg: RPC.IMessage): string | number }
 
 /**
  * By default, gossipsub only provide a browser friendly function to convert Uint8Array message id to string.
  * Application could use this option to provide a more efficient function.
  */
-export type MsgIdToStrFn = (msgId: Uint8Array) => string
+export interface MsgIdToStrFn { (msgId: Uint8Array): string }
 
 /**
  * Compute spec'ed msg-id. Used for IHAVE / IWANT messages
@@ -40,13 +40,13 @@ export interface DataTransform {
    * - `inboundTransform()`: decompress snappy payload
    * - `outboundTransform()`: compress snappy payload
    */
-  inboundTransform(topic: TopicStr, data: Uint8Array): Uint8Array
+  inboundTransform: (topic: TopicStr, data: Uint8Array) => Uint8Array
 
   /**
    * Takes the data to be published (a topic and associated data) transforms the data. The
    * transformed data will then be used to create a `RawGossipsubMessage` to be sent to peers.
    */
-  outboundTransform(topic: TopicStr, data: Uint8Array): Uint8Array
+  outboundTransform: (topic: TopicStr, data: Uint8Array) => Uint8Array
 }
 
 export enum SignaturePolicy {
@@ -72,7 +72,7 @@ export enum SignaturePolicy {
   StrictNoSign = 'StrictNoSign'
 }
 
-export type PublishOpts = {
+export interface PublishOpts {
   allowPublishToZeroPeers?: boolean
   ignoreDuplicatePublishError?: boolean
 }
@@ -84,15 +84,15 @@ export enum PublishConfigType {
 
 export type PublishConfig =
   | {
-      type: PublishConfigType.Signing
-      author: PeerId
-      key: Uint8Array
-      privateKey: PrivateKey
-    }
+    type: PublishConfigType.Signing
+    author: PeerId
+    key: Uint8Array
+    privateKey: PrivateKey
+  }
   | { type: PublishConfigType.Anonymous }
 
 export type RejectReasonObj =
-  | { reason: RejectReason.Error; error: ValidateError }
+  | { reason: RejectReason.Error, error: ValidateError }
   | { reason: Exclude<RejectReason, RejectReason.Error> }
 
 export enum RejectReason {
@@ -146,7 +146,7 @@ export enum MessageStatus {
  * Store both Uint8Array and string message id so that we don't have to convert data between the two.
  * See https://github.com/ChainSafe/js-libp2p-gossipsub/pull/274
  */
-export type MessageId = {
+export interface MessageId {
   msgId: Uint8Array
   msgIdStr: MsgIdStr
 }
@@ -154,7 +154,7 @@ export type MessageId = {
 /**
  * Typesafe conversion of MessageAcceptance -> RejectReason. TS ensures all values covered
  */
-export function rejectReasonFromAcceptance(
+export function rejectReasonFromAcceptance (
   acceptance: Exclude<TopicValidatorResult, TopicValidatorResult.Accept>
 ): RejectReason.Ignore | RejectReason.Reject {
   switch (acceptance) {
@@ -162,5 +162,7 @@ export function rejectReasonFromAcceptance(
       return RejectReason.Ignore
     case TopicValidatorResult.Reject:
       return RejectReason.Reject
+    default:
+      throw new Error('Invalid acceptance value')
   }
 }

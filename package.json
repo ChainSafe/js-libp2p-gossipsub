@@ -39,8 +39,20 @@
       ]
     }
   },
+  "eslintConfig": {
+    "extends": "ipfs",
+    "parserOptions": {
+      "sourceType": "module",
+      "jsdoc/check-indentation": 0
+    },
+    "ignorePatterns": [
+      "!.aegir.js",
+      "test/ts-use",
+      "*.d.ts"
+    ]
+  },
   "scripts": {
-    "lint": "eslint --ext .ts src test",
+    "lint": "aegir lint",
     "release": "aegir release --no-types",
     "copy": "mkdirp dist/src/message && cp src/message/*.* dist/src/message",
     "build": "npm run copy && aegir build",
@@ -105,20 +117,11 @@
     "@libp2p/peer-id-factory": "^2.0.3",
     "@libp2p/peer-store": "^8.1.2",
     "@types/node": "^20.2.1",
-    "@typescript-eslint/eslint-plugin": "^5.59.6",
-    "@typescript-eslint/parser": "^5.59.6",
     "aegir": "^39.0.7",
     "benchmark": "^2.1.4",
     "datastore-core": "^9.1.1",
     "delay": "^5.0.0",
     "detect-node": "^2.1.0",
-    "eslint": "^8.40.0",
-    "eslint-config-standard": "^17.0.0",
-    "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^4.2.1",
-    "eslint-plugin-promise": "^6.1.1",
-    "eslint-plugin-standard": "^5.0.0",
     "it-pair": "^2.0.6",
     "lodash": "^4.17.21",
     "mkdirp": "^3.0.1",

@@ -1,4 +1,4 @@
-import { MsgIdStr, MsgIdToStrFn, PeerIdStr, RejectReason } from './types.js'
+import { type MsgIdStr, type MsgIdToStrFn, type PeerIdStr, RejectReason } from './types.js'
 import type { Metrics } from './metrics.js'
 
 /**
@@ -22,7 +22,7 @@ export class IWantTracer {
   private readonly requestMsByMsg = new Map<MsgIdStr, number>()
   private readonly requestMsByMsgExpire: number
 
-  constructor(
+  constructor (
     private readonly gossipsubIWantFollowupMs: number,
     private readonly msgIdToStrFn: MsgIdToStrFn,
     private readonly metrics: Metrics | null
@@ -30,25 +30,25 @@ export class IWantTracer {
     this.requestMsByMsgExpire = 10 * gossipsubIWantFollowupMs
   }
 
-  get size(): number {
+  get size (): number {
     return this.promises.size
   }
 
-  get requestMsByMsgSize(): number {
+  get requestMsByMsgSize (): number {
     return this.requestMsByMsg.size
   }
 
   /**
    * Track a promise to deliver a message from a list of msgIds we are requesting
    */
-  addPromise(from: PeerIdStr, msgIds: Uint8Array[]): void {
+  addPromise (from: PeerIdStr, msgIds: Uint8Array[]): void {
     // pick msgId randomly from the list
     const ix = Math.floor(Math.random() * msgIds.length)
     const msgId = msgIds[ix]
     const msgIdStr = this.msgIdToStrFn(msgId)
 
     let expireByPeer = this.promises.get(msgIdStr)
-    if (!expireByPeer) {
+    if (expireByPeer == null) {
       expireByPeer = new Map()
       this.promises.set(msgIdStr, expireByPeer)
     }
@@ -59,7 +59,7 @@ export class IWantTracer {
     if (!expireByPeer.has(from)) {
       expireByPeer.set(from, now + this.gossipsubIWantFollowupMs)
 
-      if (this.metrics) {
+      if (this.metrics !== null) {
         this.metrics.iwantPromiseStarted.inc(1)
         if (!this.requestMsByMsg.has(msgIdStr)) {
           this.requestMsByMsg.set(msgIdStr, now)
@@ -73,7 +73,7 @@ export class IWantTracer {
    *
    * This should be called not too often relative to the expire times, since it iterates over the whole data.
    */
-  getBrokenPromises(): Map<PeerIdStr, number> {
+  getBrokenPromises (): Map<PeerIdStr, number> {
     const now = Date.now()
     const result = new Map<PeerIdStr, number>()
 
@@ -92,7 +92,7 @@ export class IWantTracer {
         }
       })
       // clean up empty promises for a msgId
-      if (!expireByPeer.size) {
+      if (expireByPeer.size === 0) {
         this.promises.delete(msgId)
       }
     })
@@ -105,16 +105,16 @@ export class IWantTracer {
   /**
    * Someone delivered a message, stop tracking promises for it
    */
-  deliverMessage(msgIdStr: MsgIdStr, isDuplicate = false): void {
+  deliverMessage (msgIdStr: MsgIdStr, isDuplicate = false): void {
     this.trackMessage(msgIdStr)
 
     const expireByPeer = this.promises.get(msgIdStr)
 
     // Expired promise, check requestMsByMsg
-    if (expireByPeer) {
+    if (expireByPeer != null) {
       this.promises.delete(msgIdStr)
 
-      if (this.metrics) {
+      if (this.metrics !== null) {
         this.metrics.iwantPromiseResolved.inc(1)
         if (isDuplicate) this.metrics.iwantPromiseResolvedFromDuplicate.inc(1)
         this.metrics.iwantPromiseResolvedPeers.inc(expireByPeer.size)
@@ -126,24 +126,22 @@ export class IWantTracer {
    * A message got rejected, so we can stop tracking promises and let the score penalty apply from invalid message delivery,
    * unless its an obviously invalid message.
    */
-  rejectMessage(msgIdStr: MsgIdStr, reason: RejectReason): void {
+  rejectMessage (msgIdStr: MsgIdStr, reason: RejectReason): void {
     this.trackMessage(msgIdStr)
 
     // A message got rejected, so we can stop tracking promises and let the score penalty apply.
     // With the expection of obvious invalid messages
-    switch (reason) {
-      case RejectReason.Error:
-        return
-    }
+
+    if (reason === RejectReason.Error) { return }
 
     this.promises.delete(msgIdStr)
   }
 
-  clear(): void {
+  clear (): void {
     this.promises.clear()
   }
 
-  prune(): void {
+  prune (): void {
     const maxMs = Date.now() - this.requestMsByMsgExpire
     let count = 0
 
@@ -162,8 +160,8 @@ export class IWantTracer {
     this.metrics?.iwantMessagePruned.inc(count)
   }
 
-  private trackMessage(msgIdStr: MsgIdStr): void {
-    if (this.metrics) {
+  private trackMessage (msgIdStr: MsgIdStr): void {
+    if (this.metrics !== null) {
       const requestMs = this.requestMsByMsg.get(msgIdStr)
       if (requestMs !== undefined) {
         this.metrics.iwantPromiseDeliveryTime.observe((Date.now() - requestMs) / 1000)

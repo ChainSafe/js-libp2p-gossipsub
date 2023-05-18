@@ -1,11 +1,11 @@
+import { msgId } from '@libp2p/pubsub/utils'
 import { sha256 } from 'multiformats/hashes/sha2'
 import type { Message } from '@libp2p/interface-pubsub'
-import { msgId } from '@libp2p/pubsub/utils'
 
 /**
  * Generate a message id, based on the `key` and `seqno`
  */
-export function msgIdFnStrictSign(msg: Message): Uint8Array {
+export function msgIdFnStrictSign (msg: Message): Uint8Array {
   if (msg.type !== 'signed') {
     throw new Error('expected signed message type')
   }
@@ -19,6 +19,6 @@ export function msgIdFnStrictSign(msg: Message): Uint8Array {
 /**
  * Generate a message id, based on message `data`
  */
-export async function msgIdFnStrictNoSign(msg: Message): Promise<Uint8Array> {
-  return await sha256.encode(msg.data)
+export async function msgIdFnStrictNoSign (msg: Message): Promise<Uint8Array> {
+  return sha256.encode(msg.data)
 }

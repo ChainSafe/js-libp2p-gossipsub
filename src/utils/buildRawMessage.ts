@@ -1,24 +1,26 @@
-import { concat as uint8ArrayConcat } from 'uint8arrays/concat'
-import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { marshalPublicKey, unmarshalPublicKey } from '@libp2p/crypto/keys'
 import { randomBytes } from '@libp2p/crypto'
+import { marshalPublicKey, unmarshalPublicKey } from '@libp2p/crypto/keys'
+import { StrictSign, StrictNoSign, type Message } from '@libp2p/interface-pubsub'
+import { CodeError } from '@libp2p/interfaces/errors'
 import { peerIdFromBytes } from '@libp2p/peer-id'
+import { concat as uint8ArrayConcat } from 'uint8arrays/concat'
+import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
+import { codes } from '../message/error.js'
+import { RPC } from '../message/rpc.js'
+import { type PublishConfig, PublishConfigType, type TopicStr, ValidateError } from '../types.js'
 import type { PublicKey } from '@libp2p/interface-keys'
 import type { PeerId } from '@libp2p/interface-peer-id'
-import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
-import { RPC } from '../message/rpc.js'
-import { PublishConfig, PublishConfigType, TopicStr, ValidateError } from '../types.js'
-import { StrictSign, StrictNoSign, Message } from '@libp2p/interface-pubsub'
-import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 
 export const SignPrefix = uint8ArrayFromString('libp2p-pubsub:')
 
-export type RawMessageAndMessage = {
+export interface RawMessageAndMessage {
   raw: RPC.IMessage
   msg: Message
 }
 
-export async function buildRawMessage(
+export async function buildRawMessage (
   publishConfig: PublishConfig,
   topic: TopicStr,
   originalData: Uint8Array,
@@ -53,7 +55,7 @@ export async function buildRawMessage(
       }
       return {
         raw: rpcMsg,
-        msg: msg
+        msg
       }
     }
 
@@ -74,12 +76,14 @@ export async function buildRawMessage(
         }
       }
     }
+    default:
+      throw new CodeError('Unknown publish config type', codes.ERR_UNKNOWN_PUBLISH_CONFIG_TYPE)
   }
 }
 
-export type ValidationResult = { valid: true; message: Message } | { valid: false; error: ValidateError }
+export type ValidationResult = { valid: true, message: Message } | { valid: false, error: ValidateError }
 
-export async function validateToRawMessage(
+export async function validateToRawMessage (
   signaturePolicy: typeof StrictNoSign | typeof StrictSign,
   msg: RPC.IMessage
 ): Promise<ValidationResult> {
@@ -120,7 +124,7 @@ export async function validateToRawMessage(
       // - verify sig
 
       let publicKey: PublicKey
-      if (msg.key) {
+      if (msg.key != null) {
         publicKey = unmarshalPublicKey(msg.key)
         // TODO: Should `fromPeerId.pubKey` be optional?
         if (fromPeerId.publicKey !== undefined && !uint8ArrayEquals(publicKey.bytes, fromPeerId.publicKey)) {
@@ -163,5 +167,8 @@ export async function validateToRawMessage(
         }
       }
     }
+
+    default:
+      throw new CodeError('Unknown signature policy', codes.ERR_UNKNOWN_SIGNATURE_POLICY)
   }
 }
