@@ -564,6 +564,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     // Called after a peer dials us
     await Promise.all(
       this.multicodecs.map(async (multicodec) =>
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         registrar.handle(multicodec, this.onIncomingStream.bind(this), {
           maxInboundStreams: this.maxInboundStreams,
           maxOutboundStreams: this.maxOutboundStreams
