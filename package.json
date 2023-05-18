@@ -56,6 +56,7 @@
     "release": "aegir release --no-types",
     "copy": "mkdirp dist/src/message && cp src/message/*.* dist/src/message",
     "build": "npm run copy && aegir build",
+    "clean": "aegir clean",
     "prepare": "npm run build",
     "pretest": "npm run build",
     "pretest:e2e": "npm run build",
@@ -64,7 +65,8 @@
     "test:unit": "aegir test -f './dist/test/unit/*.test.js' --target node",
     "test:e2e": "aegir test -f './dist/test/e2e/*.spec.js'",
     "test:node": "npm run test -- --target node",
-    "test:browser": "npm run test -- --target browser"
+    "test:browser": "npm run test -- --target browser",
+    "dep-check": "aegir dep-check"
   },
   "repository": {
     "type": "git",
@@ -93,7 +95,6 @@
     "@libp2p/interfaces": "^3.3.2",
     "@libp2p/logger": "^2.0.7",
     "@libp2p/peer-id": "^2.0.3",
-    "@libp2p/peer-record": "^5.0.3",
     "@libp2p/pubsub": "^7.0.1",
     "@libp2p/topology": "^4.0.1",
     "@multiformats/multiaddr": "^12.0.0",
@@ -118,26 +119,16 @@
     "@libp2p/peer-store": "^8.1.2",
     "@types/node": "^20.2.1",
     "aegir": "^39.0.7",
-    "benchmark": "^2.1.4",
     "datastore-core": "^9.1.1",
     "delay": "^5.0.0",
-    "detect-node": "^2.1.0",
-    "it-pair": "^2.0.6",
-    "lodash": "^4.17.21",
     "mkdirp": "^3.0.1",
-    "os": "^0.1.2",
     "p-defer": "^4.0.0",
     "p-event": "^5.0.1",
     "p-retry": "^5.1.2",
-    "p-times": "^4.0.0",
     "p-wait-for": "^5.0.2",
-    "prettier": "^2.8.8",
-    "promisify-es6": "^1.0.3",
     "sinon": "^15.0.4",
     "time-cache": "^0.3.0",
-    "ts-node": "^10.9.1",
-    "ts-sinon": "^2.0.2",
-    "util": "^0.12.5"
+    "ts-sinon": "^2.0.2"
   },
   "engines": {
     "npm": ">=8.7.0"
