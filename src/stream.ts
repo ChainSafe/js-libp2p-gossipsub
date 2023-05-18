@@ -27,7 +27,7 @@ export class OutboundStream {
 
     pipe(
       abortableSource(this.pushable, this.closeController.signal, { returnOnAbort: true }),
-      encode(),
+      (source) => encode(source),
       this.rawStream
     ).catch(errCallback)
   }
@@ -63,9 +63,13 @@ export class InboundStream {
     this.rawStream = rawStream
     this.closeController = new AbortController()
 
-    this.source = abortableSource(pipe(this.rawStream, decode(opts)), this.closeController.signal, {
-      returnOnAbort: true
-    })
+    this.source = abortableSource(
+      pipe(this.rawStream, (source) => decode(source, opts)),
+      this.closeController.signal,
+      {
+        returnOnAbort: true
+      }
+    )
   }
 
   close(): void {

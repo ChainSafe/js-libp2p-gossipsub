@@ -15,6 +15,54 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [8.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v7.0.0...v8.0.0) (2023-05-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* update peerstore and releated deps for libp2p@0.45 compat ([#425](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/425))
+
+### Bug Fixes
+
+* update peerstore and releated deps for libp2p@0.45 compat ([#425](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/425)) ([b6225d6](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/b6225d62fa3f372acee31f3ad71579693e0fcdbe))
+
+
+### Miscellaneous
+
+* Update README.md usage example ([#429](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/429)) ([9bd5a3c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/9bd5a3c2f7324a3332c537bfb6bbd26d518d7503))
+
+## [7.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v6.3.0...v7.0.0) (2023-04-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* the type of the source/sink properties have changed
+
+### Bug Fixes
+
+* update stream types ([#423](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/423)) ([6761c6e](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/6761c6e66b294ed3cb5eb9e8e364f335c7f5f1ef))
+
+## [6.3.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v6.2.0...v6.3.0) (2023-04-13)
+
+
+### Features
+
+* make log as protected ([#407](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/407)) ([5b3aee9](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/5b3aee94c90dcd0e42266b5413c0349674cf309c))
+
+
+### Bug Fixes
+
+* add rpc error metrics ([#412](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/412)) ([5cd8b07](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/5cd8b0737a2ef40d9a093977e19240ae6d93b951))
+* add types to exports in packages.json ([#419](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/419)) ([100592a](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/100592a019c38ff5e0ab5db596feb7fa6ae4923c))
+* track promise only after a successful sendRpc() ([#415](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/415)) ([a959b09](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/a959b096c0e78d8754b5a9726e11e055d8685ef0))
+
+
+### Miscellaneous
+
+* **deps:** bump @libp2p/interface-connection to 4.0.0 ([#421](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/421)) ([50a99c7](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/50a99c74bdb0e02a4bece21a9878590cb5da9042))
+* **deps:** bump xml2js, @azure/ms-rest-js, @azure/storage-blob and aws-sdk ([#420](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/420)) ([2a2e9fa](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/2a2e9faec7565e0e1fdc6ef4bbcd9f89024c72f8))
+* remove lead maintainer ([#422](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/422)) ([38d5d65](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/38d5d657a3d975c6ad72c6822ce4281ea0f1b0d0))
+
 ## [6.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v6.1.0...v6.2.0) (2023-02-21)
 
 

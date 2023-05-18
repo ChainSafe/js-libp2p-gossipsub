@@ -8,7 +8,7 @@ import { GossipsubD } from '../../src/constants.js'
 import { fastMsgIdFn } from '../utils/index.js'
 import { Message, TopicValidatorResult } from '@libp2p/interface-pubsub'
 import type { IRPC, RPC } from '../../src/message/rpc.js'
-import type { ConnectionManagerEvents } from '@libp2p/interface-connection-manager'
+import type { Libp2pEvents } from '@libp2p/interface-libp2p'
 import pWaitFor from 'p-wait-for'
 import {
   sparseConnect,
@@ -64,7 +64,7 @@ const checkReceivedMessage =
 
 describe('go-libp2p-pubsub gossipsub tests', function () {
   // In Github runners it takes ~10sec the longest test
-  this.timeout(60 * 1000)
+  this.timeout(120 * 1000)
   this.retries(3)
 
   let psubs: GossipSubAndComponents[]
@@ -1100,7 +1100,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     }
     await Promise.all(sendRecv)
 
-    const connectPromises = [1, 2].map((i) => awaitEvents(psubs[i].components.connectionManager, 'peer:connect', 1))
+    const connectPromises = [1, 2].map((i) => awaitEvents(psubs[i].components.events, 'peer:connect', 1))
     // disconnect the direct peers to test reconnection
     // need more time to disconnect/connect/send subscriptions again
     subscriptionPromises = [
@@ -1373,7 +1373,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     const sybils = psubs.slice(6)
 
     const connectPromises = real.map(
-      async (psub) => await awaitEvents<ConnectionManagerEvents>(psub.components.connectionManager, 'peer:connect', 3)
+      async (psub) => await awaitEvents<Libp2pEvents>(psub.components.events, 'peer:connect', 3)
     )
     await connectSome(real, 5)
     await Promise.all(connectPromises)
