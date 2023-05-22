@@ -8,7 +8,7 @@ export class OutboundStream {
         this.pushable = pushable({ objectMode: false });
         this.closeController = new AbortController();
         this.maxBufferSize = opts.maxBufferSize ?? Infinity;
-        pipe(abortableSource(this.pushable, this.closeController.signal, { returnOnAbort: true }), encode(), this.rawStream).catch(errCallback);
+        pipe(abortableSource(this.pushable, this.closeController.signal, { returnOnAbort: true }), (source) => encode(source), this.rawStream).catch(errCallback);
     }
     get protocol() {
         // TODO remove this non-nullish assertion after https://github.com/libp2p/js-libp2p-interfaces/pull/265 is incorporated
@@ -31,7 +31,7 @@ export class InboundStream {
     constructor(rawStream, opts = {}) {
         this.rawStream = rawStream;
         this.closeController = new AbortController();
-        this.source = abortableSource(pipe(this.rawStream, decode(opts)), this.closeController.signal, {
+        this.source = abortableSource(pipe(this.rawStream, (source) => decode(source, opts)), this.closeController.signal, {
             returnOnAbort: true
         });
     }

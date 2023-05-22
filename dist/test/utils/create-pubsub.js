@@ -6,17 +6,21 @@ import { setMaxListeners } from 'events';
 import { PersistentPeerStore } from '@libp2p/peer-store';
 import { start } from '@libp2p/interfaces/startable';
 import { stubInterface } from 'ts-sinon';
+import { EventEmitter } from '@libp2p/interfaces/events';
 export const createComponents = async (opts) => {
     const Ctor = opts.pubsub ?? GossipSub;
     const peerId = await createRSAPeerId({ bits: 512 });
+    const events = new EventEmitter();
     const components = {
         peerId,
         registrar: mockRegistrar(),
         connectionManager: stubInterface(),
         peerStore: new PersistentPeerStore({
             peerId,
-            datastore: new MemoryDatastore()
-        })
+            datastore: new MemoryDatastore(),
+            events
+        }),
+        events
     };
     components.connectionManager = mockConnectionManager(components);
     const pubsub = new Ctor(components, opts.init);

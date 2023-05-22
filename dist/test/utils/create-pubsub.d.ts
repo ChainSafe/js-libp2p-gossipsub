@@ -1,14 +1,19 @@
 import { GossipSub, GossipSubComponents, GossipsubOpts } from '../../src/index.js';
 import { PubSub } from '@libp2p/interface-pubsub';
+import { EventEmitter } from '@libp2p/interfaces/events';
+import { Libp2pEvents } from '@libp2p/interface-libp2p';
 export interface CreateComponentsOpts {
     init?: Partial<GossipsubOpts>;
     pubsub?: {
         new (opts?: any): PubSub;
     };
 }
+export interface GossipSubTestComponents extends GossipSubComponents {
+    events: EventEmitter<Libp2pEvents>;
+}
 export interface GossipSubAndComponents {
     pubsub: GossipSub;
-    components: GossipSubComponents;
+    components: GossipSubTestComponents;
 }
 export declare const createComponents: (opts: CreateComponentsOpts) => Promise<GossipSubAndComponents>;
 export declare const createComponentsArray: (opts?: CreateComponentsOpts & {

@@ -12,7 +12,6 @@ import { FloodSub } from '@libp2p/floodsub';
 import { mockNetwork } from '@libp2p/interface-mocks';
 import { stop } from '@libp2p/interfaces/startable';
 import { awaitEvents, checkReceivedSubscription, checkReceivedSubscriptions } from '../utils/events.js';
-import sinon from 'sinon';
 /**
  * These tests were translated from:
  * https://github.com/libp2p/go-libp2p-pubsub/blob/master/gossipsub_test.go
@@ -43,7 +42,7 @@ const checkReceivedMessage = (topic, data, senderIx, msgIx) => async (node, rece
 });
 describe('go-libp2p-pubsub gossipsub tests', function () {
     // In Github runners it takes ~10sec the longest test
-    this.timeout(60 * 1000);
+    this.timeout(120 * 1000);
     this.retries(3);
     let psubs;
     beforeEach(() => {
@@ -52,92 +51,6 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     afterEach(async () => {
         await stop(...psubs.reduce((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []));
         mockNetwork.reset();
-    });
-    it.skip('should add the tag gossipsub-mesh-peer upon grafting', async function () {
-        // Create 20 gossipsub nodes
-        // Sparsely connect nodes
-        // Subscribe to the topic, all nodes, waiting for each subscription to propagate first
-        // Publish 100 messages, each from a random node
-        // Assert that the subscribed nodes receive every message
-        psubs = await createComponentsArray({
-            number: 20,
-            init: {
-                scoreParams: {
-                    IPColocationFactorThreshold: 20,
-                    behaviourPenaltyWeight: 0
-                }
-            }
-        });
-        const topic = 'foobar';
-        await sparseConnect(psubs);
-        const nodeAGraftSpy = psubs[0].pubsub;
-        const nodeATagPeerSpy = psubs[0].components.peerStore;
-        sinon.spy(nodeAGraftSpy, 'handleGraft');
-        // add subscriptions to each node
-        for (const ps of psubs) {
-            ps.pubsub.subscribe(topic);
-            // wait for announce to propagate
-            await delay(100);
-        }
-        // await mesh rebalancing
-        await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)));
-        const allTags = [];
-        psubs.forEach(async (subscribedPeer) => {
-            const tagArray = await subscribedPeer.components.peerStore.getTags(subscribedPeer.components.peerId);
-            allTags.push(tagArray);
-        });
-        expect(nodeAGraftSpy.handleGraft.callCount, 'should call handleGraft method').to.be.greaterThan(0);
-        expect(nodeATagPeerSpy.tagPeer.callCount, 'should call tagPeer fucntion').to.be.greaterThan(0);
-        expect(allTags.map((tags) => {
-            tags.map((tag) => {
-                tag.name.toString();
-            });
-        })).to.include('gossipsub-mesh-peer');
-    });
-    it.skip('should remove the tag gossipsub-mesh-peer upon pruning', async function () {
-        // Create 20 gossipsub nodes
-        // Sparsely connect nodes
-        // Subscribe to the topic, all nodes, waiting for each subscription to propagate first
-        // Publish 100 messages, each from a random node
-        // Assert that the subscribed nodes receive every message
-        psubs = await createComponentsArray({
-            number: 20,
-            init: {
-                scoreParams: {
-                    IPColocationFactorThreshold: 20,
-                    behaviourPenaltyWeight: 0
-                }
-            }
-        });
-        const topic = 'foobar';
-        psubs.forEach((ps) => ps.pubsub.subscribe(topic));
-        const unsubscribedPeers = [];
-        // every node connected to every other
-        await denseConnect(psubs);
-        // wait a bit to take effect
-        await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)));
-        // disconnect some peers from the mesh to get some PRUNEs
-        psubs.slice(0, 5).forEach((ps) => {
-            unsubscribedPeers.push(ps);
-            ps.pubsub.unsubscribe(topic);
-        });
-        // wait a bit to take effect
-        await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)));
-        const nodeAPruneSpy = unsubscribedPeers[0].pubsub;
-        sinon.spy(nodeAPruneSpy, 'handlePrune');
-        // await mesh rebalancing
-        await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)));
-        const allTags = [];
-        unsubscribedPeers.forEach(async (unsubscribedPeer) => {
-            const tagArray = await unsubscribedPeer.components.peerStore.getTags(unsubscribedPeer.components.peerId);
-            allTags.push(tagArray);
-        });
-        expect(nodeAPruneSpy.handlePrune.callCount).to.be.greaterThan(0);
-        expect(allTags.map((tags) => {
-            tags.map((tag) => {
-                tag.name.toString();
-            });
-        })).not.to.include('gossipsub-mesh-peer');
     });
     it('test sparse gossipsub', async function () {
         // Create 20 gossipsub nodes
@@ -900,7 +813,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
             sendRecv.push(results);
         }
         await Promise.all(sendRecv);
-        const connectPromises = [1, 2].map((i) => awaitEvents(psubs[i].components.connectionManager, 'peer:connect', 1));
+        const connectPromises = [1, 2].map((i) => awaitEvents(psubs[i].components.events, 'peer:connect', 1));
         // disconnect the direct peers to test reconnection
         // need more time to disconnect/connect/send subscriptions again
         subscriptionPromises = [
@@ -1134,7 +1047,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
         const promises = psubs.map((ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 1));
         const real = psubs.slice(0, 6);
         const sybils = psubs.slice(6);
-        const connectPromises = real.map(async (psub) => await awaitEvents(psub.components.connectionManager, 'peer:connect', 3));
+        const connectPromises = real.map(async (psub) => await awaitEvents(psub.components.events, 'peer:connect', 3));
         await connectSome(real, 5);
         await Promise.all(connectPromises);
         sybils.forEach((s) => {

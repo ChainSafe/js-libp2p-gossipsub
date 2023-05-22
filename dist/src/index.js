@@ -1,5 +1,4 @@
 import { pipe } from 'it-pipe';
-import { RecordEnvelope } from '@libp2p/peer-record';
 import { peerIdFromBytes, peerIdFromString } from '@libp2p/peer-id';
 import { logger } from '@libp2p/logger';
 import { createTopology } from '@libp2p/topology';
@@ -261,7 +260,9 @@ export class GossipSub extends EventEmitter {
         }).catch((e) => this.log.error('outbound inflight queue error', e));
         // set direct peer addresses in the address book
         await Promise.all(this.opts.directPeers.map(async (p) => {
-            await this.components.peerStore.addressBook.add(p.id, p.addrs);
+            await this.components.peerStore.merge(p.id, {
+                multiaddrs: p.addrs
+            });
         }));
         const registrar = this.components.registrar;
         // Incoming streams
@@ -1092,8 +1093,12 @@ export class GossipSub extends EventEmitter {
         if (!prune.length) {
             return [];
         }
-        await this.components.peerStore.tagPeer(peerIdFromString(id), 'gossipsub-mesh-peer', {
-            value: 100 // value should be 0-100
+        await this.components.peerStore.merge(peerIdFromString(id), {
+            tags: {
+                'gossipsub-mesh-peer': {
+                    value: 100 // value should be 0-100
+                }
+            }
         });
         return await Promise.all(prune.map((topic) => this.makePrune(id, topic, doPX)));
     }
@@ -1133,7 +1138,11 @@ export class GossipSub extends EventEmitter {
                 await this.pxConnect(peers);
             }
         }
-        await this.components.peerStore.unTagPeer(peerIdFromString(id), 'gossipsub-mesh-peer');
+        await this.components.peerStore.save(peerIdFromString(id), {
+            tags: {
+                'gossipsub-mesh-peer': {}
+            }
+        });
     }
     /**
      * Add standard backoff log for a peer in a topic
@@ -1214,7 +1223,8 @@ export class GossipSub extends EventEmitter {
             if (!pi.peerID) {
                 return;
             }
-            const p = peerIdFromBytes(pi.peerID).toString();
+            const peer = peerIdFromBytes(pi.peerID);
+            const p = peer.toString();
             if (this.peers.has(p)) {
                 return;
             }
@@ -1226,13 +1236,7 @@ export class GossipSub extends EventEmitter {
             // This is not a record from the peer who sent the record, but another peer who is connected with it
             // Ensure that it is valid
             try {
-                const envelope = await RecordEnvelope.openAndCertify(pi.signedPeerRecord, 'libp2p-peer-record');
-                const eid = envelope.peerId;
-                if (!envelope.peerId.equals(p)) {
-                    this.log("bogus peer record obtained through px: peer ID %p doesn't match expected peer %p", eid, p);
-                    return;
-                }
-                if (!(await this.components.peerStore.addressBook.consumePeerRecord(envelope))) {
+                if (!(await this.components.peerStore.consumePeerRecord(pi.signedPeerRecord, peer))) {
                     this.log('bogus peer record obtained through px: could not add peer record to address book');
                     return;
                 }
@@ -1844,9 +1848,18 @@ export class GossipSub extends EventEmitter {
             // unsigned address records through PX anyways
             // Finding signed records in the DHT is not supported at the time of writing in js-libp2p
             const id = peerIdFromString(peerId);
+            let peerInfo;
+            try {
+                peerInfo = await this.components.peerStore.get(id);
+            }
+            catch (err) {
+                if (err.code !== 'ERR_NOT_FOUND') {
+                    throw err;
+                }
+            }
             return {
                 peerID: id.toBytes(),
-                signedPeerRecord: await this.components.peerStore.addressBook.getRawEnvelope(id)
+                signedPeerRecord: peerInfo?.peerRecordEnvelope
             };
         }));
         return {

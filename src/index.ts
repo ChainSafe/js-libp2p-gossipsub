@@ -1545,8 +1545,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       return []
     }
 
-    await this.components.peerStore.tagPeer(peerIdFromString(id), 'gossipsub-mesh-peer', {
-      value: 100 // value should be 0-100
+    await this.components.peerStore.merge(peerIdFromString(id), {
+      tags: {
+        'gossipsub-mesh-peer': {
+          value: 100 // value should be 0-100
+        }
+      }
     })
 
     return await Promise.all(prune.map((topic) => this.makePrune(id, topic, doPX)))
@@ -1598,7 +1602,11 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       }
     }
 
-    await this.components.peerStore.unTagPeer(peerIdFromString(id), 'gossipsub-mesh-peer')
+    await this.components.peerStore.save(peerIdFromString(id), {
+      tags: {
+        'gossipsub-mesh-peer': {}
+      }
+    })
   }
 
   /**
