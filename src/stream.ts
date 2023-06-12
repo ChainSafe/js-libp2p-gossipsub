@@ -1,9 +1,9 @@
 import { Stream } from '@libp2p/interface-connection'
 import { abortableSource } from 'abortable-iterator'
 import { pipe } from 'it-pipe'
-import { pushable, Pushable } from 'it-pushable'
 import { encode, decode } from 'it-length-prefixed'
 import { Uint8ArrayList } from 'uint8arraylist'
+import { PushableAbortable } from './utils/pushable'
 
 type OutboundStreamOpts = {
   /** Max size in bytes for pushable buffer. If full, will throw on .push */
@@ -16,17 +16,15 @@ type InboundStreamOpts = {
 }
 
 export class OutboundStream {
-  private readonly pushable: Pushable<Uint8Array>
-  private readonly closeController: AbortController
+  private readonly pushable = new PushableAbortable()
   private readonly maxBufferSize: number
 
   constructor(private readonly rawStream: Stream, errCallback: (e: Error) => void, opts: OutboundStreamOpts) {
-    this.pushable = pushable({ objectMode: false })
-    this.closeController = new AbortController()
     this.maxBufferSize = opts.maxBufferSize ?? Infinity
 
     pipe(
-      abortableSource(this.pushable, this.closeController.signal, { returnOnAbort: true }),
+      //
+      this.pushable,
       (source) => encode(source),
       this.rawStream
     ).catch(errCallback)
@@ -38,7 +36,7 @@ export class OutboundStream {
   }
 
   push(data: Uint8Array): void {
-    if (this.pushable.readableLength > this.maxBufferSize) {
+    if (this.pushable.bufferSize > this.maxBufferSize) {
       throw Error(`OutboundStream buffer full, size > ${this.maxBufferSize}`)
     }
 
@@ -46,9 +44,7 @@ export class OutboundStream {
   }
 
   close(): void {
-    this.closeController.abort()
-    // similar to pushable.end() but clear the internal buffer
-    this.pushable.return()
+    this.pushable.abort()
     this.rawStream.close()
   }
 }
