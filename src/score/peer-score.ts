@@ -100,6 +100,11 @@ export class PeerScore {
     return Object.fromEntries(Array.from(this.peerStats.entries()).map(([peer, stats]) => [peer, stats]))
   }
 
+  messageFirstSeeenTimestampMs(msgIdStr: MsgIdStr): number | null {
+    const drec = this.deliveryRecords.getRecord(msgIdStr)
+    return drec ? drec.firstSeenTsMs : null
+  }
+
   /**
    * Decays scores, and purges score records for disconnected peers once their expiry has elapsed.
    */
@@ -339,7 +344,7 @@ export class PeerScore {
       log(
         'unexpected delivery: message from %s was first seen %s ago and has delivery status %s',
         from,
-        now - drec.firstSeen,
+        now - drec.firstSeenTsMs,
         DeliveryRecordStatus[drec.status]
       )
       return
@@ -385,7 +390,7 @@ export class PeerScore {
       log(
         'unexpected rejection: message from %s was first seen %s ago and has delivery status %d',
         from,
-        Date.now() - drec.firstSeen,
+        Date.now() - drec.firstSeenTsMs,
         DeliveryRecordStatus[drec.status]
       )
       return

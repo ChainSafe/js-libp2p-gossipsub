@@ -266,6 +266,18 @@ export function getMetrics(
       labelNames: ['hit']
     }),
 
+    asyncValidationDelayFromFirstSeen: register.histogram<{ topic: TopicLabel }>({
+      name: 'gossipsub_async_validation_delay_from_first_seen',
+      help: 'Async validation report delay from first seen',
+      labelNames: ['topic'],
+      buckets: [0.01, 0.03, 0.1, 0.3, 1, 3, 10]
+    }),
+
+    asyncValidationUnknownFirstSeen: register.gauge({
+      name: 'gossipsub_async_validation_unknown_first_seen',
+      help: 'Async validation report unknown first seen value for message'
+    }),
+
     // peer stream
     peerReadStreamError: register.gauge({
       name: 'gossipsub_peer_read_stream_err_count_total',
@@ -607,14 +619,25 @@ export function getMetrics(
       this.meshPeerChurnEventsByTopic.inc({ topic }, count)
     },
 
-    onReportValidationMcacheHit(hit: boolean): void {
-      this.asyncValidationMcacheHit.inc({ hit: hit ? 'hit' : 'miss' })
-    },
+    // null messageRecord means the message's mcache record was not known at the time of acceptance report
+    onReportValidation(
+      messageRecord: { message: { topic: TopicStr } } | null,
+      acceptance: TopicValidatorResult,
+      firstSeenTimestampMs: number | null
+    ): void {
+      this.asyncValidationMcacheHit.inc({ hit: messageRecord != null ? 'hit' : 'miss' })
 
-    onReportValidation(topicStr: TopicStr, acceptance: TopicValidatorResult): void {
-      const topic = this.toTopic(topicStr)
-      this.asyncValidationResult.inc({ acceptance })
-      this.asyncValidationResultByTopic.inc({ topic })
+      if (messageRecord != null) {
+        const topic = this.toTopic(messageRecord.message.topic)
+        this.asyncValidationResult.inc({ acceptance })
+        this.asyncValidationResultByTopic.inc({ topic })
+      }
+
+      if (firstSeenTimestampMs != null) {
+        this.asyncValidationDelayFromFirstSeen.observe((Date.now() - firstSeenTimestampMs) / 1000)
+      } else {
+        this.asyncValidationUnknownFirstSeen.inc()
+      }
     },
 
     /**
