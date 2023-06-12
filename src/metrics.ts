@@ -151,6 +151,8 @@ export type Metrics = ReturnType<typeof getMetrics>
 
 /**
  * A collection of metrics used throughout the Gossipsub behaviour.
+ * NOTE: except for special reasons, do not add more than 1 label for frequent metrics,
+ * there's a performance penalty as of June 2023.
  */
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function getMetrics(
@@ -426,7 +428,10 @@ export function getMetrics(
       name: 'gossipsub_score',
       help: 'Avg min max of gossip scores'
     }),
-    /** Separate score weights */
+    /**
+     * Separate score weights
+     * Need to use 2-label metrics in this case to debug the score weights
+     **/
     scoreWeights: register.avgMinMax<{ topic?: TopicLabel; p: string }>({
       name: 'gossipsub_score_weights',
       help: 'Separate score weights',
