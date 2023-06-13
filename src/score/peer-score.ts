@@ -100,7 +100,7 @@ export class PeerScore {
     return Object.fromEntries(Array.from(this.peerStats.entries()).map(([peer, stats]) => [peer, stats]))
   }
 
-  messageFirstSeeenTimestampMs(msgIdStr: MsgIdStr): number | null {
+  messageFirstSeenTimestampMs(msgIdStr: MsgIdStr): number | null {
     const drec = this.deliveryRecords.getRecord(msgIdStr)
     return drec ? drec.firstSeenTsMs : null
   }

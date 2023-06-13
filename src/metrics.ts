@@ -266,15 +266,15 @@ export function getMetrics(
       labelNames: ['hit']
     }),
 
-    asyncValidationDelayFromFirstSeen: register.histogram<{ topic: TopicLabel }>({
+    asyncValidationDelayFromFirstSeenSec: register.histogram<{ topic: TopicLabel }>({
       name: 'gossipsub_async_validation_delay_from_first_seen',
-      help: 'Async validation report delay from first seen',
+      help: 'Async validation report delay from first seen in second',
       labelNames: ['topic'],
       buckets: [0.01, 0.03, 0.1, 0.3, 1, 3, 10]
     }),
 
     asyncValidationUnknownFirstSeen: register.gauge({
-      name: 'gossipsub_async_validation_unknown_first_seen',
+      name: 'gossipsub_async_validation_unknown_first_seen_count_total',
       help: 'Async validation report unknown first seen value for message'
     }),
 
@@ -619,7 +619,10 @@ export function getMetrics(
       this.meshPeerChurnEventsByTopic.inc({ topic }, count)
     },
 
-    // null messageRecord means the message's mcache record was not known at the time of acceptance report
+    /**
+     * Update validation result to metrics
+     * @param messageRecord null means the message's mcache record was not known at the time of acceptance report
+     */
     onReportValidation(
       messageRecord: { message: { topic: TopicStr } } | null,
       acceptance: TopicValidatorResult,
@@ -634,7 +637,7 @@ export function getMetrics(
       }
 
       if (firstSeenTimestampMs != null) {
-        this.asyncValidationDelayFromFirstSeen.observe((Date.now() - firstSeenTimestampMs) / 1000)
+        this.asyncValidationDelayFromFirstSeenSec.observe((Date.now() - firstSeenTimestampMs) / 1000)
       } else {
         this.asyncValidationUnknownFirstSeen.inc()
       }

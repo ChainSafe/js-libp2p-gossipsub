@@ -2173,7 +2173,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       // else, Message not in cache. Ignoring forwarding
     }
 
-    const firstSeenTimestampMs = this.score.messageFirstSeeenTimestampMs(msgId)
+    const firstSeenTimestampMs = this.score.messageFirstSeenTimestampMs(msgId)
     this.metrics?.onReportValidation(cacheEntry, acceptance, firstSeenTimestampMs)
   }
 
