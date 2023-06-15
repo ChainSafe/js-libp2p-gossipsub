@@ -15,6 +15,14 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [8.0.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v8.0.0...v8.0.1) (2023-06-15)
+
+
+### Bug Fixes
+
+* unbundle 2-label metrics ([#433](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/433)) ([1e33bb2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/1e33bb279d28126d369eb0aea7978dca79a48f4b))
+* unhandle protocol on stop ([#438](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/438)) ([549641b](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/549641bf4a728709119509252a6a19ff0cd42b8c))
+
 ## [8.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v7.0.0...v8.0.0) (2023-05-16)
 
 
