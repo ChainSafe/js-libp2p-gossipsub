@@ -636,6 +636,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     // unregister protocol and handlers
     const registrar = this.components.registrar
+    await Promise.all(this.multicodecs.map((multicodec) => registrar.unhandle(multicodec)))
     registrarTopologyIds.forEach((id) => registrar.unregister(id))
 
     this.outboundInflightQueue.end()
