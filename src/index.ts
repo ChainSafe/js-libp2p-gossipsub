@@ -6,7 +6,7 @@ import { createTopology } from '@libp2p/topology'
 import type { PeerId } from '@libp2p/interface-peer-id'
 import { CustomEvent, EventEmitter } from '@libp2p/interfaces/events'
 
-import { MessageCache } from './message-cache.js'
+import { MessageCache, MessageCacheRecord } from './message-cache.js'
 import { RPC, IRPC } from './message/rpc.js'
 import * as constants from './constants.js'
 import { shuffle, messageIdToString } from './utils/index.js'
@@ -2140,9 +2140,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    * This should only be called once per message.
    */
   reportMessageValidationResult(msgId: MsgIdStr, propagationSource: PeerId, acceptance: TopicValidatorResult): void {
+    let cacheEntry: MessageCacheRecord | null
+
     if (acceptance === TopicValidatorResult.Accept) {
-      const cacheEntry = this.mcache.validate(msgId)
-      this.metrics?.onReportValidationMcacheHit(cacheEntry !== null)
+      cacheEntry = this.mcache.validate(msgId)
 
       if (cacheEntry != null) {
         const { message: rawMsg, originatingPeers } = cacheEntry
@@ -2150,15 +2151,13 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         this.score.deliverMessage(propagationSource.toString(), msgId, rawMsg.topic)
 
         this.forwardMessage(msgId, cacheEntry.message, propagationSource.toString(), originatingPeers)
-        this.metrics?.onReportValidation(rawMsg.topic, acceptance)
       }
       // else, Message not in cache. Ignoring forwarding
     }
 
     // Not valid
     else {
-      const cacheEntry = this.mcache.remove(msgId)
-      this.metrics?.onReportValidationMcacheHit(cacheEntry !== null)
+      cacheEntry = this.mcache.remove(msgId)
 
       if (cacheEntry) {
         const rejectReason = rejectReasonFromAcceptance(acceptance)
@@ -2170,11 +2169,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         for (const peer of originatingPeers) {
           this.score.rejectMessage(peer, msgId, rawMsg.topic, rejectReason)
         }
-
-        this.metrics?.onReportValidation(rawMsg.topic, acceptance)
       }
       // else, Message not in cache. Ignoring forwarding
     }
+
+    const firstSeenTimestampMs = this.score.messageFirstSeenTimestampMs(msgId)
+    this.metrics?.onReportValidation(cacheEntry, acceptance, firstSeenTimestampMs)
   }
 
   /**
