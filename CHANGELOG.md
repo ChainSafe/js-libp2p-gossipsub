@@ -15,6 +15,23 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [9.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v8.0.1...v9.0.0) (2023-06-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* reportMessageValidationResult to accept peer id string ([#432](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/432))
+
+### Features
+
+* track async validation delay from first seen ([#435](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/435)) ([e2505d6](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/e2505d668ac9b34e8889562d975ed71ec1866b33))
+
+
+### Bug Fixes
+
+* reportMessageValidationResult to accept peer id string ([a963680](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/a963680fd9fb1da55e28e15c8e5469b9fe7dfbfa))
+* reportMessageValidationResult to accept peer id string ([#432](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/432)) ([a963680](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/a963680fd9fb1da55e28e15c8e5469b9fe7dfbfa))
+
 ## [8.0.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v8.0.0...v8.0.1) (2023-06-15)
 
 
