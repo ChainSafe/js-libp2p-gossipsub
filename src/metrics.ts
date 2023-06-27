@@ -89,8 +89,6 @@ export enum ChurnReason {
   BadScore = 'bad_score',
   /// Peer sent a PRUNE.
   Prune = 'prune',
-  /// Peer unsubscribed.
-  Unsub = 'unsubscribed',
   /// Too many peers.
   Excess = 'excess'
 }
