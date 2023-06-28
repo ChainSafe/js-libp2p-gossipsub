@@ -1569,7 +1569,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       this.score.prune(id, topicID)
       if (peersInMesh.has(id)) {
         peersInMesh.delete(id)
-        this.metrics?.onRemoveFromMesh(topicID, ChurnReason.Unsub, 1)
+        this.metrics?.onRemoveFromMesh(topicID, ChurnReason.Prune, 1)
       }
 
       // is there a backoff specified by the peer? if so obey it
