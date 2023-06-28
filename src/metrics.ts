@@ -552,6 +552,12 @@ export function getMetrics(
       name: 'gossip_iwant_promise_untracked',
       help: 'Total count of untracked IWANT promise'
     }),
+    /** Backoff time */
+    connectedPeersBackoffSec: register.histogram({
+      name: 'gossipsub_connected_peers_backoff_seconds',
+      help: 'Backoff time in seconds',
+      buckets: [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    }),
 
     /* Data structure sizes */
     /** Unbounded cache sizes */

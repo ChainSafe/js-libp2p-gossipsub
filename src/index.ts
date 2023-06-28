@@ -2873,10 +2873,17 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     metrics.cacheSize.set({ cache: 'control' }, this.control.size)
     metrics.cacheSize.set({ cache: 'peerhave' }, this.peerhave.size)
     metrics.cacheSize.set({ cache: 'outbound' }, this.outbound.size)
+
     // 2D nested data structure
     let backoffSize = 0
+    const now = Date.now()
     for (const backoff of this.backoff.values()) {
       backoffSize += backoff.size
+      for (const [peer, expiredMs] of backoff.entries()) {
+        if (this.peers.has(peer)) {
+          metrics.connectedPeersBackoffSec.observe((expiredMs - now) / 1000)
+        }
+      }
     }
     metrics.cacheSize.set({ cache: 'backoff' }, backoffSize)
 
