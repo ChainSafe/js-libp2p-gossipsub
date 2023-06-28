@@ -23,7 +23,8 @@ import { SimpleTimeCache } from './utils/time-cache.js'
 import {
   ACCEPT_FROM_WHITELIST_DURATION_MS,
   ACCEPT_FROM_WHITELIST_MAX_MESSAGES,
-  ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE
+  ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE,
+  BACKOFF_SLACK
 } from './constants.js'
 import {
   ChurnReason,
@@ -1643,9 +1644,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     }
 
     const now = Date.now()
+    const slackDuration = BACKOFF_SLACK * this.opts.heartbeatInterval
     this.backoff.forEach((backoff, topic) => {
       backoff.forEach((expire, id) => {
-        if (expire < now) {
+        // add some slack time to the expiration
+        // https://github.com/libp2p/specs/pull/289
+        if (expire + slackDuration < now) {
           backoff.delete(id)
         }
       })
