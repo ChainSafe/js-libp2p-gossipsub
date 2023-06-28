@@ -1794,6 +1794,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     this.metrics?.onJoin(topic)
 
     const toAdd = new Set<PeerIdStr>()
+    const backoff = this.backoff.get(topic) || new Map()
 
     // check if we have mesh_n peers in fanout[topic] and add them to the mesh if we do,
     // removing the fanout entry.
@@ -1805,8 +1806,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
       // remove explicit peers, peers with negative scores, and backoffed peers
       fanoutPeers.forEach((id) => {
-        // TODO:rust-libp2p checks `self.backoffs.is_backoff_with_slack()`
-        if (!this.direct.has(id) && this.score.score(id) >= 0) {
+        if (!this.direct.has(id) && this.score.score(id) >= 0 && !backoff.has(id)) {
           toAdd.add(id)
         }
       })
@@ -1822,7 +1822,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         this.opts.D,
         (id: PeerIdStr): boolean =>
           // filter direct peers and peers with negative score
-          !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0
+          !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0 && !backoff.has(id)
       )
 
       newPeers.forEach((peer) => {
