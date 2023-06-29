@@ -133,6 +133,7 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   /** override constants for fine tuning */
   prunePeers?: number
   pruneBackoff?: number
+  unsubcribeBackoff?: number
   graftFloodThreshold?: number
   opportunisticGraftPeers?: number
   opportunisticGraftTicks?: number
@@ -412,6 +413,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       gossipsubIWantFollowupMs: constants.GossipsubIWantFollowupTime,
       prunePeers: constants.GossipsubPrunePeers,
       pruneBackoff: constants.GossipsubPruneBackoff,
+      unsubcribeBackoff: constants.GossipsubUnsubscribeBackoff,
       graftFloodThreshold: constants.GossipsubGraftFloodThreshold,
       opportunisticGraftPeers: constants.GossipsubOpportunisticGraftPeers,
       opportunisticGraftTicks: constants.GossipsubOpportunisticGraftTicks,
@@ -1546,7 +1548,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       return []
     }
 
-    return await Promise.all(prune.map((topic) => this.makePrune(id, topic, doPX)))
+    const onUnsubscribe = false
+    return await Promise.all(prune.map((topic) => this.makePrune(id, topic, doPX, onUnsubscribe)))
   }
 
   /**
@@ -1608,15 +1611,15 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    *
    * @param id
    * @param topic
-   * @param interval - backoff duration in milliseconds
+   * @param intervalMs - backoff duration in milliseconds
    */
-  private doAddBackoff(id: PeerIdStr, topic: TopicStr, interval: number): void {
+  private doAddBackoff(id: PeerIdStr, topic: TopicStr, intervalMs: number): void {
     let backoff = this.backoff.get(topic)
     if (!backoff) {
       backoff = new Map()
       this.backoff.set(topic, backoff)
     }
-    const expire = Date.now() + interval
+    const expire = Date.now() + intervalMs
     const existingExpire = backoff.get(id) ?? 0
     if (existingExpire < expire) {
       backoff.set(id, expire)
@@ -2194,7 +2197,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    * Sends a PRUNE message to a peer
    */
   private async sendPrune(id: PeerIdStr, topic: string): Promise<void> {
-    const prune = [await this.makePrune(id, topic, this.opts.doPX)]
+    // this is only called from leave() function
+    const onUnsubscribe = true
+    const prune = [await this.makePrune(id, topic, this.opts.doPX, onUnsubscribe)]
 
     this.sendRpc(id, { control: { prune } })
   }
@@ -2286,6 +2291,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     noPX: Map<string, boolean>
   ): Promise<void> {
     const doPX = this.opts.doPX
+    const onUnsubscribe = false
     for (const [id, topics] of tograft) {
       const graft = topics.map((topicID) => ({ topicID }))
       let prune: RPC.IControlPrune[] = []
@@ -2293,7 +2299,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       const pruning = toprune.get(id)
       if (pruning) {
         prune = await Promise.all(
-          pruning.map(async (topicID) => await this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false)))
+          pruning.map(
+            async (topicID) => await this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false), onUnsubscribe)
+          )
         )
         toprune.delete(id)
       }
@@ -2302,7 +2310,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     }
     for (const [id, topics] of toprune) {
       const prune = await Promise.all(
-        topics.map(async (topicID) => await this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false)))
+        topics.map(
+          async (topicID) => await this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false), onUnsubscribe)
+        )
       )
       this.sendRpc(id, { control: { prune } })
     }
@@ -2398,7 +2408,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
   /**
    * Make a PRUNE control message for a peer in a topic
    */
-  private async makePrune(id: PeerIdStr, topic: string, doPX: boolean): Promise<RPC.IControlPrune> {
+  private async makePrune(
+    id: PeerIdStr,
+    topic: string,
+    doPX: boolean,
+    onUnsubscribe: boolean
+  ): Promise<RPC.IControlPrune> {
     this.score.prune(id, topic)
     if (this.streamsOutbound.get(id)!.protocol === constants.GossipsubIDv10) {
       // Gossipsub v1.0 -- no backoff, the peer won't be able to parse it anyway
@@ -2408,9 +2423,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       }
     }
     // backoff is measured in seconds
-    // GossipsubPruneBackoff is measured in milliseconds
+    // GossipsubPruneBackoff and GossipsubUnsubscribeBackoff are measured in milliseconds
     // The protobuf has it as a uint64
-    const backoff = this.opts.pruneBackoff / 1000
+    const backoffMs = onUnsubscribe ? this.opts.unsubcribeBackoff : this.opts.pruneBackoff
+    const backoff = backoffMs / 1000
+    this.doAddBackoff(id, topic, backoffMs)
+
     if (!doPX) {
       return {
         topicID: topic,
@@ -2418,6 +2436,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         backoff: backoff
       }
     }
+
     // select peers for Peer eXchange
     const peers = this.getRandomGossipPeers(topic, this.opts.prunePeers, (xid) => {
       return xid !== id && this.score.score(xid) >= 0
