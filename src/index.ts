@@ -23,7 +23,8 @@ import { SimpleTimeCache } from './utils/time-cache.js'
 import {
   ACCEPT_FROM_WHITELIST_DURATION_MS,
   ACCEPT_FROM_WHITELIST_MAX_MESSAGES,
-  ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE
+  ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE,
+  BACKOFF_SLACK
 } from './constants.js'
 import {
   ChurnReason,
@@ -1648,7 +1649,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const now = Date.now()
     this.backoff.forEach((backoff, topic) => {
       backoff.forEach((expire, id) => {
-        if (expire < now) {
+        // add some slack time to the expiration, see https://github.com/libp2p/specs/pull/289
+        if (expire + BACKOFF_SLACK * this.opts.heartbeatInterval < now) {
           backoff.delete(id)
         }
       })
@@ -1793,6 +1795,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     this.metrics?.onJoin(topic)
 
     const toAdd = new Set<PeerIdStr>()
+    const backoff = this.backoff.get(topic)
 
     // check if we have mesh_n peers in fanout[topic] and add them to the mesh if we do,
     // removing the fanout entry.
@@ -1804,8 +1807,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
       // remove explicit peers, peers with negative scores, and backoffed peers
       fanoutPeers.forEach((id) => {
-        // TODO:rust-libp2p checks `self.backoffs.is_backoff_with_slack()`
-        if (!this.direct.has(id) && this.score.score(id) >= 0) {
+        if (!this.direct.has(id) && this.score.score(id) >= 0 && (!backoff || !backoff.has(id))) {
           toAdd.add(id)
         }
       })
@@ -1821,7 +1823,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         this.opts.D,
         (id: PeerIdStr): boolean =>
           // filter direct peers and peers with negative score
-          !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0
+          !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0 && (!backoff || !backoff.has(id))
       )
 
       newPeers.forEach((peer) => {

@@ -246,3 +246,6 @@ export const ACCEPT_FROM_WHITELIST_DURATION_MS = 1000
  * The default MeshMessageDeliveriesWindow to be used in metrics.
  */
 export const DEFAULT_METRIC_MESH_MESSAGE_DELIVERIES_WINDOWS = 1000
+
+/** Wait for 1 more heartbeats before clearing a backoff */
+export const BACKOFF_SLACK = 1
