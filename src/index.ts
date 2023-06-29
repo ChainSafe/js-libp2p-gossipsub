@@ -1644,12 +1644,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     }
 
     const now = Date.now()
-    const slackDuration = BACKOFF_SLACK * this.opts.heartbeatInterval
     this.backoff.forEach((backoff, topic) => {
       backoff.forEach((expire, id) => {
-        // add some slack time to the expiration
-        // https://github.com/libp2p/specs/pull/289
-        if (expire + slackDuration < now) {
+        // add some slack time to the expiration, see https://github.com/libp2p/specs/pull/289
+        if (expire + BACKOFF_SLACK * this.opts.heartbeatInterval < now) {
           backoff.delete(id)
         }
       })
@@ -1794,7 +1792,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     this.metrics?.onJoin(topic)
 
     const toAdd = new Set<PeerIdStr>()
-    const backoff = this.backoff.get(topic) || new Map()
+    const backoff = this.backoff.get(topic)
 
     // check if we have mesh_n peers in fanout[topic] and add them to the mesh if we do,
     // removing the fanout entry.
@@ -1806,7 +1804,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
       // remove explicit peers, peers with negative scores, and backoffed peers
       fanoutPeers.forEach((id) => {
-        if (!this.direct.has(id) && this.score.score(id) >= 0 && !backoff.has(id)) {
+        if (!this.direct.has(id) && this.score.score(id) >= 0 && (!backoff || !backoff.has(id))) {
           toAdd.add(id)
         }
       })
@@ -1822,7 +1820,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         this.opts.D,
         (id: PeerIdStr): boolean =>
           // filter direct peers and peers with negative score
-          !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0 && !backoff.has(id)
+          !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0 && (!backoff || !backoff.has(id))
       )
 
       newPeers.forEach((peer) => {
