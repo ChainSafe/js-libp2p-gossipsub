@@ -138,6 +138,11 @@ export const GossipsubPrunePeers = 16
 export const GossipsubPruneBackoff = minute
 
 /**
+ * Backoff to use when unsuscribing from a topic. Should not resubscribe to this topic before it expired.
+ */
+export const GossipsubUnsubscribeBackoff = 10 * second
+
+/**
  * GossipsubPruneBackoffTicks is the number of heartbeat ticks for attempting to prune expired
  * backoff timers.
  */
