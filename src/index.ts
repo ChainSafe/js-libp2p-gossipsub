@@ -2426,13 +2426,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     // GossipsubPruneBackoff and GossipsubUnsubscribeBackoff are measured in milliseconds
     // The protobuf has it as a uint64
     const backoffMs = onUnsubscribe ? this.opts.unsubcribeBackoff : this.opts.pruneBackoff
+    const backoff = backoffMs / 1000
     this.doAddBackoff(id, topic, backoffMs)
 
     if (!doPX) {
       return {
         topicID: topic,
         peers: [],
-        backoff: backoffMs / 1000
+        backoff: backoff
       }
     }
 
@@ -2466,8 +2467,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     return {
       topicID: topic,
       peers: px,
-      // backoff is measured in seconds
-      backoff: backoffMs / 1000
+      backoff: backoff
     }
   }
 
