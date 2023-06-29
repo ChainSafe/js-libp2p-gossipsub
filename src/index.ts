@@ -2877,11 +2877,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     // 2D nested data structure
     let backoffSize = 0
     const now = Date.now()
+    metrics.connectedPeersBackoffSec.reset()
     for (const backoff of this.backoff.values()) {
       backoffSize += backoff.size
       for (const [peer, expiredMs] of backoff.entries()) {
         if (this.peers.has(peer)) {
-          metrics.connectedPeersBackoffSec.observe((expiredMs - now) / 1000)
+          metrics.connectedPeersBackoffSec.observe(Math.max(0, expiredMs - now) / 1000)
         }
       }
     }

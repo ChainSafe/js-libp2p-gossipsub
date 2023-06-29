@@ -556,7 +556,11 @@ export function getMetrics(
     connectedPeersBackoffSec: register.histogram({
       name: 'gossipsub_connected_peers_backoff_seconds',
       help: 'Backoff time in seconds',
-      buckets: [1, 2, 4, 8, 16, 32, 64, 128, 256]
+      // Using 1 seconds as minimum as that's close to the heartbeat duration, no need for more resolution.
+      // As per spec, backoff times are 10 seconds for UnsubscribeBackoff and 60 seconds for PruneBackoff.
+      // Higher values of 60 seconds should not occur, but we add 120 seconds just in case
+      // https://github.com/libp2p/specs/blob/master/pubsub/gossipsub/gossipsub-v1.1.md#overview-of-new-parameters
+      buckets: [1, 2, 4, 10, 20, 60, 120]
     }),
 
     /* Data structure sizes */
