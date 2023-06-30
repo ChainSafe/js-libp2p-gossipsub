@@ -15,6 +15,24 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [9.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v9.0.0...v9.1.0) (2023-06-29)
+
+
+### Features
+
+* add UnsubscribeBackoff param ([#447](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/447)) ([ec570ca](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/ec570cadb2ea4e327f204038c85b86ccc7555802))
+
+
+### Bug Fixes
+
+* check backoff when join ([#444](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/444)) ([fd8c61b](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/fd8c61b18d6deccb19a375c913dfe3dec9a0dfeb))
+* correct metric in handlePrune() ([#440](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/440)) ([cbdae04](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/cbdae0463868673de9ae59b7a357aedfeb085e0a))
+
+
+### Miscellaneous
+
+* track backoff time for connected peers ([#445](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/445)) ([8646b4d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/8646b4d3c1255474cb86478eca4279dd18f11580))
+
 ## [9.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v8.0.1...v9.0.0) (2023-06-20)
 
 
