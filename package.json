@@ -91,7 +91,7 @@
     "it-pipe": "^3.0.1",
     "it-pushable": "^3.1.0",
     "multiformats": "^11.0.0",
-    "protobufjs": "^6.11.2",
+    "protobufjs": "^7.2.4",
     "uint8arraylist": "^2.3.2",
     "uint8arrays": "^4.0.2"
   },
