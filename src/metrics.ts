@@ -338,6 +338,13 @@ export function getMetrics(
       help: 'Total count of msg publish data.length bytes',
       labelNames: ['topic']
     }),
+    /** Total time in millisecond to publish a message */
+    msgPublishMs: register.histogram<{ topic: TopicLabel }>({
+      name: 'gossipsub_msg_publish_ms',
+      help: 'Total time in millisecond to publish a message',
+      buckets: [5, 10, 100, 500, 1000],
+      labelNames: ['topic']
+    }),
 
     /** Total count of msg forwarded by topic */
     msgForwardCount: register.gauge<{ topic: TopicLabel }>({
@@ -683,7 +690,13 @@ export function getMetrics(
       this.msgForwardPeers.inc({ topic }, tosendCount)
     },
 
-    onPublishMsg(topicStr: TopicStr, tosendGroupCount: ToSendGroupCount, tosendCount: number, dataLen: number): void {
+    onPublishMsg(
+      topicStr: TopicStr,
+      tosendGroupCount: ToSendGroupCount,
+      tosendCount: number,
+      dataLen: number,
+      ms: number
+    ): void {
       const topic = this.toTopic(topicStr)
       this.msgPublishCount.inc({ topic }, 1)
       this.msgPublishBytes.inc({ topic }, tosendCount * dataLen)
@@ -692,6 +705,7 @@ export function getMetrics(
       this.msgPublishPeersByGroup.inc({ peerGroup: 'floodsub' }, tosendGroupCount.floodsub)
       this.msgPublishPeersByGroup.inc({ peerGroup: 'mesh' }, tosendGroupCount.mesh)
       this.msgPublishPeersByGroup.inc({ peerGroup: 'fanout' }, tosendGroupCount.fanout)
+      this.msgPublishMs.observe(ms)
     },
 
     onMsgRecvPreValidation(topicStr: TopicStr): void {
