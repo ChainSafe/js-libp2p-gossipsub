@@ -705,7 +705,7 @@ export function getMetrics(
       this.msgPublishPeersByGroup.inc({ peerGroup: 'floodsub' }, tosendGroupCount.floodsub)
       this.msgPublishPeersByGroup.inc({ peerGroup: 'mesh' }, tosendGroupCount.mesh)
       this.msgPublishPeersByGroup.inc({ peerGroup: 'fanout' }, tosendGroupCount.fanout)
-      this.msgPublishMs.observe(ms)
+      this.msgPublishMs.observe({ topic }, ms)
     },
 
     onMsgRecvPreValidation(topicStr: TopicStr): void {
