@@ -342,7 +342,7 @@ export function getMetrics(
     msgPublishMs: register.histogram<{ topic: TopicLabel }>({
       name: 'gossipsub_msg_publish_ms',
       help: 'Total time in millisecond to publish a message',
-      buckets: [5, 10, 100, 500, 1000],
+      buckets: [1, 2, 5, 10, 100, 500, 1000],
       labelNames: ['topic']
     }),
 
