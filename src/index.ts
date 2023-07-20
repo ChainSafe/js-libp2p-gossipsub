@@ -2043,6 +2043,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    * For messages not from us, this class uses `forwardMessage`.
    */
   async publish(topic: TopicStr, data: Uint8Array, opts?: PublishOpts): Promise<PublishResult> {
+    const startMs = Date.now()
     const transformedData = this.dataTransform ? this.dataTransform.outboundTransform(topic, data) : data
 
     if (this.publishConfig == null) {
@@ -2099,7 +2100,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       }
     }
 
-    this.metrics?.onPublishMsg(topic, tosendCount, tosend.size, rawMsg.data != null ? rawMsg.data.length : 0)
+    const durationMs = Date.now() - startMs
+    this.metrics?.onPublishMsg(
+      topic,
+      tosendCount,
+      tosend.size,
+      rawMsg.data != null ? rawMsg.data.length : 0,
+      durationMs
+    )
 
     // Dispatch the message to the user if we are subscribed to the topic
     if (willSendToSelf) {
