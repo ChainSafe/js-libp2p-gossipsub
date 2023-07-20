@@ -15,6 +15,13 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [9.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v9.1.0...v9.2.0) (2023-07-20)
+
+
+### Features
+
+* track time to publish a message ([#451](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/451)) ([83b8e61](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/83b8e61e700f45743940e33b8ca2c28c1e18a1d5))
+
 ## [9.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v9.0.0...v9.1.0) (2023-06-29)
 
 
