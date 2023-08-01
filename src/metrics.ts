@@ -1,7 +1,14 @@
 import type { TopicValidatorResult } from '@libp2p/interface/pubsub'
 import type { IRPC } from './message/rpc.js'
 import type { PeerScoreThresholds } from './score/peer-score-thresholds.js'
-import { MessageStatus, type PeerIdStr, RejectReason, type RejectReasonObj, type TopicStr, ValidateError } from './types.js'
+import {
+  MessageStatus,
+  type PeerIdStr,
+  RejectReason,
+  type RejectReasonObj,
+  type TopicStr,
+  ValidateError
+} from './types.js'
 
 /** Topic label as provided in `topicStrToLabel` */
 export type TopicLabel = string

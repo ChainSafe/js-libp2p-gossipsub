@@ -99,12 +99,19 @@
     "aegir": "^40.0.1",
     "datastore-core": "^9.1.1",
     "delay": "^6.0.0",
+    "eslint": "^7.1.0",
+    "eslint-config-standard": "^14.1.1",
+    "eslint-plugin-import": "^2.20.2",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
     "mkdirp": "^3.0.1",
     "p-defer": "^4.0.0",
     "p-event": "^6.0.0",
     "p-retry": "^5.1.2",
     "p-wait-for": "^5.0.2",
-    "prettier": "^3.0.0",
+    "prettier": "^2.0.5",
     "sinon": "^15.1.2",
     "time-cache": "^0.3.0",
     "ts-node": "^10.7.0",
@@ -112,5 +119,23 @@
   },
   "engines": {
     "npm": ">=8.7.0"
-  }
+  },
+  "contributors": [
+    "Cayman <caymannava@gmail.com>",
+    "Vasco Santos <vasco.santos@moxy.studio>",
+    "Mikerah <mikerahqc@protonmail.com>",
+    "Tuyen Nguyen <vutuyen2636@gmail.com>",
+    "Alex Potsides <alex@achingbrain.net>",
+    "Marin Petrunić <marin.petrunic@gmail.com>",
+    "Lion - dapplion <35266934+dapplion@users.noreply.github.com>",
+    "Gregory Markou <16929357+GregTheGreek@users.noreply.github.com>",
+    "Alan Shaw <alan.shaw@protocol.ai>",
+    "Tuyen <tuyen@wetrust.io>",
+    "Jacob Heun <jacobheun@gmail.com>",
+    "Patrick Michot <k0m0d0tr0n@gmail.com>",
+    "chainsafe <aidan@chainsafe.io>",
+    "Hugo Dias <hugomrdias@gmail.com>",
+    "Franck Royer <franck@royer.one>",
+    "ChainSafe <superadmin@chainsafe.io>"
+  ]
 }

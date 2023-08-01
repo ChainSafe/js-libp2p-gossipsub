@@ -68,11 +68,7 @@ import type {
   SubscriptionChangeData,
   TopicValidatorFn
 } from '@libp2p/interface/pubsub'
-import {
-  StrictSign,
-  StrictNoSign,
-  TopicValidatorResult
-} from '@libp2p/interface/pubsub'
+import { StrictSign, StrictNoSign, TopicValidatorResult } from '@libp2p/interface/pubsub'
 import type { IncomingStreamData, Registrar } from '@libp2p/interface-internal/registrar'
 import { removeFirstNItemsFromSet, removeItemsFromSet } from './utils/set.js'
 import { pushable } from 'it-pushable'
