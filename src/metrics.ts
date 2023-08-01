@@ -338,10 +338,10 @@ export function getMetrics(
       help: 'Total count of msg publish data.length bytes',
       labelNames: ['topic']
     }),
-    /** Total time in millisecond to publish a message */
+    /** Total time in seconds to publish a message */
     msgPublishTime: register.histogram<{ topic: TopicLabel }>({
       name: 'gossipsub_msg_publish_seconds',
-      help: 'Total time in millisecond to publish a message',
+      help: 'Total time in seconds to publish a message',
       buckets: [0.001, 0.002, 0.005, 0.01, 0.1, 0.5, 1],
       labelNames: ['topic']
     }),
