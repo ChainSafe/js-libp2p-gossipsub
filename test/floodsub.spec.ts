@@ -2,12 +2,12 @@ import { expect } from 'aegir/chai'
 import delay from 'delay'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { pEvent } from 'p-event'
-import type { SubscriptionChangeData, Message } from '@libp2p/interface-pubsub'
+import type { SubscriptionChangeData, Message } from '@libp2p/interface/pubsub'
 import pRetry from 'p-retry'
-import { connectPubsubNodes, createComponents, GossipSubAndComponents } from './utils/create-pubsub.js'
+import { connectPubsubNodes, createComponents, type GossipSubAndComponents } from './utils/create-pubsub.js'
 import { FloodSub } from '@libp2p/floodsub'
-import { stop } from '@libp2p/interfaces/startable'
-import { mockNetwork } from '@libp2p/interface-mocks'
+import { stop } from '@libp2p/interface/startable'
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 
 describe('gossipsub fallbacks to floodsub', () => {
   describe('basics', () => {

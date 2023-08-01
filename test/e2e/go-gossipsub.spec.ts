@@ -6,9 +6,9 @@ import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
 import type { GossipSub } from '../../src/index.js'
 import { GossipsubD } from '../../src/constants.js'
 import { fastMsgIdFn } from '../utils/index.js'
-import { Message, TopicValidatorResult } from '@libp2p/interface-pubsub'
+import { type Message, TopicValidatorResult } from '@libp2p/interface/pubsub'
 import type { IRPC, RPC } from '../../src/message/rpc.js'
-import type { Libp2pEvents } from '@libp2p/interface-libp2p'
+import type { Libp2pEvents } from '@libp2p/interface'
 import pWaitFor from 'p-wait-for'
 import {
   sparseConnect,
@@ -17,12 +17,12 @@ import {
   createComponentsArray,
   createComponents,
   connectPubsubNodes,
-  GossipSubAndComponents
+  type GossipSubAndComponents
 } from '../utils/create-pubsub.js'
 import { FloodSub } from '@libp2p/floodsub'
-import { mockNetwork } from '@libp2p/interface-mocks'
-import { stop } from '@libp2p/interfaces/startable'
-import { TopicScoreParams } from '../../src/score/peer-score-params.js'
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
+import { stop } from '@libp2p/interface/startable'
+import type { TopicScoreParams } from '../../src/score/peer-score-params.js'
 import { awaitEvents, checkReceivedSubscription, checkReceivedSubscriptions } from '../utils/events.js'
 
 /**

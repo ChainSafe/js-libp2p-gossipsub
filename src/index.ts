@@ -1,22 +1,21 @@
 import { pipe } from 'it-pipe'
-import type { Connection, Stream } from '@libp2p/interface-connection'
+import type { Connection, Stream } from '@libp2p/interface/connection'
 import { peerIdFromBytes, peerIdFromString } from '@libp2p/peer-id'
-import { Logger, logger } from '@libp2p/logger'
-import { createTopology } from '@libp2p/topology'
-import type { PeerId } from '@libp2p/interface-peer-id'
-import { CustomEvent, EventEmitter } from '@libp2p/interfaces/events'
+import { type Logger, logger } from '@libp2p/logger'
+import type { PeerId } from '@libp2p/interface/peer-id'
+import { CustomEvent, EventEmitter } from '@libp2p/interface/events'
 
-import { MessageCache, MessageCacheRecord } from './message-cache.js'
-import { RPC, IRPC } from './message/rpc.js'
+import { MessageCache, type MessageCacheRecord } from './message-cache.js'
+import { RPC, type IRPC } from './message/rpc.js'
 import * as constants from './constants.js'
 import { shuffle, messageIdToString } from './utils/index.js'
 import {
   PeerScore,
-  PeerScoreParams,
-  PeerScoreThresholds,
+  type PeerScoreParams,
+  type PeerScoreThresholds,
   createPeerScoreParams,
   createPeerScoreThresholds,
-  PeerScoreStatsDump
+  type PeerScoreStatsDump
 } from './score/index.js'
 import { IWantTracer } from './tracer.js'
 import { SimpleTimeCache } from './utils/time-cache.js'
@@ -31,56 +30,58 @@ import {
   getMetrics,
   IHaveIgnoreReason,
   InclusionReason,
-  Metrics,
-  MetricsRegister,
+  type Metrics,
+  type MetricsRegister,
   ScorePenalty,
-  TopicStrToLabel,
-  ToSendGroupCount
+  type TopicStrToLabel,
+  type ToSendGroupCount
 } from './metrics.js'
 import {
-  MsgIdFn,
-  PublishConfig,
-  TopicStr,
-  MsgIdStr,
+  type MsgIdFn,
+  type PublishConfig,
+  type TopicStr,
+  type MsgIdStr,
   ValidateError,
-  PeerIdStr,
+  type PeerIdStr,
   MessageStatus,
   RejectReason,
-  RejectReasonObj,
-  FastMsgIdFn,
-  AddrInfo,
-  DataTransform,
+  type RejectReasonObj,
+  type FastMsgIdFn,
+  type AddrInfo,
+  type DataTransform,
   rejectReasonFromAcceptance,
-  MsgIdToStrFn,
-  MessageId,
-  PublishOpts
+  type MsgIdToStrFn,
+  type MessageId,
+  type PublishOpts
 } from './types.js'
 import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage.js'
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js'
 import { computeAllPeersScoreWeights } from './score/scoreMetrics.js'
 import { getPublishConfigFromPeerId } from './utils/publishConfig.js'
 import type { GossipsubOptsSpec } from './config.js'
-import {
+import type {
   Message,
   PublishResult,
   PubSub,
   PubSubEvents,
   PubSubInit,
-  StrictNoSign,
-  StrictSign,
   SubscriptionChangeData,
-  TopicValidatorFn,
+  TopicValidatorFn
+} from '@libp2p/interface/pubsub'
+import {
+  StrictSign,
+  StrictNoSign,
   TopicValidatorResult
-} from '@libp2p/interface-pubsub'
-import type { IncomingStreamData, Registrar } from '@libp2p/interface-registrar'
+} from '@libp2p/interface/pubsub'
+import type { IncomingStreamData, Registrar } from '@libp2p/interface-internal/registrar'
 import { removeFirstNItemsFromSet, removeItemsFromSet } from './utils/set.js'
 import { pushable } from 'it-pushable'
 import { InboundStream, OutboundStream } from './stream.js'
-import { Uint8ArrayList } from 'uint8arraylist'
-import { decodeRpc, DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
-import { ConnectionManager } from '@libp2p/interface-connection-manager'
-import { Peer, PeerStore } from '@libp2p/interface-peer-store'
-import { Multiaddr } from '@multiformats/multiaddr'
+import type { Uint8ArrayList } from 'uint8arraylist'
+import { decodeRpc, type DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
+import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
+import type { Peer, PeerStore } from '@libp2p/interface/peer-store'
+import type { Multiaddr } from '@multiformats/multiaddr'
 import { multiaddrToIPStr } from './utils/multiaddr.js'
 
 type ConnectionDirection = 'inbound' | 'outbound'
@@ -589,10 +590,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     // register protocol with topology
     // Topology callbacks called on connection manager changes
-    const topology = createTopology({
+    const topology = {
       onConnect: this.onPeerConnected.bind(this),
       onDisconnect: this.onPeerDisconnected.bind(this)
-    })
+    }
     const registrarTopologyIds = await Promise.all(
       this.multicodecs.map((multicodec) => registrar.register(multicodec, topology))
     )
@@ -698,7 +699,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     const peerId = connection.remotePeer
     // add peer to router
-    this.addPeer(peerId, connection.stat.direction, connection.remoteAddr)
+    this.addPeer(peerId, connection.direction, connection.remoteAddr)
     // create inbound stream
     this.createInboundStream(peerId, stream)
     // attempt to create outbound stream
@@ -709,14 +710,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    * Registrar notifies an established connection with pubsub protocol
    */
   private onPeerConnected(peerId: PeerId, connection: Connection): void {
-    this.metrics?.newConnectionCount.inc({ status: connection.stat.status })
+    this.metrics?.newConnectionCount.inc({ status: connection.status })
     // libp2p may emit a closed connection and never issue peer:disconnect event
     // see https://github.com/ChainSafe/js-libp2p-gossipsub/issues/398
-    if (!this.isStarted() || connection.stat.status !== 'OPEN') {
+    if (!this.isStarted() || connection.status !== 'open') {
       return
     }
 
-    this.addPeer(peerId, connection.stat.direction, connection.remoteAddr)
+    this.addPeer(peerId, connection.direction, connection.remoteAddr)
     this.outboundInflightQueue.push({ peerId, connection })
   }
 
@@ -1733,7 +1734,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const connection = await this.components.connectionManager.openConnection(peerId)
     for (const multicodec of this.multicodecs) {
       for (const topology of this.components.registrar.getTopologies(multicodec)) {
-        topology.onConnect(peerId, connection)
+        topology.onConnect?.(peerId, connection)
       }
     }
   }

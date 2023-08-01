@@ -1,7 +1,7 @@
 import { expect } from 'aegir/chai'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import type { GossipSub } from '../src/index.js'
-import type { Message, SubscriptionChangeData } from '@libp2p/interface-pubsub'
+import type { Message, SubscriptionChangeData } from '@libp2p/interface/pubsub'
 import { pEvent } from 'p-event'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import defer from 'p-defer'
@@ -10,10 +10,10 @@ import {
   connectAllPubSubNodes,
   connectPubsubNodes,
   createComponentsArray,
-  GossipSubAndComponents
+  type GossipSubAndComponents
 } from './utils/create-pubsub.js'
-import { stop } from '@libp2p/interfaces/startable'
-import { mockNetwork } from '@libp2p/interface-mocks'
+import { stop } from '@libp2p/interface/startable'
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 
 const shouldNotHappen = () => expect.fail()
 
