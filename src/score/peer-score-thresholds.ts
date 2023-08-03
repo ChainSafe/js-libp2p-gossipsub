@@ -1,5 +1,5 @@
 import { ERR_INVALID_PEER_SCORE_THRESHOLDS } from './constants.js'
-import { CodeError } from '@libp2p/interfaces/errors'
+import { CodeError } from '@libp2p/interface/errors'
 
 // This file defines PeerScoreThresholds interface
 // as well as a constructor, default constructor, and validation function

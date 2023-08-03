@@ -1,15 +1,15 @@
 import { createRSAPeerId } from '@libp2p/peer-id-factory'
-import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-mocks'
+import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { MemoryDatastore } from 'datastore-core'
-import { GossipSub, GossipSubComponents, GossipsubOpts } from '../../src/index.js'
-import { PubSub } from '@libp2p/interface-pubsub'
+import { GossipSub, type GossipSubComponents, type GossipsubOpts } from '../../src/index.js'
+import type { PubSub } from '@libp2p/interface/pubsub'
 import { setMaxListeners } from 'events'
 import { PersistentPeerStore } from '@libp2p/peer-store'
-import { start } from '@libp2p/interfaces/startable'
+import { start } from '@libp2p/interface/startable'
 import { stubInterface } from 'ts-sinon'
-import { ConnectionManager } from '@libp2p/interface-connection-manager'
-import { EventEmitter } from '@libp2p/interfaces/events'
-import { Libp2pEvents } from '@libp2p/interface-libp2p'
+import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
+import { EventEmitter } from '@libp2p/interface/events'
+import type { Libp2pEvents } from '@libp2p/interface'
 
 export interface CreateComponentsOpts {
   init?: Partial<GossipsubOpts>
@@ -81,7 +81,7 @@ export const connectPubsubNodes = async (a: GossipSubAndComponents, b: GossipSub
 
   for (const multicodec of multicodecs) {
     for (const topology of a.components.registrar.getTopologies(multicodec)) {
-      topology.onConnect(b.components.peerId, connection)
+      topology.onConnect?.(b.components.peerId, connection)
     }
   }
 }

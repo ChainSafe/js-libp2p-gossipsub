@@ -1,9 +1,9 @@
-import type { SubscriptionChangeData } from '@libp2p/interface-pubsub'
-import type { EventEmitter } from '@libp2p/interfaces/events'
+import type { SubscriptionChangeData } from '@libp2p/interface/pubsub'
+import type { EventEmitter } from '@libp2p/interface/events'
 import { expect } from 'aegir/chai'
 import pWaitFor from 'p-wait-for'
-import { GossipSub, GossipsubEvents } from '../../src/index.js'
-import { GossipSubAndComponents } from './create-pubsub.js'
+import type { GossipSub, GossipsubEvents } from '../../src/index.js'
+import type { GossipSubAndComponents } from './create-pubsub.js'
 
 export const checkReceivedSubscription = (
   node: GossipSubAndComponents,

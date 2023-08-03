@@ -6,7 +6,7 @@ import { getMsgIdStr, makeTestMessage } from './utils/index.js'
 import { RejectReason } from '../src/types.js'
 import { ScorePenalty } from '../src/metrics.js'
 import { createEd25519PeerId } from '@libp2p/peer-id-factory'
-import { PeerStats } from '../src/score/peer-stats.js'
+import type { PeerStats } from '../src/score/peer-stats.js'
 import type { PeerScoreParams, TopicScoreParams } from '../src/score/peer-score-params.js'
 
 /** Placeholder for some ScorePenalty value, only used for metrics */
