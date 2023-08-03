@@ -15,6 +15,23 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [10.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v9.1.0...v10.0.0) (2023-08-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* stream close methods are now asyc, requires libp2p@0.46.x or later
+
+### Features
+
+* close streams gracefully ([#458](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/458)) ([3153ebf](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/3153ebff847cdfa560a094e1cd6b559090a24614))
+* track time to publish a message ([#451](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/451)) ([83b8e61](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/83b8e61e700f45743940e33b8ca2c28c1e18a1d5))
+
+
+### Bug Fixes
+
+* track publish time in second ([#457](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/457)) ([7c3fc8d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/7c3fc8d2aa47070434a87d576c10d5aaeb047277))
+
 ## [9.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v9.0.0...v9.1.0) (2023-06-29)
 
 
