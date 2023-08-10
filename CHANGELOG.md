@@ -15,6 +15,19 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [10.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v10.0.0...v10.1.0) (2023-08-10)
+
+
+### Features
+
+* unbundle fixed-label metrics ([bb5596d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/bb5596dca786e59d930ed58b6dc05c80925786b2))
+* unbundle fixed-label metrics ([#460](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/460)) ([bb5596d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/bb5596dca786e59d930ed58b6dc05c80925786b2))
+
+
+### Bug Fixes
+
+* export supporting metrics types ([#462](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/462)) ([09296bd](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/09296bd915839b6bbbffcf7ea31be64ba3f4bc20))
+
 ## [10.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v9.1.0...v10.0.0) (2023-08-03)
 
 
