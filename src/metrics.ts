@@ -22,7 +22,7 @@ export enum MessageSource {
 type LabelsGeneric = Record<string, string | undefined>
 type CollectFn<Labels extends LabelsGeneric> = (metric: Gauge<Labels>) => void
 
-interface Gauge<Labels extends LabelsGeneric = never> {
+export interface Gauge<Labels extends LabelsGeneric = never> {
   // Sorry for this mess, `prom-client` API choices are not great
   // If the function signature was `inc(value: number, labels?: Labels)`, this would be simpler
   inc(value?: number): void
@@ -36,7 +36,7 @@ interface Gauge<Labels extends LabelsGeneric = never> {
   addCollect(collectFn: CollectFn<Labels>): void
 }
 
-interface Histogram<Labels extends LabelsGeneric = never> {
+export interface Histogram<Labels extends LabelsGeneric = never> {
   startTimer(): () => void
 
   observe(value: number): void
@@ -46,26 +46,26 @@ interface Histogram<Labels extends LabelsGeneric = never> {
   reset(): void
 }
 
-interface AvgMinMax<Labels extends LabelsGeneric = never> {
+export interface AvgMinMax<Labels extends LabelsGeneric = never> {
   set(values: number[]): void
   set(labels: Labels, values: number[]): void
   set(arg1?: Labels | number[], arg2?: number[]): void
 }
 
-type GaugeConfig<Labels extends LabelsGeneric> = {
+export type GaugeConfig<Labels extends LabelsGeneric> = {
   name: string
   help: string
   labelNames?: keyof Labels extends string ? (keyof Labels)[] : undefined
 }
 
-type HistogramConfig<Labels extends LabelsGeneric> = {
+export type HistogramConfig<Labels extends LabelsGeneric> = {
   name: string
   help: string
   labelNames?: (keyof Labels)[]
   buckets?: number[]
 }
 
-type AvgMinMaxConfig<Labels extends LabelsGeneric> = GaugeConfig<Labels>
+export type AvgMinMaxConfig<Labels extends LabelsGeneric> = GaugeConfig<Labels>
 
 export interface MetricsRegister {
   gauge<T extends LabelsGeneric>(config: GaugeConfig<T>): Gauge<T>
