@@ -6,7 +6,7 @@ import type { PeerId } from '@libp2p/interface/peer-id'
 import { CustomEvent, EventEmitter } from '@libp2p/interface/events'
 
 import { MessageCache, type MessageCacheRecord } from './message-cache.js'
-import { RPC, } from './message/rpc.js'
+import { RPC } from './message/rpc.js'
 import * as constants from './constants.js'
 import { shuffle, messageIdToString } from './utils/index.js'
 import {

@@ -1,6 +1,6 @@
 import { expect } from 'aegir/chai'
 import { decodeRpc, type DecodeRPCLimits, defaultDecodeRpcLimits } from '../src/message/decodeRpc.js'
-import { RPC, } from '../src/message/index.js'
+import { RPC } from '../src/message/index.js'
 
 describe('decodeRpc', () => {
   const topicID = 'topic'
