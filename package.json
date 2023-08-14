@@ -117,7 +117,6 @@
     "p-wait-for": "^5.0.2",
     "prettier": "^2.0.5",
     "sinon": "^15.1.2",
-    "promisify-es6": "^1.0.3",
     "protons": "^5.1.0",
     "time-cache": "^0.3.0",
     "ts-node": "^10.7.0",
