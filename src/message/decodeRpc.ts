@@ -42,16 +42,18 @@ export function decodeRpc(bytes: Uint8Array, opts: DecodeRPCLimits): RPC {
       case 1:
         if (obj.subscriptions.length < opts.maxSubscriptions) {
           obj.subscriptions.push(decodeSubOpts(reader, reader.uint32()))
-        } else reader.skipType(tag & 7)
-        // obj.subscriptions.push(RPC.SubOpts.codec().decode(reader, reader.uint32()))
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       case 2:
-        // obj.messages.push(RPC.Message.codec().decode(reader, reader.uint32()))
-        if (obj.messages.length < opts.maxMessages) obj.messages.push(decodeMessage(reader, reader.uint32()))
-        else reader.skipType(tag & 7)
+        if (obj.messages.length < opts.maxMessages) {
+          obj.messages.push(decodeMessage(reader, reader.uint32()))
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       case 3:
-        // obj.control = RPC.ControlMessage.codec().decode(reader, reader.uint32())
         obj.control = decodeControlMessage(reader, reader.uint32(), opts)
         break
       default:
@@ -144,27 +146,32 @@ function decodeControlMessage(reader: protobuf.Reader, length: number, opts: Dec
 
     switch (tag >>> 3) {
       case 1:
-        // obj.ihave.push(RPC.ControlIHave.codec().decode(reader, reader.uint32()))
         if (obj.ihave.length < opts.maxControlMessages) {
           obj.ihave.push(decodeControlIHave(reader, reader.uint32(), opts))
-        } else reader.skipType(tag & 7)
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       case 2:
-        // obj.iwant.push(RPC.ControlIWant.codec().decode(reader, reader.uint32()))
         if (obj.iwant.length < opts.maxControlMessages) {
           obj.iwant.push(decodeControlIWant(reader, reader.uint32(), opts))
-        } else reader.skipType(tag & 7)
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       case 3:
-        // obj.graft.push(RPC.ControlGraft.codec().decode(reader, reader.uint32()))
-        if (obj.graft.length < opts.maxControlMessages) obj.graft.push(decodeControlGraft(reader, reader.uint32()))
-        else reader.skipType(tag & 7)
+        if (obj.graft.length < opts.maxControlMessages) {
+          obj.graft.push(decodeControlGraft(reader, reader.uint32()))
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       case 4:
-        // obj.prune.push(RPC.ControlPrune.codec().decode(reader, reader.uint32()))
         if (obj.prune.length < opts.maxControlMessages) {
           obj.prune.push(decodeControlPrune(reader, reader.uint32(), opts))
-        } else reader.skipType(tag & 7)
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       default:
         reader.skipType(tag & 7)
@@ -190,12 +197,13 @@ function decodeControlIHave(reader: protobuf.Reader, length: number, opts: Decod
         obj.topicID = reader.string()
         break
       case 2:
-        // obj.messageIDs.push(reader.bytes())
-        if (opts.maxIhaveMessageIDs-- > 0) obj.messageIDs.push(reader.bytes())
-        else reader.skipType(tag & 7)
+        if (opts.maxIhaveMessageIDs-- > 0) {
+          obj.messageIDs.push(reader.bytes())
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       default:
-        console.log('@@@ decodeControlIhave tag >>> 3', tag >>> 3, 'tag', tag, length, 'length')
         reader.skipType(tag & 7)
         break
     }
@@ -216,8 +224,11 @@ function decodeControlIWant(reader: protobuf.Reader, length: number, opts: Decod
 
     switch (tag >>> 3) {
       case 1:
-        if (opts.maxIwantMessageIDs-- > 0) obj.messageIDs.push(reader.bytes())
-        else reader.skipType(tag & 7)
+        if (opts.maxIwantMessageIDs-- > 0) {
+          obj.messageIDs.push(reader.bytes())
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       default:
         reader.skipType(tag & 7)
@@ -264,8 +275,11 @@ function decodeControlPrune(reader: protobuf.Reader, length: number, opts: Decod
         obj.topicID = reader.string()
         break
       case 2:
-        if (opts.maxPeerInfos-- > 0) obj.peers.push(decodePeerInfo(reader, reader.uint32()))
-        else reader.skipType(tag & 7)
+        if (opts.maxPeerInfos-- > 0) {
+          obj.peers.push(decodePeerInfo(reader, reader.uint32()))
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       case 3:
         obj.backoff = reader.uint64()
