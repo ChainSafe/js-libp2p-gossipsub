@@ -1092,7 +1092,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     const validationResult = await this.validateReceivedMessage(from, rpcMsg)
 
-    this.metrics?.onMsgRecvResult(rpcMsg.topic, validationResult.code)
+    this.metrics?.onPrevalidationResult(rpcMsg.topic, validationResult.code)
 
     switch (validationResult.code) {
       case MessageStatus.duplicate:

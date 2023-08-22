@@ -261,7 +261,7 @@ export function getMetrics(
       labelNames: ['topic']
     }),
     meshPeerChurnEventsUnknown: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossipsub_peer_churn_events_excess_total',
+      name: 'gossipsub_peer_churn_events_unknown_total',
       help: 'Number of times we remove peers in a topic mesh for unknown reasons',
       labelNames: ['topic']
     }),
@@ -443,23 +443,23 @@ export function getMetrics(
       labelNames: ['topic']
     }),
     /** Tracks distribution of recv msgs by duplicate, invalid, valid */
-    msgReceivedInvalidTotal: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossipsub_msg_received_invalid_total',
+    prevalidationInvalidTotal: register.gauge<{ topic: TopicLabel }>({
+      name: 'gossipsub_pre_validation_invalid_total',
       help: 'Total count of invalid messages received',
       labelNames: ['topic']
     }),
-    msgReceivedValidTotal: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossipsub_msg_received_valid_total',
+    prevalidationValidTotal: register.gauge<{ topic: TopicLabel }>({
+      name: 'gossipsub_pre_validation_valid_total',
       help: 'Total count of valid messages received',
       labelNames: ['topic']
     }),
-    msgReceivedDuplicateTotal: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossipsub_msg_received_duplicate_total',
+    prevalidationDuplicateTotal: register.gauge<{ topic: TopicLabel }>({
+      name: 'gossipsub_pre_validation_duplicate_total',
       help: 'Total count of duplicate messages received',
       labelNames: ['topic']
     }),
-    msgReceivedUnknownStatusTotal: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossipsub_msg_received_unknown_status_total',
+    prevalidationUnknownTotal: register.gauge<{ topic: TopicLabel }>({
+      name: 'gossipsub_pre_validation_unknown_status_total',
       help: 'Total count of unknown_status messages received',
       labelNames: ['topic']
     }),
@@ -847,20 +847,20 @@ export function getMetrics(
       this.msgReceivedError.inc({ topic }, 1)
     },
 
-    onMsgRecvResult(topicStr: TopicStr, status: MessageStatus): void {
+    onPrevalidationResult(topicStr: TopicStr, status: MessageStatus): void {
       const topic = this.toTopic(topicStr)
       switch (status) {
         case MessageStatus.duplicate:
-          this.msgReceivedDuplicateTotal.inc({ topic })
+          this.prevalidationDuplicateTotal.inc({ topic })
           break
         case MessageStatus.invalid:
-          this.msgReceivedInvalidTotal.inc({ topic })
+          this.prevalidationInvalidTotal.inc({ topic })
           break
         case MessageStatus.valid:
-          this.msgReceivedValidTotal.inc({ topic })
+          this.prevalidationValidTotal.inc({ topic })
           break
         default:
-          this.msgReceivedUnknownStatusTotal.inc({ topic })
+          this.prevalidationUnknownTotal.inc({ topic })
           break
       }
     },
