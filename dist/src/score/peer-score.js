@@ -6,25 +6,30 @@ import { RejectReason } from '../types.js';
 import { MapDef } from '../utils/set.js';
 const log = logger('libp2p:gossipsub:score');
 export class PeerScore {
+    params;
+    metrics;
+    /**
+     * Per-peer stats for score calculation
+     */
+    peerStats = new Map();
+    /**
+     * IP colocation tracking; maps IP => set of peers.
+     */
+    peerIPs = new MapDef(() => new Set());
+    /**
+     * Cache score up to decayInterval if topic stats are unchanged.
+     */
+    scoreCache = new Map();
+    /**
+     * Recent message delivery timing/participants
+     */
+    deliveryRecords = new MessageDeliveries();
+    _backgroundInterval;
+    scoreCacheValidityMs;
+    computeScore;
     constructor(params, metrics, opts) {
         this.params = params;
         this.metrics = metrics;
-        /**
-         * Per-peer stats for score calculation
-         */
-        this.peerStats = new Map();
-        /**
-         * IP colocation tracking; maps IP => set of peers.
-         */
-        this.peerIPs = new MapDef(() => new Set());
-        /**
-         * Cache score up to decayInterval if topic stats are unchanged.
-         */
-        this.scoreCache = new Map();
-        /**
-         * Recent message delivery timing/participants
-         */
-        this.deliveryRecords = new MessageDeliveries();
         validatePeerScoreParams(params);
         this.scoreCacheValidityMs = opts.scoreCacheValidityMs;
         this.computeScore = opts.computeScore ?? computeScore;
@@ -67,6 +72,10 @@ export class PeerScore {
     }
     dumpPeerScoreStats() {
         return Object.fromEntries(Array.from(this.peerStats.entries()).map(([peer, stats]) => [peer, stats]));
+    }
+    messageFirstSeenTimestampMs(msgIdStr) {
+        const drec = this.deliveryRecords.getRecord(msgIdStr);
+        return drec ? drec.firstSeenTsMs : null;
     }
     /**
      * Decays scores, and purges score records for disconnected peers once their expiry has elapsed.
@@ -269,7 +278,7 @@ export class PeerScore {
         const now = Date.now();
         // defensive check that this is the first delivery trace -- delivery status should be unknown
         if (drec.status !== DeliveryRecordStatus.unknown) {
-            log('unexpected delivery: message from %s was first seen %s ago and has delivery status %s', from, now - drec.firstSeen, DeliveryRecordStatus[drec.status]);
+            log('unexpected delivery: message from %s was first seen %s ago and has delivery status %s', from, now - drec.firstSeenTsMs, DeliveryRecordStatus[drec.status]);
             return;
         }
         // mark the message as valid and reward mesh peers that have already forwarded it to us
@@ -303,7 +312,7 @@ export class PeerScore {
         const drec = this.deliveryRecords.ensureRecord(msgIdStr);
         // defensive check that this is the first rejection -- delivery status should be unknown
         if (drec.status !== DeliveryRecordStatus.unknown) {
-            log('unexpected rejection: message from %s was first seen %s ago and has delivery status %d', from, Date.now() - drec.firstSeen, DeliveryRecordStatus[drec.status]);
+            log('unexpected rejection: message from %s was first seen %s ago and has delivery status %d', from, Date.now() - drec.firstSeenTsMs, DeliveryRecordStatus[drec.status]);
             return;
         }
         if (reason === RejectReason.Ignore) {

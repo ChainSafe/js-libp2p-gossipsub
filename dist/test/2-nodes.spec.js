@@ -5,8 +5,8 @@ import { toString as uint8ArrayToString } from 'uint8arrays/to-string';
 import defer from 'p-defer';
 import pWaitFor from 'p-wait-for';
 import { connectAllPubSubNodes, connectPubsubNodes, createComponentsArray } from './utils/create-pubsub.js';
-import { stop } from '@libp2p/interfaces/startable';
-import { mockNetwork } from '@libp2p/interface-mocks';
+import { stop } from '@libp2p/interface/startable';
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks';
 const shouldNotHappen = () => expect.fail();
 async function nodesArePubSubPeers(node0, node1, timeout = 60000) {
     await pWaitFor(() => {

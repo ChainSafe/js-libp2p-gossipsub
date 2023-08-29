@@ -25,9 +25,14 @@ export var DeliveryRecordStatus;
  * Maintains an internal queue for efficient gc of old messages
  */
 export class MessageDeliveries {
+    records;
+    queue;
     constructor() {
         this.records = new Map();
         this.queue = new Denque();
+    }
+    getRecord(msgIdStr) {
+        return this.records.get(msgIdStr);
     }
     ensureRecord(msgIdStr) {
         let drec = this.records.get(msgIdStr);
@@ -38,7 +43,7 @@ export class MessageDeliveries {
         // create record
         drec = {
             status: DeliveryRecordStatus.unknown,
-            firstSeen: Date.now(),
+            firstSeenTsMs: Date.now(),
             validated: 0,
             peers: new Set()
         };

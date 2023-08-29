@@ -5,6 +5,8 @@ export type CacheEntry = MessageId & {
   topic: TopicStr
 }
 
+export type MessageCacheRecord = Pick<MessageCacheEntry, 'message' | 'originatingPeers'>
+
 interface MessageCacheEntry {
   message: RPC.IMessage
   /**
@@ -144,7 +146,7 @@ export class MessageCache {
    * This function also returns the known peers that have sent us this message. This is used to
    * prevent us sending redundant messages to peers who have already propagated it.
    */
-  validate(msgId: MsgIdStr): { message: RPC.IMessage; originatingPeers: Set<PeerIdStr> } | null {
+  validate(msgId: MsgIdStr): MessageCacheRecord | null {
     const entry = this.msgs.get(msgId)
     if (!entry) {
       return null
@@ -181,7 +183,7 @@ export class MessageCache {
     this.history.unshift([])
   }
 
-  remove(msgId: MsgIdStr): MessageCacheEntry | null {
+  remove(msgId: MsgIdStr): MessageCacheRecord | null {
     const entry = this.msgs.get(msgId)
     if (!entry) {
       return null

@@ -1,12 +1,12 @@
 import { expect } from 'aegir/chai';
-import sinon from 'sinon';
+import sinon, {} from 'sinon';
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
 import { GossipsubDhi } from '../src/constants.js';
 import { GossipSub } from '../src/index.js';
 import { pEvent } from 'p-event';
 import { connectAllPubSubNodes, createComponentsArray } from './utils/create-pubsub.js';
-import { stop } from '@libp2p/interfaces/startable';
-import { mockNetwork } from '@libp2p/interface-mocks';
+import { stop } from '@libp2p/interface/startable';
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks';
 import { stubInterface } from 'ts-sinon';
 import { createEd25519PeerId } from '@libp2p/peer-id-factory';
 describe('gossip', () => {

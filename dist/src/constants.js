@@ -115,6 +115,10 @@ export const GossipsubPrunePeers = 16;
  */
 export const GossipsubPruneBackoff = minute;
 /**
+ * Backoff to use when unsuscribing from a topic. Should not resubscribe to this topic before it expired.
+ */
+export const GossipsubUnsubscribeBackoff = 10 * second;
+/**
  * GossipsubPruneBackoffTicks is the number of heartbeat ticks for attempting to prune expired
  * backoff timers.
  */
@@ -200,4 +204,6 @@ export const ACCEPT_FROM_WHITELIST_DURATION_MS = 1000;
  * The default MeshMessageDeliveriesWindow to be used in metrics.
  */
 export const DEFAULT_METRIC_MESH_MESSAGE_DELIVERIES_WINDOWS = 1000;
+/** Wait for 1 more heartbeats before clearing a backoff */
+export const BACKOFF_SLACK = 1;
 //# sourceMappingURL=constants.js.map

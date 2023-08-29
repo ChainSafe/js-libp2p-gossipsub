@@ -1,5 +1,5 @@
 import { ERR_INVALID_PEER_SCORE_PARAMS } from './constants.js';
-import { CodeError } from '@libp2p/interfaces/errors';
+import { CodeError } from '@libp2p/interface/errors';
 export const defaultPeerScoreParams = {
     topics: {},
     topicScoreCap: 10.0,

@@ -5,12 +5,12 @@ import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
 import { equals as uint8ArrayEquals } from 'uint8arrays/equals';
 import { GossipsubD } from '../../src/constants.js';
 import { fastMsgIdFn } from '../utils/index.js';
-import { TopicValidatorResult } from '@libp2p/interface-pubsub';
+import { TopicValidatorResult } from '@libp2p/interface/pubsub';
 import pWaitFor from 'p-wait-for';
 import { sparseConnect, denseConnect, connectSome, createComponentsArray, createComponents, connectPubsubNodes } from '../utils/create-pubsub.js';
 import { FloodSub } from '@libp2p/floodsub';
-import { mockNetwork } from '@libp2p/interface-mocks';
-import { stop } from '@libp2p/interfaces/startable';
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks';
+import { stop } from '@libp2p/interface/startable';
 import { awaitEvents, checkReceivedSubscription, checkReceivedSubscriptions } from '../utils/events.js';
 /**
  * These tests were translated from:

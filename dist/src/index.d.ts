@@ -1,19 +1,20 @@
-import { Logger } from '@libp2p/logger';
-import type { PeerId } from '@libp2p/interface-peer-id';
-import { EventEmitter } from '@libp2p/interfaces/events';
+import { type Logger } from '@libp2p/logger';
+import type { PeerId } from '@libp2p/interface/peer-id';
+import { EventEmitter } from '@libp2p/interface/events';
 import { MessageCache } from './message-cache.js';
-import { RPC, IRPC } from './message/rpc.js';
-import { PeerScore, PeerScoreParams, PeerScoreThresholds, PeerScoreStatsDump } from './score/index.js';
+import { RPC, type IRPC } from './message/rpc.js';
+import { PeerScore, type PeerScoreParams, type PeerScoreThresholds, type PeerScoreStatsDump } from './score/index.js';
 import { IWantTracer } from './tracer.js';
-import { MetricsRegister, TopicStrToLabel } from './metrics.js';
-import { MsgIdFn, TopicStr, MsgIdStr, PeerIdStr, FastMsgIdFn, AddrInfo, DataTransform, MsgIdToStrFn, PublishOpts } from './types.js';
+import { type MetricsRegister, type TopicStrToLabel } from './metrics.js';
+import { type MsgIdFn, type TopicStr, type MsgIdStr, type PeerIdStr, type FastMsgIdFn, type AddrInfo, type DataTransform, type MsgIdToStrFn, type PublishOpts } from './types.js';
 import type { GossipsubOptsSpec } from './config.js';
-import { Message, PublishResult, PubSub, PubSubEvents, PubSubInit, StrictNoSign, StrictSign, TopicValidatorFn, TopicValidatorResult } from '@libp2p/interface-pubsub';
-import type { Registrar } from '@libp2p/interface-registrar';
+import type { Message, PublishResult, PubSub, PubSubEvents, PubSubInit, TopicValidatorFn } from '@libp2p/interface/pubsub';
+import { StrictSign, StrictNoSign, TopicValidatorResult } from '@libp2p/interface/pubsub';
+import type { Registrar } from '@libp2p/interface-internal/registrar';
 import { InboundStream, OutboundStream } from './stream.js';
-import { DecodeRPCLimits } from './message/decodeRpc.js';
-import { ConnectionManager } from '@libp2p/interface-connection-manager';
-import { PeerStore } from '@libp2p/interface-peer-store';
+import { type DecodeRPCLimits } from './message/decodeRpc.js';
+import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager';
+import type { PeerStore } from '@libp2p/interface/peer-store';
 export declare const multicodec: string;
 export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
     /** if dial should fallback to floodsub */
@@ -55,6 +56,7 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
     /** override constants for fine tuning */
     prunePeers?: number;
     pruneBackoff?: number;
+    unsubcribeBackoff?: number;
     graftFloodThreshold?: number;
     opportunisticGraftPeers?: number;
     opportunisticGraftTicks?: number;
@@ -350,7 +352,7 @@ export declare class GossipSub extends EventEmitter<GossipsubEvents> implements 
      *
      * @param id
      * @param topic
-     * @param interval - backoff duration in milliseconds
+     * @param intervalMs - backoff duration in milliseconds
      */
     private doAddBackoff;
     /**
@@ -425,7 +427,7 @@ export declare class GossipSub extends EventEmitter<GossipsubEvents> implements 
      *
      * This should only be called once per message.
      */
-    reportMessageValidationResult(msgId: MsgIdStr, propagationSource: PeerId, acceptance: TopicValidatorResult): void;
+    reportMessageValidationResult(msgId: MsgIdStr, propagationSource: PeerIdStr, acceptance: TopicValidatorResult): void;
     /**
      * Sends a GRAFT message to a peer
      */

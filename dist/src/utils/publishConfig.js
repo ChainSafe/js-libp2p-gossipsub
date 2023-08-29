@@ -1,5 +1,5 @@
 import { unmarshalPrivateKey } from '@libp2p/crypto/keys';
-import { StrictSign, StrictNoSign } from '@libp2p/interface-pubsub';
+import { StrictSign, StrictNoSign } from '@libp2p/interface/pubsub';
 import { PublishConfigType } from '../types.js';
 /**
  * Prepare a PublishConfig object from a PeerId.

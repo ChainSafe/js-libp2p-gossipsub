@@ -1,4 +1,10 @@
 export class MessageCache {
+    gossip;
+    msgs = new Map();
+    msgIdToStrFn;
+    history = [];
+    /** Track with accounting of messages in the mcache that are not yet validated */
+    notValidatedCount = 0;
     /**
      * Holds history of messages in timebounded history arrays
      */
@@ -10,10 +16,6 @@ export class MessageCache {
      */
     gossip, historyCapacity, msgIdToStrFn) {
         this.gossip = gossip;
-        this.msgs = new Map();
-        this.history = [];
-        /** Track with accounting of messages in the mcache that are not yet validated */
-        this.notValidatedCount = 0;
         this.msgIdToStrFn = msgIdToStrFn;
         for (let i = 0; i < historyCapacity; i++) {
             this.history[i] = [];

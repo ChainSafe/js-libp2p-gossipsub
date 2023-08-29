@@ -3,6 +3,7 @@ import type { MessageId, MsgIdStr, PeerIdStr, TopicStr, MsgIdToStrFn } from './t
 export type CacheEntry = MessageId & {
     topic: TopicStr;
 };
+export type MessageCacheRecord = Pick<MessageCacheEntry, 'message' | 'originatingPeers'>;
 interface MessageCacheEntry {
     message: RPC.IMessage;
     /**
@@ -68,15 +69,12 @@ export declare class MessageCache {
      * This function also returns the known peers that have sent us this message. This is used to
      * prevent us sending redundant messages to peers who have already propagated it.
      */
-    validate(msgId: MsgIdStr): {
-        message: RPC.IMessage;
-        originatingPeers: Set<PeerIdStr>;
-    } | null;
+    validate(msgId: MsgIdStr): MessageCacheRecord | null;
     /**
      * Shifts the current window, discarding messages older than this.history.length of the cache
      */
     shift(): void;
-    remove(msgId: MsgIdStr): MessageCacheEntry | null;
+    remove(msgId: MsgIdStr): MessageCacheRecord | null;
 }
 export {};
 //# sourceMappingURL=message-cache.d.ts.map

@@ -22,6 +22,7 @@ export function removeFirstNItemsFromSet(superSet, ineed) {
     return removeItemsFromSet(superSet, ineed, () => true);
 }
 export class MapDef extends Map {
+    getDefault;
     constructor(getDefault) {
         super();
         this.getDefault = getDefault;

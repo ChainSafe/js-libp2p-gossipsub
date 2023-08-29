@@ -1,4 +1,5 @@
-import { RejectReason } from './types.js';
+import { TopicValidatorResult } from '@libp2p/interface/pubsub';
+import { MessageStatus, RejectReason, ValidateError } from './types.js';
 export var MessageSource;
 (function (MessageSource) {
     MessageSource["forward"] = "forward";
@@ -28,8 +29,6 @@ export var ChurnReason;
     ChurnReason["BadScore"] = "bad_score";
     /// Peer sent a PRUNE.
     ChurnReason["Prune"] = "prune";
-    /// Peer unsubscribed.
-    ChurnReason["Unsub"] = "unsubscribed";
     /// Too many peers.
     ChurnReason["Excess"] = "excess";
 })(ChurnReason || (ChurnReason = {}));
@@ -60,6 +59,8 @@ export var ScoreThreshold;
 })(ScoreThreshold || (ScoreThreshold = {}));
 /**
  * A collection of metrics used throughout the Gossipsub behaviour.
+ * NOTE: except for special reasons, do not add more than 1 label for frequent metrics,
+ * there's a performance penalty as of June 2023.
  */
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function getMetrics(register, topicStrToLabel, opts) {
@@ -98,17 +99,67 @@ export function getMetrics(register, topicStrToLabel, opts) {
         }),
         /** Number of times we include peers in a topic mesh for different reasons.
          *  = rust-libp2p `mesh_peer_inclusion_events` */
-        meshPeerInclusionEvents: register.gauge({
-            name: 'gossipsub_mesh_peer_inclusion_events_total',
-            help: 'Number of times we include peers in a topic mesh for different reasons',
-            labelNames: ['topic', 'reason']
+        meshPeerInclusionEventsFanout: register.gauge({
+            name: 'gossipsub_mesh_peer_inclusion_events_fanout_total',
+            help: 'Number of times we include peers in a topic mesh for fanout reasons',
+            labelNames: ['topic']
+        }),
+        meshPeerInclusionEventsRandom: register.gauge({
+            name: 'gossipsub_mesh_peer_inclusion_events_random_total',
+            help: 'Number of times we include peers in a topic mesh for random reasons',
+            labelNames: ['topic']
+        }),
+        meshPeerInclusionEventsSubscribed: register.gauge({
+            name: 'gossipsub_mesh_peer_inclusion_events_subscribed_total',
+            help: 'Number of times we include peers in a topic mesh for subscribed reasons',
+            labelNames: ['topic']
+        }),
+        meshPeerInclusionEventsOutbound: register.gauge({
+            name: 'gossipsub_mesh_peer_inclusion_events_outbound_total',
+            help: 'Number of times we include peers in a topic mesh for outbound reasons',
+            labelNames: ['topic']
+        }),
+        meshPeerInclusionEventsNotEnough: register.gauge({
+            name: 'gossipsub_mesh_peer_inclusion_events_not_enough_total',
+            help: 'Number of times we include peers in a topic mesh for not_enough reasons',
+            labelNames: ['topic']
+        }),
+        meshPeerInclusionEventsOpportunistic: register.gauge({
+            name: 'gossipsub_mesh_peer_inclusion_events_opportunistic_total',
+            help: 'Number of times we include peers in a topic mesh for opportunistic reasons',
+            labelNames: ['topic']
+        }),
+        meshPeerInclusionEventsUnknown: register.gauge({
+            name: 'gossipsub_mesh_peer_inclusion_events_unknown_total',
+            help: 'Number of times we include peers in a topic mesh for unknown reasons',
+            labelNames: ['topic']
         }),
         /** Number of times we remove peers in a topic mesh for different reasons.
          *  = rust-libp2p `mesh_peer_churn_events` */
-        meshPeerChurnEvents: register.gauge({
-            name: 'gossipsub_peer_churn_events_total',
-            help: 'Number of times we remove peers in a topic mesh for different reasons',
-            labelNames: ['topic', 'reason']
+        meshPeerChurnEventsDisconnected: register.gauge({
+            name: 'gossipsub_peer_churn_events_disconnected_total',
+            help: 'Number of times we remove peers in a topic mesh for disconnected reasons',
+            labelNames: ['topic']
+        }),
+        meshPeerChurnEventsBadScore: register.gauge({
+            name: 'gossipsub_peer_churn_events_bad_score_total',
+            help: 'Number of times we remove peers in a topic mesh for bad_score reasons',
+            labelNames: ['topic']
+        }),
+        meshPeerChurnEventsPrune: register.gauge({
+            name: 'gossipsub_peer_churn_events_prune_total',
+            help: 'Number of times we remove peers in a topic mesh for prune reasons',
+            labelNames: ['topic']
+        }),
+        meshPeerChurnEventsExcess: register.gauge({
+            name: 'gossipsub_peer_churn_events_excess_total',
+            help: 'Number of times we remove peers in a topic mesh for excess reasons',
+            labelNames: ['topic']
+        }),
+        meshPeerChurnEventsUnknown: register.gauge({
+            name: 'gossipsub_peer_churn_events_unknown_total',
+            help: 'Number of times we remove peers in a topic mesh for unknown reasons',
+            labelNames: ['topic']
         }),
         /* General Metrics */
         /** Gossipsub supports floodsub, gossipsub v1.0 and gossipsub v1.1. Peers are classified based
@@ -134,10 +185,25 @@ export function getMetrics(register, topicStrToLabel, opts) {
         /** Message validation results for each topic.
          *  Invalid == Reject?
          *  = rust-libp2p `invalid_messages`, `accepted_messages`, `ignored_messages`, `rejected_messages` */
-        asyncValidationResult: register.gauge({
-            name: 'gossipsub_async_validation_result_total',
-            help: 'Message validation result for each topic',
-            labelNames: ['topic', 'acceptance']
+        acceptedMessagesTotal: register.gauge({
+            name: 'gossipsub_accepted_messages_total',
+            help: 'Total accepted messages for each topic',
+            labelNames: ['topic']
+        }),
+        ignoredMessagesTotal: register.gauge({
+            name: 'gossipsub_ignored_messages_total',
+            help: 'Total ignored messages for each topic',
+            labelNames: ['topic']
+        }),
+        rejectedMessagesTotal: register.gauge({
+            name: 'gossipsub_rejected_messages_total',
+            help: 'Total rejected messages for each topic',
+            labelNames: ['topic']
+        }),
+        unknownValidationResultsTotal: register.gauge({
+            name: 'gossipsub_unknown_validation_results_total',
+            help: 'Total unknown validation results for each topic',
+            labelNames: ['topic']
         }),
         /** When the user validates a message, it tries to re propagate it to its mesh peers. If the
          *  message expires from the memcache before it can be validated, we count this a cache miss
@@ -147,6 +213,16 @@ export function getMetrics(register, topicStrToLabel, opts) {
             name: 'gossipsub_async_validation_mcache_hit_total',
             help: 'Async validation result reported by the user layer',
             labelNames: ['hit']
+        }),
+        asyncValidationDelayFromFirstSeenSec: register.histogram({
+            name: 'gossipsub_async_validation_delay_from_first_seen',
+            help: 'Async validation report delay from first seen in second',
+            labelNames: ['topic'],
+            buckets: [0.01, 0.03, 0.1, 0.3, 1, 3, 10]
+        }),
+        asyncValidationUnknownFirstSeen: register.gauge({
+            name: 'gossipsub_async_validation_unknown_first_seen_count_total',
+            help: 'Async validation report unknown first seen value for message'
         }),
         // peer stream
         peerReadStreamError: register.gauge({
@@ -188,22 +264,43 @@ export function getMetrics(register, topicStrToLabel, opts) {
             labelNames: ['topic']
         }),
         /** Total count of peers that we publish a msg to */
-        msgPublishPeers: register.gauge({
+        msgPublishPeersByTopic: register.gauge({
             name: 'gossipsub_msg_publish_peers_total',
             help: 'Total count of peers that we publish a msg to',
             labelNames: ['topic']
         }),
         /** Total count of peers (by group) that we publish a msg to */
-        // NOTE: Do not use 'group' label since it's a generic already used by Prometheus to group instances
-        msgPublishPeersByGroup: register.gauge({
-            name: 'gossipsub_msg_publish_peers_by_group',
-            help: 'Total count of peers (by group) that we publish a msg to',
-            labelNames: ['topic', 'peerGroup']
+        directPeersPublishedTotal: register.gauge({
+            name: 'gossipsub_direct_peers_published_total',
+            help: 'Total direct peers that we publish a msg to',
+            labelNames: ['topic']
+        }),
+        floodsubPeersPublishedTotal: register.gauge({
+            name: 'gossipsub_floodsub_peers_published_total',
+            help: 'Total floodsub peers that we publish a msg to',
+            labelNames: ['topic']
+        }),
+        meshPeersPublishedTotal: register.gauge({
+            name: 'gossipsub_mesh_peers_published_total',
+            help: 'Total mesh peers that we publish a msg to',
+            labelNames: ['topic']
+        }),
+        fanoutPeersPublishedTotal: register.gauge({
+            name: 'gossipsub_fanout_peers_published_total',
+            help: 'Total fanout peers that we publish a msg to',
+            labelNames: ['topic']
         }),
         /** Total count of msg publish data.length bytes */
         msgPublishBytes: register.gauge({
             name: 'gossipsub_msg_publish_bytes_total',
             help: 'Total count of msg publish data.length bytes',
+            labelNames: ['topic']
+        }),
+        /** Total time in seconds to publish a message */
+        msgPublishTime: register.histogram({
+            name: 'gossipsub_msg_publish_seconds',
+            help: 'Total time in seconds to publish a message',
+            buckets: [0.001, 0.002, 0.005, 0.01, 0.1, 0.5, 1],
             labelNames: ['topic']
         }),
         /** Total count of msg forwarded by topic */
@@ -231,16 +328,36 @@ export function getMetrics(register, topicStrToLabel, opts) {
             labelNames: ['topic']
         }),
         /** Tracks distribution of recv msgs by duplicate, invalid, valid */
-        msgReceivedStatus: register.gauge({
-            name: 'gossipsub_msg_received_status_total',
-            help: 'Tracks distribution of recv msgs by duplicate, invalid, valid',
-            labelNames: ['topic', 'status']
+        prevalidationInvalidTotal: register.gauge({
+            name: 'gossipsub_pre_validation_invalid_total',
+            help: 'Total count of invalid messages received',
+            labelNames: ['topic']
+        }),
+        prevalidationValidTotal: register.gauge({
+            name: 'gossipsub_pre_validation_valid_total',
+            help: 'Total count of valid messages received',
+            labelNames: ['topic']
+        }),
+        prevalidationDuplicateTotal: register.gauge({
+            name: 'gossipsub_pre_validation_duplicate_total',
+            help: 'Total count of duplicate messages received',
+            labelNames: ['topic']
+        }),
+        prevalidationUnknownTotal: register.gauge({
+            name: 'gossipsub_pre_validation_unknown_status_total',
+            help: 'Total count of unknown_status messages received',
+            labelNames: ['topic']
         }),
         /** Tracks specific reason of invalid */
         msgReceivedInvalid: register.gauge({
             name: 'gossipsub_msg_received_invalid_total',
             help: 'Tracks specific reason of invalid',
-            labelNames: ['topic', 'error']
+            labelNames: ['error']
+        }),
+        msgReceivedInvalidByTopic: register.gauge({
+            name: 'gossipsub_msg_received_invalid_by_topic_total',
+            help: 'Tracks specific invalid message by topic',
+            labelNames: ['topic']
         }),
         /** Track duplicate message delivery time */
         duplicateMsgDeliveryDelay: register.histogram({
@@ -290,10 +407,12 @@ export function getMetrics(register, topicStrToLabel, opts) {
         }),
         score: register.avgMinMax({
             name: 'gossipsub_score',
-            help: 'Avg min max of gossip scores',
-            labelNames: ['topic', 'p']
+            help: 'Avg min max of gossip scores'
         }),
-        /** Separate score weights */
+        /**
+         * Separate score weights
+         * Need to use 2-label metrics in this case to debug the score weights
+         **/
         scoreWeights: register.avgMinMax({
             name: 'gossipsub_score_weights',
             help: 'Separate score weights',
@@ -401,6 +520,16 @@ export function getMetrics(register, topicStrToLabel, opts) {
             name: 'gossip_iwant_promise_untracked',
             help: 'Total count of untracked IWANT promise'
         }),
+        /** Backoff time */
+        connectedPeersBackoffSec: register.histogram({
+            name: 'gossipsub_connected_peers_backoff_seconds',
+            help: 'Backoff time in seconds',
+            // Using 1 seconds as minimum as that's close to the heartbeat duration, no need for more resolution.
+            // As per spec, backoff times are 10 seconds for UnsubscribeBackoff and 60 seconds for PruneBackoff.
+            // Higher values of 60 seconds should not occur, but we add 120 seconds just in case
+            // https://github.com/libp2p/specs/blob/master/pubsub/gossipsub/gossipsub-v1.1.md#overview-of-new-parameters
+            buckets: [1, 2, 4, 10, 20, 60, 120]
+        }),
         /* Data structure sizes */
         /** Unbounded cache sizes */
         cacheSize: register.gauge({
@@ -443,7 +572,29 @@ export function getMetrics(register, topicStrToLabel, opts) {
         /** Register the inclusion of peers in our mesh due to some reason. */
         onAddToMesh(topicStr, reason, count) {
             const topic = this.toTopic(topicStr);
-            this.meshPeerInclusionEvents.inc({ topic, reason }, count);
+            switch (reason) {
+                case InclusionReason.Fanout:
+                    this.meshPeerInclusionEventsFanout.inc({ topic }, count);
+                    break;
+                case InclusionReason.Random:
+                    this.meshPeerInclusionEventsRandom.inc({ topic }, count);
+                    break;
+                case InclusionReason.Subscribed:
+                    this.meshPeerInclusionEventsSubscribed.inc({ topic }, count);
+                    break;
+                case InclusionReason.Outbound:
+                    this.meshPeerInclusionEventsOutbound.inc({ topic }, count);
+                    break;
+                case InclusionReason.NotEnough:
+                    this.meshPeerInclusionEventsNotEnough.inc({ topic }, count);
+                    break;
+                case InclusionReason.Opportunistic:
+                    this.meshPeerInclusionEventsOpportunistic.inc({ topic }, count);
+                    break;
+                default:
+                    this.meshPeerInclusionEventsUnknown.inc({ topic }, count);
+                    break;
+            }
         },
         /** Register the removal of peers in our mesh due to some reason */
         // - remove_peer_from_mesh()
@@ -452,14 +603,53 @@ export function getMetrics(register, topicStrToLabel, opts) {
         // - on_disconnect() Churn::Ds
         onRemoveFromMesh(topicStr, reason, count) {
             const topic = this.toTopic(topicStr);
-            this.meshPeerChurnEvents.inc({ topic, reason }, count);
+            switch (reason) {
+                case ChurnReason.Dc:
+                    this.meshPeerChurnEventsDisconnected.inc({ topic }, count);
+                    break;
+                case ChurnReason.BadScore:
+                    this.meshPeerChurnEventsBadScore.inc({ topic }, count);
+                    break;
+                case ChurnReason.Prune:
+                    this.meshPeerChurnEventsPrune.inc({ topic }, count);
+                    break;
+                case ChurnReason.Excess:
+                    this.meshPeerChurnEventsExcess.inc({ topic }, count);
+                    break;
+                default:
+                    this.meshPeerChurnEventsUnknown.inc({ topic }, count);
+                    break;
+            }
         },
-        onReportValidationMcacheHit(hit) {
-            this.asyncValidationMcacheHit.inc({ hit: hit ? 'hit' : 'miss' });
-        },
-        onReportValidation(topicStr, acceptance) {
-            const topic = this.toTopic(topicStr);
-            this.asyncValidationResult.inc({ topic: topic, acceptance });
+        /**
+         * Update validation result to metrics
+         * @param messageRecord null means the message's mcache record was not known at the time of acceptance report
+         */
+        onReportValidation(messageRecord, acceptance, firstSeenTimestampMs) {
+            this.asyncValidationMcacheHit.inc({ hit: messageRecord != null ? 'hit' : 'miss' });
+            if (messageRecord != null) {
+                const topic = this.toTopic(messageRecord.message.topic);
+                switch (acceptance) {
+                    case TopicValidatorResult.Accept:
+                        this.acceptedMessagesTotal.inc({ topic });
+                        break;
+                    case TopicValidatorResult.Ignore:
+                        this.ignoredMessagesTotal.inc({ topic });
+                        break;
+                    case TopicValidatorResult.Reject:
+                        this.rejectedMessagesTotal.inc({ topic });
+                        break;
+                    default:
+                        this.unknownValidationResultsTotal.inc({ topic });
+                        break;
+                }
+            }
+            if (firstSeenTimestampMs != null) {
+                this.asyncValidationDelayFromFirstSeenSec.observe((Date.now() - firstSeenTimestampMs) / 1000);
+            }
+            else {
+                this.asyncValidationUnknownFirstSeen.inc();
+            }
         },
         /**
          * - in handle_graft() Penalty::GraftBackoff
@@ -488,15 +678,16 @@ export function getMetrics(register, topicStrToLabel, opts) {
             this.msgForwardCount.inc({ topic }, 1);
             this.msgForwardPeers.inc({ topic }, tosendCount);
         },
-        onPublishMsg(topicStr, tosendGroupCount, tosendCount, dataLen) {
+        onPublishMsg(topicStr, tosendGroupCount, tosendCount, dataLen, ms) {
             const topic = this.toTopic(topicStr);
             this.msgPublishCount.inc({ topic }, 1);
             this.msgPublishBytes.inc({ topic }, tosendCount * dataLen);
-            this.msgPublishPeers.inc({ topic }, tosendCount);
-            this.msgPublishPeersByGroup.inc({ topic, peerGroup: 'direct' }, tosendGroupCount.direct);
-            this.msgPublishPeersByGroup.inc({ topic, peerGroup: 'floodsub' }, tosendGroupCount.floodsub);
-            this.msgPublishPeersByGroup.inc({ topic, peerGroup: 'mesh' }, tosendGroupCount.mesh);
-            this.msgPublishPeersByGroup.inc({ topic, peerGroup: 'fanout' }, tosendGroupCount.fanout);
+            this.msgPublishPeersByTopic.inc({ topic }, tosendCount);
+            this.directPeersPublishedTotal.inc({ topic }, tosendGroupCount.direct);
+            this.floodsubPeersPublishedTotal.inc({ topic }, tosendGroupCount.floodsub);
+            this.meshPeersPublishedTotal.inc({ topic }, tosendGroupCount.mesh);
+            this.fanoutPeersPublishedTotal.inc({ topic }, tosendGroupCount.fanout);
+            this.msgPublishTime.observe({ topic }, ms / 1000);
         },
         onMsgRecvPreValidation(topicStr) {
             const topic = this.toTopic(topicStr);
@@ -506,14 +697,28 @@ export function getMetrics(register, topicStrToLabel, opts) {
             const topic = this.toTopic(topicStr);
             this.msgReceivedError.inc({ topic }, 1);
         },
-        onMsgRecvResult(topicStr, status) {
+        onPrevalidationResult(topicStr, status) {
             const topic = this.toTopic(topicStr);
-            this.msgReceivedStatus.inc({ topic, status });
+            switch (status) {
+                case MessageStatus.duplicate:
+                    this.prevalidationDuplicateTotal.inc({ topic });
+                    break;
+                case MessageStatus.invalid:
+                    this.prevalidationInvalidTotal.inc({ topic });
+                    break;
+                case MessageStatus.valid:
+                    this.prevalidationValidTotal.inc({ topic });
+                    break;
+                default:
+                    this.prevalidationUnknownTotal.inc({ topic });
+                    break;
+            }
         },
         onMsgRecvInvalid(topicStr, reason) {
             const topic = this.toTopic(topicStr);
             const error = reason.reason === RejectReason.Error ? reason.error : reason.reason;
-            this.msgReceivedInvalid.inc({ topic, error }, 1);
+            this.msgReceivedInvalid.inc({ error }, 1);
+            this.msgReceivedInvalidByTopic.inc({ topic }, 1);
         },
         onDuplicateMsgDelivery(topicStr, deliveryDelayMs, isLateDelivery) {
             this.duplicateMsgDeliveryDelay.observe(deliveryDelayMs / 1000);

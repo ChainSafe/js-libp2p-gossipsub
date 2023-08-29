@@ -1,6 +1,6 @@
-import type { EventEmitter } from '@libp2p/interfaces/events';
-import { GossipsubEvents } from '../../src/index.js';
-import { GossipSubAndComponents } from './create-pubsub.js';
+import type { EventEmitter } from '@libp2p/interface/events';
+import type { GossipsubEvents } from '../../src/index.js';
+import type { GossipSubAndComponents } from './create-pubsub.js';
 export declare const checkReceivedSubscription: (node: GossipSubAndComponents, peerIdStr: string, topic: string, peerIdx: number, timeout?: number) => Promise<void>;
 export declare const checkReceivedSubscriptions: (node: GossipSubAndComponents, peerIdStrs: string[], topic: string, timeout?: number) => Promise<void>;
 export declare const awaitEvents: <Events extends {

@@ -8,20 +8,24 @@ import { RejectReason } from './types.js';
  * These 'promises' are merely expectations of a peer's behavior.
  */
 export class IWantTracer {
+    gossipsubIWantFollowupMs;
+    msgIdToStrFn;
+    metrics;
+    /**
+     * Promises to deliver a message
+     * Map per message id, per peer, promise expiration time
+     */
+    promises = new Map();
+    /**
+     * First request time by msgId. Used for metrics to track expire times.
+     * Necessary to know if peers are actually breaking promises or simply sending them a bit later
+     */
+    requestMsByMsg = new Map();
+    requestMsByMsgExpire;
     constructor(gossipsubIWantFollowupMs, msgIdToStrFn, metrics) {
         this.gossipsubIWantFollowupMs = gossipsubIWantFollowupMs;
         this.msgIdToStrFn = msgIdToStrFn;
         this.metrics = metrics;
-        /**
-         * Promises to deliver a message
-         * Map per message id, per peer, promise expiration time
-         */
-        this.promises = new Map();
-        /**
-         * First request time by msgId. Used for metrics to track expire times.
-         * Necessary to know if peers are actually breaking promises or simply sending them a bit later
-         */
-        this.requestMsByMsg = new Map();
         this.requestMsByMsgExpire = 10 * gossipsubIWantFollowupMs;
     }
     get size() {

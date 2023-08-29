@@ -3,6 +3,10 @@ import { pipe } from 'it-pipe';
 import { pushable } from 'it-pushable';
 import { encode, decode } from 'it-length-prefixed';
 export class OutboundStream {
+    rawStream;
+    pushable;
+    closeController;
+    maxBufferSize;
     constructor(rawStream, errCallback, opts) {
         this.rawStream = rawStream;
         this.pushable = pushable({ objectMode: false });
@@ -12,7 +16,7 @@ export class OutboundStream {
     }
     get protocol() {
         // TODO remove this non-nullish assertion after https://github.com/libp2p/js-libp2p-interfaces/pull/265 is incorporated
-        return this.rawStream.stat.protocol;
+        return this.rawStream.protocol;
     }
     push(data) {
         if (this.pushable.readableLength > this.maxBufferSize) {
@@ -28,6 +32,9 @@ export class OutboundStream {
     }
 }
 export class InboundStream {
+    source;
+    rawStream;
+    closeController;
     constructor(rawStream, opts = {}) {
         this.rawStream = rawStream;
         this.closeController = new AbortController();

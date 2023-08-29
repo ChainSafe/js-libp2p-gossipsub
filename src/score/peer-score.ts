@@ -1,9 +1,9 @@
-import { PeerScoreParams, validatePeerScoreParams } from './peer-score-params.js'
+import { type PeerScoreParams, validatePeerScoreParams } from './peer-score-params.js'
 import type { PeerStats, TopicStats } from './peer-stats.js'
 import { computeScore } from './compute-score.js'
 import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries.js'
 import { logger } from '@libp2p/logger'
-import { MsgIdStr, PeerIdStr, RejectReason, TopicStr, IPStr } from '../types.js'
+import { type MsgIdStr, type PeerIdStr, RejectReason, type TopicStr, type IPStr } from '../types.js'
 import type { Metrics, ScorePenalty } from '../metrics.js'
 import { MapDef } from '../utils/set.js'
 
@@ -98,6 +98,11 @@ export class PeerScore {
 
   dumpPeerScoreStats(): PeerScoreStatsDump {
     return Object.fromEntries(Array.from(this.peerStats.entries()).map(([peer, stats]) => [peer, stats]))
+  }
+
+  messageFirstSeenTimestampMs(msgIdStr: MsgIdStr): number | null {
+    const drec = this.deliveryRecords.getRecord(msgIdStr)
+    return drec ? drec.firstSeenTsMs : null
   }
 
   /**
@@ -339,7 +344,7 @@ export class PeerScore {
       log(
         'unexpected delivery: message from %s was first seen %s ago and has delivery status %s',
         from,
-        now - drec.firstSeen,
+        now - drec.firstSeenTsMs,
         DeliveryRecordStatus[drec.status]
       )
       return
@@ -385,7 +390,7 @@ export class PeerScore {
       log(
         'unexpected rejection: message from %s was first seen %s ago and has delivery status %d',
         from,
-        Date.now() - drec.firstSeen,
+        Date.now() - drec.firstSeenTsMs,
         DeliveryRecordStatus[drec.status]
       )
       return

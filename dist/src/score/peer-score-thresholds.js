@@ -1,5 +1,5 @@
 import { ERR_INVALID_PEER_SCORE_THRESHOLDS } from './constants.js';
-import { CodeError } from '@libp2p/interfaces/errors';
+import { CodeError } from '@libp2p/interface/errors';
 export const defaultPeerScoreThresholds = {
     gossipThreshold: -10,
     publishThreshold: -50,

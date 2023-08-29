@@ -1,4 +1,4 @@
-import { Multiaddr } from '@multiformats/multiaddr'
+import type { Multiaddr } from '@multiformats/multiaddr'
 import { convertToString } from '@multiformats/multiaddr/convert'
 
 // Protocols https://github.com/multiformats/multiaddr/blob/master/protocols.csv

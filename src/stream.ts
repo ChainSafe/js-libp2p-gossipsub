@@ -1,9 +1,9 @@
-import { Stream } from '@libp2p/interface-connection'
+import type { Stream } from '@libp2p/interface/connection'
 import { abortableSource } from 'abortable-iterator'
 import { pipe } from 'it-pipe'
-import { pushable, Pushable } from 'it-pushable'
+import { pushable, type Pushable } from 'it-pushable'
 import { encode, decode } from 'it-length-prefixed'
-import { Uint8ArrayList } from 'uint8arraylist'
+import type { Uint8ArrayList } from 'uint8arraylist'
 
 type OutboundStreamOpts = {
   /** Max size in bytes for pushable buffer. If full, will throw on .push */
@@ -34,7 +34,7 @@ export class OutboundStream {
 
   get protocol(): string {
     // TODO remove this non-nullish assertion after https://github.com/libp2p/js-libp2p-interfaces/pull/265 is incorporated
-    return this.rawStream.stat.protocol!
+    return this.rawStream.protocol!
   }
 
   push(data: Uint8Array): void {

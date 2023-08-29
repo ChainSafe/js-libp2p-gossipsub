@@ -19,7 +19,7 @@ export declare enum DeliveryRecordStatus {
 }
 export interface DeliveryRecord {
     status: DeliveryRecordStatus;
-    firstSeen: number;
+    firstSeenTsMs: number;
     validated: number;
     peers: Set<string>;
 }
@@ -36,6 +36,7 @@ export declare class MessageDeliveries {
     private records;
     queue: Denque<DeliveryQueueEntry>;
     constructor();
+    getRecord(msgIdStr: string): DeliveryRecord | undefined;
     ensureRecord(msgIdStr: string): DeliveryRecord;
     gc(): void;
     clear(): void;

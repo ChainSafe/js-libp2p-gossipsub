@@ -22,7 +22,7 @@ export enum DeliveryRecordStatus {
 
 export interface DeliveryRecord {
   status: DeliveryRecordStatus
-  firstSeen: number
+  firstSeenTsMs: number
   validated: number
   peers: Set<string>
 }
@@ -46,6 +46,10 @@ export class MessageDeliveries {
     this.queue = new Denque()
   }
 
+  getRecord(msgIdStr: string): DeliveryRecord | undefined {
+    return this.records.get(msgIdStr)
+  }
+
   ensureRecord(msgIdStr: string): DeliveryRecord {
     let drec = this.records.get(msgIdStr)
     if (drec) {
@@ -56,7 +60,7 @@ export class MessageDeliveries {
     // create record
     drec = {
       status: DeliveryRecordStatus.unknown,
-      firstSeen: Date.now(),
+      firstSeenTsMs: Date.now(),
       validated: 0,
       peers: new Set()
     }

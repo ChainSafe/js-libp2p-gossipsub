@@ -4,8 +4,9 @@
  * This gives 4x - 5x performance gain compared to npm TimeCache
  */
 export class SimpleTimeCache {
+    entries = new Map();
+    validityMs;
     constructor(opts) {
-        this.entries = new Map();
         this.validityMs = opts.validityMs;
         // allow negative validityMs so that this does not cache anything, spec test compliance.spec.js
         // sends duplicate messages and expect peer to receive all. Application likely uses positive validityMs

@@ -1,85 +1,83 @@
 import { pipe } from 'it-pipe'
-import type { Connection, Stream } from '@libp2p/interface-connection'
+import type { Connection, Stream } from '@libp2p/interface/connection'
 import { peerIdFromBytes, peerIdFromString } from '@libp2p/peer-id'
-import { Logger, logger } from '@libp2p/logger'
-import { createTopology } from '@libp2p/topology'
-import type { PeerId } from '@libp2p/interface-peer-id'
-import { CustomEvent, EventEmitter } from '@libp2p/interfaces/events'
+import { type Logger, logger } from '@libp2p/logger'
+import type { PeerId } from '@libp2p/interface/peer-id'
+import { CustomEvent, EventEmitter } from '@libp2p/interface/events'
 
-import { MessageCache } from './message-cache.js'
-import { RPC, IRPC } from './message/rpc.js'
+import { MessageCache, type MessageCacheRecord } from './message-cache.js'
+import { RPC, type IRPC } from './message/rpc.js'
 import * as constants from './constants.js'
 import { shuffle, messageIdToString } from './utils/index.js'
 import {
   PeerScore,
-  PeerScoreParams,
-  PeerScoreThresholds,
+  type PeerScoreParams,
+  type PeerScoreThresholds,
   createPeerScoreParams,
   createPeerScoreThresholds,
-  PeerScoreStatsDump
+  type PeerScoreStatsDump
 } from './score/index.js'
 import { IWantTracer } from './tracer.js'
 import { SimpleTimeCache } from './utils/time-cache.js'
 import {
   ACCEPT_FROM_WHITELIST_DURATION_MS,
   ACCEPT_FROM_WHITELIST_MAX_MESSAGES,
-  ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE
+  ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE,
+  BACKOFF_SLACK
 } from './constants.js'
 import {
   ChurnReason,
   getMetrics,
   IHaveIgnoreReason,
   InclusionReason,
-  Metrics,
-  MetricsRegister,
+  type Metrics,
+  type MetricsRegister,
   ScorePenalty,
-  TopicStrToLabel,
-  ToSendGroupCount
+  type TopicStrToLabel,
+  type ToSendGroupCount
 } from './metrics.js'
 import {
-  MsgIdFn,
-  PublishConfig,
-  TopicStr,
-  MsgIdStr,
+  type MsgIdFn,
+  type PublishConfig,
+  type TopicStr,
+  type MsgIdStr,
   ValidateError,
-  PeerIdStr,
+  type PeerIdStr,
   MessageStatus,
   RejectReason,
-  RejectReasonObj,
-  FastMsgIdFn,
-  AddrInfo,
-  DataTransform,
+  type RejectReasonObj,
+  type FastMsgIdFn,
+  type AddrInfo,
+  type DataTransform,
   rejectReasonFromAcceptance,
-  MsgIdToStrFn,
-  MessageId,
-  PublishOpts
+  type MsgIdToStrFn,
+  type MessageId,
+  type PublishOpts
 } from './types.js'
 import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage.js'
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js'
 import { computeAllPeersScoreWeights } from './score/scoreMetrics.js'
 import { getPublishConfigFromPeerId } from './utils/publishConfig.js'
 import type { GossipsubOptsSpec } from './config.js'
-import {
+import type {
   Message,
   PublishResult,
   PubSub,
   PubSubEvents,
   PubSubInit,
-  StrictNoSign,
-  StrictSign,
   SubscriptionChangeData,
-  TopicValidatorFn,
-  TopicValidatorResult
-} from '@libp2p/interface-pubsub'
-import type { IncomingStreamData, Registrar } from '@libp2p/interface-registrar'
+  TopicValidatorFn
+} from '@libp2p/interface/pubsub'
+import { StrictSign, StrictNoSign, TopicValidatorResult } from '@libp2p/interface/pubsub'
+import type { IncomingStreamData, Registrar } from '@libp2p/interface-internal/registrar'
 import { removeFirstNItemsFromSet, removeItemsFromSet } from './utils/set.js'
 import { pushable } from 'it-pushable'
 import { InboundStream, OutboundStream } from './stream.js'
-import { Uint8ArrayList } from 'uint8arraylist'
-import { decodeRpc, DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
-import { ConnectionManager } from '@libp2p/interface-connection-manager'
-import { Peer, PeerStore } from '@libp2p/interface-peer-store'
-import { Multiaddr } from '@multiformats/multiaddr'
+import type { Uint8ArrayList } from 'uint8arraylist'
+import { decodeRpc, type DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
+import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
+import type { Peer, PeerStore } from '@libp2p/interface/peer-store'
+import type { Multiaddr } from '@multiformats/multiaddr'
 import { multiaddrToIPStr } from './utils/multiaddr.js'
 
 type ConnectionDirection = 'inbound' | 'outbound'
@@ -133,6 +131,7 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   /** override constants for fine tuning */
   prunePeers?: number
   pruneBackoff?: number
+  unsubcribeBackoff?: number
   graftFloodThreshold?: number
   opportunisticGraftPeers?: number
   opportunisticGraftTicks?: number
@@ -412,6 +411,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       gossipsubIWantFollowupMs: constants.GossipsubIWantFollowupTime,
       prunePeers: constants.GossipsubPrunePeers,
       pruneBackoff: constants.GossipsubPruneBackoff,
+      unsubcribeBackoff: constants.GossipsubUnsubscribeBackoff,
       graftFloodThreshold: constants.GossipsubGraftFloodThreshold,
       opportunisticGraftPeers: constants.GossipsubOpportunisticGraftPeers,
       opportunisticGraftTicks: constants.GossipsubOpportunisticGraftTicks,
@@ -586,10 +586,10 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     // register protocol with topology
     // Topology callbacks called on connection manager changes
-    const topology = createTopology({
+    const topology = {
       onConnect: this.onPeerConnected.bind(this),
       onDisconnect: this.onPeerDisconnected.bind(this)
-    })
+    }
     const registrarTopologyIds = await Promise.all(
       this.multicodecs.map((multicodec) => registrar.register(multicodec, topology))
     )
@@ -636,6 +636,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     // unregister protocol and handlers
     const registrar = this.components.registrar
+    await Promise.all(this.multicodecs.map((multicodec) => registrar.unhandle(multicodec)))
     registrarTopologyIds.forEach((id) => registrar.unregister(id))
 
     this.outboundInflightQueue.end()
@@ -694,7 +695,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     const peerId = connection.remotePeer
     // add peer to router
-    this.addPeer(peerId, connection.stat.direction, connection.remoteAddr)
+    this.addPeer(peerId, connection.direction, connection.remoteAddr)
     // create inbound stream
     this.createInboundStream(peerId, stream)
     // attempt to create outbound stream
@@ -705,14 +706,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    * Registrar notifies an established connection with pubsub protocol
    */
   private onPeerConnected(peerId: PeerId, connection: Connection): void {
-    this.metrics?.newConnectionCount.inc({ status: connection.stat.status })
+    this.metrics?.newConnectionCount.inc({ status: connection.status })
     // libp2p may emit a closed connection and never issue peer:disconnect event
     // see https://github.com/ChainSafe/js-libp2p-gossipsub/issues/398
-    if (!this.isStarted() || connection.stat.status !== 'OPEN') {
+    if (!this.isStarted() || connection.status !== 'open') {
       return
     }
 
-    this.addPeer(peerId, connection.stat.direction, connection.remoteAddr)
+    this.addPeer(peerId, connection.direction, connection.remoteAddr)
     this.outboundInflightQueue.push({ peerId, connection })
   }
 
@@ -1091,7 +1092,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     const validationResult = await this.validateReceivedMessage(from, rpcMsg)
 
-    this.metrics?.onMsgRecvResult(rpcMsg.topic, validationResult.code)
+    this.metrics?.onPrevalidationResult(rpcMsg.topic, validationResult.code)
 
     switch (validationResult.code) {
       case MessageStatus.duplicate:
@@ -1553,7 +1554,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       }
     })
 
-    return await Promise.all(prune.map((topic) => this.makePrune(id, topic, doPX)))
+    const onUnsubscribe = false
+    return await Promise.all(prune.map((topic) => this.makePrune(id, topic, doPX, onUnsubscribe)))
   }
 
   /**
@@ -1576,7 +1578,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       this.score.prune(id, topicID)
       if (peersInMesh.has(id)) {
         peersInMesh.delete(id)
-        this.metrics?.onRemoveFromMesh(topicID, ChurnReason.Unsub, 1)
+        this.metrics?.onRemoveFromMesh(topicID, ChurnReason.Prune, 1)
       }
 
       // is there a backoff specified by the peer? if so obey it
@@ -1621,15 +1623,15 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    *
    * @param id
    * @param topic
-   * @param interval - backoff duration in milliseconds
+   * @param intervalMs - backoff duration in milliseconds
    */
-  private doAddBackoff(id: PeerIdStr, topic: TopicStr, interval: number): void {
+  private doAddBackoff(id: PeerIdStr, topic: TopicStr, intervalMs: number): void {
     let backoff = this.backoff.get(topic)
     if (!backoff) {
       backoff = new Map()
       this.backoff.set(topic, backoff)
     }
-    const expire = Date.now() + interval
+    const expire = Date.now() + intervalMs
     const existingExpire = backoff.get(id) ?? 0
     if (existingExpire < expire) {
       backoff.set(id, expire)
@@ -1658,7 +1660,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const now = Date.now()
     this.backoff.forEach((backoff, topic) => {
       backoff.forEach((expire, id) => {
-        if (expire < now) {
+        // add some slack time to the expiration, see https://github.com/libp2p/specs/pull/289
+        if (expire + BACKOFF_SLACK * this.opts.heartbeatInterval < now) {
           backoff.delete(id)
         }
       })
@@ -1741,7 +1744,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const connection = await this.components.connectionManager.openConnection(peerId)
     for (const multicodec of this.multicodecs) {
       for (const topology of this.components.registrar.getTopologies(multicodec)) {
-        topology.onConnect(peerId, connection)
+        topology.onConnect?.(peerId, connection)
       }
     }
   }
@@ -1803,6 +1806,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     this.metrics?.onJoin(topic)
 
     const toAdd = new Set<PeerIdStr>()
+    const backoff = this.backoff.get(topic)
 
     // check if we have mesh_n peers in fanout[topic] and add them to the mesh if we do,
     // removing the fanout entry.
@@ -1814,8 +1818,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
       // remove explicit peers, peers with negative scores, and backoffed peers
       fanoutPeers.forEach((id) => {
-        // TODO:rust-libp2p checks `self.backoffs.is_backoff_with_slack()`
-        if (!this.direct.has(id) && this.score.score(id) >= 0) {
+        if (!this.direct.has(id) && this.score.score(id) >= 0 && (!backoff || !backoff.has(id))) {
           toAdd.add(id)
         }
       })
@@ -1831,7 +1834,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         this.opts.D,
         (id: PeerIdStr): boolean =>
           // filter direct peers and peers with negative score
-          !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0
+          !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0 && (!backoff || !backoff.has(id))
       )
 
       newPeers.forEach((peer) => {
@@ -2051,6 +2054,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    * For messages not from us, this class uses `forwardMessage`.
    */
   async publish(topic: TopicStr, data: Uint8Array, opts?: PublishOpts): Promise<PublishResult> {
+    const startMs = Date.now()
     const transformedData = this.dataTransform ? this.dataTransform.outboundTransform(topic, data) : data
 
     if (this.publishConfig == null) {
@@ -2107,7 +2111,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       }
     }
 
-    this.metrics?.onPublishMsg(topic, tosendCount, tosend.size, rawMsg.data != null ? rawMsg.data.length : 0)
+    const durationMs = Date.now() - startMs
+    this.metrics?.onPublishMsg(
+      topic,
+      tosendCount,
+      tosend.size,
+      rawMsg.data != null ? rawMsg.data.length : 0,
+      durationMs
+    )
 
     // Dispatch the message to the user if we are subscribed to the topic
     if (willSendToSelf) {
@@ -2152,26 +2163,25 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    *
    * This should only be called once per message.
    */
-  reportMessageValidationResult(msgId: MsgIdStr, propagationSource: PeerId, acceptance: TopicValidatorResult): void {
+  reportMessageValidationResult(msgId: MsgIdStr, propagationSource: PeerIdStr, acceptance: TopicValidatorResult): void {
+    let cacheEntry: MessageCacheRecord | null
+
     if (acceptance === TopicValidatorResult.Accept) {
-      const cacheEntry = this.mcache.validate(msgId)
-      this.metrics?.onReportValidationMcacheHit(cacheEntry !== null)
+      cacheEntry = this.mcache.validate(msgId)
 
       if (cacheEntry != null) {
         const { message: rawMsg, originatingPeers } = cacheEntry
         // message is fully validated inform peer_score
-        this.score.deliverMessage(propagationSource.toString(), msgId, rawMsg.topic)
+        this.score.deliverMessage(propagationSource, msgId, rawMsg.topic)
 
-        this.forwardMessage(msgId, cacheEntry.message, propagationSource.toString(), originatingPeers)
-        this.metrics?.onReportValidation(rawMsg.topic, acceptance)
+        this.forwardMessage(msgId, cacheEntry.message, propagationSource, originatingPeers)
       }
       // else, Message not in cache. Ignoring forwarding
     }
 
     // Not valid
     else {
-      const cacheEntry = this.mcache.remove(msgId)
-      this.metrics?.onReportValidationMcacheHit(cacheEntry !== null)
+      cacheEntry = this.mcache.remove(msgId)
 
       if (cacheEntry) {
         const rejectReason = rejectReasonFromAcceptance(acceptance)
@@ -2179,15 +2189,16 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
         // Tell peer_score about reject
         // Reject the original source, and any duplicates we've seen from other peers.
-        this.score.rejectMessage(propagationSource.toString(), msgId, rawMsg.topic, rejectReason)
+        this.score.rejectMessage(propagationSource, msgId, rawMsg.topic, rejectReason)
         for (const peer of originatingPeers) {
           this.score.rejectMessage(peer, msgId, rawMsg.topic, rejectReason)
         }
-
-        this.metrics?.onReportValidation(rawMsg.topic, acceptance)
       }
       // else, Message not in cache. Ignoring forwarding
     }
+
+    const firstSeenTimestampMs = this.score.messageFirstSeenTimestampMs(msgId)
+    this.metrics?.onReportValidation(cacheEntry, acceptance, firstSeenTimestampMs)
   }
 
   /**
@@ -2207,7 +2218,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
    * Sends a PRUNE message to a peer
    */
   private async sendPrune(id: PeerIdStr, topic: string): Promise<void> {
-    const prune = [await this.makePrune(id, topic, this.opts.doPX)]
+    // this is only called from leave() function
+    const onUnsubscribe = true
+    const prune = [await this.makePrune(id, topic, this.opts.doPX, onUnsubscribe)]
 
     this.sendRpc(id, { control: { prune } })
   }
@@ -2299,6 +2312,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     noPX: Map<string, boolean>
   ): Promise<void> {
     const doPX = this.opts.doPX
+    const onUnsubscribe = false
     for (const [id, topics] of tograft) {
       const graft = topics.map((topicID) => ({ topicID }))
       let prune: RPC.IControlPrune[] = []
@@ -2306,7 +2320,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       const pruning = toprune.get(id)
       if (pruning) {
         prune = await Promise.all(
-          pruning.map(async (topicID) => await this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false)))
+          pruning.map(
+            async (topicID) => await this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false), onUnsubscribe)
+          )
         )
         toprune.delete(id)
       }
@@ -2315,7 +2331,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     }
     for (const [id, topics] of toprune) {
       const prune = await Promise.all(
-        topics.map(async (topicID) => await this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false)))
+        topics.map(
+          async (topicID) => await this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false), onUnsubscribe)
+        )
       )
       this.sendRpc(id, { control: { prune } })
     }
@@ -2411,7 +2429,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
   /**
    * Make a PRUNE control message for a peer in a topic
    */
-  private async makePrune(id: PeerIdStr, topic: string, doPX: boolean): Promise<RPC.IControlPrune> {
+  private async makePrune(
+    id: PeerIdStr,
+    topic: string,
+    doPX: boolean,
+    onUnsubscribe: boolean
+  ): Promise<RPC.IControlPrune> {
     this.score.prune(id, topic)
     if (this.streamsOutbound.get(id)!.protocol === constants.GossipsubIDv10) {
       // Gossipsub v1.0 -- no backoff, the peer won't be able to parse it anyway
@@ -2421,9 +2444,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       }
     }
     // backoff is measured in seconds
-    // GossipsubPruneBackoff is measured in milliseconds
+    // GossipsubPruneBackoff and GossipsubUnsubscribeBackoff are measured in milliseconds
     // The protobuf has it as a uint64
-    const backoff = this.opts.pruneBackoff / 1000
+    const backoffMs = onUnsubscribe ? this.opts.unsubcribeBackoff : this.opts.pruneBackoff
+    const backoff = backoffMs / 1000
+    this.doAddBackoff(id, topic, backoffMs)
+
     if (!doPX) {
       return {
         topicID: topic,
@@ -2431,6 +2457,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         backoff: backoff
       }
     }
+
     // select peers for Peer eXchange
     const peers = this.getRandomGossipPeers(topic, this.opts.prunePeers, (xid) => {
       return xid !== id && this.score.score(xid) >= 0
@@ -2886,10 +2913,18 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     metrics.cacheSize.set({ cache: 'control' }, this.control.size)
     metrics.cacheSize.set({ cache: 'peerhave' }, this.peerhave.size)
     metrics.cacheSize.set({ cache: 'outbound' }, this.outbound.size)
+
     // 2D nested data structure
     let backoffSize = 0
+    const now = Date.now()
+    metrics.connectedPeersBackoffSec.reset()
     for (const backoff of this.backoff.values()) {
       backoffSize += backoff.size
+      for (const [peer, expiredMs] of backoff.entries()) {
+        if (this.peers.has(peer)) {
+          metrics.connectedPeersBackoffSec.observe(Math.max(0, expiredMs - now) / 1000)
+        }
+      }
     }
     metrics.cacheSize.set({ cache: 'backoff' }, backoffSize)
 

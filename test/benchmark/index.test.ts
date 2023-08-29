@@ -1,10 +1,10 @@
 import { itBench, setBenchOpts } from '@dapplion/benchmark'
-import { GossipSub } from '../../src/index.js'
+import type { GossipSub } from '../../src/index.js'
 import {
   connectPubsubNodes,
   createComponentsArray,
   denseConnect,
-  GossipSubAndComponents
+  type GossipSubAndComponents
 } from '../utils/create-pubsub.js'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { awaitEvents, checkReceivedSubscriptions, checkReceivedSubscription } from '../utils/events.js'

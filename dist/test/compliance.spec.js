@@ -1,5 +1,5 @@
-import tests from '@libp2p/interface-pubsub-compliance-tests';
-import { EventEmitter } from '@libp2p/interfaces/events';
+import tests from '@libp2p/interface-compliance-tests/pubsub';
+import { EventEmitter } from '@libp2p/interface/events';
 import { PersistentPeerStore } from '@libp2p/peer-store';
 import { MemoryDatastore } from 'datastore-core';
 import { GossipSub } from '../src/index.js';

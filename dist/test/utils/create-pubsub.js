@@ -1,12 +1,12 @@
 import { createRSAPeerId } from '@libp2p/peer-id-factory';
-import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-mocks';
+import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-compliance-tests/mocks';
 import { MemoryDatastore } from 'datastore-core';
 import { GossipSub } from '../../src/index.js';
 import { setMaxListeners } from 'events';
 import { PersistentPeerStore } from '@libp2p/peer-store';
-import { start } from '@libp2p/interfaces/startable';
+import { start } from '@libp2p/interface/startable';
 import { stubInterface } from 'ts-sinon';
-import { EventEmitter } from '@libp2p/interfaces/events';
+import { EventEmitter } from '@libp2p/interface/events';
 export const createComponents = async (opts) => {
     const Ctor = opts.pubsub ?? GossipSub;
     const peerId = await createRSAPeerId({ bits: 512 });
@@ -45,7 +45,7 @@ export const connectPubsubNodes = async (a, b) => {
     const connection = await a.components.connectionManager.openConnection(b.components.peerId);
     for (const multicodec of multicodecs) {
         for (const topology of a.components.registrar.getTopologies(multicodec)) {
-            topology.onConnect(b.components.peerId, connection);
+            topology.onConnect?.(b.components.peerId, connection);
         }
     }
 };

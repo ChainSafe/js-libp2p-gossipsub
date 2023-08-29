@@ -2,8 +2,8 @@ import { expect } from 'aegir/chai';
 import { GossipsubHeartbeatInterval } from '../src/constants.js';
 import { pEvent } from 'p-event';
 import { createComponents } from './utils/create-pubsub.js';
-import { stop } from '@libp2p/interfaces/startable';
-import { mockNetwork } from '@libp2p/interface-mocks';
+import { stop } from '@libp2p/interface/startable';
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks';
 describe('heartbeat', () => {
     let node;
     before(async () => {

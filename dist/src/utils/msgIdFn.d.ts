@@ -1,4 +1,4 @@
-import type { Message } from '@libp2p/interface-pubsub';
+import type { Message } from '@libp2p/interface/pubsub';
 /**
  * Generate a message id, based on the `key` and `seqno`
  */

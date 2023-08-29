@@ -1,8 +1,7 @@
 import { pipe } from 'it-pipe';
 import { peerIdFromBytes, peerIdFromString } from '@libp2p/peer-id';
 import { logger } from '@libp2p/logger';
-import { createTopology } from '@libp2p/topology';
-import { CustomEvent, EventEmitter } from '@libp2p/interfaces/events';
+import { CustomEvent, EventEmitter } from '@libp2p/interface/events';
 import { MessageCache } from './message-cache.js';
 import { RPC } from './message/rpc.js';
 import * as constants from './constants.js';
@@ -10,14 +9,14 @@ import { shuffle, messageIdToString } from './utils/index.js';
 import { PeerScore, createPeerScoreParams, createPeerScoreThresholds } from './score/index.js';
 import { IWantTracer } from './tracer.js';
 import { SimpleTimeCache } from './utils/time-cache.js';
-import { ACCEPT_FROM_WHITELIST_DURATION_MS, ACCEPT_FROM_WHITELIST_MAX_MESSAGES, ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE } from './constants.js';
+import { ACCEPT_FROM_WHITELIST_DURATION_MS, ACCEPT_FROM_WHITELIST_MAX_MESSAGES, ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE, BACKOFF_SLACK } from './constants.js';
 import { ChurnReason, getMetrics, IHaveIgnoreReason, InclusionReason, ScorePenalty } from './metrics.js';
 import { ValidateError, MessageStatus, RejectReason, rejectReasonFromAcceptance } from './types.js';
 import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage.js';
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js';
 import { computeAllPeersScoreWeights } from './score/scoreMetrics.js';
 import { getPublishConfigFromPeerId } from './utils/publishConfig.js';
-import { StrictNoSign, StrictSign, TopicValidatorResult } from '@libp2p/interface-pubsub';
+import { StrictSign, StrictNoSign, TopicValidatorResult } from '@libp2p/interface/pubsub';
 import { removeFirstNItemsFromSet, removeItemsFromSet } from './utils/set.js';
 import { pushable } from 'it-pushable';
 import { InboundStream, OutboundStream } from './stream.js';
@@ -30,110 +29,128 @@ var GossipStatusCode;
     GossipStatusCode[GossipStatusCode["stopped"] = 1] = "stopped";
 })(GossipStatusCode || (GossipStatusCode = {}));
 export class GossipSub extends EventEmitter {
+    /**
+     * The signature policy to follow by default
+     */
+    globalSignaturePolicy;
+    multicodecs = [constants.GossipsubIDv11, constants.GossipsubIDv10];
+    publishConfig;
+    dataTransform;
+    // State
+    peers = new Set();
+    streamsInbound = new Map();
+    streamsOutbound = new Map();
+    /** Ensures outbound streams are created sequentially */
+    outboundInflightQueue = pushable({ objectMode: true });
+    /** Direct peers */
+    direct = new Set();
+    /** Floodsub peers */
+    floodsubPeers = new Set();
+    /** Cache of seen messages */
+    seenCache;
+    /**
+     * Map of peer id and AcceptRequestWhileListEntry
+     */
+    acceptFromWhitelist = new Map();
+    /**
+     * Map of topics to which peers are subscribed to
+     */
+    topics = new Map();
+    /**
+     * List of our subscriptions
+     */
+    subscriptions = new Set();
+    /**
+     * Map of topic meshes
+     * topic => peer id set
+     */
+    mesh = new Map();
+    /**
+     * Map of topics to set of peers. These mesh peers are the ones to which we are publishing without a topic membership
+     * topic => peer id set
+     */
+    fanout = new Map();
+    /**
+     * Map of last publish time for fanout topics
+     * topic => last publish time
+     */
+    fanoutLastpub = new Map();
+    /**
+     * Map of pending messages to gossip
+     * peer id => control messages
+     */
+    gossip = new Map();
+    /**
+     * Map of control messages
+     * peer id => control message
+     */
+    control = new Map();
+    /**
+     * Number of IHAVEs received from peer in the last heartbeat
+     */
+    peerhave = new Map();
+    /** Number of messages we have asked from peer in the last heartbeat */
+    iasked = new Map();
+    /** Prune backoff map */
+    backoff = new Map();
+    /**
+     * Connection direction cache, marks peers with outbound connections
+     * peer id => direction
+     */
+    outbound = new Map();
+    msgIdFn;
+    /**
+     * A fast message id function used for internal message de-duplication
+     */
+    fastMsgIdFn;
+    msgIdToStrFn;
+    /** Maps fast message-id to canonical message-id */
+    fastMsgIdCache;
+    /**
+     * Short term cache for published message ids. This is used for penalizing peers sending
+     * our own messages back if the messages are anonymous or use a random author.
+     */
+    publishedMessageIds;
+    /**
+     * A message cache that contains the messages for last few heartbeat ticks
+     */
+    mcache;
+    /** Peer score tracking */
+    score;
+    /**
+     * Custom validator function per topic.
+     * Must return or resolve quickly (< 100ms) to prevent causing penalties for late messages.
+     * If you need to apply validation that may require longer times use `asyncValidation` option and callback the
+     * validation result through `Gossipsub.reportValidationResult`
+     */
+    topicValidators = new Map();
+    /**
+     * Make this protected so child class may want to redirect to its own log.
+     */
+    log;
+    /**
+     * Number of heartbeats since the beginning of time
+     * This allows us to amortize some resource cleanup -- eg: backoff cleanup
+     */
+    heartbeatTicks = 0;
+    /**
+     * Tracks IHAVE/IWANT promises broken by peers
+     */
+    gossipTracer;
+    components;
+    directPeerInitial = null;
+    static multicodec = constants.GossipsubIDv11;
+    // Options
+    opts;
+    decodeRpcLimits;
+    metrics;
+    status = { code: GossipStatusCode.stopped };
+    maxInboundStreams;
+    maxOutboundStreams;
+    allowedTopics;
+    heartbeatTimer = null;
     constructor(components, options = {}) {
         super();
-        this.multicodecs = [constants.GossipsubIDv11, constants.GossipsubIDv10];
-        // State
-        this.peers = new Set();
-        this.streamsInbound = new Map();
-        this.streamsOutbound = new Map();
-        /** Ensures outbound streams are created sequentially */
-        this.outboundInflightQueue = pushable({ objectMode: true });
-        /** Direct peers */
-        this.direct = new Set();
-        /** Floodsub peers */
-        this.floodsubPeers = new Set();
-        /**
-         * Map of peer id and AcceptRequestWhileListEntry
-         */
-        this.acceptFromWhitelist = new Map();
-        /**
-         * Map of topics to which peers are subscribed to
-         */
-        this.topics = new Map();
-        /**
-         * List of our subscriptions
-         */
-        this.subscriptions = new Set();
-        /**
-         * Map of topic meshes
-         * topic => peer id set
-         */
-        this.mesh = new Map();
-        /**
-         * Map of topics to set of peers. These mesh peers are the ones to which we are publishing without a topic membership
-         * topic => peer id set
-         */
-        this.fanout = new Map();
-        /**
-         * Map of last publish time for fanout topics
-         * topic => last publish time
-         */
-        this.fanoutLastpub = new Map();
-        /**
-         * Map of pending messages to gossip
-         * peer id => control messages
-         */
-        this.gossip = new Map();
-        /**
-         * Map of control messages
-         * peer id => control message
-         */
-        this.control = new Map();
-        /**
-         * Number of IHAVEs received from peer in the last heartbeat
-         */
-        this.peerhave = new Map();
-        /** Number of messages we have asked from peer in the last heartbeat */
-        this.iasked = new Map();
-        /** Prune backoff map */
-        this.backoff = new Map();
-        /**
-         * Connection direction cache, marks peers with outbound connections
-         * peer id => direction
-         */
-        this.outbound = new Map();
-        /**
-         * Custom validator function per topic.
-         * Must return or resolve quickly (< 100ms) to prevent causing penalties for late messages.
-         * If you need to apply validation that may require longer times use `asyncValidation` option and callback the
-         * validation result through `Gossipsub.reportValidationResult`
-         */
-        this.topicValidators = new Map();
-        /**
-         * Number of heartbeats since the beginning of time
-         * This allows us to amortize some resource cleanup -- eg: backoff cleanup
-         */
-        this.heartbeatTicks = 0;
-        this.directPeerInitial = null;
-        this.status = { code: GossipStatusCode.stopped };
-        this.heartbeatTimer = null;
-        this.runHeartbeat = () => {
-            const timer = this.metrics?.heartbeatDuration.startTimer();
-            this.heartbeat()
-                .catch((err) => {
-                this.log('Error running heartbeat', err);
-            })
-                .finally(() => {
-                if (timer != null) {
-                    timer();
-                }
-                // Schedule the next run if still in started status
-                if (this.status.code === GossipStatusCode.started) {
-                    // Clear previous timeout before overwriting `status.heartbeatTimeout`, it should be completed tho.
-                    clearTimeout(this.status.heartbeatTimeout);
-                    // NodeJS setInterval function is innexact, calls drift by a few miliseconds on each call.
-                    // To run the heartbeat precisely setTimeout() must be used recomputing the delay on every loop.
-                    let msToNextHeartbeat = this.opts.heartbeatInterval - ((Date.now() - this.status.hearbeatStartMs) % this.opts.heartbeatInterval);
-                    // If too close to next heartbeat, skip one
-                    if (msToNextHeartbeat < this.opts.heartbeatInterval * 0.25) {
-                        msToNextHeartbeat += this.opts.heartbeatInterval;
-                        this.metrics?.heartbeatSkipped.inc();
-                    }
-                    this.status.heartbeatTimeout = setTimeout(this.runHeartbeat, msToNextHeartbeat);
-                }
-            });
-        };
         const opts = {
             fallbackToFloodsub: true,
             floodPublish: true,
@@ -153,6 +170,7 @@ export class GossipSub extends EventEmitter {
             gossipsubIWantFollowupMs: constants.GossipsubIWantFollowupTime,
             prunePeers: constants.GossipsubPrunePeers,
             pruneBackoff: constants.GossipsubPruneBackoff,
+            unsubcribeBackoff: constants.GossipsubUnsubscribeBackoff,
             graftFloodThreshold: constants.GossipsubGraftFloodThreshold,
             opportunisticGraftPeers: constants.GossipsubOpportunisticGraftPeers,
             opportunisticGraftTicks: constants.GossipsubOpportunisticGraftTicks,
@@ -289,10 +307,10 @@ export class GossipSub extends EventEmitter {
         // - registar.register(topology)
         // register protocol with topology
         // Topology callbacks called on connection manager changes
-        const topology = createTopology({
+        const topology = {
             onConnect: this.onPeerConnected.bind(this),
             onDisconnect: this.onPeerDisconnected.bind(this)
-        });
+        };
         const registrarTopologyIds = await Promise.all(this.multicodecs.map((multicodec) => registrar.register(multicodec, topology)));
         // Schedule to start heartbeat after `GossipsubHeartbeatInitialDelay`
         const heartbeatTimeout = setTimeout(this.runHeartbeat, constants.GossipsubHeartbeatInitialDelay);
@@ -329,6 +347,7 @@ export class GossipSub extends EventEmitter {
         this.status = { code: GossipStatusCode.stopped };
         // unregister protocol and handlers
         const registrar = this.components.registrar;
+        await Promise.all(this.multicodecs.map((multicodec) => registrar.unhandle(multicodec)));
         registrarTopologyIds.forEach((id) => registrar.unregister(id));
         this.outboundInflightQueue.end();
         for (const outboundStream of this.streamsOutbound.values()) {
@@ -377,7 +396,7 @@ export class GossipSub extends EventEmitter {
         }
         const peerId = connection.remotePeer;
         // add peer to router
-        this.addPeer(peerId, connection.stat.direction, connection.remoteAddr);
+        this.addPeer(peerId, connection.direction, connection.remoteAddr);
         // create inbound stream
         this.createInboundStream(peerId, stream);
         // attempt to create outbound stream
@@ -387,13 +406,13 @@ export class GossipSub extends EventEmitter {
      * Registrar notifies an established connection with pubsub protocol
      */
     onPeerConnected(peerId, connection) {
-        this.metrics?.newConnectionCount.inc({ status: connection.stat.status });
+        this.metrics?.newConnectionCount.inc({ status: connection.status });
         // libp2p may emit a closed connection and never issue peer:disconnect event
         // see https://github.com/ChainSafe/js-libp2p-gossipsub/issues/398
-        if (!this.isStarted() || connection.stat.status !== 'OPEN') {
+        if (!this.isStarted() || connection.status !== 'open') {
             return;
         }
-        this.addPeer(peerId, connection.stat.direction, connection.remoteAddr);
+        this.addPeer(peerId, connection.direction, connection.remoteAddr);
         this.outboundInflightQueue.push({ peerId, connection });
     }
     /**
@@ -709,7 +728,7 @@ export class GossipSub extends EventEmitter {
     async handleReceivedMessage(from, rpcMsg) {
         this.metrics?.onMsgRecvPreValidation(rpcMsg.topic);
         const validationResult = await this.validateReceivedMessage(from, rpcMsg);
-        this.metrics?.onMsgRecvResult(rpcMsg.topic, validationResult.code);
+        this.metrics?.onPrevalidationResult(rpcMsg.topic, validationResult.code);
         switch (validationResult.code) {
             case MessageStatus.duplicate:
                 // Report the duplicate
@@ -1100,7 +1119,8 @@ export class GossipSub extends EventEmitter {
                 }
             }
         });
-        return await Promise.all(prune.map((topic) => this.makePrune(id, topic, doPX)));
+        const onUnsubscribe = false;
+        return await Promise.all(prune.map((topic) => this.makePrune(id, topic, doPX, onUnsubscribe)));
     }
     /**
      * Handles Prune messages
@@ -1119,7 +1139,7 @@ export class GossipSub extends EventEmitter {
             this.score.prune(id, topicID);
             if (peersInMesh.has(id)) {
                 peersInMesh.delete(id);
-                this.metrics?.onRemoveFromMesh(topicID, ChurnReason.Unsub, 1);
+                this.metrics?.onRemoveFromMesh(topicID, ChurnReason.Prune, 1);
             }
             // is there a backoff specified by the peer? if so obey it
             if (typeof backoff === 'number' && backoff > 0) {
@@ -1155,15 +1175,15 @@ export class GossipSub extends EventEmitter {
      *
      * @param id
      * @param topic
-     * @param interval - backoff duration in milliseconds
+     * @param intervalMs - backoff duration in milliseconds
      */
-    doAddBackoff(id, topic, interval) {
+    doAddBackoff(id, topic, intervalMs) {
         let backoff = this.backoff.get(topic);
         if (!backoff) {
             backoff = new Map();
             this.backoff.set(topic, backoff);
         }
-        const expire = Date.now() + interval;
+        const expire = Date.now() + intervalMs;
         const existingExpire = backoff.get(id) ?? 0;
         if (existingExpire < expire) {
             backoff.set(id, expire);
@@ -1189,7 +1209,8 @@ export class GossipSub extends EventEmitter {
         const now = Date.now();
         this.backoff.forEach((backoff, topic) => {
             backoff.forEach((expire, id) => {
-                if (expire < now) {
+                // add some slack time to the expiration, see https://github.com/libp2p/specs/pull/289
+                if (expire + BACKOFF_SLACK * this.opts.heartbeatInterval < now) {
                     backoff.delete(id);
                 }
             });
@@ -1260,7 +1281,7 @@ export class GossipSub extends EventEmitter {
         const connection = await this.components.connectionManager.openConnection(peerId);
         for (const multicodec of this.multicodecs) {
             for (const topology of this.components.registrar.getTopologies(multicodec)) {
-                topology.onConnect(peerId, connection);
+                topology.onConnect?.(peerId, connection);
             }
         }
     }
@@ -1309,6 +1330,7 @@ export class GossipSub extends EventEmitter {
         this.log('JOIN %s', topic);
         this.metrics?.onJoin(topic);
         const toAdd = new Set();
+        const backoff = this.backoff.get(topic);
         // check if we have mesh_n peers in fanout[topic] and add them to the mesh if we do,
         // removing the fanout entry.
         const fanoutPeers = this.fanout.get(topic);
@@ -1318,8 +1340,7 @@ export class GossipSub extends EventEmitter {
             this.fanoutLastpub.delete(topic);
             // remove explicit peers, peers with negative scores, and backoffed peers
             fanoutPeers.forEach((id) => {
-                // TODO:rust-libp2p checks `self.backoffs.is_backoff_with_slack()`
-                if (!this.direct.has(id) && this.score.score(id) >= 0) {
+                if (!this.direct.has(id) && this.score.score(id) >= 0 && (!backoff || !backoff.has(id))) {
                     toAdd.add(id);
                 }
             });
@@ -1330,7 +1351,7 @@ export class GossipSub extends EventEmitter {
             const fanoutCount = toAdd.size;
             const newPeers = this.getRandomGossipPeers(topic, this.opts.D, (id) => 
             // filter direct peers and peers with negative score
-            !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0);
+            !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0 && (!backoff || !backoff.has(id)));
             newPeers.forEach((peer) => {
                 toAdd.add(peer);
             });
@@ -1509,6 +1530,7 @@ export class GossipSub extends EventEmitter {
      * For messages not from us, this class uses `forwardMessage`.
      */
     async publish(topic, data, opts) {
+        const startMs = Date.now();
         const transformedData = this.dataTransform ? this.dataTransform.outboundTransform(topic, data) : data;
         if (this.publishConfig == null) {
             throw Error('PublishError.Uninitialized');
@@ -1552,7 +1574,8 @@ export class GossipSub extends EventEmitter {
                 tosend.delete(id);
             }
         }
-        this.metrics?.onPublishMsg(topic, tosendCount, tosend.size, rawMsg.data != null ? rawMsg.data.length : 0);
+        const durationMs = Date.now() - startMs;
+        this.metrics?.onPublishMsg(topic, tosendCount, tosend.size, rawMsg.data != null ? rawMsg.data.length : 0, durationMs);
         // Dispatch the message to the user if we are subscribed to the topic
         if (willSendToSelf) {
             tosend.add(this.components.peerId.toString());
@@ -1592,35 +1615,34 @@ export class GossipSub extends EventEmitter {
      * This should only be called once per message.
      */
     reportMessageValidationResult(msgId, propagationSource, acceptance) {
+        let cacheEntry;
         if (acceptance === TopicValidatorResult.Accept) {
-            const cacheEntry = this.mcache.validate(msgId);
-            this.metrics?.onReportValidationMcacheHit(cacheEntry !== null);
+            cacheEntry = this.mcache.validate(msgId);
             if (cacheEntry != null) {
                 const { message: rawMsg, originatingPeers } = cacheEntry;
                 // message is fully validated inform peer_score
-                this.score.deliverMessage(propagationSource.toString(), msgId, rawMsg.topic);
-                this.forwardMessage(msgId, cacheEntry.message, propagationSource.toString(), originatingPeers);
-                this.metrics?.onReportValidation(rawMsg.topic, acceptance);
+                this.score.deliverMessage(propagationSource, msgId, rawMsg.topic);
+                this.forwardMessage(msgId, cacheEntry.message, propagationSource, originatingPeers);
             }
             // else, Message not in cache. Ignoring forwarding
         }
         // Not valid
         else {
-            const cacheEntry = this.mcache.remove(msgId);
-            this.metrics?.onReportValidationMcacheHit(cacheEntry !== null);
+            cacheEntry = this.mcache.remove(msgId);
             if (cacheEntry) {
                 const rejectReason = rejectReasonFromAcceptance(acceptance);
                 const { message: rawMsg, originatingPeers } = cacheEntry;
                 // Tell peer_score about reject
                 // Reject the original source, and any duplicates we've seen from other peers.
-                this.score.rejectMessage(propagationSource.toString(), msgId, rawMsg.topic, rejectReason);
+                this.score.rejectMessage(propagationSource, msgId, rawMsg.topic, rejectReason);
                 for (const peer of originatingPeers) {
                     this.score.rejectMessage(peer, msgId, rawMsg.topic, rejectReason);
                 }
-                this.metrics?.onReportValidation(rawMsg.topic, acceptance);
             }
             // else, Message not in cache. Ignoring forwarding
         }
+        const firstSeenTimestampMs = this.score.messageFirstSeenTimestampMs(msgId);
+        this.metrics?.onReportValidation(cacheEntry, acceptance, firstSeenTimestampMs);
     }
     /**
      * Sends a GRAFT message to a peer
@@ -1637,7 +1659,9 @@ export class GossipSub extends EventEmitter {
      * Sends a PRUNE message to a peer
      */
     async sendPrune(id, topic) {
-        const prune = [await this.makePrune(id, topic, this.opts.doPX)];
+        // this is only called from leave() function
+        const onUnsubscribe = true;
+        const prune = [await this.makePrune(id, topic, this.opts.doPX, onUnsubscribe)];
         this.sendRpc(id, { control: { prune } });
     }
     /**
@@ -1718,19 +1742,20 @@ export class GossipSub extends EventEmitter {
      */
     async sendGraftPrune(tograft, toprune, noPX) {
         const doPX = this.opts.doPX;
+        const onUnsubscribe = false;
         for (const [id, topics] of tograft) {
             const graft = topics.map((topicID) => ({ topicID }));
             let prune = [];
             // If a peer also has prunes, process them now
             const pruning = toprune.get(id);
             if (pruning) {
-                prune = await Promise.all(pruning.map(async (topicID) => await this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false))));
+                prune = await Promise.all(pruning.map(async (topicID) => await this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false), onUnsubscribe)));
                 toprune.delete(id);
             }
             this.sendRpc(id, { control: { graft, prune } });
         }
         for (const [id, topics] of toprune) {
-            const prune = await Promise.all(topics.map(async (topicID) => await this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false))));
+            const prune = await Promise.all(topics.map(async (topicID) => await this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false), onUnsubscribe)));
             this.sendRpc(id, { control: { prune } });
         }
     }
@@ -1818,7 +1843,7 @@ export class GossipSub extends EventEmitter {
     /**
      * Make a PRUNE control message for a peer in a topic
      */
-    async makePrune(id, topic, doPX) {
+    async makePrune(id, topic, doPX, onUnsubscribe) {
         this.score.prune(id, topic);
         if (this.streamsOutbound.get(id).protocol === constants.GossipsubIDv10) {
             // Gossipsub v1.0 -- no backoff, the peer won't be able to parse it anyway
@@ -1828,9 +1853,11 @@ export class GossipSub extends EventEmitter {
             };
         }
         // backoff is measured in seconds
-        // GossipsubPruneBackoff is measured in milliseconds
+        // GossipsubPruneBackoff and GossipsubUnsubscribeBackoff are measured in milliseconds
         // The protobuf has it as a uint64
-        const backoff = this.opts.pruneBackoff / 1000;
+        const backoffMs = onUnsubscribe ? this.opts.unsubcribeBackoff : this.opts.pruneBackoff;
+        const backoff = backoffMs / 1000;
+        this.doAddBackoff(id, topic, backoffMs);
         if (!doPX) {
             return {
                 topicID: topic,
@@ -1868,6 +1895,32 @@ export class GossipSub extends EventEmitter {
             backoff: backoff
         };
     }
+    runHeartbeat = () => {
+        const timer = this.metrics?.heartbeatDuration.startTimer();
+        this.heartbeat()
+            .catch((err) => {
+            this.log('Error running heartbeat', err);
+        })
+            .finally(() => {
+            if (timer != null) {
+                timer();
+            }
+            // Schedule the next run if still in started status
+            if (this.status.code === GossipStatusCode.started) {
+                // Clear previous timeout before overwriting `status.heartbeatTimeout`, it should be completed tho.
+                clearTimeout(this.status.heartbeatTimeout);
+                // NodeJS setInterval function is innexact, calls drift by a few miliseconds on each call.
+                // To run the heartbeat precisely setTimeout() must be used recomputing the delay on every loop.
+                let msToNextHeartbeat = this.opts.heartbeatInterval - ((Date.now() - this.status.hearbeatStartMs) % this.opts.heartbeatInterval);
+                // If too close to next heartbeat, skip one
+                if (msToNextHeartbeat < this.opts.heartbeatInterval * 0.25) {
+                    msToNextHeartbeat += this.opts.heartbeatInterval;
+                    this.metrics?.heartbeatSkipped.inc();
+                }
+                this.status.heartbeatTimeout = setTimeout(this.runHeartbeat, msToNextHeartbeat);
+            }
+        });
+    };
     /**
      * Maintains the mesh and fanout maps in gossipsub.
      */
@@ -2211,8 +2264,15 @@ export class GossipSub extends EventEmitter {
         metrics.cacheSize.set({ cache: 'outbound' }, this.outbound.size);
         // 2D nested data structure
         let backoffSize = 0;
+        const now = Date.now();
+        metrics.connectedPeersBackoffSec.reset();
         for (const backoff of this.backoff.values()) {
             backoffSize += backoff.size;
+            for (const [peer, expiredMs] of backoff.entries()) {
+                if (this.peers.has(peer)) {
+                    metrics.connectedPeersBackoffSec.observe(Math.max(0, expiredMs - now) / 1000);
+                }
+            }
         }
         metrics.cacheSize.set({ cache: 'backoff' }, backoffSize);
         // Peer counts
@@ -2240,7 +2300,6 @@ export class GossipSub extends EventEmitter {
         metrics.registerScoreWeights(sw);
     }
 }
-GossipSub.multicodec = constants.GossipsubIDv11;
 export function gossipsub(init = {}) {
     return (components) => new GossipSub(components, init);
 }

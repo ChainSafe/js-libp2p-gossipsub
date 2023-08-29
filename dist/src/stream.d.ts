@@ -1,5 +1,5 @@
-import { Stream } from '@libp2p/interface-connection';
-import { Uint8ArrayList } from 'uint8arraylist';
+import type { Stream } from '@libp2p/interface/connection';
+import type { Uint8ArrayList } from 'uint8arraylist';
 type OutboundStreamOpts = {
     /** Max size in bytes for pushable buffer. If full, will throw on .push */
     maxBufferSize?: number;

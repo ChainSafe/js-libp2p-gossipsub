@@ -1,7 +1,7 @@
-import { TopicValidatorResult } from '@libp2p/interface-pubsub';
+import { TopicValidatorResult } from '@libp2p/interface/pubsub';
 import type { IRPC } from './message/rpc.js';
 import type { PeerScoreThresholds } from './score/peer-score-thresholds.js';
-import { MessageStatus, PeerIdStr, RejectReason, RejectReasonObj, TopicStr, ValidateError } from './types.js';
+import { MessageStatus, type PeerIdStr, RejectReason, type RejectReasonObj, type TopicStr, ValidateError } from './types.js';
 /** Topic label as provided in `topicStrToLabel` */
 export type TopicLabel = string;
 export type TopicStrToLabel = Map<TopicStr, TopicLabel>;
@@ -11,7 +11,7 @@ export declare enum MessageSource {
 }
 type LabelsGeneric = Record<string, string | undefined>;
 type CollectFn<Labels extends LabelsGeneric> = (metric: Gauge<Labels>) => void;
-interface Gauge<Labels extends LabelsGeneric = never> {
+export interface Gauge<Labels extends LabelsGeneric = never> {
     inc(value?: number): void;
     inc(labels: Labels, value?: number): void;
     inc(arg1?: Labels | number, arg2?: number): void;
@@ -20,30 +20,30 @@ interface Gauge<Labels extends LabelsGeneric = never> {
     set(arg1?: Labels | number, arg2?: number): void;
     addCollect(collectFn: CollectFn<Labels>): void;
 }
-interface Histogram<Labels extends LabelsGeneric = never> {
+export interface Histogram<Labels extends LabelsGeneric = never> {
     startTimer(): () => void;
     observe(value: number): void;
     observe(labels: Labels, values: number): void;
     observe(arg1: Labels | number, arg2?: number): void;
     reset(): void;
 }
-interface AvgMinMax<Labels extends LabelsGeneric = never> {
+export interface AvgMinMax<Labels extends LabelsGeneric = never> {
     set(values: number[]): void;
     set(labels: Labels, values: number[]): void;
     set(arg1?: Labels | number[], arg2?: number[]): void;
 }
-type GaugeConfig<Labels extends LabelsGeneric> = {
+export type GaugeConfig<Labels extends LabelsGeneric> = {
     name: string;
     help: string;
     labelNames?: keyof Labels extends string ? (keyof Labels)[] : undefined;
 };
-type HistogramConfig<Labels extends LabelsGeneric> = {
+export type HistogramConfig<Labels extends LabelsGeneric> = {
     name: string;
     help: string;
     labelNames?: (keyof Labels)[];
     buckets?: number[];
 };
-type AvgMinMaxConfig<Labels extends LabelsGeneric> = GaugeConfig<Labels>;
+export type AvgMinMaxConfig<Labels extends LabelsGeneric> = GaugeConfig<Labels>;
 export interface MetricsRegister {
     gauge<T extends LabelsGeneric>(config: GaugeConfig<T>): Gauge<T>;
     histogram<T extends LabelsGeneric>(config: HistogramConfig<T>): Histogram<T>;
@@ -67,7 +67,6 @@ export declare enum ChurnReason {
     Dc = "disconnected",
     BadScore = "bad_score",
     Prune = "prune",
-    Unsub = "unsubscribed",
     Excess = "excess"
 }
 export declare enum ScorePenalty {
@@ -123,6 +122,8 @@ export type ScoreWeights<T> = {
 export type Metrics = ReturnType<typeof getMetrics>;
 /**
  * A collection of metrics used throughout the Gossipsub behaviour.
+ * NOTE: except for special reasons, do not add more than 1 label for frequent metrics,
+ * there's a performance penalty as of June 2023.
  */
 export declare function getMetrics(register: MetricsRegister, topicStrToLabel: TopicStrToLabel, opts: {
     gossipPromiseExpireSec: number;
@@ -151,15 +152,43 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     }>;
     /** Number of times we include peers in a topic mesh for different reasons.
      *  = rust-libp2p `mesh_peer_inclusion_events` */
-    meshPeerInclusionEvents: Gauge<{
+    meshPeerInclusionEventsFanout: Gauge<{
         topic: TopicLabel;
-        reason: InclusionReason;
+    }>;
+    meshPeerInclusionEventsRandom: Gauge<{
+        topic: TopicLabel;
+    }>;
+    meshPeerInclusionEventsSubscribed: Gauge<{
+        topic: TopicLabel;
+    }>;
+    meshPeerInclusionEventsOutbound: Gauge<{
+        topic: TopicLabel;
+    }>;
+    meshPeerInclusionEventsNotEnough: Gauge<{
+        topic: TopicLabel;
+    }>;
+    meshPeerInclusionEventsOpportunistic: Gauge<{
+        topic: TopicLabel;
+    }>;
+    meshPeerInclusionEventsUnknown: Gauge<{
+        topic: TopicLabel;
     }>;
     /** Number of times we remove peers in a topic mesh for different reasons.
      *  = rust-libp2p `mesh_peer_churn_events` */
-    meshPeerChurnEvents: Gauge<{
+    meshPeerChurnEventsDisconnected: Gauge<{
         topic: TopicLabel;
-        reason: ChurnReason;
+    }>;
+    meshPeerChurnEventsBadScore: Gauge<{
+        topic: TopicLabel;
+    }>;
+    meshPeerChurnEventsPrune: Gauge<{
+        topic: TopicLabel;
+    }>;
+    meshPeerChurnEventsExcess: Gauge<{
+        topic: TopicLabel;
+    }>;
+    meshPeerChurnEventsUnknown: Gauge<{
+        topic: TopicLabel;
     }>;
     /** Gossipsub supports floodsub, gossipsub v1.0 and gossipsub v1.1. Peers are classified based
      *  on which protocol they support. This metric keeps track of the number of peers that are
@@ -174,9 +203,17 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     /** Message validation results for each topic.
      *  Invalid == Reject?
      *  = rust-libp2p `invalid_messages`, `accepted_messages`, `ignored_messages`, `rejected_messages` */
-    asyncValidationResult: Gauge<{
+    acceptedMessagesTotal: Gauge<{
         topic: TopicLabel;
-        acceptance: TopicValidatorResult;
+    }>;
+    ignoredMessagesTotal: Gauge<{
+        topic: TopicLabel;
+    }>;
+    rejectedMessagesTotal: Gauge<{
+        topic: TopicLabel;
+    }>;
+    unknownValidationResultsTotal: Gauge<{
+        topic: TopicLabel;
     }>;
     /** When the user validates a message, it tries to re propagate it to its mesh peers. If the
      *  message expires from the memcache before it can be validated, we count this a cache miss
@@ -185,6 +222,10 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     asyncValidationMcacheHit: Gauge<{
         hit: 'hit' | 'miss';
     }>;
+    asyncValidationDelayFromFirstSeenSec: Histogram<{
+        topic: TopicLabel;
+    }>;
+    asyncValidationUnknownFirstSeen: Gauge<LabelsGeneric>;
     peerReadStreamError: Gauge<LabelsGeneric>;
     rpcRecvBytes: Gauge<LabelsGeneric>;
     rpcRecvCount: Gauge<LabelsGeneric>;
@@ -213,16 +254,28 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
         topic: TopicLabel;
     }>;
     /** Total count of peers that we publish a msg to */
-    msgPublishPeers: Gauge<{
+    msgPublishPeersByTopic: Gauge<{
         topic: TopicLabel;
     }>;
     /** Total count of peers (by group) that we publish a msg to */
-    msgPublishPeersByGroup: Gauge<{
+    directPeersPublishedTotal: Gauge<{
         topic: TopicLabel;
-        peerGroup: keyof ToSendGroupCount;
+    }>;
+    floodsubPeersPublishedTotal: Gauge<{
+        topic: TopicLabel;
+    }>;
+    meshPeersPublishedTotal: Gauge<{
+        topic: TopicLabel;
+    }>;
+    fanoutPeersPublishedTotal: Gauge<{
+        topic: TopicLabel;
     }>;
     /** Total count of msg publish data.length bytes */
     msgPublishBytes: Gauge<{
+        topic: TopicLabel;
+    }>;
+    /** Total time in seconds to publish a message */
+    msgPublishTime: Histogram<{
         topic: TopicLabel;
     }>;
     /** Total count of msg forwarded by topic */
@@ -242,14 +295,24 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
         topic: TopicLabel;
     }>;
     /** Tracks distribution of recv msgs by duplicate, invalid, valid */
-    msgReceivedStatus: Gauge<{
+    prevalidationInvalidTotal: Gauge<{
         topic: TopicLabel;
-        status: MessageStatus;
+    }>;
+    prevalidationValidTotal: Gauge<{
+        topic: TopicLabel;
+    }>;
+    prevalidationDuplicateTotal: Gauge<{
+        topic: TopicLabel;
+    }>;
+    prevalidationUnknownTotal: Gauge<{
+        topic: TopicLabel;
     }>;
     /** Tracks specific reason of invalid */
     msgReceivedInvalid: Gauge<{
-        topic: TopicLabel;
         error: RejectReason | ValidateError;
+    }>;
+    msgReceivedInvalidByTopic: Gauge<{
+        topic: TopicLabel;
     }>;
     /** Track duplicate message delivery time */
     duplicateMsgDeliveryDelay: Histogram<LabelsGeneric>;
@@ -270,7 +333,10 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
         threshold: ScoreThreshold;
     }>;
     score: AvgMinMax<LabelsGeneric>;
-    /** Separate score weights */
+    /**
+     * Separate score weights
+     * Need to use 2-label metrics in this case to debug the score weights
+     **/
     scoreWeights: AvgMinMax<{
         topic?: string | undefined;
         p: string;
@@ -317,6 +383,8 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     /** Histogram of delivery time of resolved IWANT promises */
     iwantPromiseDeliveryTime: Histogram<LabelsGeneric>;
     iwantPromiseUntracked: Gauge<LabelsGeneric>;
+    /** Backoff time */
+    connectedPeersBackoffSec: Histogram<LabelsGeneric>;
     /** Unbounded cache sizes */
     cacheSize: Gauge<{
         cache: string;
@@ -338,8 +406,15 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     onAddToMesh(topicStr: TopicStr, reason: InclusionReason, count: number): void;
     /** Register the removal of peers in our mesh due to some reason */
     onRemoveFromMesh(topicStr: TopicStr, reason: ChurnReason, count: number): void;
-    onReportValidationMcacheHit(hit: boolean): void;
-    onReportValidation(topicStr: TopicStr, acceptance: TopicValidatorResult): void;
+    /**
+     * Update validation result to metrics
+     * @param messageRecord null means the message's mcache record was not known at the time of acceptance report
+     */
+    onReportValidation(messageRecord: {
+        message: {
+            topic: TopicStr;
+        };
+    } | null, acceptance: TopicValidatorResult, firstSeenTimestampMs: number | null): void;
     /**
      * - in handle_graft() Penalty::GraftBackoff
      * - in apply_iwant_penalties() Penalty::BrokenPromise
@@ -350,10 +425,10 @@ export declare function getMetrics(register: MetricsRegister, topicStrToLabel: T
     onIhaveRcv(topicStr: TopicStr, ihave: number, idonthave: number): void;
     onIwantRcv(iwantByTopic: Map<TopicStr, number>, iwantDonthave: number): void;
     onForwardMsg(topicStr: TopicStr, tosendCount: number): void;
-    onPublishMsg(topicStr: TopicStr, tosendGroupCount: ToSendGroupCount, tosendCount: number, dataLen: number): void;
+    onPublishMsg(topicStr: TopicStr, tosendGroupCount: ToSendGroupCount, tosendCount: number, dataLen: number, ms: number): void;
     onMsgRecvPreValidation(topicStr: TopicStr): void;
     onMsgRecvError(topicStr: TopicStr): void;
-    onMsgRecvResult(topicStr: TopicStr, status: MessageStatus): void;
+    onPrevalidationResult(topicStr: TopicStr, status: MessageStatus): void;
     onMsgRecvInvalid(topicStr: TopicStr, reason: RejectReasonObj): void;
     onDuplicateMsgDelivery(topicStr: TopicStr, deliveryDelayMs: number, isLateDelivery: boolean): void;
     onPublishDuplicateMsg(topicStr: TopicStr): void;

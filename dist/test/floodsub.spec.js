@@ -5,8 +5,8 @@ import { pEvent } from 'p-event';
 import pRetry from 'p-retry';
 import { connectPubsubNodes, createComponents } from './utils/create-pubsub.js';
 import { FloodSub } from '@libp2p/floodsub';
-import { stop } from '@libp2p/interfaces/startable';
-import { mockNetwork } from '@libp2p/interface-mocks';
+import { stop } from '@libp2p/interface/startable';
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks';
 describe('gossipsub fallbacks to floodsub', () => {
     describe('basics', () => {
         let nodeGs;

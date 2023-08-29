@@ -6,7 +6,7 @@ import { peerIdFromBytes } from '@libp2p/peer-id';
 import { equals as uint8ArrayEquals } from 'uint8arrays/equals';
 import { RPC } from '../message/rpc.js';
 import { PublishConfigType, ValidateError } from '../types.js';
-import { StrictSign, StrictNoSign } from '@libp2p/interface-pubsub';
+import { StrictSign, StrictNoSign } from '@libp2p/interface/pubsub';
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string';
 export const SignPrefix = uint8ArrayFromString('libp2p-pubsub:');
 export async function buildRawMessage(publishConfig, topic, originalData, transformedData) {

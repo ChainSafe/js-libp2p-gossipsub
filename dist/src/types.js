@@ -1,4 +1,4 @@
-import { TopicValidatorResult } from '@libp2p/interface-pubsub';
+import { TopicValidatorResult } from '@libp2p/interface/pubsub';
 export var SignaturePolicy;
 (function (SignaturePolicy) {
     /**

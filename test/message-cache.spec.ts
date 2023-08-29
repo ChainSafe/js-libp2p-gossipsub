@@ -5,7 +5,7 @@ import { MessageCache } from '../src/message-cache.js'
 import * as utils from '@libp2p/pubsub/utils'
 import { getMsgId } from './utils/index.js'
 import type { RPC } from '../src/message/rpc.js'
-import { MessageId } from '../src/types.js'
+import type { MessageId } from '../src/types.js'
 
 const toMessageId = (msgId: Uint8Array): MessageId => {
   return {

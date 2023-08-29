@@ -1,8 +1,8 @@
-import { PeerScoreParams } from './peer-score-params.js';
+import { type PeerScoreParams } from './peer-score-params.js';
 import type { PeerStats } from './peer-stats.js';
 import { computeScore } from './compute-score.js';
 import { MessageDeliveries } from './message-deliveries.js';
-import { MsgIdStr, PeerIdStr, RejectReason, TopicStr } from '../types.js';
+import { type MsgIdStr, type PeerIdStr, RejectReason, type TopicStr } from '../types.js';
 import type { Metrics, ScorePenalty } from '../metrics.js';
 import { MapDef } from '../utils/set.js';
 interface PeerScoreOpts {
@@ -56,6 +56,7 @@ export declare class PeerScore {
      */
     background(): void;
     dumpPeerScoreStats(): PeerScoreStatsDump;
+    messageFirstSeenTimestampMs(msgIdStr: MsgIdStr): number | null;
     /**
      * Decays scores, and purges score records for disconnected peers once their expiry has elapsed.
      */
