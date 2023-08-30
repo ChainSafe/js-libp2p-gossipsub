@@ -215,7 +215,7 @@ export function getMetrics(
     }),
     meshPeerInclusionEventsTotal: register.gauge<{ topic: TopicLabel }>({
       name: 'gossipsub_mesh_peer_inclusion_events_total',
-      help: 'Total times we include peers in a topic mesh',
+      help: 'Number of times we include peers in a topic mesh for all reasons',
       labelNames: ['topic']
     }),
     meshPeerInclusionEventsSubscribed: register.gauge<{ topic: TopicLabel }>({
@@ -247,7 +247,7 @@ export function getMetrics(
      *  = rust-libp2p `mesh_peer_churn_events` */
     meshPeerChurnEventsTotal: register.gauge<{ topic: TopicLabel }>({
       name: 'gossipsub_peer_churn_events_total',
-      help: 'Total times we remove peers in a topic mesh',
+      help: 'Number of times we remove peers in a topic mesh for all reasons',
       labelNames: ['topic']
     }),
     meshPeerChurnEventsDisconnected: register.gauge<{ topic: TopicLabel }>({
