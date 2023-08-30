@@ -213,6 +213,11 @@ export function getMetrics(
       help: 'Number of times we include peers in a topic mesh for random reasons',
       labelNames: ['topic']
     }),
+    meshPeerInclusionEventsTotal: register.gauge<{ topic: TopicLabel }>({
+      name: 'gossipsub_mesh_peer_inclusion_events_total',
+      help: 'Total times we include peers in a topic mesh',
+      labelNames: ['topic']
+    }),
     meshPeerInclusionEventsSubscribed: register.gauge<{ topic: TopicLabel }>({
       name: 'gossipsub_mesh_peer_inclusion_events_subscribed_total',
       help: 'Number of times we include peers in a topic mesh for subscribed reasons',
@@ -240,6 +245,11 @@ export function getMetrics(
     }),
     /** Number of times we remove peers in a topic mesh for different reasons.
      *  = rust-libp2p `mesh_peer_churn_events` */
+    meshPeerChurnEventsTotal: register.gauge<{ topic: TopicLabel }>({
+      name: 'gossipsub_peer_churn_events_total',
+      help: 'Total times we remove peers in a topic mesh',
+      labelNames: ['topic']
+    }),
     meshPeerChurnEventsDisconnected: register.gauge<{ topic: TopicLabel }>({
       name: 'gossipsub_peer_churn_events_disconnected_total',
       help: 'Number of times we remove peers in a topic mesh for disconnected reasons',
@@ -700,6 +710,7 @@ export function getMetrics(
     /** Register the inclusion of peers in our mesh due to some reason. */
     onAddToMesh(topicStr: TopicStr, reason: InclusionReason, count: number): void {
       const topic = this.toTopic(topicStr)
+      this.meshPeerInclusionEventsTotal.inc({ topic }, count)
       switch (reason) {
         case InclusionReason.Fanout:
           this.meshPeerInclusionEventsFanout.inc({ topic }, count)
@@ -732,6 +743,7 @@ export function getMetrics(
     // - on_disconnect() Churn::Ds
     onRemoveFromMesh(topicStr: TopicStr, reason: ChurnReason, count: number): void {
       const topic = this.toTopic(topicStr)
+      this.meshPeerChurnEventsTotal.inc({ topic }, count)
       switch (reason) {
         case ChurnReason.Dc:
           this.meshPeerChurnEventsDisconnected.inc({ topic }, count)
