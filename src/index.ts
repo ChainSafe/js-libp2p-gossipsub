@@ -204,14 +204,14 @@ enum GossipStatusCode {
 
 type GossipStatus =
   | {
-    code: GossipStatusCode.started
-    registrarTopologyIds: string[]
-    heartbeatTimeout: ReturnType<typeof setTimeout>
-    hearbeatStartMs: number
-  }
+      code: GossipStatusCode.started
+      registrarTopologyIds: string[]
+      heartbeatTimeout: ReturnType<typeof setTimeout>
+      hearbeatStartMs: number
+    }
   | {
-    code: GossipStatusCode.stopped
-  }
+      code: GossipStatusCode.stopped
+    }
 
 interface GossipOptions extends GossipsubOpts {
   scoreParams: PeerScoreParams
