@@ -179,6 +179,11 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
    * Limits to bound protobuf decoding
    */
   decodeRpcLimits?: DecodeRPCLimits
+
+  /**
+   * If true, will utilize the libp2p connection manager tagging system to prune/graft connections to peers, defaults to false
+   */
+  taggingEnabled?: boolean
 }
 
 export interface GossipsubMessage {
@@ -199,14 +204,14 @@ enum GossipStatusCode {
 
 type GossipStatus =
   | {
-      code: GossipStatusCode.started
-      registrarTopologyIds: string[]
-      heartbeatTimeout: ReturnType<typeof setTimeout>
-      hearbeatStartMs: number
-    }
+    code: GossipStatusCode.started
+    registrarTopologyIds: string[]
+    heartbeatTimeout: ReturnType<typeof setTimeout>
+    hearbeatStartMs: number
+  }
   | {
-      code: GossipStatusCode.stopped
-    }
+    code: GossipStatusCode.stopped
+  }
 
 interface GossipOptions extends GossipsubOpts {
   scoreParams: PeerScoreParams
@@ -1546,13 +1551,15 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       return []
     }
 
-    await this.components.peerStore.merge(peerIdFromString(id), {
-      tags: {
-        'gossipsub-mesh-peer': {
-          value: 100 // value should be 0-100
+    if (this.opts?.taggingEnabled ?? false) {
+      await this.components.peerStore.merge(peerIdFromString(id), {
+        tags: {
+          'gossipsub-mesh-peer': {
+            value: 100 // value should be 0-100
+          }
         }
-      }
-    })
+      })
+    }
 
     const onUnsubscribe = false
     return await Promise.all(prune.map((topic) => this.makePrune(id, topic, doPX, onUnsubscribe)))
@@ -1604,11 +1611,13 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       }
     }
 
-    await this.components.peerStore.save(peerIdFromString(id), {
-      tags: {
-        'gossipsub-mesh-peer': {}
-      }
-    })
+    if (this.opts?.taggingEnabled ?? false) {
+      await this.components.peerStore.save(peerIdFromString(id), {
+        tags: {
+          'gossipsub-mesh-peer': {}
+        }
+      })
+    }
   }
 
   /**
@@ -1846,9 +1855,19 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     this.mesh.set(topic, toAdd)
 
-    toAdd.forEach((id) => {
+    toAdd.forEach(async (id) => {
       this.log('JOIN: Add mesh link to %s in %s', id, topic)
       this.sendGraft(id, topic)
+
+      if (this.opts?.taggingEnabled ?? false) {
+        await this.components.peerStore.merge(peerIdFromString(id), {
+          tags: {
+            'gossipsub-mesh-peer': {
+              value: 100 // value should be 0-100
+            }
+          }
+        })
+      }
 
       // rust-libp2p
       // - peer_score.graft()
@@ -2223,6 +2242,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const prune = [await this.makePrune(id, topic, this.opts.doPX, onUnsubscribe)]
 
     this.sendRpc(id, { control: { prune } })
+
+    if (this.opts.taggingEnabled ?? false) {
+      await this.components.peerStore.save(peerIdFromString(id), {
+        tags: {
+          'gossipsub-mesh-peer': {}
+        }
+      })
+    }
   }
 
   /**
