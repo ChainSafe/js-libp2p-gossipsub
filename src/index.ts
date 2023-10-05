@@ -1857,17 +1857,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     toAdd.forEach(async (id) => {
       this.log('JOIN: Add mesh link to %s in %s', id, topic)
-      this.sendGraft(id, topic)
-
-      if (this.opts?.taggingEnabled ?? false) {
-        await this.components.peerStore.merge(peerIdFromString(id), {
-          tags: {
-            'gossipsub-mesh-peer': {
-              value: 100 // value should be 0-100
-            }
-          }
-        })
-      }
+      await this.sendGraft(id, topic)
 
       // rust-libp2p
       // - peer_score.graft()
@@ -2223,7 +2213,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
   /**
    * Sends a GRAFT message to a peer
    */
-  private sendGraft(id: PeerIdStr, topic: string): void {
+  private async sendGraft(id: PeerIdStr, topic: string): Promise<void> {
     const graft = [
       {
         topicID: topic
@@ -2231,6 +2221,16 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     ]
 
     this.sendRpc(id, { control: { graft } })
+
+    if (this.opts?.taggingEnabled ?? false) {
+      await this.components.peerStore.merge(peerIdFromString(id), {
+        tags: {
+          'gossipsub-mesh-peer': {
+            value: 100 // value should be 0-100
+          }
+        }
+      })
+    }
   }
 
   /**
