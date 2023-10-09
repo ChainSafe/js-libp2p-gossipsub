@@ -27,7 +27,8 @@ describe('gossip', () => {
           IPColocationFactorThreshold: GossipsubDhi + 3
         },
         maxInboundDataLength: 4000000,
-        allowPublishToZeroPeers: false
+        allowPublishToZeroPeers: false,
+        taggingEnabled: true
       }
     })
   })
@@ -97,6 +98,58 @@ describe('gossip', () => {
 
     // should have sent message to peerB
     expect(publishResult.recipients).to.deep.equal([])
+  })
+
+  it('should tag peers', async function () {
+    this.timeout(10e4)
+    const nodeA = nodes[0]
+    const nodeB = nodes[1]
+    const topic = 'Z'
+
+    const twoNodes = [nodeA, nodeB]
+
+    const subscriptionPromises = nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change'))
+    // add subscriptions to each node
+    twoNodes.forEach((n) => n.pubsub.subscribe(topic))
+
+    // every node connected to every other
+    await connectAllPubSubNodes(nodes)
+
+    // await for subscriptions to be transmitted
+    await Promise.all(subscriptionPromises)
+
+    // await mesh rebalancing
+    await Promise.all(twoNodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+
+    expect((await nodeA.components.peerStore.get(nodeB.components.peerId)).tags.get(topic)?.value).to.equal(100)
+  })
+
+  it('should remove the tags upon pruning', async function () {
+    this.timeout(10e4)
+    const nodeA = nodes[0]
+    const nodeB = nodes[1]
+    const topic = 'Z'
+
+    const twoNodes = [nodeA, nodeB]
+
+    const subscriptionPromises = nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change'))
+    // add subscriptions to each node
+    twoNodes.forEach((n) => n.pubsub.subscribe(topic))
+
+    // every node connected to every other
+    await connectAllPubSubNodes(nodes)
+
+    // await for subscriptions to be transmitted
+    await Promise.all(subscriptionPromises)
+
+    // await mesh rebalancing
+    await Promise.all(twoNodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+
+    nodeA.pubsub.unsubscribe(topic)
+
+    // await for subscriptions to be transmitted
+    await Promise.all(subscriptionPromises)
+    expect((await nodeA.components.peerStore.get(nodeB.components.peerId)).tags.get(topic)?.value).to.equal(0)
   })
 
   it('should reject incoming messages bigger than maxInboundDataLength limit', async function () {
