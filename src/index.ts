@@ -1471,7 +1471,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const now = Date.now()
     let doPX = this.opts.doPX
 
-    graft.forEach(({ topicID }) => {
+    graft.forEach(async ({ topicID }) => {
       if (!topicID) {
         return
       }
@@ -1545,20 +1545,20 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       peersInMesh.add(id)
 
       this.metrics?.onAddToMesh(topicID, InclusionReason.Subscribed, 1)
+
+      if (this.opts?.taggingEnabled ?? false) {
+        await this.components.peerStore.merge(peerIdFromString(id), {
+          tags: {
+            [topicID]: {
+              value: 100 // value should be 0-100
+            }
+          }
+        })
+      }
     })
 
     if (!prune.length) {
       return []
-    }
-
-    if (this.opts?.taggingEnabled ?? false) {
-      await this.components.peerStore.merge(peerIdFromString(id), {
-        tags: {
-          'gossipsub-mesh-peer': {
-            value: 100 // value should be 0-100
-          }
-        }
-      })
     }
 
     const onUnsubscribe = false
@@ -1609,14 +1609,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         }
         await this.pxConnect(peers)
       }
-    }
 
-    if (this.opts?.taggingEnabled ?? false) {
-      await this.components.peerStore.save(peerIdFromString(id), {
-        tags: {
-          'gossipsub-mesh-peer': {}
-        }
-      })
+      if (this.opts?.taggingEnabled ?? false) {
+        await this.components.peerStore.save(peerIdFromString(id), {
+          tags: {
+            [topicID]: {}
+          }
+        })
+      }
     }
   }
 
@@ -2225,7 +2225,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     if (this.opts?.taggingEnabled ?? false) {
       await this.components.peerStore.merge(peerIdFromString(id), {
         tags: {
-          'gossipsub-mesh-peer': {
+          [topic]: {
             value: 100 // value should be 0-100
           }
         }
@@ -2246,7 +2246,7 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     if (this.opts.taggingEnabled ?? false) {
       await this.components.peerStore.save(peerIdFromString(id), {
         tags: {
-          'gossipsub-mesh-peer': {}
+          [topic]: {}
         }
       })
     }
