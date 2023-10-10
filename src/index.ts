@@ -1475,6 +1475,17 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       if (!topicID) {
         return
       }
+
+      if (this.opts?.taggingEnabled ?? false) {
+        await this.components.peerStore.merge(peerIdFromString(id), {
+          tags: {
+            [topicID]: {
+              value: 100 // value should be 0-100
+            }
+          }
+        })
+      }
+
       const peersInMesh = this.mesh.get(topicID)
       if (!peersInMesh) {
         // don't do PX when there is an unknown topic to avoid leaking our peers
@@ -1545,16 +1556,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       peersInMesh.add(id)
 
       this.metrics?.onAddToMesh(topicID, InclusionReason.Subscribed, 1)
-
-      if (this.opts?.taggingEnabled ?? false) {
-        await this.components.peerStore.merge(peerIdFromString(id), {
-          tags: {
-            [topicID]: {
-              value: 100 // value should be 0-100
-            }
-          }
-        })
-      }
     })
 
     if (!prune.length) {
@@ -1574,6 +1575,14 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     for (const { topicID, backoff, peers } of prune) {
       if (topicID == null) {
         continue
+      }
+
+      if (this.opts?.taggingEnabled ?? false) {
+        await this.components.peerStore.merge(peerIdFromString(id), {
+          tags: {
+            [topicID]: undefined
+          }
+        })
       }
 
       const peersInMesh = this.mesh.get(topicID)
@@ -1608,14 +1617,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
           continue
         }
         await this.pxConnect(peers)
-      }
-
-      if (this.opts?.taggingEnabled ?? false) {
-        await this.components.peerStore.save(peerIdFromString(id), {
-          tags: {
-            [topicID]: {}
-          }
-        })
       }
     }
   }
@@ -2220,8 +2221,6 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
       }
     ]
 
-    this.sendRpc(id, { control: { graft } })
-
     if (this.opts?.taggingEnabled ?? false) {
       await this.components.peerStore.merge(peerIdFromString(id), {
         tags: {
@@ -2231,6 +2230,8 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         }
       })
     }
+
+    this.sendRpc(id, { control: { graft } })
   }
 
   /**
@@ -2241,15 +2242,15 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const onUnsubscribe = true
     const prune = [await this.makePrune(id, topic, this.opts.doPX, onUnsubscribe)]
 
-    this.sendRpc(id, { control: { prune } })
-
     if (this.opts.taggingEnabled ?? false) {
-      await this.components.peerStore.save(peerIdFromString(id), {
+      await this.components.peerStore.merge(peerIdFromString(id), {
         tags: {
-          [topic]: {}
+          [topic]: undefined
         }
       })
     }
+
+    this.sendRpc(id, { control: { prune } })
   }
 
   /**
