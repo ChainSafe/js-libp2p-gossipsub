@@ -1471,19 +1471,24 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
     const now = Date.now()
     let doPX = this.opts.doPX
 
-    graft.forEach(async ({ topicID }) => {
-      if (!topicID) {
-        return
-      }
-
-      if (this.opts?.taggingEnabled ?? false) {
+    if (this.opts?.taggingEnabled ?? false) {
+      for (const { topicID } of graft) {
+        if (!topicID) {
+          continue
+        }
         await this.components.peerStore.merge(peerIdFromString(id), {
           tags: {
             [topicID]: {
-              value: 100 // value should be 0-100
+              value: 100
             }
           }
         })
+      }
+    }
+
+    graft.forEach(({ topicID }) => {
+      if (!topicID) {
+        return
       }
 
       const peersInMesh = this.mesh.get(topicID)
@@ -1856,15 +1861,27 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
 
     this.mesh.set(topic, toAdd)
 
-    toAdd.forEach(async (id) => {
+    toAdd.forEach((id) => {
       this.log('JOIN: Add mesh link to %s in %s', id, topic)
-      await this.sendGraft(id, topic)
+      this.sendGraft(id, topic)
 
       // rust-libp2p
       // - peer_score.graft()
       // - Self::control_pool_add()
       // - peer_added_to_mesh()
     })
+
+    if (this.opts?.taggingEnabled ?? false) {
+      Array.from(toAdd).map(async (id) => {
+        await this.components.peerStore.merge(peerIdFromString(id), {
+          tags: {
+            [topic]: {
+              value: 100 // value should be 0-100
+            }
+          }
+        })
+      })
+    }
   }
 
   /**
@@ -2214,22 +2231,12 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
   /**
    * Sends a GRAFT message to a peer
    */
-  private async sendGraft(id: PeerIdStr, topic: string): Promise<void> {
+  private sendGraft(id: PeerIdStr, topic: string): void {
     const graft = [
       {
         topicID: topic
       }
     ]
-
-    if (this.opts?.taggingEnabled ?? false) {
-      await this.components.peerStore.merge(peerIdFromString(id), {
-        tags: {
-          [topic]: {
-            value: 100 // value should be 0-100
-          }
-        }
-      })
-    }
 
     this.sendRpc(id, { control: { graft } })
   }

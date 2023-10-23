@@ -101,7 +101,7 @@ describe('gossip', () => {
   })
 
   // flakey test
-  it.skip('should tag peers', async function () {
+  it('should tag peers', async function () {
     this.timeout(10e4)
     const nodeA = nodes[0]
     const nodeB = nodes[1]
@@ -109,17 +109,30 @@ describe('gossip', () => {
 
     const twoNodes = [nodeA, nodeB]
 
-    const subscriptionPromises = nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change'))
+    const subscriptionPromises = twoNodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change'))
     // add subscriptions to each node
     twoNodes.forEach((n) => n.pubsub.subscribe(topic))
 
     // every node connected to every other
-    await connectAllPubSubNodes(nodes)
+    await connectAllPubSubNodes(twoNodes)
 
     // await for subscriptions to be transmitted
     await Promise.all(subscriptionPromises)
 
-    expect((await nodeA.components.peerStore.get(nodeB.components.peerId)).tags.get(topic)?.value).to.equal(100)
+    // await mesh rebalancing
+    await Promise.all(twoNodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+
+    let peerInfo
+    try {
+      peerInfo = await nodeA.components.peerStore.get(nodeB.components.peerId)
+    } catch (err: any) {
+      // if it's not in node A's peerstore, then try node B's
+      if (err.code === 'ERR_NOT_FOUND') {
+        peerInfo = await nodeB.components.peerStore.get(nodeA.components.peerId)
+      }
+    }
+
+    expect(peerInfo!.tags.get(topic)?.value).to.equal(100)
   })
 
   it('should remove the tags upon pruning', async function () {
