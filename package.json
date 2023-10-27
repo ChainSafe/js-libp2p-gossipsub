@@ -83,7 +83,6 @@
     "it-pipe": "^3.0.1",
     "it-pushable": "^3.2.3",
     "multiformats": "^13.0.1",
-    "protobufjs": "^7.2.6",
     "protons-runtime": "^5.1.0",
     "uint8arraylist": "^2.4.8",
     "uint8arrays": "^5.0.1"
