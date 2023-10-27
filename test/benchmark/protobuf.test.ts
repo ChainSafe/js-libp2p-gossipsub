@@ -1,15 +1,14 @@
 import { itBench, setBenchOpts } from '@dapplion/benchmark'
-import { type IRPC, RPC } from '../../src/message/rpc.js'
+import { RPC } from '../../src/message/rpc.js'
 
 describe('protobuf', function () {
   this.timeout(0)
   setBenchOpts({
     maxMs: 200 * 1000,
-    minMs: 120 * 1000,
-    minRuns: 200
+    minMs: 120 * 1000
   })
 
-  const rpc: IRPC = {
+  const rpc: RPC = {
     subscriptions: [],
     messages: [
       {
@@ -25,12 +24,12 @@ describe('protobuf', function () {
     control: undefined
   }
 
-  const bytes = RPC.encode(rpc).finish()
+  const bytes = RPC.encode(rpc)
 
   const runsFactor = 1000
 
   itBench({
-    id: 'decode Attestation message using protobufjs',
+    id: 'decode Attestation message using protons-runtime 5.1.0',
     fn: () => {
       for (let i = 0; i < runsFactor; i++) {
         RPC.decode(bytes)
@@ -40,10 +39,10 @@ describe('protobuf', function () {
   })
 
   itBench({
-    id: 'encode Attestation message using protobufjs',
+    id: 'encode Attestation message using protons-runtime 5.1.0',
     fn: () => {
       for (let i = 0; i < runsFactor; i++) {
-        RPC.encode(rpc).finish()
+        RPC.encode(rpc)
       }
     },
     runsFactor

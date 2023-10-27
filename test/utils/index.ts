@@ -15,7 +15,11 @@ export const createPeerId = async (): Promise<PeerId> => {
 let seq = 0n
 const defaultPeer = uint8ArrayFromString('12D3KooWBsYhazxNL7aeisdwttzc6DejNaM48889t5ifiS6tTrBf', 'base58btc')
 
+<<<<<<< HEAD
 export function makeTestMessage (i: number, topic: TopicStr, from?: PeerId): RPC.IMessage {
+=======
+export function makeTestMessage(i: number, topic: TopicStr, from?: PeerId): RPC.Message {
+>>>>>>> b433f8e (feat: protons 7.2.1 protons-runtime 5.1.0)
   return {
     seqno: uint8ArrayFromString((seq++).toString(16).padStart(16, '0'), 'base16'),
     data: Uint8Array.from([i]),

@@ -1,5 +1,5 @@
-import protobuf from 'protobufjs/minimal.js'
-import type { IRPC, RPC } from './rpc.js'
+import { RPC } from './rpc.js'
+import { reader as r, type Reader } from 'protons-runtime'
 
 export interface DecodeRPCLimits {
   maxSubscriptions: number
@@ -20,236 +20,205 @@ export const defaultDecodeRpcLimits: DecodeRPCLimits = {
 }
 
 /**
- * Copied code from src/message/rpc.cjs but with decode limits to prevent OOM attacks
+ * Copied code from src/message/rpc.ts but with decode limits to prevent OOM attacks
  */
-export function decodeRpc (bytes: Uint8Array, opts: DecodeRPCLimits): IRPC {
+export function decodeRpc (bytes: Uint8Array, opts: DecodeRPCLimits): RPC {
   // Mutate to use the option as stateful counter. Must limit the total count of messageIDs across all IWANT, IHAVE
   // else one count put 100 messageIDs into each 100 IWANT and "get around" the limit
   opts = { ...opts }
 
-  const r = protobuf.Reader.create(bytes)
-  const l = bytes.length
+  const reader = r(bytes)
+  const obj: any = {
+    subscriptions: [],
+    messages: []
+  }
 
-  const c = l === undefined ? r.len : r.pos + l
-  const m: IRPC = {}
-  while (r.pos < c) {
-    const t = r.uint32()
-    switch (t >>> 3) {
+  const end = reader.len
+
+  while (reader.pos < end) {
+    const tag = reader.uint32()
+
+    switch (tag >>> 3) {
       case 1:
-        if (!((m.subscriptions != null) && (m.subscriptions.length > 0))) m.subscriptions = []
-        if (m.subscriptions.length < opts.maxSubscriptions) m.subscriptions.push(decodeSubOpts(r, r.uint32()))
-        else r.skipType(t & 7)
+        if (obj.subscriptions.length < opts.maxSubscriptions) {
+          obj.subscriptions.push(RPC.SubOpts.codec().decode(reader, reader.uint32()))
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       case 2:
-        if (!((m.messages != null) && (m.messages.length > 0))) m.messages = []
-        if (m.messages.length < opts.maxMessages) m.messages.push(decodeMessage(r, r.uint32()))
-        else r.skipType(t & 7)
+        if (obj.messages.length < opts.maxMessages) {
+          obj.messages.push(RPC.Message.codec().decode(reader, reader.uint32()))
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       case 3:
-        m.control = decodeControlMessage(r, r.uint32(), opts)
+        obj.control = decodeControlMessage(reader, reader.uint32(), opts)
         break
       default:
-        r.skipType(t & 7)
+        reader.skipType(tag & 7)
         break
     }
   }
-  return m
+  return obj
 }
 
-function decodeSubOpts (r: protobuf.Reader, l: number): RPC.ISubOpts {
-  const c = l === undefined ? r.len : r.pos + l
-  const m: RPC.ISubOpts = {}
-  while (r.pos < c) {
-    const t = r.uint32()
-    switch (t >>> 3) {
-      case 1:
-        m.subscribe = r.bool()
-        break
-      case 2:
-        m.topic = r.string()
-        break
-      default:
-        r.skipType(t & 7)
-        break
-    }
+function decodeControlMessage(reader: Reader, length: number, opts: DecodeRPCLimits): RPC.ControlMessage {
+  const obj: any = {
+    ihave: [],
+    iwant: [],
+    graft: [],
+    prune: []
   }
-  return m
-}
 
-function decodeMessage (r: protobuf.Reader, l: number): RPC.IMessage {
-  const c = l === undefined ? r.len : r.pos + l
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const m = {} as RPC.IMessage
-  while (r.pos < c) {
-    const t = r.uint32()
-    switch (t >>> 3) {
+  const end = length == null ? reader.len : reader.pos + length
+
+  while (reader.pos < end) {
+    const tag = reader.uint32()
+
+    switch (tag >>> 3) {
       case 1:
-        m.from = r.bytes()
+        if (obj.ihave.length < opts.maxControlMessages) {
+          obj.ihave.push(decodeControlIHave(reader, reader.uint32(), opts))
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       case 2:
-        m.data = r.bytes()
+        if (obj.iwant.length < opts.maxControlMessages) {
+          obj.iwant.push(decodeControlIWant(reader, reader.uint32(), opts))
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       case 3:
-        m.seqno = r.bytes()
+        if (obj.graft.length < opts.maxControlMessages) {
+          obj.graft.push(decodeControlGraft(reader, reader.uint32()))
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       case 4:
-        m.topic = r.string()
-        break
-      case 5:
-        m.signature = r.bytes()
-        break
-      case 6:
-        m.key = r.bytes()
+        if (obj.prune.length < opts.maxControlMessages) {
+          obj.prune.push(decodeControlPrune(reader, reader.uint32(), opts))
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       default:
-        r.skipType(t & 7)
+        reader.skipType(tag & 7)
         break
     }
   }
-  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-  if (!m.topic) throw Error("missing required 'topic'")
-  return m
+
+  return obj
 }
 
-function decodeControlMessage (r: protobuf.Reader, l: number, opts: DecodeRPCLimits): RPC.IControlMessage {
-  const c = l === undefined ? r.len : r.pos + l
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const m = {} as RPC.IControlMessage
-  while (r.pos < c) {
-    const t = r.uint32()
-    switch (t >>> 3) {
+function decodeControlIHave(reader: Reader, length: number, opts: DecodeRPCLimits): RPC.ControlIHave {
+  const obj: any = {
+    messageIDs: []
+  }
+
+  const end = length == null ? reader.len : reader.pos + length
+
+  while (reader.pos < end) {
+    const tag = reader.uint32()
+
+    switch (tag >>> 3) {
       case 1:
-        if (!((m.ihave != null) && (m.ihave.length > 0))) m.ihave = []
-        if (m.ihave.length < opts.maxControlMessages) m.ihave.push(decodeControlIHave(r, r.uint32(), opts))
-        else r.skipType(t & 7)
+        obj.topicID = reader.string()
         break
       case 2:
-        if (!((m.iwant != null) && (m.iwant.length > 0))) m.iwant = []
-        if (m.iwant.length < opts.maxControlMessages) m.iwant.push(decodeControlIWant(r, r.uint32(), opts))
-        else r.skipType(t & 7)
+        if (opts.maxIhaveMessageIDs-- > 0) obj.messageIDs.push(reader.bytes())
+        else reader.skipType(tag & 7)
+        break
+      default:
+        reader.skipType(tag & 7)
+        break
+    }
+  }
+
+  return obj
+}
+
+function decodeControlIWant(reader: Reader, length: number, opts: DecodeRPCLimits): RPC.ControlIWant {
+  const obj: any = {
+    messageIDs: []
+  }
+
+  const end = length == null ? reader.len : reader.pos + length
+
+  while (reader.pos < end) {
+    const tag = reader.uint32()
+
+    switch (tag >>> 3) {
+      case 1:
+        if (opts.maxIwantMessageIDs-- > 0) {
+          obj.messageIDs.push(reader.bytes())
+        } else {
+          reader.skipType(tag & 7)
+        }
+        break
+      default:
+        reader.skipType(tag & 7)
+        break
+    }
+  }
+
+  return obj
+}
+
+function decodeControlGraft(reader: Reader, length: number) {
+  const obj: any = {}
+
+  const end = length == null ? reader.len : reader.pos + length
+
+  while (reader.pos < end) {
+    const tag = reader.uint32()
+
+    switch (tag >>> 3) {
+      case 1:
+        obj.topicID = reader.string()
+        break
+      default:
+        reader.skipType(tag & 7)
+        break
+    }
+  }
+
+  return obj
+}
+
+function decodeControlPrune(reader: Reader, length: number, opts: DecodeRPCLimits): RPC.ControlPrune {
+  const obj: any = {
+    peers: []
+  }
+
+  const end = length == null ? reader.len : reader.pos + length
+
+  while (reader.pos < end) {
+    const tag = reader.uint32()
+
+    switch (tag >>> 3) {
+      case 1:
+        obj.topicID = reader.string()
+        break
+      case 2:
+        if (opts.maxPeerInfos-- > 0) {
+          obj.peers.push(RPC.PeerInfo.codec().decode(reader, reader.uint32()))
+        } else {
+          reader.skipType(tag & 7)
+        }
         break
       case 3:
-        if (!((m.graft != null) && (m.graft.length > 0))) m.graft = []
-        if (m.graft.length < opts.maxControlMessages) m.graft.push(decodeControlGraft(r, r.uint32()))
-        else r.skipType(t & 7)
-        break
-      case 4:
-        if (!((m.prune != null) && (m.prune.length > 0))) m.prune = []
-        if (m.prune.length < opts.maxControlMessages) m.prune.push(decodeControlPrune(r, r.uint32(), opts))
-        else r.skipType(t & 7)
+        obj.backoff = reader.uint64()
         break
       default:
-        r.skipType(t & 7)
+        reader.skipType(tag & 7)
         break
     }
   }
-  return m
-}
 
-function decodeControlIHave (r: protobuf.Reader, l: number, opts: DecodeRPCLimits): RPC.IControlIHave {
-  const c = l === undefined ? r.len : r.pos + l
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const m = {} as RPC.IControlIHave
-  while (r.pos < c) {
-    const t = r.uint32()
-    switch (t >>> 3) {
-      case 1:
-        m.topicID = r.string()
-        break
-      case 2:
-        if (!((m.messageIDs != null) && (m.messageIDs.length > 0))) m.messageIDs = []
-        if (opts.maxIhaveMessageIDs-- > 0) m.messageIDs.push(r.bytes())
-        else r.skipType(t & 7)
-        break
-      default:
-        r.skipType(t & 7)
-        break
-    }
-  }
-  return m
-}
-
-function decodeControlIWant (r: protobuf.Reader, l: number, opts: DecodeRPCLimits): RPC.IControlIWant {
-  const c = l === undefined ? r.len : r.pos + l
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const m = {} as RPC.IControlIWant
-  while (r.pos < c) {
-    const t = r.uint32()
-    switch (t >>> 3) {
-      case 1:
-        if (!((m.messageIDs != null) && (m.messageIDs.length > 0))) m.messageIDs = []
-        if (opts.maxIwantMessageIDs-- > 0) m.messageIDs.push(r.bytes())
-        else r.skipType(t & 7)
-        break
-      default:
-        r.skipType(t & 7)
-        break
-    }
-  }
-  return m
-}
-
-function decodeControlGraft (r: protobuf.Reader, l: number): RPC.IControlGraft {
-  const c = l === undefined ? r.len : r.pos + l
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const m = {} as RPC.IControlGraft
-  while (r.pos < c) {
-    const t = r.uint32()
-    switch (t >>> 3) {
-      case 1:
-        m.topicID = r.string()
-        break
-      default:
-        r.skipType(t & 7)
-        break
-    }
-  }
-  return m
-}
-
-function decodeControlPrune (r: protobuf.Reader, l: number, opts: DecodeRPCLimits): RPC.IControlPrune {
-  const c = l === undefined ? r.len : r.pos + l
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const m = {} as RPC.IControlPrune
-  while (r.pos < c) {
-    const t = r.uint32()
-    switch (t >>> 3) {
-      case 1:
-        m.topicID = r.string()
-        break
-      case 2:
-        if (!((m.peers != null) && (m.peers.length > 0))) m.peers = []
-        if (opts.maxPeerInfos-- > 0) m.peers.push(decodePeerInfo(r, r.uint32()))
-        else r.skipType(t & 7)
-        break
-      case 3:
-        m.backoff = r.uint64() as unknown as number
-        break
-      default:
-        r.skipType(t & 7)
-        break
-    }
-  }
-  return m
-}
-
-function decodePeerInfo (r: protobuf.Reader, l: number): RPC.IPeerInfo {
-  const c = l === undefined ? r.len : r.pos + l
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const m = {} as RPC.IPeerInfo
-  while (r.pos < c) {
-    const t = r.uint32()
-    switch (t >>> 3) {
-      case 1:
-        m.peerID = r.bytes()
-        break
-      case 2:
-        m.signedPeerRecord = r.bytes()
-        break
-      default:
-        r.skipType(t & 7)
-        break
-    }
-  }
-  return m
+  return obj
 }
