@@ -1,4 +1,4 @@
-import { EventEmitter } from '@libp2p/interface/events'
+import { TypedEventEmitter } from '@libp2p/interface/events'
 import tests from '@libp2p/interface-compliance-tests/pubsub'
 import { PersistentPeerStore } from '@libp2p/peer-store'
 import { MemoryDatastore } from 'datastore-core'
@@ -20,7 +20,7 @@ describe.skip('interface compliance', function () {
           peerStore: new PersistentPeerStore({
             peerId: args.components.peerId,
             datastore: new MemoryDatastore(),
-            events: new EventEmitter<Libp2pEvents>()
+            events: new TypedEventEmitter<Libp2pEvents>()
           })
         },
         {

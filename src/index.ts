@@ -1,4 +1,4 @@
-import { CustomEvent, EventEmitter } from '@libp2p/interface/events'
+import { CustomEvent, TypedEventEmitter } from '@libp2p/interface/events'
 import { StrictSign, StrictNoSign, TopicValidatorResult } from '@libp2p/interface/pubsub'
 import { type Logger, logger } from '@libp2p/logger'
 import { peerIdFromBytes, peerIdFromString } from '@libp2p/peer-id'
@@ -226,7 +226,7 @@ export interface GossipSubComponents {
   connectionManager: ConnectionManager
 }
 
-export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<GossipsubEvents> {
+export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements PubSub<GossipsubEvents> {
   /**
    * The signature policy to follow by default
    */
@@ -1028,11 +1028,9 @@ export class GossipSub extends EventEmitter<GossipsubEvents> implements PubSub<G
         }
       })
 
-      this.dispatchEvent(
-        new CustomEvent<SubscriptionChangeData>('subscription-change', {
-          detail: { peerId: from, subscriptions }
-        })
-      )
+      this.safeDispatchEvent<SubscriptionChangeData>('subscription-change', {
+        detail: { peerId: from, subscriptions }
+      })
     }
 
     // Handle messages

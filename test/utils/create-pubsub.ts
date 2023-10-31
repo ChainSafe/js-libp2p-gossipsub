@@ -1,5 +1,5 @@
 import { setMaxListeners } from 'events'
-import { EventEmitter } from '@libp2p/interface/events'
+import { TypedEventEmitter, type TypedEventTarget } from '@libp2p/interface/events'
 import { start } from '@libp2p/interface/startable'
 import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { createRSAPeerId } from '@libp2p/peer-id-factory'
@@ -17,7 +17,7 @@ export interface CreateComponentsOpts {
 }
 
 export interface GossipSubTestComponents extends GossipSubComponents {
-  events: EventEmitter<Libp2pEvents>
+  events: TypedEventTarget<Libp2pEvents>
 }
 
 export interface GossipSubAndComponents {
@@ -29,7 +29,7 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Goss
   const Ctor = opts.pubsub ?? GossipSub
   const peerId = await createRSAPeerId({ bits: 512 })
 
-  const events = new EventEmitter<Libp2pEvents>()
+  const events = new TypedEventEmitter<Libp2pEvents>()
 
   const components: GossipSubTestComponents = {
     peerId,
