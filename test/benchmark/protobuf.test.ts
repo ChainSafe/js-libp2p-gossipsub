@@ -27,21 +27,25 @@ describe('protobuf', function () {
 
   const bytes = RPC.encode(rpc).finish()
 
-  // console.log('@@@ encoded to', Buffer.from(bytes.slice()).toString('hex'), 'length', bytes.length)
+  const runsFactor = 1000
 
   itBench({
     id: 'decode Attestation message using protobufjs',
     fn: () => {
-      RPC.decode(bytes)
+      for (let i = 0; i < runsFactor; i++) {
+        RPC.decode(bytes)
+      }
     },
-    runsFactor: 100
+    runsFactor
   })
 
   itBench({
     id: 'encode Attestation message using protobufjs',
     fn: () => {
-      RPC.encode(rpc).finish()
+      for (let i = 0; i < runsFactor; i++) {
+        RPC.encode(rpc).finish()
+      }
     },
-    runsFactor: 100
+    runsFactor
   })
 })
