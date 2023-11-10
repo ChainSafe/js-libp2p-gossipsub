@@ -1,13 +1,13 @@
-import { expect } from 'aegir/chai'
-import delay from 'delay'
-import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { pEvent } from 'p-event'
-import type { SubscriptionChangeData, Message } from '@libp2p/interface/pubsub'
-import pRetry from 'p-retry'
-import { connectPubsubNodes, createComponents, type GossipSubAndComponents } from './utils/create-pubsub.js'
 import { FloodSub } from '@libp2p/floodsub'
 import { stop } from '@libp2p/interface/startable'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
+import { expect } from 'aegir/chai'
+import delay from 'delay'
+import { pEvent } from 'p-event'
+import pRetry from 'p-retry'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { connectPubsubNodes, createComponents, type GossipSubAndComponents } from './utils/create-pubsub.js'
+import type { SubscriptionChangeData, Message } from '@libp2p/interface/pubsub'
 
 describe('gossipsub fallbacks to floodsub', () => {
   describe('basics', () => {
@@ -41,7 +41,9 @@ describe('gossipsub fallbacks to floodsub', () => {
       await connectPubsubNodes(nodeGs, nodeFs)
 
       await pRetry(() => {
+        // eslint-disable-next-line max-nested-callbacks
         expect(nodeGs.pubsub.getPeers().map((s) => s.toString())).to.include(nodeFs.components.peerId.toString())
+        // eslint-disable-next-line max-nested-callbacks
         expect(nodeFs.pubsub.getPeers().map((s) => s.toString())).to.include(nodeGs.components.peerId.toString())
       })
     })

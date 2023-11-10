@@ -1,12 +1,12 @@
-import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
-import type { PeerStore } from '@libp2p/interface/peer-store'
-import type { Registrar } from '@libp2p/interface-internal/registrar'
 import { expect } from 'aegir/chai'
 import sinon from 'sinon'
 import { stubInterface } from 'ts-sinon'
 import { GossipSub } from '../src/index.js'
 import { createPeerId } from './utils/index.js'
 import { fastMsgIdFn } from './utils/msgId.js'
+import type { PeerStore } from '@libp2p/interface/peer-store'
+import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
+import type { Registrar } from '@libp2p/interface-internal/registrar'
 
 const peerA = '16Uiu2HAmMkH6ZLen2tbhiuNCTZLLvrZaDgufNdT5MPjtC9Hr9YNA'
 

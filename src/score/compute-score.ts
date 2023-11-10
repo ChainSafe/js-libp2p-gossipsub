@@ -1,7 +1,7 @@
-import type { PeerStats } from './peer-stats.js'
 import type { PeerScoreParams } from './peer-score-params.js'
+import type { PeerStats } from './peer-stats.js'
 
-export function computeScore(
+export function computeScore (
   peer: string,
   pstats: PeerStats,
   params: PeerScoreParams,
@@ -79,7 +79,7 @@ export function computeScore(
     // It's only applied if at least that many peers are connected to us from that source IP addr.
     // It is quadratic, and the weight is negative (validated in validatePeerScoreParams)
     const peersInIP = peerIPs.get(ip)
-    const numPeersInIP = peersInIP ? peersInIP.size : 0
+    const numPeersInIP = (peersInIP != null) ? peersInIP.size : 0
     if (numPeersInIP > params.IPColocationFactorThreshold) {
       const surplus = numPeersInIP - params.IPColocationFactorThreshold
       const p6 = surplus * surplus

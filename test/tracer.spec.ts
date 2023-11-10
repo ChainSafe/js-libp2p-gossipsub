@@ -1,10 +1,10 @@
+import { createEd25519PeerId } from '@libp2p/peer-id-factory'
 import { expect } from 'aegir/chai'
 import delay from 'delay'
-import { IWantTracer } from '../src/tracer.js'
 import * as constants from '../src/constants.js'
-import { makeTestMessage, getMsgId, getMsgIdStr } from './utils/index.js'
-import { createEd25519PeerId } from '@libp2p/peer-id-factory'
+import { IWantTracer } from '../src/tracer.js'
 import { messageIdToString } from '../src/utils/messageIdToString.js'
+import { makeTestMessage, getMsgId, getMsgIdStr } from './utils/index.js'
 
 describe('IWantTracer', () => {
   it('should track broken promises', async function () {
@@ -53,7 +53,7 @@ describe('IWantTracer', () => {
     t.addPromise(peerA, msgIds)
     t.addPromise(peerB, msgIds)
 
-    msgs.forEach((msg) => t.deliverMessage(getMsgIdStr(msg)))
+    msgs.forEach((msg) => { t.deliverMessage(getMsgIdStr(msg)) })
 
     await delay(constants.GossipsubIWantFollowupTime + 10)
 

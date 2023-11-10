@@ -1,23 +1,22 @@
+import { stop } from '@libp2p/interface/startable'
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
-import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import type { GossipSub } from '../src/index.js'
-import type { Message, SubscriptionChangeData } from '@libp2p/interface/pubsub'
-import { pEvent } from 'p-event'
-import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import defer from 'p-defer'
+import { pEvent } from 'p-event'
 import pWaitFor from 'p-wait-for'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import {
   connectAllPubSubNodes,
   connectPubsubNodes,
   createComponentsArray,
   type GossipSubAndComponents
 } from './utils/create-pubsub.js'
-import { stop } from '@libp2p/interface/startable'
-import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
+import type { Message, SubscriptionChangeData } from '@libp2p/interface/pubsub'
 
-const shouldNotHappen = () => expect.fail()
+const shouldNotHappen = (): never => expect.fail()
 
-async function nodesArePubSubPeers(node0: GossipSubAndComponents, node1: GossipSubAndComponents, timeout = 60000) {
+async function nodesArePubSubPeers (node0: GossipSubAndComponents, node1: GossipSubAndComponents, timeout = 60000): Promise<void> {
   await pWaitFor(
     () => {
       const node0SeesNode1 = node0.pubsub
@@ -129,8 +128,8 @@ describe('2 nodes', () => {
         pEvent(nodes[1].pubsub, 'gossipsub:heartbeat')
       ])
 
-      expect((nodes[0].pubsub as GossipSub).mesh.get(topic)?.has(nodes[1].components.peerId.toString())).to.be.true()
-      expect((nodes[1].pubsub as GossipSub).mesh.get(topic)?.has(nodes[0].components.peerId.toString())).to.be.true()
+      expect((nodes[0].pubsub).mesh.get(topic)?.has(nodes[1].components.peerId.toString())).to.be.true()
+      expect((nodes[1].pubsub).mesh.get(topic)?.has(nodes[0].components.peerId.toString())).to.be.true()
     })
   })
 
@@ -208,7 +207,7 @@ describe('2 nodes', () => {
 
       const done = defer()
 
-      function receivedMsg(evt: CustomEvent<Message>) {
+      function receivedMsg (evt: CustomEvent<Message>): void {
         const msg = evt.detail
 
         expect(uint8ArrayToString(msg.data)).to.startWith('banana')

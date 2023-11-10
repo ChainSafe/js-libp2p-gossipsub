@@ -1,8 +1,8 @@
+import * as utils from '@libp2p/pubsub/utils'
 import { expect } from 'aegir/chai'
-import { messageIdToString } from '../src/utils/messageIdToString.js'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { MessageCache } from '../src/message-cache.js'
-import * as utils from '@libp2p/pubsub/utils'
+import { messageIdToString } from '../src/utils/messageIdToString.js'
 import { getMsgId } from './utils/index.js'
 import type { RPC } from '../src/message/rpc.js'
 import type { MessageId } from '../src/types.js'
@@ -56,7 +56,7 @@ describe('Testing Message Cache Operations', () => {
 
     for (let i = 0; i < 10; i++) {
       const messageID = getMsgId(testMessages[i])
-      expect(messageID).to.deep.equal(gossipIDs![i])
+      expect(messageID).to.deep.equal(gossipIDs[i])
     }
   })
 
@@ -156,7 +156,7 @@ describe('Testing Message Cache Operations', () => {
     expect(gossipIDs.length).to.be.equal(5)
     // only validate the new gossip ids
     for (let i = 0; i < 5; i++) {
-      expect(gossipIDs[i]).to.deep.equal(getMsgId(testMessages[i + 10]), 'incorrect gossip message id ' + i)
+      expect(gossipIDs[i]).to.deep.equal(getMsgId(testMessages[i + 10]), 'incorrect gossip message id ' + String(i))
     }
   })
 })

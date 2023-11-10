@@ -1,7 +1,7 @@
+import { stop } from '@libp2p/interface/startable'
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
 import { pEvent } from 'p-event'
-import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
-import { stop } from '@libp2p/interface/startable'
 import {
   connectAllPubSubNodes,
   connectPubsubNodes,
@@ -39,16 +39,16 @@ describe('signature policy', () => {
       const topic = 'foo'
 
       // add subscriptions to each node
-      nodes.forEach((n) => n.pubsub.subscribe(topic))
+      nodes.forEach((n) => { n.pubsub.subscribe(topic) })
 
       // connect all nodes
       await connectAllPubSubNodes(nodes)
 
       // wait for subscriptions to be transmitted
-      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change')))
+      await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'subscription-change')))
 
       // await mesh rebalancing
-      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+      await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
       // publish a message on the topic
       const result = await nodes[0].pubsub.publish(topic, new Uint8Array())
@@ -59,16 +59,16 @@ describe('signature policy', () => {
       const topic = 'foo'
 
       // add subscriptions to each node
-      nodes.forEach((n) => n.pubsub.subscribe(topic))
+      nodes.forEach((n) => { n.pubsub.subscribe(topic) })
 
       // connect in a line
-      await Promise.all(Array.from({ length: numNodes - 1 }, (_, i) => connectPubsubNodes(nodes[i], nodes[i + 1])))
+      await Promise.all(Array.from({ length: numNodes - 1 }, async (_, i) => connectPubsubNodes(nodes[i], nodes[i + 1])))
 
       // wait for subscriptions to be transmitted
-      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change')))
+      await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'subscription-change')))
 
       // await mesh rebalancing
-      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+      await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
       // publish a message on the topic
       const result = await nodes[0].pubsub.publish(topic, new Uint8Array())
@@ -91,13 +91,13 @@ describe('signature policy', () => {
       )
 
       // add subscriptions to each node
-      nodes.forEach((n) => n.pubsub.subscribe(topic))
+      nodes.forEach((n) => { n.pubsub.subscribe(topic) })
 
       // connect in a line
-      await Promise.all(Array.from({ length: numNodes - 1 }, (_, i) => connectPubsubNodes(nodes[i], nodes[i + 1])))
+      await Promise.all(Array.from({ length: numNodes - 1 }, async (_, i) => connectPubsubNodes(nodes[i], nodes[i + 1])))
 
       // await mesh rebalancing
-      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+      await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
       // publish a message on the topic
       const result = await nodes[0].pubsub.publish(topic, new Uint8Array())
@@ -139,16 +139,16 @@ describe('signature policy', () => {
       const topic = 'foo'
 
       // add subscriptions to each node
-      nodes.forEach((n) => n.pubsub.subscribe(topic))
+      nodes.forEach((n) => { n.pubsub.subscribe(topic) })
 
       // connect all nodes
       await connectAllPubSubNodes(nodes)
 
       // wait for subscriptions to be transmitted
-      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change')))
+      await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'subscription-change')))
 
       // await mesh rebalancing
-      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+      await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
       // publish a message on the topic
       const result = await nodes[0].pubsub.publish(topic, new Uint8Array())
@@ -159,16 +159,16 @@ describe('signature policy', () => {
       const topic = 'foo'
 
       // add subscriptions to each node
-      nodes.forEach((n) => n.pubsub.subscribe(topic))
+      nodes.forEach((n) => { n.pubsub.subscribe(topic) })
 
       // connect in a line
-      await Promise.all(Array.from({ length: numNodes - 1 }, (_, i) => connectPubsubNodes(nodes[i], nodes[i + 1])))
+      await Promise.all(Array.from({ length: numNodes - 1 }, async (_, i) => connectPubsubNodes(nodes[i], nodes[i + 1])))
 
       // wait for subscriptions to be transmitted
-      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change')))
+      await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'subscription-change')))
 
       // await mesh rebalancing
-      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+      await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
       // publish a message on the topic
       const result = await nodes[0].pubsub.publish(topic, new Uint8Array())
@@ -191,13 +191,13 @@ describe('signature policy', () => {
       )
 
       // add subscriptions to each node
-      nodes.forEach((n) => n.pubsub.subscribe(topic))
+      nodes.forEach((n) => { n.pubsub.subscribe(topic) })
 
       // connect in a line
-      await Promise.all(Array.from({ length: numNodes - 1 }, (_, i) => connectPubsubNodes(nodes[i], nodes[i + 1])))
+      await Promise.all(Array.from({ length: numNodes - 1 }, async (_, i) => connectPubsubNodes(nodes[i], nodes[i + 1])))
 
       // await mesh rebalancing
-      await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+      await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
       // publish a message on the topic
       const result = await nodes[0].pubsub.publish(topic, new Uint8Array())

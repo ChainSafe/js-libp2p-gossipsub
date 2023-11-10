@@ -1,17 +1,17 @@
+import { stop } from '@libp2p/interface/startable'
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
+import { createEd25519PeerId } from '@libp2p/peer-id-factory'
 import { expect } from 'aegir/chai'
+import { pEvent } from 'p-event'
 import sinon, { type SinonStubbedInstance } from 'sinon'
+import { stubInterface } from 'ts-sinon'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { GossipsubDhi } from '../src/constants.js'
 import { GossipSub } from '../src/index.js'
-import { pEvent } from 'p-event'
 import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
-import { stop } from '@libp2p/interface/startable'
-import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
-import { stubInterface } from 'ts-sinon'
-import type { Registrar } from '@libp2p/interface-internal/registrar'
-import { createEd25519PeerId } from '@libp2p/peer-id-factory'
 import type { PeerStore } from '@libp2p/interface/peer-store'
 import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
+import type { Registrar } from '@libp2p/interface-internal/registrar'
 
 describe('gossip', () => {
   let nodes: GossipSubAndComponents[]
@@ -42,9 +42,9 @@ describe('gossip', () => {
     const nodeA = nodes[0]
     const topic = 'Z'
 
-    const subscriptionPromises = nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change'))
+    const subscriptionPromises = nodes.map(async (n) => pEvent(n.pubsub, 'subscription-change'))
     // add subscriptions to each node
-    nodes.forEach((n) => n.pubsub.subscribe(topic))
+    nodes.forEach((n) => { n.pubsub.subscribe(topic) })
 
     // every node connected to every other
     await connectAllPubSubNodes(nodes)
@@ -53,7 +53,7 @@ describe('gossip', () => {
     await Promise.all(subscriptionPromises)
 
     // await mesh rebalancing
-    await Promise.all(nodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+    await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
     // set spy. NOTE: Forcing private property to be public
     const nodeASpy = nodeA.pubsub as Partial<GossipSub> as SinonStubbedInstance<{
@@ -66,7 +66,7 @@ describe('gossip', () => {
     // gossip happens during the heartbeat
     await pEvent(nodeA.pubsub, 'gossipsub:heartbeat')
 
-    const mesh = (nodeA.pubsub as GossipSub).mesh.get(topic)
+    const mesh = (nodeA.pubsub).mesh.get(topic)
 
     if (mesh == null) {
       throw new Error('No mesh for topic')
@@ -106,9 +106,9 @@ describe('gossip', () => {
 
     const twoNodes = [nodeA, nodeB]
     const topic = 'Z'
-    const subscriptionPromises = twoNodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change'))
+    const subscriptionPromises = twoNodes.map(async (n) => pEvent(n.pubsub, 'subscription-change'))
     // add subscriptions to each node
-    twoNodes.forEach((n) => n.pubsub.subscribe(topic))
+    twoNodes.forEach((n) => { n.pubsub.subscribe(topic) })
 
     // every node connected to every other
     await connectAllPubSubNodes(twoNodes)
@@ -117,7 +117,7 @@ describe('gossip', () => {
     await Promise.all(subscriptionPromises)
 
     // await mesh rebalancing
-    await Promise.all(twoNodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+    await Promise.all(twoNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
     // set spy. NOTE: Forcing private property to be public
     const nodeBSpy = nodeB.pubsub as Partial<GossipSub> as SinonStubbedInstance<{
@@ -140,9 +140,9 @@ describe('gossip', () => {
     const nodeA = nodes[0]
     const topic = 'Z'
 
-    const promises = nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change'))
+    const promises = nodes.map(async (n) => pEvent(n.pubsub, 'subscription-change'))
     // add subscriptions to each node
-    nodes.forEach((n) => n.pubsub.subscribe(topic))
+    nodes.forEach((n) => { n.pubsub.subscribe(topic) })
 
     // every node connected to every other
     await connectAllPubSubNodes(nodes)
@@ -153,7 +153,7 @@ describe('gossip', () => {
     // await nodeA mesh rebalancing
     await pEvent(nodeA.pubsub, 'gossipsub:heartbeat')
 
-    const mesh = (nodeA.pubsub as GossipSub).mesh.get(topic)
+    const mesh = (nodeA.pubsub).mesh.get(topic)
 
     if (mesh == null) {
       throw new Error('No mesh for topic')
@@ -176,16 +176,16 @@ describe('gossip', () => {
     )
 
     // should be able to send them messages
-    expect((nodeA.pubsub as GossipSub).streamsOutbound.has(peerB)).to.be.true(
+    expect((nodeA.pubsub).streamsOutbound.has(peerB)).to.be.true(
       'nodeA did not have connection open to peerB'
     )
 
     // set spy. NOTE: Forcing private property to be public
-    const nodeASpy = sinon.spy(nodeA.pubsub as GossipSub, 'piggybackControl')
+    const nodeASpy = sinon.spy(nodeA.pubsub, 'piggybackControl')
     // manually add control message to be sent to peerB
     const graft = { ihave: [], iwant: [], graft: [{ topicID: topic }], prune: [] }
-    ;(nodeA.pubsub as GossipSub).control.set(peerB, graft)
-    ;(nodeA.pubsub as GossipSub).gossip.set(peerB, [])
+    ;(nodeA.pubsub).control.set(peerB, graft)
+    ;(nodeA.pubsub).gossip.set(peerB, [])
 
     const publishResult = await nodeA.pubsub.publish(topic, uint8ArrayFromString('hey'))
 
