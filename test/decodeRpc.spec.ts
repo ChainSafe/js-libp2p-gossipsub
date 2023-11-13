@@ -128,7 +128,7 @@ describe('decodeRpc', () => {
       expect(endecode(rpc).control?.prune?.[1].peers).length(1, 'Wrong prune?.[1].peers len')
     })
 
-    function endecode(rpc: IRPC): IRPC {
+    function endecode (rpc: IRPC): IRPC {
       return decodeRpc(RPC.encode(rpc).finish(), decodeRpcLimits)
     }
   })

@@ -1,15 +1,14 @@
+import { FloodSub } from '@libp2p/floodsub'
+import { type Message, TopicValidatorResult } from '@libp2p/interface/pubsub'
+import { stop } from '@libp2p/interface/startable'
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
 import delay from 'delay'
 import pRetry from 'p-retry'
-import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
-import type { GossipSub } from '../../src/index.js'
-import { GossipsubD } from '../../src/constants.js'
-import { fastMsgIdFn } from '../utils/index.js'
-import { type Message, TopicValidatorResult } from '@libp2p/interface/pubsub'
-import type { IRPC, RPC } from '../../src/message/rpc.js'
-import type { Libp2pEvents } from '@libp2p/interface'
 import pWaitFor from 'p-wait-for'
+import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { GossipsubD } from '../../src/constants.js'
 import {
   sparseConnect,
   denseConnect,
@@ -19,11 +18,11 @@ import {
   connectPubsubNodes,
   type GossipSubAndComponents
 } from '../utils/create-pubsub.js'
-import { FloodSub } from '@libp2p/floodsub'
-import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
-import { stop } from '@libp2p/interface/startable'
-import type { TopicScoreParams } from '../../src/score/peer-score-params.js'
 import { awaitEvents, checkReceivedSubscription, checkReceivedSubscriptions } from '../utils/events.js'
+import { fastMsgIdFn } from '../utils/index.js'
+import type { IRPC, RPC } from '../../src/message/rpc.js'
+import type { TopicScoreParams } from '../../src/score/peer-score-params.js'
+import type { Libp2pEvents } from '@libp2p/interface'
 
 /**
  * These tests were translated from:
@@ -38,27 +37,27 @@ import { awaitEvents, checkReceivedSubscription, checkReceivedSubscriptions } fr
  */
 const checkReceivedMessage =
   (topic: string, data: Uint8Array, senderIx: number, msgIx: number) =>
-  async (node: GossipSubAndComponents, receiverIx: number) =>
-    await new Promise<void>((resolve, reject) => {
-      const t = setTimeout(() => {
-        node.pubsub.removeEventListener('message', cb)
-        reject(new Error(`Message never received, sender ${senderIx}, receiver ${receiverIx}, index ${msgIx}`))
-      }, 60000)
-      const cb = (evt: CustomEvent<Message>) => {
-        const msg = evt.detail
-
-        if (msg.topic !== topic) {
-          return
-        }
-
-        if (uint8ArrayEquals(data, msg.data)) {
-          clearTimeout(t)
+    async (node: GossipSubAndComponents, receiverIx: number) =>
+      new Promise<void>((resolve, reject) => {
+        const t = setTimeout(() => {
           node.pubsub.removeEventListener('message', cb)
-          resolve()
+          reject(new Error(`Message never received, sender ${senderIx}, receiver ${receiverIx}, index ${msgIx}`))
+        }, 60000)
+        const cb = (evt: CustomEvent<Message>): void => {
+          const msg = evt.detail
+
+          if (msg.topic !== topic) {
+            return
+          }
+
+          if (uint8ArrayEquals(data, msg.data)) {
+            clearTimeout(t)
+            node.pubsub.removeEventListener('message', cb)
+            resolve()
+          }
         }
-      }
-      node.pubsub.addEventListener('message', cb)
-    })
+        node.pubsub.addEventListener('message', cb)
+      })
 
 describe('go-libp2p-pubsub gossipsub tests', function () {
   // In Github runners it takes ~10sec the longest test
@@ -93,7 +92,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       }
     })
     const topic = 'foobar'
-    psubs.forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     await sparseConnect(psubs)
 
@@ -131,12 +130,12 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       }
     })
     const topic = 'foobar'
-    psubs.forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     await denseConnect(psubs)
 
     // wait for heartbeats to build mesh
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
 
     const sendRecv = []
     for (let i = 0; i < 100; i++) {
@@ -171,8 +170,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       }
     })
     const topic = 'foobar'
-    const promises = psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2))
-    psubs.slice(1).forEach((ps) => ps.pubsub.subscribe(topic))
+    const promises = psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2))
+    psubs.slice(1).forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     await denseConnect(psubs)
 
@@ -194,7 +193,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     psubs[0].pubsub.subscribe(topic)
 
     // wait for a heartbeat
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 1)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 1)))
 
     sendRecv = []
     for (let i = 0; i < 100; i++) {
@@ -234,16 +233,16 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
         }
       }
     })
-    const promises = psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2))
+    const promises = psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2))
     const topic = 'foobar'
-    psubs.slice(1).forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.slice(1).forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     await denseConnect(psubs)
 
     // wait for heartbeats to build mesh
     await Promise.all(promises)
     let sendRecv: Array<Promise<unknown>> = []
-    const sendMessages = async (time: number) => {
+    const sendMessages = async (time: number): Promise<void> => {
       for (let i = 0; i < 100; i++) {
         const msg = uint8ArrayFromString(`${time} ${i} its not a flooooood ${i}`)
 
@@ -262,14 +261,14 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await sendMessages(1)
     await Promise.all(sendRecv)
 
-    psubs.slice(1).forEach((ps) => ps.pubsub.unsubscribe(topic))
+    psubs.slice(1).forEach((ps) => { ps.pubsub.unsubscribe(topic) })
 
     // wait for heartbeats
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
-    psubs.slice(1).forEach((ps) => ps.pubsub.subscribe(topic))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    psubs.slice(1).forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     // wait for heartbeats
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
     sendRecv = []
     await sendMessages(2)
     await Promise.all(sendRecv)
@@ -295,9 +294,9 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
         fanoutTTL: 1000
       }
     })
-    const promises = psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2))
+    const promises = psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2))
     const topic = 'foobar'
-    psubs.slice(1).forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.slice(1).forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     await denseConnect(psubs)
 
@@ -318,10 +317,10 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     }
     await Promise.all(sendRecv)
 
-    expect((psubs[0].pubsub as GossipSub).fanout).to.not.be.empty()
+    expect((psubs[0].pubsub).fanout).to.not.be.empty()
 
     await pWaitFor(async () => {
-      return (psubs[0].pubsub as GossipSub).fanout.size === 0
+      return (psubs[0].pubsub).fanout.size === 0
     })
   })
 
@@ -341,9 +340,9 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
         }
       }
     })
-    const promises = psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2))
+    const promises = psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2))
     const topic = 'foobar'
-    psubs.forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     await denseConnect(psubs)
 
@@ -362,7 +361,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       await delay(100)
     }
     // and wait for some gossip flushing
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
   })
 
   it('test gossipsub gossip propagation', async function () {
@@ -392,10 +391,10 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await denseConnect(group1)
     await denseConnect(group2)
 
-    group1.slice(1).forEach((ps) => ps.pubsub.subscribe(topic))
+    group1.slice(1).forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     // wait for heartbeats to build mesh
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 3)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 3)))
 
     const sendRecv: Array<Promise<unknown>> = []
     for (let i = 0; i < 10; i++) {
@@ -409,14 +408,14 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
 
     await delay(100)
 
-    psubs.slice(GossipsubD + 1).forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.slice(GossipsubD + 1).forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     const received: Message[][] = Array.from({ length: psubs.length - (GossipsubD + 1) }, () => [])
     const results = Promise.all(
       group2.slice(1).map(
         async (ps, ix) =>
           new Promise<void>((resolve, reject) => {
-            const t = setTimeout(() => reject(new Error('Timed out')), 10000)
+            const t = setTimeout(() => { reject(new Error('Timed out')) }, 10000)
             ps.pubsub.addEventListener('message', (e: CustomEvent<Message>) => {
               if (e.detail.topic !== topic) {
                 return
@@ -451,18 +450,18 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       }
     })
     const topic = 'foobar'
-    psubs.forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     await denseConnect(psubs)
 
     // wait for heartbeats to build mesh
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
 
     // disconnect some peers from the mesh to get some PRUNEs
-    psubs.slice(0, 5).forEach((ps) => ps.pubsub.unsubscribe(topic))
+    psubs.slice(0, 5).forEach((ps) => { ps.pubsub.unsubscribe(topic) })
 
     // wait a bit to take effect
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
 
     const sendRecv: Array<Promise<unknown>> = []
     for (let i = 0; i < 100; i++) {
@@ -505,7 +504,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       await delay(100)
     }
 
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
 
     const sendRecv = []
     for (let i = 0; i < 100; i++) {
@@ -539,10 +538,10 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
 
     await denseConnect(psubs)
 
-    psubs.forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     // wait for heartbeats to build mesh
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
 
     // disconnect some peers to exercise _removePeer paths
     afterEach(async () => {
@@ -588,11 +587,11 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await denseConnect(psubs)
 
     for (let i = 0; i < 35; i++) {
-      psubs.forEach((ps) => ps.pubsub.subscribe(`${topic}${i}`))
+      psubs.forEach((ps) => { ps.pubsub.subscribe(`${topic}${i}`) })
     }
 
     // wait for heartbeats to build mesh
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 9)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 9)))
 
     for (let i = 0; i < 35; i++) {
       const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
@@ -631,9 +630,9 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await denseConnect(psubs)
 
     const floodTopic = 'flood'
-    psubs.forEach((ps) => ps.pubsub.subscribe(floodTopic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(floodTopic) })
 
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 1)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 1)))
 
     // create a background flood of messages that overloads the queues
     const floodOwner = Math.floor(Math.random() * psubs.length)
@@ -650,7 +649,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     // result in some dropped control messages, with subsequent piggybacking
     // in the background flood
     for (let i = 0; i < 5; i++) {
-      psubs.forEach((ps) => ps.pubsub.subscribe(`${topic}${i}`))
+      psubs.forEach((ps) => { ps.pubsub.subscribe(`${topic}${i}`) })
     }
 
     // wait for the flood to stop
@@ -694,12 +693,12 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     psubs = gsubs.concat(fsubs)
 
     const topic = 'foobar'
-    psubs.forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     await sparseConnect(psubs)
 
     // wait for heartbeats to build mesh
-    await Promise.all(gsubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    await Promise.all(gsubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
 
     const sendRecv = []
     for (let i = 0; i < 100; i++) {
@@ -750,12 +749,12 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     }
 
     const subscriptionPromises = psubs.map(
-      async (psub, i) => await checkReceivedSubscriptions(psub, peerIdStrsByIdx[i], topic)
+      async (psub, i) => checkReceivedSubscriptions(psub, peerIdStrsByIdx[i], topic)
     )
-    psubs.forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     // wait for heartbeats to build mesh
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
     await Promise.all(subscriptionPromises)
 
     const msg = uint8ArrayFromString(`${0} its not a flooooood ${0}`)
@@ -819,12 +818,12 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     }
 
     const subscriptionPromises = psubs.map(
-      async (psub, i) => await checkReceivedSubscriptions(psub, getPeerIdStrs(i), topic)
+      async (psub, i) => checkReceivedSubscriptions(psub, getPeerIdStrs(i), topic)
     )
-    psubs.forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     // wait for heartbeats to build mesh
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
     await Promise.all(subscriptionPromises)
 
     expect(psubs[0].pubsub.getPeers().map((s) => s.toString())).to.have.members([
@@ -879,23 +878,23 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     })
 
     // configure the center of the star with very low D
-    ;(psubs[0].pubsub as GossipSub).opts.D = 0
-    ;(psubs[0].pubsub as GossipSub).opts.Dhi = 0
-    ;(psubs[0].pubsub as GossipSub).opts.Dlo = 0
-    ;(psubs[0].pubsub as GossipSub).opts.Dscore = 0
+    ;(psubs[0].pubsub).opts.D = 0
+    ;(psubs[0].pubsub).opts.Dhi = 0
+    ;(psubs[0].pubsub).opts.Dlo = 0
+    ;(psubs[0].pubsub).opts.Dscore = 0
 
     // build the star
-    await Promise.all(psubs.slice(1).map((ps) => connectPubsubNodes(psubs[0], ps)))
-    await Promise.all(psubs.map((ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    await Promise.all(psubs.slice(1).map(async (ps) => connectPubsubNodes(psubs[0], ps)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
 
     // build the mesh
     const topic = 'foobar'
     const peerIdStrs = psubs.map((psub) => psub.components.peerId.toString())
     const subscriptionPromise = checkReceivedSubscriptions(psubs[0], peerIdStrs, topic)
-    psubs.forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
 
     // wait a bit for the mesh to build
-    await Promise.all(psubs.map((ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 15, 25000)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 15, 25000)))
     await subscriptionPromise
 
     // check that all peers have > 1 connection
@@ -957,9 +956,9 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
         }
       })
     ])
-    ;(psubs[1].pubsub as GossipSub).direct.add(psubs[2].components.peerId.toString())
+    ;(psubs[1].pubsub).direct.add(psubs[2].components.peerId.toString())
     await connectPubsubNodes(psubs[1], psubs[2])
-    ;(psubs[2].pubsub as GossipSub).direct.add(psubs[1].components.peerId.toString())
+    ;(psubs[2].pubsub).direct.add(psubs[1].components.peerId.toString())
     await connectPubsubNodes(psubs[2], psubs[1])
 
     // each peer connects to 2 other peers
@@ -968,9 +967,9 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
 
     const topic = 'foobar'
     const peerIdStrs = psubs.map((libp2p) => libp2p.components.peerId.toString())
-    let subscriptionPromises = psubs.map((libp2ps) => checkReceivedSubscriptions(libp2ps, peerIdStrs, topic))
-    psubs.forEach((ps) => ps.pubsub.subscribe(topic))
-    await Promise.all(psubs.map((ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 1)))
+    let subscriptionPromises = psubs.map(async (libp2ps) => checkReceivedSubscriptions(libp2ps, peerIdStrs, topic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 1)))
     await Promise.all(subscriptionPromises)
 
     let sendRecv = []
@@ -983,7 +982,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     }
     await Promise.all(sendRecv)
 
-    const connectPromises = [1, 2].map((i) => awaitEvents(psubs[i].components.events, 'peer:connect', 1))
+    const connectPromises = [1, 2].map(async (i) => awaitEvents(psubs[i].components.events, 'peer:connect', 1))
     // disconnect the direct peers to test reconnection
     // need more time to disconnect/connect/send subscriptions again
     subscriptionPromises = [
@@ -994,7 +993,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     // TODO remove when https://github.com/libp2p/js-libp2p-interfaces/pull/268 is merged
     await psubs[2].components.connectionManager.closeConnections(psubs[1].components.peerId)
 
-    await Promise.all(psubs.map((ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 5)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 5)))
     await Promise.all(connectPromises)
     await Promise.all(subscriptionPromises)
     expect(psubs[1].components.connectionManager.getConnections(psubs[2].components.peerId)).to.not.be.empty()
@@ -1030,7 +1029,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
 
     await Promise.all(
       psubs.slice(1).map(async (ps) => {
-        return await connectPubsubNodes(psubs[0], ps)
+        await connectPubsubNodes(psubs[0], ps)
       })
     )
 
@@ -1040,9 +1039,9 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     // build the (partial, unstable) mesh
     const topic = 'foobar'
     const subscriptionPromise = checkReceivedSubscriptions(psub0, peerIdStrs, topic)
-    psubs.forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
 
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 1)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 1)))
     await subscriptionPromise
 
     // send messages from the star and assert they were received
@@ -1085,17 +1084,18 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await denseConnect(psubs)
 
     const topic = 'foobar'
-    psubs.forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
 
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 3)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 3)))
 
-    psubs.slice(1).forEach((ps) =>
+    psubs.slice(1).forEach((ps) => {
       ps.pubsub.addEventListener('message', (evt) => {
         if (evt.detail.type !== 'signed') {
           throw new Error('unexpected message type')
         }
         expect(evt.detail.from.equals(psubs[0].components.peerId)).to.be.false()
       })
+    }
     )
 
     const sendRecv = []
@@ -1106,7 +1106,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     }
     await Promise.all(sendRecv)
 
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
   })
 
   it('test gossipsub score validator ex', async function () {
@@ -1150,7 +1150,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await connectPubsubNodes(psubs[0], psubs[1])
     await connectPubsubNodes(psubs[1], psubs[2])
     await connectPubsubNodes(psubs[0], psubs[2])
-    ;(psubs[0].pubsub as GossipSub).topicValidators.set(topic, async (propagationSource, m) => {
+    ;(psubs[0].pubsub).topicValidators.set(topic, async (propagationSource, m) => {
       if (propagationSource.equals(psubs[1].components.peerId)) return TopicValidatorResult.Ignore
       if (propagationSource.equals(psubs[2].components.peerId)) return TopicValidatorResult.Reject
       throw Error('Unknown PeerId')
@@ -1167,16 +1167,16 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     const msg2 = uint8ArrayFromString('2nd - its not a flooooood')
     await psubs[2].pubsub.publish(topic, msg2)
 
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
 
-    expect((psubs[0].pubsub as GossipSub).score.score(psubs[1].components.peerId.toString())).to.be.eql(0)
-    expect((psubs[0].pubsub as GossipSub).score.score(psubs[2].components.peerId.toString())).to.be.lt(0)
+    expect((psubs[0].pubsub).score.score(psubs[1].components.peerId.toString())).to.be.eql(0)
+    expect((psubs[0].pubsub).score.score(psubs[2].components.peerId.toString())).to.be.lt(0)
   })
 
   it('test gossipsub piggyback control', async function () {
     psubs = await createComponentsArray({ number: 2 })
     const otherId = psubs[1].components.peerId.toString()
-    const psub = psubs[0].pubsub as GossipSub
+    const psub = psubs[0].pubsub
 
     const topic1 = 'topic_1'
     const topic2 = 'topic_2'
@@ -1230,6 +1230,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
           IPColocationFactorThreshold: 50,
           decayToZero: 0.01,
           topics: {
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             [topic]: {
               topicWeight: 1,
               timeInMeshWeight: 0.00002777,
@@ -1251,17 +1252,17 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
         }
       }
     })
-    const promises = psubs.map((ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 1))
+    const promises = psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 1))
     const real = psubs.slice(0, 6)
     const sybils = psubs.slice(6)
 
     const connectPromises = real.map(
-      async (psub) => await awaitEvents<Libp2pEvents>(psub.components.events, 'peer:connect', 3)
+      async (psub) => awaitEvents<Libp2pEvents>(psub.components.events, 'peer:connect', 3)
     )
     await connectSome(real, 5)
     await Promise.all(connectPromises)
     sybils.forEach((s) => {
-      ;(s.pubsub as GossipSub).handleReceivedRpc = async function () {
+      (s.pubsub).handleReceivedRpc = async function () {
         //
       }
     })
@@ -1275,13 +1276,13 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await Promise.all(promises)
 
     const realPeerIdStrs = real.map((psub) => psub.components.peerId.toString())
-    const subscriptionPromises = real.map((psub) => {
+    const subscriptionPromises = real.map(async (psub) => {
       const waitingPeerIdStrs = Array.from(psub.pubsub.getPeers().values())
         .map((p) => p.toString())
         .filter((peerId) => realPeerIdStrs.includes(peerId.toString()))
       return checkReceivedSubscriptions(psub, waitingPeerIdStrs, topic)
     })
-    psubs.forEach((ps) => ps.pubsub.subscribe(topic))
+    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
     await Promise.all(subscriptionPromises)
 
     for (let i = 0; i < 300; i++) {
@@ -1291,7 +1292,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     }
 
     // now wait for opgraft cycles
-    await Promise.all(psubs.map(async (ps) => await awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 7)))
+    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 7)))
 
     // check the honest node meshes, they should have at least 3 honest peers each
     const realPeerIds = real.map((r) => r.components.peerId.toString())
@@ -1299,7 +1300,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await pRetry(
       async () => {
         for (const r of real) {
-          const meshPeers = (r.pubsub as GossipSub).mesh.get(topic)
+          const meshPeers = (r.pubsub).mesh.get(topic)
 
           if (meshPeers == null) {
             throw new Error('meshPeers was null')

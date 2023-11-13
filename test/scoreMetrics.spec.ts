@@ -1,8 +1,8 @@
-import { computeAllPeersScoreWeights } from '../src/score/scoreMetrics.js'
-import { createPeerScoreParams, createTopicScoreParams, PeerScore } from '../src/score/index.js'
-import { ScorePenalty } from '../src/metrics.js'
-import { expect } from 'aegir/chai'
 import { createEd25519PeerId } from '@libp2p/peer-id-factory'
+import { expect } from 'aegir/chai'
+import { ScorePenalty } from '../src/metrics.js'
+import { createPeerScoreParams, createTopicScoreParams, PeerScore } from '../src/score/index.js'
+import { computeAllPeersScoreWeights } from '../src/score/scoreMetrics.js'
 
 describe('score / scoreMetrics', () => {
   it('computeScoreWeights', async () => {

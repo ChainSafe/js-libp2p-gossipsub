@@ -1,11 +1,10 @@
-import { expect } from 'aegir/chai'
-import delay from 'delay'
-import { GossipsubDhi } from '../src/constants.js'
-import type { GossipSub } from '../src/index.js'
-import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
 import { stop } from '@libp2p/interface/startable'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
+import { expect } from 'aegir/chai'
+import delay from 'delay'
 import { pEvent } from 'p-event'
+import { GossipsubDhi } from '../src/constants.js'
+import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
 
 describe('mesh overlay', () => {
   let nodes: GossipSubAndComponents[]
@@ -37,7 +36,7 @@ describe('mesh overlay', () => {
     const topic = 'Z'
 
     // add subscriptions to each node
-    nodes.forEach((node) => node.pubsub.subscribe(topic))
+    nodes.forEach((node) => { node.pubsub.subscribe(topic) })
 
     // connect N (< GossipsubD) nodes to node0
     const N = 4
@@ -45,13 +44,14 @@ describe('mesh overlay', () => {
 
     await delay(50)
     // await mesh rebalancing
-    await new Promise((resolve) =>
-      (node0.pubsub as GossipSub).addEventListener('gossipsub:heartbeat', resolve, {
+    await new Promise((resolve) => {
+      (node0.pubsub).addEventListener('gossipsub:heartbeat', resolve, {
         once: true
       })
+    }
     )
 
-    const mesh = (node0.pubsub as GossipSub).mesh.get(topic)
+    const mesh = (node0.pubsub).mesh.get(topic)
     expect(mesh).to.have.property('size', N)
   })
 
@@ -62,14 +62,14 @@ describe('mesh overlay', () => {
     const topic = 'Z'
 
     // add subscriptions to each node
-    nodes.forEach((node) => node.pubsub.subscribe(topic))
+    nodes.forEach((node) => { node.pubsub.subscribe(topic) })
 
     await connectAllPubSubNodes(nodes)
 
     // await mesh rebalancing
     await pEvent(node0.pubsub, 'gossipsub:heartbeat')
 
-    const mesh = (node0.pubsub as GossipSub).mesh.get(topic)
+    const mesh = (node0.pubsub).mesh.get(topic)
     expect(mesh).to.have.property('size').that.is.lte(GossipsubDhi)
   })
 })

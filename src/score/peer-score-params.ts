@@ -1,5 +1,5 @@
-import { ERR_INVALID_PEER_SCORE_PARAMS } from './constants.js'
 import { CodeError } from '@libp2p/interface/errors'
+import { ERR_INVALID_PEER_SCORE_PARAMS } from './constants.js'
 
 // This file defines PeerScoreParams and TopicScoreParams interfaces
 // as well as constructors, default constructors, and validation functions
@@ -20,7 +20,7 @@ export interface PeerScoreParams {
   /**
    * P5: Application-specific peer scoring
    */
-  appSpecificScore: (p: string) => number
+  appSpecificScore(p: string): number
   appSpecificWeight: number
 
   /**
@@ -31,7 +31,7 @@ export interface PeerScoreParams {
    * If the number of peers in the same IP is less than the threshold, then the value is 0.
    * The weight of the parameter MUST be negative, unless you want to disable for testing.
    * Note: In order to simulate many IPs in a managable manner when testing, you can set the weight to 0
-   *       thus disabling the IP colocation penalty.
+   * thus disabling the IP colocation penalty.
    */
   IPColocationFactorWeight: number
   IPColocationFactorThreshold: number
@@ -177,20 +177,20 @@ export const defaultTopicScoreParams: TopicScoreParams = {
   invalidMessageDeliveriesDecay: 0.3
 }
 
-export function createPeerScoreParams(p: Partial<PeerScoreParams> = {}): PeerScoreParams {
+export function createPeerScoreParams (p: Partial<PeerScoreParams> = {}): PeerScoreParams {
   return {
     ...defaultPeerScoreParams,
     ...p,
-    topics: p.topics
-      ? Object.entries(p.topics).reduce((topics, [topic, topicScoreParams]) => {
-          topics[topic] = createTopicScoreParams(topicScoreParams)
-          return topics
-        }, {} as Record<string, TopicScoreParams>)
+    topics: (p.topics != null)
+      ? Object.entries(p.topics).reduce<Record<string, TopicScoreParams>>((topics, [topic, topicScoreParams]) => {
+        topics[topic] = createTopicScoreParams(topicScoreParams)
+        return topics
+      }, {})
       : {}
   }
 }
 
-export function createTopicScoreParams(p: Partial<TopicScoreParams> = {}): TopicScoreParams {
+export function createTopicScoreParams (p: Partial<TopicScoreParams> = {}): TopicScoreParams {
   return {
     ...defaultTopicScoreParams,
     ...p
@@ -198,7 +198,7 @@ export function createTopicScoreParams(p: Partial<TopicScoreParams> = {}): Topic
 }
 
 // peer score parameter validation
-export function validatePeerScoreParams(p: PeerScoreParams): void {
+export function validatePeerScoreParams (p: PeerScoreParams): void {
   for (const [topic, params] of Object.entries(p.topics)) {
     try {
       validateTopicScoreParams(params)
@@ -253,7 +253,8 @@ export function validatePeerScoreParams(p: PeerScoreParams): void {
   // no need to check the score retention; a value of 0 means that we don't retain scores
 }
 
-export function validateTopicScoreParams(p: TopicScoreParams): void {
+// eslint-disable-next-line complexity
+export function validateTopicScoreParams (p: TopicScoreParams): void {
   // make sure we have a sane topic weight
   if (p.topicWeight < 0) {
     throw new CodeError('invalid topic weight; must be >= 0', ERR_INVALID_PEER_SCORE_PARAMS)

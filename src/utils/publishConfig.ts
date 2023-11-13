@@ -1,18 +1,18 @@
 import { unmarshalPrivateKey } from '@libp2p/crypto/keys'
 import { StrictSign, StrictNoSign } from '@libp2p/interface/pubsub'
-import type { PeerId } from '@libp2p/interface/peer-id'
 import { type PublishConfig, PublishConfigType } from '../types.js'
+import type { PeerId } from '@libp2p/interface/peer-id'
 
 /**
  * Prepare a PublishConfig object from a PeerId.
  */
-export async function getPublishConfigFromPeerId(
+export async function getPublishConfigFromPeerId (
   signaturePolicy: typeof StrictSign | typeof StrictNoSign,
   peerId?: PeerId
 ): Promise<PublishConfig> {
   switch (signaturePolicy) {
     case StrictSign: {
-      if (!peerId) {
+      if (peerId == null) {
         throw Error('Must provide PeerId')
       }
 

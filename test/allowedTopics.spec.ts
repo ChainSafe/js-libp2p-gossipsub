@@ -1,9 +1,8 @@
-import { expect } from 'aegir/chai'
-import type { GossipSub } from '../src/index.js'
-import { pEvent } from 'p-event'
-import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
 import { stop } from '@libp2p/interface/startable'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
+import { expect } from 'aegir/chai'
+import { pEvent } from 'p-event'
+import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
 
 /* eslint-disable dot-notation */
 describe('gossip / allowedTopics', () => {
@@ -47,10 +46,12 @@ describe('gossip / allowedTopics', () => {
       pEvent(nodeB.pubsub, 'subscription-change')
     ])
 
-    const nodeASubscriptions = Array.from((nodeA.pubsub as GossipSub)['subscriptions'].keys())
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    const nodeASubscriptions = Array.from((nodeA.pubsub)['subscriptions'].keys())
     expect(nodeASubscriptions).deep.equals(allTopics, 'nodeA.subscriptions should be subcribed to all')
 
-    const nodeBTopics = Array.from((nodeB.pubsub as GossipSub)['topics'].keys())
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    const nodeBTopics = Array.from((nodeB.pubsub)['topics'].keys())
     expect(nodeBTopics).deep.equals(allowedTopics, 'nodeB.topics should only contain allowedTopics')
   })
 })

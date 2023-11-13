@@ -1,7 +1,7 @@
-import type { IRPC, RPC } from './rpc.js'
 import protobuf from 'protobufjs/minimal.js'
+import type { IRPC, RPC } from './rpc.js'
 
-export type DecodeRPCLimits = {
+export interface DecodeRPCLimits {
   maxSubscriptions: number
   maxMessages: number
   maxIhaveMessageIDs: number
@@ -22,7 +22,7 @@ export const defaultDecodeRpcLimits: DecodeRPCLimits = {
 /**
  * Copied code from src/message/rpc.cjs but with decode limits to prevent OOM attacks
  */
-export function decodeRpc(bytes: Uint8Array, opts: DecodeRPCLimits): IRPC {
+export function decodeRpc (bytes: Uint8Array, opts: DecodeRPCLimits): IRPC {
   // Mutate to use the option as stateful counter. Must limit the total count of messageIDs across all IWANT, IHAVE
   // else one count put 100 messageIDs into each 100 IWANT and "get around" the limit
   opts = { ...opts }
@@ -36,12 +36,12 @@ export function decodeRpc(bytes: Uint8Array, opts: DecodeRPCLimits): IRPC {
     const t = r.uint32()
     switch (t >>> 3) {
       case 1:
-        if (!(m.subscriptions && m.subscriptions.length)) m.subscriptions = []
+        if (!((m.subscriptions != null) && (m.subscriptions.length > 0))) m.subscriptions = []
         if (m.subscriptions.length < opts.maxSubscriptions) m.subscriptions.push(decodeSubOpts(r, r.uint32()))
         else r.skipType(t & 7)
         break
       case 2:
-        if (!(m.messages && m.messages.length)) m.messages = []
+        if (!((m.messages != null) && (m.messages.length > 0))) m.messages = []
         if (m.messages.length < opts.maxMessages) m.messages.push(decodeMessage(r, r.uint32()))
         else r.skipType(t & 7)
         break
@@ -56,7 +56,7 @@ export function decodeRpc(bytes: Uint8Array, opts: DecodeRPCLimits): IRPC {
   return m
 }
 
-function decodeSubOpts(r: protobuf.Reader, l: number) {
+function decodeSubOpts (r: protobuf.Reader, l: number): RPC.ISubOpts {
   const c = l === undefined ? r.len : r.pos + l
   const m: RPC.ISubOpts = {}
   while (r.pos < c) {
@@ -76,8 +76,9 @@ function decodeSubOpts(r: protobuf.Reader, l: number) {
   return m
 }
 
-function decodeMessage(r: protobuf.Reader, l: number) {
+function decodeMessage (r: protobuf.Reader, l: number): RPC.IMessage {
   const c = l === undefined ? r.len : r.pos + l
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const m = {} as RPC.IMessage
   while (r.pos < c) {
     const t = r.uint32()
@@ -105,33 +106,35 @@ function decodeMessage(r: protobuf.Reader, l: number) {
         break
     }
   }
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   if (!m.topic) throw Error("missing required 'topic'")
   return m
 }
 
-function decodeControlMessage(r: protobuf.Reader, l: number, opts: DecodeRPCLimits) {
+function decodeControlMessage (r: protobuf.Reader, l: number, opts: DecodeRPCLimits): RPC.IControlMessage {
   const c = l === undefined ? r.len : r.pos + l
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const m = {} as RPC.IControlMessage
   while (r.pos < c) {
     const t = r.uint32()
     switch (t >>> 3) {
       case 1:
-        if (!(m.ihave && m.ihave.length)) m.ihave = []
+        if (!((m.ihave != null) && (m.ihave.length > 0))) m.ihave = []
         if (m.ihave.length < opts.maxControlMessages) m.ihave.push(decodeControlIHave(r, r.uint32(), opts))
         else r.skipType(t & 7)
         break
       case 2:
-        if (!(m.iwant && m.iwant.length)) m.iwant = []
+        if (!((m.iwant != null) && (m.iwant.length > 0))) m.iwant = []
         if (m.iwant.length < opts.maxControlMessages) m.iwant.push(decodeControlIWant(r, r.uint32(), opts))
         else r.skipType(t & 7)
         break
       case 3:
-        if (!(m.graft && m.graft.length)) m.graft = []
+        if (!((m.graft != null) && (m.graft.length > 0))) m.graft = []
         if (m.graft.length < opts.maxControlMessages) m.graft.push(decodeControlGraft(r, r.uint32()))
         else r.skipType(t & 7)
         break
       case 4:
-        if (!(m.prune && m.prune.length)) m.prune = []
+        if (!((m.prune != null) && (m.prune.length > 0))) m.prune = []
         if (m.prune.length < opts.maxControlMessages) m.prune.push(decodeControlPrune(r, r.uint32(), opts))
         else r.skipType(t & 7)
         break
@@ -143,8 +146,9 @@ function decodeControlMessage(r: protobuf.Reader, l: number, opts: DecodeRPCLimi
   return m
 }
 
-function decodeControlIHave(r: protobuf.Reader, l: number, opts: DecodeRPCLimits) {
+function decodeControlIHave (r: protobuf.Reader, l: number, opts: DecodeRPCLimits): RPC.IControlIHave {
   const c = l === undefined ? r.len : r.pos + l
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const m = {} as RPC.IControlIHave
   while (r.pos < c) {
     const t = r.uint32()
@@ -153,7 +157,7 @@ function decodeControlIHave(r: protobuf.Reader, l: number, opts: DecodeRPCLimits
         m.topicID = r.string()
         break
       case 2:
-        if (!(m.messageIDs && m.messageIDs.length)) m.messageIDs = []
+        if (!((m.messageIDs != null) && (m.messageIDs.length > 0))) m.messageIDs = []
         if (opts.maxIhaveMessageIDs-- > 0) m.messageIDs.push(r.bytes())
         else r.skipType(t & 7)
         break
@@ -165,14 +169,15 @@ function decodeControlIHave(r: protobuf.Reader, l: number, opts: DecodeRPCLimits
   return m
 }
 
-function decodeControlIWant(r: protobuf.Reader, l: number, opts: DecodeRPCLimits) {
+function decodeControlIWant (r: protobuf.Reader, l: number, opts: DecodeRPCLimits): RPC.IControlIWant {
   const c = l === undefined ? r.len : r.pos + l
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const m = {} as RPC.IControlIWant
   while (r.pos < c) {
     const t = r.uint32()
     switch (t >>> 3) {
       case 1:
-        if (!(m.messageIDs && m.messageIDs.length)) m.messageIDs = []
+        if (!((m.messageIDs != null) && (m.messageIDs.length > 0))) m.messageIDs = []
         if (opts.maxIwantMessageIDs-- > 0) m.messageIDs.push(r.bytes())
         else r.skipType(t & 7)
         break
@@ -184,8 +189,9 @@ function decodeControlIWant(r: protobuf.Reader, l: number, opts: DecodeRPCLimits
   return m
 }
 
-function decodeControlGraft(r: protobuf.Reader, l: number) {
+function decodeControlGraft (r: protobuf.Reader, l: number): RPC.IControlGraft {
   const c = l === undefined ? r.len : r.pos + l
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const m = {} as RPC.IControlGraft
   while (r.pos < c) {
     const t = r.uint32()
@@ -201,8 +207,9 @@ function decodeControlGraft(r: protobuf.Reader, l: number) {
   return m
 }
 
-function decodeControlPrune(r: protobuf.Reader, l: number, opts: DecodeRPCLimits) {
+function decodeControlPrune (r: protobuf.Reader, l: number, opts: DecodeRPCLimits): RPC.IControlPrune {
   const c = l === undefined ? r.len : r.pos + l
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const m = {} as RPC.IControlPrune
   while (r.pos < c) {
     const t = r.uint32()
@@ -211,7 +218,7 @@ function decodeControlPrune(r: protobuf.Reader, l: number, opts: DecodeRPCLimits
         m.topicID = r.string()
         break
       case 2:
-        if (!(m.peers && m.peers.length)) m.peers = []
+        if (!((m.peers != null) && (m.peers.length > 0))) m.peers = []
         if (opts.maxPeerInfos-- > 0) m.peers.push(decodePeerInfo(r, r.uint32()))
         else r.skipType(t & 7)
         break
@@ -226,8 +233,9 @@ function decodeControlPrune(r: protobuf.Reader, l: number, opts: DecodeRPCLimits
   return m
 }
 
-function decodePeerInfo(r: protobuf.Reader, l: number) {
+function decodePeerInfo (r: protobuf.Reader, l: number): RPC.IPeerInfo {
   const c = l === undefined ? r.len : r.pos + l
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const m = {} as RPC.IPeerInfo
   while (r.pos < c) {
     const t = r.uint32()

@@ -1,15 +1,15 @@
-import type { Libp2pEvents } from '@libp2p/interface'
-import tests from '@libp2p/interface-compliance-tests/pubsub'
 import { EventEmitter } from '@libp2p/interface/events'
+import tests from '@libp2p/interface-compliance-tests/pubsub'
 import { PersistentPeerStore } from '@libp2p/peer-store'
 import { MemoryDatastore } from 'datastore-core'
 import { GossipSub } from '../src/index.js'
+import type { Libp2pEvents } from '@libp2p/interface'
 
 describe.skip('interface compliance', function () {
   this.timeout(3000)
 
   tests({
-    async setup(args) {
+    async setup (args) {
       if (args == null) {
         throw new Error('PubSubOptions is required')
       }
@@ -34,7 +34,7 @@ describe.skip('interface compliance', function () {
       return pubsub
     },
 
-    async teardown() {
+    async teardown () {
       //
     }
   })
