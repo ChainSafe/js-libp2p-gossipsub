@@ -15,6 +15,19 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [10.1.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v10.1.0...v10.1.1) (2023-11-21)
+
+
+### Bug Fixes
+
+* runsFactor in benchmark ([#467](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/467)) ([aa208c2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/aa208c2f6bad1c4c0b03cf48e6c76078c272bff9))
+* use typed event emitter class ([#470](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/470)) ([3af4e7a](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/3af4e7aec8e295ae3132e2ff3f79cca458fecd5d))
+
+
+### Miscellaneous
+
+* update linter rules ([#471](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/471)) ([a39115c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/a39115c1b38da45e20ff4d8643675e26dd82e63f))
+
 ## [10.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v10.0.0...v10.1.0) (2023-08-22)
 
 
