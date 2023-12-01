@@ -1,5 +1,6 @@
-import { stop } from '@libp2p/interface/startable'
+import { stop } from '@libp2p/interface'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
+import { defaultLogger } from '@libp2p/logger'
 import { createEd25519PeerId } from '@libp2p/peer-id-factory'
 import { expect } from 'aegir/chai'
 import { pEvent } from 'p-event'
@@ -9,7 +10,7 @@ import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { GossipsubDhi } from '../src/constants.js'
 import { GossipSub } from '../src/index.js'
 import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
-import type { PeerStore } from '@libp2p/interface/peer-store'
+import type { PeerStore } from '@libp2p/interface'
 import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
 import type { Registrar } from '@libp2p/interface-internal/registrar'
 
@@ -218,7 +219,8 @@ describe('gossip', () => {
         peerId: await createEd25519PeerId(),
         registrar,
         peerStore: stubInterface<PeerStore>(),
-        connectionManager: stubInterface<ConnectionManager>()
+        connectionManager: stubInterface<ConnectionManager>(),
+        logger: defaultLogger()
       },
       {
         maxInboundStreams,

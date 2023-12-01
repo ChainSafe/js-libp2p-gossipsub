@@ -1,6 +1,4 @@
-import { CustomEvent, TypedEventEmitter } from '@libp2p/interface/events'
-import { StrictSign, StrictNoSign, TopicValidatorResult } from '@libp2p/interface/pubsub'
-import { type Logger, logger } from '@libp2p/logger'
+import { CustomEvent, TypedEventEmitter, StrictSign, StrictNoSign, TopicValidatorResult } from '@libp2p/interface'
 import { peerIdFromBytes, peerIdFromString } from '@libp2p/peer-id'
 import { pipe } from 'it-pipe'
 import { pushable } from 'it-pushable'
@@ -62,18 +60,18 @@ import { getPublishConfigFromPeerId } from './utils/publishConfig.js'
 import { removeFirstNItemsFromSet, removeItemsFromSet } from './utils/set.js'
 import { SimpleTimeCache } from './utils/time-cache.js'
 import type { GossipsubOptsSpec } from './config.js'
-import type { Connection, Stream } from '@libp2p/interface/connection'
-import type { PeerId } from '@libp2p/interface/peer-id'
-import type { Peer, PeerStore } from '@libp2p/interface/peer-store'
 import type {
+  Connection, Stream, PeerId, Peer, PeerStore,
   Message,
   PublishResult,
   PubSub,
   PubSubEvents,
   PubSubInit,
   SubscriptionChangeData,
-  TopicValidatorFn
-} from '@libp2p/interface/pubsub'
+  TopicValidatorFn,
+  Logger,
+  ComponentLogger
+} from '@libp2p/interface'
 import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
 import type { IncomingStreamData, Registrar } from '@libp2p/interface-internal/registrar'
 import type { Multiaddr } from '@multiformats/multiaddr'
@@ -224,6 +222,7 @@ export interface GossipSubComponents {
   peerStore: PeerStore
   registrar: Registrar
   connectionManager: ConnectionManager
+  logger: ComponentLogger
 }
 
 export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements PubSub<GossipsubEvents> {
@@ -431,7 +430,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     }
 
     // From pubsub
-    this.log = logger(opts.debugName ?? 'libp2p:gossipsub')
+    this.log = components.logger.forComponent(opts.debugName ?? 'libp2p:gossipsub')
 
     // Gossipsub
 

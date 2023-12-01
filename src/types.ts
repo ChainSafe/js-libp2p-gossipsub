@@ -1,7 +1,5 @@
-import { type Message, TopicValidatorResult } from '@libp2p/interface/pubsub'
+import { type Message, TopicValidatorResult, type PrivateKey, type PeerId } from '@libp2p/interface'
 import type { RPC } from './message/rpc.js'
-import type { PrivateKey } from '@libp2p/interface/keys'
-import type { PeerId } from '@libp2p/interface/peer-id'
 import type { Multiaddr } from '@multiformats/multiaddr'
 
 export type MsgIdStr = string

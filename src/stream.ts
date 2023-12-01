@@ -2,7 +2,7 @@ import { abortableSource } from 'abortable-iterator'
 import { encode, decode } from 'it-length-prefixed'
 import { pipe } from 'it-pipe'
 import { pushable, type Pushable } from 'it-pushable'
-import type { Stream } from '@libp2p/interface/connection'
+import type { Stream } from '@libp2p/interface'
 import type { Uint8ArrayList } from 'uint8arraylist'
 
 interface OutboundStreamOpts {

@@ -1,6 +1,6 @@
 import { msgId } from '@libp2p/pubsub/utils'
 import { sha256 } from 'multiformats/hashes/sha2'
-import type { Message } from '@libp2p/interface/pubsub'
+import type { Message } from '@libp2p/interface'
 
 /**
  * Generate a message id, based on the `key` and `seqno`

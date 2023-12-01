@@ -1,6 +1,6 @@
 import { FloodSub } from '@libp2p/floodsub'
-import { type Message, TopicValidatorResult } from '@libp2p/interface/pubsub'
-import { stop } from '@libp2p/interface/startable'
+import { type Message, TopicValidatorResult, type Libp2pEvents } from '@libp2p/interface'
+import { stop } from '@libp2p/interface'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
 import delay from 'delay'
@@ -22,7 +22,6 @@ import { awaitEvents, checkReceivedSubscription, checkReceivedSubscriptions } fr
 import { fastMsgIdFn } from '../utils/index.js'
 import type { IRPC, RPC } from '../../src/message/rpc.js'
 import type { TopicScoreParams } from '../../src/score/peer-score-params.js'
-import type { Libp2pEvents } from '@libp2p/interface'
 
 /**
  * These tests were translated from:
