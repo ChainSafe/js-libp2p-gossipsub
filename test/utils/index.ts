@@ -2,7 +2,7 @@ import { createEd25519PeerId } from '@libp2p/peer-id-factory'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import type { RPC } from '../../src/message/rpc.js'
 import type { TopicStr } from '../../src/types.js'
-import type { PeerId } from '@libp2p/interface/peer-id'
+import type { PeerId } from '@libp2p/interface'
 
 export * from './msgId.js'
 

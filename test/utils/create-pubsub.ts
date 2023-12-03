@@ -1,14 +1,13 @@
 import { setMaxListeners } from 'events'
-import { TypedEventEmitter, type TypedEventTarget } from '@libp2p/interface/events'
-import { start } from '@libp2p/interface/startable'
+import { TypedEventEmitter, start } from '@libp2p/interface'
 import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
+import { defaultLogger } from '@libp2p/logger'
 import { createRSAPeerId } from '@libp2p/peer-id-factory'
 import { PersistentPeerStore } from '@libp2p/peer-store'
 import { MemoryDatastore } from 'datastore-core'
 import { stubInterface } from 'ts-sinon'
 import { GossipSub, type GossipSubComponents, type GossipsubOpts } from '../../src/index.js'
-import type { Libp2pEvents } from '@libp2p/interface'
-import type { PubSub } from '@libp2p/interface/pubsub'
+import type { TypedEventTarget, Libp2pEvents, PubSub } from '@libp2p/interface'
 import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
 
 export interface CreateComponentsOpts {
@@ -30,6 +29,7 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Goss
   const peerId = await createRSAPeerId({ bits: 512 })
 
   const events = new TypedEventEmitter<Libp2pEvents>()
+  const logger = defaultLogger()
 
   const components: GossipSubTestComponents = {
     peerId,
@@ -38,9 +38,11 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Goss
     peerStore: new PersistentPeerStore({
       peerId,
       datastore: new MemoryDatastore(),
-      events
+      events,
+      logger
     }),
-    events
+    events,
+    logger
   }
   components.connectionManager = mockConnectionManager(components)
 

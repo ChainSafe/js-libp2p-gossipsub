@@ -1,4 +1,4 @@
-import { stop } from '@libp2p/interface/startable'
+import { stop } from '@libp2p/interface'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
 import defer from 'p-defer'
@@ -12,7 +12,7 @@ import {
   createComponentsArray,
   type GossipSubAndComponents
 } from './utils/create-pubsub.js'
-import type { Message, SubscriptionChangeData } from '@libp2p/interface/pubsub'
+import type { Message, SubscriptionChangeData } from '@libp2p/interface'
 
 const shouldNotHappen = (): never => expect.fail()
 

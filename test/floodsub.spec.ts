@@ -1,5 +1,5 @@
 import { FloodSub } from '@libp2p/floodsub'
-import { stop } from '@libp2p/interface/startable'
+import { stop } from '@libp2p/interface'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
 import delay from 'delay'
@@ -7,7 +7,7 @@ import { pEvent } from 'p-event'
 import pRetry from 'p-retry'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { connectPubsubNodes, createComponents, type GossipSubAndComponents } from './utils/create-pubsub.js'
-import type { SubscriptionChangeData, Message } from '@libp2p/interface/pubsub'
+import type { SubscriptionChangeData, Message } from '@libp2p/interface'
 
 describe('gossipsub fallbacks to floodsub', () => {
   describe('basics', () => {

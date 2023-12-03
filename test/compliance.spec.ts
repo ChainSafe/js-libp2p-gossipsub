@@ -1,5 +1,6 @@
-import { TypedEventEmitter } from '@libp2p/interface/events'
+import { TypedEventEmitter } from '@libp2p/interface'
 import tests from '@libp2p/interface-compliance-tests/pubsub'
+import { defaultLogger } from '@libp2p/logger'
 import { PersistentPeerStore } from '@libp2p/peer-store'
 import { MemoryDatastore } from 'datastore-core'
 import { GossipSub } from '../src/index.js'
@@ -20,7 +21,8 @@ describe.skip('interface compliance', function () {
           peerStore: new PersistentPeerStore({
             peerId: args.components.peerId,
             datastore: new MemoryDatastore(),
-            events: new TypedEventEmitter<Libp2pEvents>()
+            events: new TypedEventEmitter<Libp2pEvents>(),
+            logger: defaultLogger()
           })
         },
         {

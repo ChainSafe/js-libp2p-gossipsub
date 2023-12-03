@@ -2,8 +2,7 @@ import { expect } from 'aegir/chai'
 import pWaitFor from 'p-wait-for'
 import type { GossipSubAndComponents } from './create-pubsub.js'
 import type { GossipsubEvents } from '../../src/index.js'
-import type { TypedEventTarget } from '@libp2p/interface/events'
-import type { SubscriptionChangeData } from '@libp2p/interface/pubsub'
+import type { TypedEventTarget, SubscriptionChangeData } from '@libp2p/interface'
 
 export const checkReceivedSubscription = async (
   node: GossipSubAndComponents,

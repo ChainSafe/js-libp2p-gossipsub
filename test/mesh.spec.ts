@@ -1,4 +1,4 @@
-import { stop } from '@libp2p/interface/startable'
+import { stop } from '@libp2p/interface'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
 import delay from 'delay'

@@ -1,4 +1,4 @@
-import { TopicValidatorResult } from '@libp2p/interface/pubsub'
+import { TopicValidatorResult } from '@libp2p/interface'
 import {
   MessageStatus,
   type PeerIdStr,

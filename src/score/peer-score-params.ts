@@ -1,4 +1,4 @@
-import { CodeError } from '@libp2p/interface/errors'
+import { CodeError } from '@libp2p/interface'
 import { ERR_INVALID_PEER_SCORE_PARAMS } from './constants.js'
 
 // This file defines PeerScoreParams and TopicScoreParams interfaces
