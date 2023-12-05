@@ -15,6 +15,13 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [11.0.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.0.0...v11.0.1) (2023-12-05)
+
+
+### Bug Fixes
+
+* make peer score use component logger ([#476](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/476)) ([dba38d1](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/dba38d1d5093bac32d4c5c37a35699b09131e762))
+
 ## [11.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v10.1.1...v11.0.0) (2023-12-03)
 
 
