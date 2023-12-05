@@ -503,7 +503,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     /**
      * libp2p
      */
-    this.score = new PeerScore(this.opts.scoreParams, this.metrics, {
+    this.score = new PeerScore(this.opts.scoreParams, this.metrics, this.components.logger, {
       scoreCacheValidityMs: opts.heartbeatInterval
     })
 

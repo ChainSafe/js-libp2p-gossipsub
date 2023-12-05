@@ -1,4 +1,3 @@
-import { logger } from '@libp2p/logger'
 import { type MsgIdStr, type PeerIdStr, RejectReason, type TopicStr, type IPStr } from '../types.js'
 import { MapDef } from '../utils/set.js'
 import { computeScore } from './compute-score.js'
@@ -6,8 +5,7 @@ import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries.js
 import { type PeerScoreParams, validatePeerScoreParams } from './peer-score-params.js'
 import type { PeerStats, TopicStats } from './peer-stats.js'
 import type { Metrics, ScorePenalty } from '../metrics.js'
-
-const log = logger('libp2p:gossipsub:score')
+import type { ComponentLogger, Logger } from '@libp2p/interface'
 
 interface PeerScoreOpts {
   /**
@@ -49,11 +47,13 @@ export class PeerScore {
 
   private readonly scoreCacheValidityMs: number
   private readonly computeScore: typeof computeScore
+  private readonly log: Logger
 
-  constructor (readonly params: PeerScoreParams, private readonly metrics: Metrics | null, opts: PeerScoreOpts) {
+  constructor (readonly params: PeerScoreParams, private readonly metrics: Metrics | null, componentLogger: ComponentLogger, opts: PeerScoreOpts) {
     validatePeerScoreParams(params)
     this.scoreCacheValidityMs = opts.scoreCacheValidityMs
     this.computeScore = opts.computeScore ?? computeScore
+    this.log = componentLogger.forComponent('libp2p:gossipsub:score')
   }
 
   get size (): number {
@@ -65,11 +65,11 @@ export class PeerScore {
    */
   start (): void {
     if (this._backgroundInterval != null) {
-      log('Peer score already running')
+      this.log('Peer score already running')
       return
     }
     this._backgroundInterval = setInterval(() => { this.background() }, this.params.decayInterval)
-    log('started')
+    this.log('started')
   }
 
   /**
@@ -77,7 +77,7 @@ export class PeerScore {
    */
   stop (): void {
     if (this._backgroundInterval == null) {
-      log('Peer score already stopped')
+      this.log('Peer score already stopped')
       return
     }
     clearInterval(this._backgroundInterval)
@@ -85,7 +85,7 @@ export class PeerScore {
     this.peerIPs.clear()
     this.peerStats.clear()
     this.deliveryRecords.clear()
-    log('stopped')
+    this.log('stopped')
   }
 
   /**
@@ -341,7 +341,7 @@ export class PeerScore {
 
     // defensive check that this is the first delivery trace -- delivery status should be unknown
     if (drec.status !== DeliveryRecordStatus.unknown) {
-      log(
+      this.log(
         'unexpected delivery: message from %s was first seen %s ago and has delivery status %s',
         from,
         now - drec.firstSeenTsMs,
@@ -388,7 +388,7 @@ export class PeerScore {
 
     // defensive check that this is the first rejection -- delivery status should be unknown
     if (drec.status !== DeliveryRecordStatus.unknown) {
-      log(
+      this.log(
         'unexpected rejection: message from %s was first seen %s ago and has delivery status %d',
         from,
         Date.now() - drec.firstSeenTsMs,
