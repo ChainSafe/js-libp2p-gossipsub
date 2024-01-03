@@ -19,58 +19,45 @@ export enum MessageSource {
   publish = 'publish'
 }
 
-type LabelsGeneric = Record<string, string | undefined>
+type NoLabels = Record<string, never>
+type LabelsGeneric = Record<string, string | number>
+type LabelKeys<Labels extends LabelsGeneric> = Extract<keyof Labels, string>
 interface CollectFn<Labels extends LabelsGeneric> { (metric: Gauge<Labels>): void }
 
-export interface Gauge<Labels extends LabelsGeneric = never> {
-  // Sorry for this mess, `prom-client` API choices are not great
-  // If the function signature was `inc(value: number, labels?: Labels)`, this would be simpler
-  inc(value?: number): void
-  inc(labels: Labels, value?: number): void
-  inc(arg1?: Labels | number, arg2?: number): void
-
-  set(value: number): void
-  set(labels: Labels, value: number): void
-  set(arg1?: Labels | number, arg2?: number): void
+export interface Gauge<Labels extends LabelsGeneric = NoLabels> {
+  inc: NoLabels extends Labels ? (value?: number) => void : (labels: Labels, value?: number) => void
+  set: NoLabels extends Labels ? (value: number) => void : (labels: Labels, value: number) => void
 
   addCollect(collectFn: CollectFn<Labels>): void
 }
 
-export interface Histogram<Labels extends LabelsGeneric = never> {
+export interface Histogram<Labels extends LabelsGeneric = NoLabels> {
   startTimer(): () => void
 
-  observe(value: number): void
-  observe(labels: Labels, values: number): void
-  observe(arg1: Labels | number, arg2?: number): void
+  observe: NoLabels extends Labels ? (value: number) => void : (labels: Labels, value: number) => void
 
   reset(): void
 }
 
-export interface AvgMinMax<Labels extends LabelsGeneric = never> {
-  set(values: number[]): void
-  set(labels: Labels, values: number[]): void
-  set(arg1?: Labels | number[], arg2?: number[]): void
+export interface AvgMinMax<Labels extends LabelsGeneric = NoLabels> {
+  set: NoLabels extends Labels ? (values: number[]) => void : (labels: Labels, values: number[]) => void
 }
 
-export interface GaugeConfig<Labels extends LabelsGeneric> {
+export type GaugeConfig<Labels extends LabelsGeneric> = {
   name: string
   help: string
-  labelNames?: keyof Labels extends string ? Array<keyof Labels> : undefined
-}
+} & (NoLabels extends Labels ? { labelNames?: never } : { labelNames: [LabelKeys<Labels>, ...Array<LabelKeys<Labels>>] })
 
-export interface HistogramConfig<Labels extends LabelsGeneric> {
-  name: string
-  help: string
-  labelNames?: Array<keyof Labels>
+export type HistogramConfig<Labels extends LabelsGeneric> = GaugeConfig<Labels> & {
   buckets?: number[]
 }
 
 export type AvgMinMaxConfig<Labels extends LabelsGeneric> = GaugeConfig<Labels>
 
 export interface MetricsRegister {
-  gauge<T extends LabelsGeneric>(config: GaugeConfig<T>): Gauge<T>
-  histogram<T extends LabelsGeneric>(config: HistogramConfig<T>): Histogram<T>
-  avgMinMax<T extends LabelsGeneric>(config: AvgMinMaxConfig<T>): AvgMinMax<T>
+  gauge<Labels extends LabelsGeneric = NoLabels>(config: GaugeConfig<Labels>): Gauge<Labels>
+  histogram<Labels extends LabelsGeneric = NoLabels>(config: HistogramConfig<Labels>): Histogram<Labels>
+  avgMinMax<Labels extends LabelsGeneric = NoLabels>(config: AvgMinMaxConfig<Labels>): AvgMinMax<Labels>
 }
 
 export enum InclusionReason {
@@ -328,10 +315,9 @@ export function getMetrics (
       labelNames: ['hit']
     }),
 
-    asyncValidationDelayFromFirstSeenSec: register.histogram<{ topic: TopicLabel }>({
+    asyncValidationDelayFromFirstSeenSec: register.histogram({
       name: 'gossipsub_async_validation_delay_from_first_seen',
       help: 'Async validation report delay from first seen in second',
-      labelNames: ['topic'],
       buckets: [0.01, 0.03, 0.1, 0.3, 1, 3, 10]
     }),
 
@@ -482,7 +468,7 @@ export function getMetrics (
       labelNames: ['topic']
     }),
     /** Track duplicate message delivery time */
-    duplicateMsgDeliveryDelay: register.histogram({
+    duplicateMsgDeliveryDelay: register.histogram<{ topic: TopicLabel }>({
       name: 'gossisub_duplicate_msg_delivery_delay_seconds',
       help: 'Time since the 1st duplicated message validated',
       labelNames: ['topic'],
@@ -883,9 +869,9 @@ export function getMetrics (
     },
 
     onDuplicateMsgDelivery (topicStr: TopicStr, deliveryDelayMs: number, isLateDelivery: boolean): void {
-      this.duplicateMsgDeliveryDelay.observe(deliveryDelayMs / 1000)
+      const topic = this.toTopic(topicStr)
+      this.duplicateMsgDeliveryDelay.observe({ topic }, deliveryDelayMs / 1000)
       if (isLateDelivery) {
-        const topic = this.toTopic(topicStr)
         this.duplicateMsgLateDelivery.inc({ topic }, 1)
       }
     },
