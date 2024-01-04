@@ -73,6 +73,7 @@ export enum SignaturePolicy {
 export interface PublishOpts {
   allowPublishToZeroPeers?: boolean
   ignoreDuplicatePublishError?: boolean
+  batch?: boolean
 }
 
 export enum PublishConfigType {
