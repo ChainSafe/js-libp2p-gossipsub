@@ -2095,7 +2095,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     // If the message is anonymous or has a random author add it to the published message ids cache.
     this.publishedMessageIds.put(msgIdStr)
 
-    const batchPublish = opts?.batch ?? this.opts.batchPublish
+    const batchPublish = opts?.batchPublish ?? this.opts.batchPublish
     const rpc = { messages: [rawMsg] }
     if (batchPublish) {
       this.sendRpcInBatch(tosend, rpc)

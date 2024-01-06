@@ -180,14 +180,14 @@ describe('gossipsub fallbacks to floodsub', () => {
       mockNetwork.reset()
     })
 
-    const batchOpts = [true, false]
-    for (const batch of batchOpts) {
+    const batchPublishOpts = [true, false]
+    for (const batchPublish of batchPublishOpts) {
       // eslint-disable-next-line no-loop-func
-      it(`Publish to a topic - nodeGs - batchPublish: ${batch}`, async () => {
+      it(`Publish to a topic - nodeGs - batchPublish: ${batchPublish}`, async () => {
         const promise = pEvent<'message', CustomEvent<Message>>(nodeFs.pubsub, 'message')
         const data = uint8ArrayFromString('hey')
 
-        await nodeGs.pubsub.publish(topic, data, { batch })
+        await nodeGs.pubsub.publish(topic, data, { batchPublish })
 
         const evt = await promise
         if (evt.detail.type !== 'signed') {
@@ -198,11 +198,11 @@ describe('gossipsub fallbacks to floodsub', () => {
       })
 
       // eslint-disable-next-line no-loop-func
-      it(`Publish to a topic - nodeFs - batchPublish: ${batch}`, async () => {
+      it(`Publish to a topic - nodeFs - batchPublish: ${batchPublish}`, async () => {
         const promise = pEvent<'message', CustomEvent<Message>>(nodeGs.pubsub, 'message')
         const data = uint8ArrayFromString('banana')
 
-        await nodeFs.pubsub.publish(topic, data, { batch })
+        await nodeFs.pubsub.publish(topic, data, { batchPublish })
 
         const evt = await promise
         if (evt.detail.type !== 'signed') {
