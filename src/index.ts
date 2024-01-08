@@ -1,5 +1,6 @@
 import { CustomEvent, TypedEventEmitter, StrictSign, StrictNoSign, TopicValidatorResult } from '@libp2p/interface'
 import { peerIdFromBytes, peerIdFromString } from '@libp2p/peer-id'
+import { encode } from 'it-length-prefixed'
 import { pipe } from 'it-pipe'
 import { pushable } from 'it-pushable'
 import * as constants from './constants.js'
@@ -91,6 +92,8 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   fallbackToFloodsub: boolean
   /** if self-published messages should be sent to all peers */
   floodPublish: boolean
+  /** serialize message once and send to all peers without control messages */
+  batchPublish: boolean
   /** whether PX is enabled; this should be enabled in bootstrappers and other well connected/trusted nodes. */
   doPX: boolean
   /** peers with which we will maintain direct connections */
@@ -393,6 +396,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     const opts = {
       fallbackToFloodsub: true,
       floodPublish: true,
+      batchPublish: false,
       doPX: false,
       directPeers: [],
       D: constants.GossipsubD,
@@ -2091,14 +2095,20 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     // If the message is anonymous or has a random author add it to the published message ids cache.
     this.publishedMessageIds.put(msgIdStr)
 
-    // Send to set of peers aggregated from direct, mesh, fanout
-    for (const id of tosend) {
-      // sendRpc may mutate RPC message on piggyback, create a new message for each peer
-      const sent = this.sendRpc(id, { messages: [rawMsg] })
+    const batchPublish = opts?.batchPublish ?? this.opts.batchPublish
+    const rpc = { messages: [rawMsg] }
+    if (batchPublish) {
+      this.sendRpcInBatch(tosend, rpc)
+    } else {
+      // Send to set of peers aggregated from direct, mesh, fanout
+      for (const id of tosend) {
+        // sendRpc may mutate RPC message on piggyback, create a new message for each peer
+        const sent = this.sendRpc(id, rpc)
 
-      // did not actually send the message
-      if (!sent) {
-        tosend.delete(id)
+        // did not actually send the message
+        if (!sent) {
+          tosend.delete(id)
+        }
       }
     }
 
@@ -2130,6 +2140,32 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     return {
       recipients: Array.from(tosend.values()).map((str) => peerIdFromString(str))
+    }
+  }
+
+  /**
+   * Send the same data in batch to tosend list without considering cached control messages
+   * This is not only faster but also avoid allocating memory for each peer
+   * see https://github.com/ChainSafe/js-libp2p-gossipsub/issues/344
+   */
+  private sendRpcInBatch (tosend: Set<PeerIdStr>, rpc: IRPC): void {
+    const rpcBytes = RPC.encode(rpc).finish()
+    const prefixedData = encode.single(rpcBytes)
+    for (const id of tosend) {
+      const outboundStream = this.streamsOutbound.get(id)
+      if (outboundStream == null) {
+        this.log(`Cannot send RPC to ${id} as there is no open stream to it available`)
+        tosend.delete(id)
+        continue
+      }
+      try {
+        outboundStream.pushPrefixed(prefixedData)
+      } catch (e) {
+        tosend.delete(id)
+        this.log.error(`Cannot send rpc to ${id}`, e)
+      }
+
+      this.metrics?.onRpcSent(rpc, rpcBytes.length)
     }
   }
 

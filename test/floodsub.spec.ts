@@ -180,33 +180,38 @@ describe('gossipsub fallbacks to floodsub', () => {
       mockNetwork.reset()
     })
 
-    it('Publish to a topic - nodeGs', async () => {
-      const promise = pEvent<'message', CustomEvent<Message>>(nodeFs.pubsub, 'message')
-      const data = uint8ArrayFromString('hey')
+    const batchPublishOpts = [true, false]
+    for (const batchPublish of batchPublishOpts) {
+      // eslint-disable-next-line no-loop-func
+      it(`Publish to a topic - nodeGs - batchPublish: ${batchPublish}`, async () => {
+        const promise = pEvent<'message', CustomEvent<Message>>(nodeFs.pubsub, 'message')
+        const data = uint8ArrayFromString('hey')
 
-      await nodeGs.pubsub.publish(topic, data)
+        await nodeGs.pubsub.publish(topic, data, { batchPublish })
 
-      const evt = await promise
-      if (evt.detail.type !== 'signed') {
-        throw new Error('unexpected message type')
-      }
-      expect(evt.detail.data).to.equalBytes(data)
-      expect(evt.detail.from.toString()).to.be.eql(nodeGs.components.peerId.toString())
-    })
+        const evt = await promise
+        if (evt.detail.type !== 'signed') {
+          throw new Error('unexpected message type')
+        }
+        expect(evt.detail.data).to.equalBytes(data)
+        expect(evt.detail.from.toString()).to.be.eql(nodeGs.components.peerId.toString())
+      })
 
-    it('Publish to a topic - nodeFs', async () => {
-      const promise = pEvent<'message', CustomEvent<Message>>(nodeGs.pubsub, 'message')
-      const data = uint8ArrayFromString('banana')
+      // eslint-disable-next-line no-loop-func
+      it(`Publish to a topic - nodeFs - batchPublish: ${batchPublish}`, async () => {
+        const promise = pEvent<'message', CustomEvent<Message>>(nodeGs.pubsub, 'message')
+        const data = uint8ArrayFromString('banana')
 
-      await nodeFs.pubsub.publish(topic, data)
+        await nodeFs.pubsub.publish(topic, data, { batchPublish })
 
-      const evt = await promise
-      if (evt.detail.type !== 'signed') {
-        throw new Error('unexpected message type')
-      }
-      expect(evt.detail.data).to.equalBytes(data)
-      expect(evt.detail.from.toString()).to.be.eql(nodeFs.components.peerId.toString())
-    })
+        const evt = await promise
+        if (evt.detail.type !== 'signed') {
+          throw new Error('unexpected message type')
+        }
+        expect(evt.detail.data).to.equalBytes(data)
+        expect(evt.detail.from.toString()).to.be.eql(nodeFs.components.peerId.toString())
+      })
+    }
   })
 
   describe('publish after unsubscribe', () => {

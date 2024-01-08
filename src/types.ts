@@ -73,6 +73,8 @@ export enum SignaturePolicy {
 export interface PublishOpts {
   allowPublishToZeroPeers?: boolean
   ignoreDuplicatePublishError?: boolean
+  /** serialize message once and send to all peers without control messages */
+  batchPublish?: boolean
 }
 
 export enum PublishConfigType {

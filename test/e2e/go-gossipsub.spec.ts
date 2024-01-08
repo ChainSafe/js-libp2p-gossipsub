@@ -84,6 +84,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       number: 20,
       init: {
         floodPublish: false,
+        batchPublish: true,
         scoreParams: {
           IPColocationFactorThreshold: 20,
           behaviourPenaltyWeight: 0
@@ -112,42 +113,47 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await Promise.all(sendRecv)
   })
 
-  it('test dense gossipsub', async function () {
-    // Create 20 gossipsub nodes
-    // Subscribe to the topic, all nodes
-    // Densely connect the nodes
-    // Publish 100 messages, each from a random node
-    // Assert that subscribed nodes receive the message
-    psubs = await createComponentsArray({
-      number: 20,
-      init: {
-        floodPublish: false,
-        scoreParams: {
-          IPColocationFactorThreshold: 20,
-          behaviourPenaltyWeight: 0
+  const batchOpts = [true, false]
+  for (const batchPublish of batchOpts) {
+    // eslint-disable-next-line no-loop-func
+    it(`test dense gossipsub batchPublish=${batchPublish}`, async function () {
+      // Create 20 gossipsub nodes
+      // Subscribe to the topic, all nodes
+      // Densely connect the nodes
+      // Publish 100 messages, each from a random node
+      // Assert that subscribed nodes receive the message
+      psubs = await createComponentsArray({
+        number: 20,
+        init: {
+          floodPublish: false,
+          batchPublish,
+          scoreParams: {
+            IPColocationFactorThreshold: 20,
+            behaviourPenaltyWeight: 0
+          }
         }
+      })
+      const topic = 'foobar'
+      psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
+
+      await denseConnect(psubs)
+
+      // wait for heartbeats to build mesh
+      await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
+
+      const sendRecv = []
+      for (let i = 0; i < 100; i++) {
+        const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
+        const owner = Math.floor(Math.random() * psubs.length)
+        const results = Promise.all(
+          psubs.filter((psub, j) => j !== owner).map(checkReceivedMessage(topic, msg, owner, i))
+        )
+        sendRecv.push(psubs[owner].pubsub.publish(topic, msg))
+        sendRecv.push(results)
       }
+      await Promise.all(sendRecv)
     })
-    const topic = 'foobar'
-    psubs.forEach((ps) => { ps.pubsub.subscribe(topic) })
-
-    await denseConnect(psubs)
-
-    // wait for heartbeats to build mesh
-    await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 2)))
-
-    const sendRecv = []
-    for (let i = 0; i < 100; i++) {
-      const msg = uint8ArrayFromString(`${i} its not a flooooood ${i}`)
-      const owner = Math.floor(Math.random() * psubs.length)
-      const results = Promise.all(
-        psubs.filter((psub, j) => j !== owner).map(checkReceivedMessage(topic, msg, owner, i))
-      )
-      sendRecv.push(psubs[owner].pubsub.publish(topic, msg))
-      sendRecv.push(results)
-    }
-    await Promise.all(sendRecv)
-  })
+  }
 
   it('test gossipsub fanout', async function () {
     // Create 20 gossipsub nodes
