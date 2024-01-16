@@ -1484,13 +1484,17 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         if (!topicID) {
           continue
         }
-        await this.components.peerStore.merge(peerIdFromString(id), {
-          tags: {
-            [topicID]: {
-              value: 100
+        try {
+          await this.components.peerStore.merge(peerIdFromString(id), {
+            tags: {
+              [topicID]: {
+                value: 100
+              }
             }
-          }
-        })
+          })
+        } catch (err) {
+          this.log.error('Error tagging peer %s with topic %s', id, topicID, err)
+        }
       }
     }
 
@@ -1591,11 +1595,15 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       }
 
       if (this.opts?.taggingEnabled ?? false) {
-        await this.components.peerStore.merge(peerIdFromString(id), {
-          tags: {
-            [topicID]: undefined
-          }
-        })
+        try {
+          await this.components.peerStore.merge(peerIdFromString(id), {
+            tags: {
+              [topicID]: undefined
+            }
+          })
+        } catch (err) {
+          this.log.error('Error untagging peer %s with topic %s', id, topicID, err)
+        }
       }
 
       const peersInMesh = this.mesh.get(topicID)
@@ -1881,13 +1889,17 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     if (this.opts?.taggingEnabled ?? false) {
       Array.from(toAdd).map(async (id) => {
-        await this.components.peerStore.merge(peerIdFromString(id), {
-          tags: {
-            [topic]: {
-              value: 100 // value should be 0-100
+        try {
+          await this.components.peerStore.merge(peerIdFromString(id), {
+            tags: {
+              [topic]: {
+                value: 100 // value should be 0-100
+              }
             }
-          }
-        })
+          })
+        } catch (e) {
+          this.log('Failed to add topic tag to peer %s', id)
+        }
       })
     }
   }
@@ -2292,11 +2304,15 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     const prune = [await this.makePrune(id, topic, this.opts.doPX, onUnsubscribe)]
 
     if (this.opts.taggingEnabled ?? false) {
-      await this.components.peerStore.merge(peerIdFromString(id), {
-        tags: {
-          [topic]: undefined
-        }
-      })
+      try {
+        await this.components.peerStore.merge(peerIdFromString(id), {
+          tags: {
+            [topic]: undefined
+          }
+        })
+      } catch (err) {
+        this.log.error('Error untagging peer %s with topic %s', id, topic, err)
+      }
     }
 
     this.sendRpc(id, { control: { prune } })
