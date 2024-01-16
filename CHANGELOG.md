@@ -15,6 +15,45 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [11.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.0.1...v11.1.0) (2024-01-08)
+
+
+### Features
+
+* batch publish ([#480](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/480)) ([c11b924](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/c11b924f9df02e150b884f01200206f48dc7a666))
+* type safe metric labels ([#479](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/479)) ([67c2a55](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/67c2a55fb523988c9e130a29b86051347a14ebda))
+
+## [11.0.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.0.0...v11.0.1) (2023-12-05)
+
+
+### Bug Fixes
+
+* make peer score use component logger ([#476](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/476)) ([dba38d1](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/dba38d1d5093bac32d4c5c37a35699b09131e762))
+
+## [11.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v10.1.1...v11.0.0) (2023-12-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* requires libp2p v1
+
+### Bug Fixes
+
+* update to libp2p v1 deps ([#473](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/473)) ([01f46d8](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/01f46d88b0f073721ab2bf481e9878fbcce02084))
+
+## [10.1.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v10.1.0...v10.1.1) (2023-11-21)
+
+
+### Bug Fixes
+
+* runsFactor in benchmark ([#467](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/467)) ([aa208c2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/aa208c2f6bad1c4c0b03cf48e6c76078c272bff9))
+* use typed event emitter class ([#470](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/470)) ([3af4e7a](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/3af4e7aec8e295ae3132e2ff3f79cca458fecd5d))
+
+
+### Miscellaneous
+
+* update linter rules ([#471](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/471)) ([a39115c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/a39115c1b38da45e20ff4d8643675e26dd82e63f))
+
 ## [10.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v10.0.0...v10.1.0) (2023-08-22)
 
 

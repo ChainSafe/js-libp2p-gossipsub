@@ -1,12 +1,13 @@
-import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
-import type { PeerStore } from '@libp2p/interface/peer-store'
-import type { Registrar } from '@libp2p/interface-internal/registrar'
+import { type PeerStore } from '@libp2p/interface'
+import { defaultLogger } from '@libp2p/logger'
 import { expect } from 'aegir/chai'
 import sinon from 'sinon'
 import { stubInterface } from 'ts-sinon'
 import { GossipSub } from '../src/index.js'
 import { createPeerId } from './utils/index.js'
 import { fastMsgIdFn } from './utils/msgId.js'
+import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
+import type { Registrar } from '@libp2p/interface-internal/registrar'
 
 const peerA = '16Uiu2HAmMkH6ZLen2tbhiuNCTZLLvrZaDgufNdT5MPjtC9Hr9YNA'
 
@@ -26,7 +27,8 @@ describe('Gossipsub acceptFrom', () => {
         peerId,
         registrar: stubInterface<Registrar>(),
         peerStore: stubInterface<PeerStore>(),
-        connectionManager: stubInterface<ConnectionManager>()
+        connectionManager: stubInterface<ConnectionManager>(),
+        logger: defaultLogger()
       },
       { emitSelf: false, fastMsgIdFn }
     )

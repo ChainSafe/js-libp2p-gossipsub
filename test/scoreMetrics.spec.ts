@@ -1,10 +1,13 @@
-import { computeAllPeersScoreWeights } from '../src/score/scoreMetrics.js'
-import { createPeerScoreParams, createTopicScoreParams, PeerScore } from '../src/score/index.js'
-import { ScorePenalty } from '../src/metrics.js'
-import { expect } from 'aegir/chai'
+import { defaultLogger } from '@libp2p/logger'
 import { createEd25519PeerId } from '@libp2p/peer-id-factory'
+import { expect } from 'aegir/chai'
+import { ScorePenalty } from '../src/metrics.js'
+import { createPeerScoreParams, createTopicScoreParams, PeerScore } from '../src/score/index.js'
+import { computeAllPeersScoreWeights } from '../src/score/scoreMetrics.js'
 
 describe('score / scoreMetrics', () => {
+  const logger = defaultLogger()
+
   it('computeScoreWeights', async () => {
     // Create parameters with reasonable default values
     const topic = 'test_topic'
@@ -25,7 +28,7 @@ describe('score / scoreMetrics', () => {
 
     const peerA = (await createEd25519PeerId()).toString()
     // Peer score should start at 0
-    const ps = new PeerScore(params, null, { scoreCacheValidityMs: 0 })
+    const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
 
     // Do some actions that penalize the peer

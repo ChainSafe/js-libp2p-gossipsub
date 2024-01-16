@@ -20,7 +20,7 @@ export interface ScoreWeights<T> {
   score: T
 }
 
-export function computeScoreWeights(
+export function computeScoreWeights (
   peer: string,
   pstats: PeerStats,
   params: PeerScoreParams,
@@ -43,7 +43,7 @@ export function computeScoreWeights(
     }
 
     let topicScores = byTopic.get(topicLabel)
-    if (!topicScores) {
+    if (topicScores == null) {
       topicScores = {
         p1w: 0,
         p2w: 0,
@@ -136,7 +136,7 @@ export function computeScoreWeights(
     // It's only applied if at least that many peers are connected to us from that source IP addr.
     // It is quadratic, and the weight is negative (validated in validatePeerScoreParams)
     const peersInIP = peerIPs.get(ip)
-    const numPeersInIP = peersInIP ? peersInIP.size : 0
+    const numPeersInIP = (peersInIP != null) ? peersInIP.size : 0
     if (numPeersInIP > params.IPColocationFactorThreshold) {
       const surplus = numPeersInIP - params.IPColocationFactorThreshold
       const p6 = surplus * surplus
@@ -159,7 +159,7 @@ export function computeScoreWeights(
   }
 }
 
-export function computeAllPeersScoreWeights(
+export function computeAllPeersScoreWeights (
   peerIdStrs: Iterable<string>,
   peerStats: Map<string, PeerStats>,
   params: PeerScoreParams,
@@ -176,12 +176,12 @@ export function computeAllPeersScoreWeights(
 
   for (const peerIdStr of peerIdStrs) {
     const pstats = peerStats.get(peerIdStr)
-    if (pstats) {
+    if (pstats != null) {
       const swPeer = computeScoreWeights(peerIdStr, pstats, params, peerIPs, topicStrToLabel)
 
       for (const [topic, swPeerTopic] of swPeer.byTopic) {
         let swTopic = sw.byTopic.get(topic)
-        if (!swTopic) {
+        if (swTopic == null) {
           swTopic = {
             p1w: [],
             p2w: [],

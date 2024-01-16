@@ -36,7 +36,7 @@ export class MessageCache {
   /**
    * Holds history of messages in timebounded history arrays
    */
-  constructor(
+  constructor (
     /**
      * The number of indices in the cache history used for gossiping. That means that a message
      * won't get gossiped anymore when shift got called `gossip` many times after inserting the
@@ -52,7 +52,7 @@ export class MessageCache {
     }
   }
 
-  get size(): number {
+  get size (): number {
     return this.msgs.size
   }
 
@@ -60,7 +60,7 @@ export class MessageCache {
    * Adds a message to the current window and the cache
    * Returns true if the message is not known and is inserted in the cache
    */
-  put(messageId: MessageId, msg: RPC.IMessage, validated = false): boolean {
+  put (messageId: MessageId, msg: RPC.IMessage, validated = false): boolean {
     const { msgIdStr } = messageId
     // Don't add duplicate entries to the cache.
     if (this.msgs.has(msgIdStr)) {
@@ -83,11 +83,11 @@ export class MessageCache {
     return true
   }
 
-  observeDuplicate(msgId: MsgIdStr, fromPeerIdStr: PeerIdStr): void {
+  observeDuplicate (msgId: MsgIdStr, fromPeerIdStr: PeerIdStr): void {
     const entry = this.msgs.get(msgId)
 
     if (
-      entry &&
+      (entry != null) &&
       // if the message is already validated, we don't need to store extra peers sending us
       // duplicates as the message has already been forwarded
       !entry.validated
@@ -99,7 +99,7 @@ export class MessageCache {
   /**
    * Retrieves a message from the cache by its ID, if it is still present
    */
-  get(msgId: Uint8Array): RPC.IMessage | undefined {
+  get (msgId: Uint8Array): RPC.IMessage | undefined {
     return this.msgs.get(this.msgIdToStrFn(msgId))?.message
   }
 
@@ -107,9 +107,9 @@ export class MessageCache {
    * Increases the iwant count for the given message by one and returns the message together
    * with the iwant if the message exists.
    */
-  getWithIWantCount(msgIdStr: string, p: string): { msg: RPC.IMessage; count: number } | null {
+  getWithIWantCount (msgIdStr: string, p: string): { msg: RPC.IMessage, count: number } | null {
     const msg = this.msgs.get(msgIdStr)
-    if (!msg) {
+    if (msg == null) {
       return null
     }
 
@@ -122,14 +122,14 @@ export class MessageCache {
   /**
    * Retrieves a list of message IDs for a set of topics
    */
-  getGossipIDs(topics: Set<string>): Map<string, Uint8Array[]> {
+  getGossipIDs (topics: Set<string>): Map<string, Uint8Array[]> {
     const msgIdsByTopic = new Map<string, Uint8Array[]>()
     for (let i = 0; i < this.gossip; i++) {
       this.history[i].forEach((entry) => {
         const msg = this.msgs.get(entry.msgIdStr)
-        if (msg && msg.validated && topics.has(entry.topic)) {
+        if ((msg?.validated ?? false) && topics.has(entry.topic)) {
           let msgIds = msgIdsByTopic.get(entry.topic)
-          if (!msgIds) {
+          if (msgIds == null) {
             msgIds = []
             msgIdsByTopic.set(entry.topic, msgIds)
           }
@@ -146,9 +146,9 @@ export class MessageCache {
    * This function also returns the known peers that have sent us this message. This is used to
    * prevent us sending redundant messages to peers who have already propagated it.
    */
-  validate(msgId: MsgIdStr): MessageCacheRecord | null {
+  validate (msgId: MsgIdStr): MessageCacheRecord | null {
     const entry = this.msgs.get(msgId)
-    if (!entry) {
+    if (entry == null) {
       return null
     }
 
@@ -167,11 +167,11 @@ export class MessageCache {
   /**
    * Shifts the current window, discarding messages older than this.history.length of the cache
    */
-  shift(): void {
+  shift (): void {
     const lastCacheEntries = this.history[this.history.length - 1]
     lastCacheEntries.forEach((cacheEntry) => {
       const entry = this.msgs.get(cacheEntry.msgIdStr)
-      if (entry) {
+      if (entry != null) {
         this.msgs.delete(cacheEntry.msgIdStr)
         if (!entry.validated) {
           this.notValidatedCount--
@@ -183,9 +183,9 @@ export class MessageCache {
     this.history.unshift([])
   }
 
-  remove(msgId: MsgIdStr): MessageCacheRecord | null {
+  remove (msgId: MsgIdStr): MessageCacheRecord | null {
     const entry = this.msgs.get(msgId)
-    if (!entry) {
+    if (entry == null) {
       return null
     }
 

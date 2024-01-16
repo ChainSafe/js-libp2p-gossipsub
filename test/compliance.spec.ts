@@ -1,15 +1,16 @@
-import type { Libp2pEvents } from '@libp2p/interface'
+import { TypedEventEmitter } from '@libp2p/interface'
 import tests from '@libp2p/interface-compliance-tests/pubsub'
-import { EventEmitter } from '@libp2p/interface/events'
+import { defaultLogger } from '@libp2p/logger'
 import { PersistentPeerStore } from '@libp2p/peer-store'
 import { MemoryDatastore } from 'datastore-core'
 import { GossipSub } from '../src/index.js'
+import type { Libp2pEvents } from '@libp2p/interface'
 
 describe.skip('interface compliance', function () {
   this.timeout(3000)
 
   tests({
-    async setup(args) {
+    async setup (args) {
       if (args == null) {
         throw new Error('PubSubOptions is required')
       }
@@ -20,7 +21,8 @@ describe.skip('interface compliance', function () {
           peerStore: new PersistentPeerStore({
             peerId: args.components.peerId,
             datastore: new MemoryDatastore(),
-            events: new EventEmitter<Libp2pEvents>()
+            events: new TypedEventEmitter<Libp2pEvents>(),
+            logger: defaultLogger()
           })
         },
         {
@@ -34,7 +36,7 @@ describe.skip('interface compliance', function () {
       return pubsub
     },
 
-    async teardown() {
+    async teardown () {
       //
     }
   })

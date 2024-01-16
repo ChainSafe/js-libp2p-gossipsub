@@ -1,13 +1,11 @@
-import { type PeerScoreParams, validatePeerScoreParams } from './peer-score-params.js'
-import type { PeerStats, TopicStats } from './peer-stats.js'
+import { type MsgIdStr, type PeerIdStr, RejectReason, type TopicStr, type IPStr } from '../types.js'
+import { MapDef } from '../utils/set.js'
 import { computeScore } from './compute-score.js'
 import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries.js'
-import { logger } from '@libp2p/logger'
-import { type MsgIdStr, type PeerIdStr, RejectReason, type TopicStr, type IPStr } from '../types.js'
+import { type PeerScoreParams, validatePeerScoreParams } from './peer-score-params.js'
+import type { PeerStats, TopicStats } from './peer-stats.js'
 import type { Metrics, ScorePenalty } from '../metrics.js'
-import { MapDef } from '../utils/set.js'
-
-const log = logger('libp2p:gossipsub:score')
+import type { ComponentLogger, Logger } from '@libp2p/interface'
 
 interface PeerScoreOpts {
   /**
@@ -49,35 +47,37 @@ export class PeerScore {
 
   private readonly scoreCacheValidityMs: number
   private readonly computeScore: typeof computeScore
+  private readonly log: Logger
 
-  constructor(readonly params: PeerScoreParams, private readonly metrics: Metrics | null, opts: PeerScoreOpts) {
+  constructor (readonly params: PeerScoreParams, private readonly metrics: Metrics | null, componentLogger: ComponentLogger, opts: PeerScoreOpts) {
     validatePeerScoreParams(params)
     this.scoreCacheValidityMs = opts.scoreCacheValidityMs
     this.computeScore = opts.computeScore ?? computeScore
+    this.log = componentLogger.forComponent('libp2p:gossipsub:score')
   }
 
-  get size(): number {
+  get size (): number {
     return this.peerStats.size
   }
 
   /**
    * Start PeerScore instance
    */
-  start(): void {
-    if (this._backgroundInterval) {
-      log('Peer score already running')
+  start (): void {
+    if (this._backgroundInterval != null) {
+      this.log('Peer score already running')
       return
     }
-    this._backgroundInterval = setInterval(() => this.background(), this.params.decayInterval)
-    log('started')
+    this._backgroundInterval = setInterval(() => { this.background() }, this.params.decayInterval)
+    this.log('started')
   }
 
   /**
    * Stop PeerScore instance
    */
-  stop(): void {
-    if (!this._backgroundInterval) {
-      log('Peer score already stopped')
+  stop (): void {
+    if (this._backgroundInterval == null) {
+      this.log('Peer score already stopped')
       return
     }
     clearInterval(this._backgroundInterval)
@@ -85,30 +85,30 @@ export class PeerScore {
     this.peerIPs.clear()
     this.peerStats.clear()
     this.deliveryRecords.clear()
-    log('stopped')
+    this.log('stopped')
   }
 
   /**
    * Periodic maintenance
    */
-  background(): void {
+  background (): void {
     this.refreshScores()
     this.deliveryRecords.gc()
   }
 
-  dumpPeerScoreStats(): PeerScoreStatsDump {
+  dumpPeerScoreStats (): PeerScoreStatsDump {
     return Object.fromEntries(Array.from(this.peerStats.entries()).map(([peer, stats]) => [peer, stats]))
   }
 
-  messageFirstSeenTimestampMs(msgIdStr: MsgIdStr): number | null {
+  messageFirstSeenTimestampMs (msgIdStr: MsgIdStr): number | null {
     const drec = this.deliveryRecords.getRecord(msgIdStr)
-    return drec ? drec.firstSeenTsMs : null
+    return (drec != null) ? drec.firstSeenTsMs : null
   }
 
   /**
    * Decays scores, and purges score records for disconnected peers once their expiry has elapsed.
    */
-  public refreshScores(): void {
+  public refreshScores (): void {
     const now = Date.now()
     const decayToZero = this.params.decayToZero
 
@@ -178,11 +178,11 @@ export class PeerScore {
   /**
    * Return the score for a peer
    */
-  score(id: PeerIdStr): number {
+  score (id: PeerIdStr): number {
     this.metrics?.scoreFnCalls.inc()
 
     const pstats = this.peerStats.get(id)
-    if (!pstats) {
+    if (pstats == null) {
       return 0
     }
 
@@ -190,7 +190,7 @@ export class PeerScore {
     const cacheEntry = this.scoreCache.get(id)
 
     // Found cached score within validity period
-    if (cacheEntry && cacheEntry.cacheUntil > now) {
+    if ((cacheEntry != null) && cacheEntry.cacheUntil > now) {
       return cacheEntry.score
     }
 
@@ -199,7 +199,7 @@ export class PeerScore {
     const score = this.computeScore(id, pstats, this.params, this.peerIPs)
     const cacheUntil = now + this.scoreCacheValidityMs
 
-    if (cacheEntry) {
+    if (cacheEntry != null) {
       this.metrics?.scoreCachedDelta.observe(Math.abs(score - cacheEntry.score))
       cacheEntry.score = score
       cacheEntry.cacheUntil = cacheUntil
@@ -213,15 +213,15 @@ export class PeerScore {
   /**
    * Apply a behavioural penalty to a peer
    */
-  addPenalty(id: PeerIdStr, penalty: number, penaltyLabel: ScorePenalty): void {
+  addPenalty (id: PeerIdStr, penalty: number, penaltyLabel: ScorePenalty): void {
     const pstats = this.peerStats.get(id)
-    if (pstats) {
+    if (pstats != null) {
       pstats.behaviourPenalty += penalty
       this.metrics?.onScorePenalty(penaltyLabel)
     }
   }
 
-  addPeer(id: PeerIdStr): void {
+  addPeer (id: PeerIdStr): void {
     // create peer stats (not including topic stats for each topic to be scored)
     // topic stats will be added as needed
     const pstats: PeerStats = {
@@ -235,9 +235,9 @@ export class PeerScore {
   }
 
   /** Adds a new IP to a peer, if the peer is not known the update is ignored */
-  addIP(id: PeerIdStr, ip: string): void {
+  addIP (id: PeerIdStr, ip: string): void {
     const pstats = this.peerStats.get(id)
-    if (pstats) {
+    if (pstats != null) {
       pstats.knownIPs.add(ip)
     }
 
@@ -245,14 +245,14 @@ export class PeerScore {
   }
 
   /** Remove peer association with IP */
-  removeIP(id: PeerIdStr, ip: string): void {
+  removeIP (id: PeerIdStr, ip: string): void {
     const pstats = this.peerStats.get(id)
-    if (pstats) {
+    if (pstats != null) {
       pstats.knownIPs.delete(ip)
     }
 
     const peersWithIP = this.peerIPs.get(ip)
-    if (peersWithIP) {
+    if (peersWithIP != null) {
       peersWithIP.delete(id)
       if (peersWithIP.size === 0) {
         this.peerIPs.delete(ip)
@@ -260,9 +260,9 @@ export class PeerScore {
     }
   }
 
-  removePeer(id: PeerIdStr): void {
+  removePeer (id: PeerIdStr): void {
     const pstats = this.peerStats.get(id)
-    if (!pstats) {
+    if (pstats == null) {
       return
     }
 
@@ -294,11 +294,11 @@ export class PeerScore {
   }
 
   /** Handles scoring functionality as a peer GRAFTs to a topic. */
-  graft(id: PeerIdStr, topic: TopicStr): void {
+  graft (id: PeerIdStr, topic: TopicStr): void {
     const pstats = this.peerStats.get(id)
-    if (pstats) {
+    if (pstats != null) {
       const tstats = this.getPtopicStats(pstats, topic)
-      if (tstats) {
+      if (tstats != null) {
         // if we are scoring the topic, update the mesh status.
         tstats.inMesh = true
         tstats.graftTime = Date.now()
@@ -309,11 +309,11 @@ export class PeerScore {
   }
 
   /** Handles scoring functionality as a peer PRUNEs from a topic. */
-  prune(id: PeerIdStr, topic: TopicStr): void {
+  prune (id: PeerIdStr, topic: TopicStr): void {
     const pstats = this.peerStats.get(id)
-    if (pstats) {
+    if (pstats != null) {
       const tstats = this.getPtopicStats(pstats, topic)
-      if (tstats) {
+      if (tstats != null) {
         // sticky mesh delivery rate failure penalty
         const threshold = this.params.topics[topic].meshMessageDeliveriesThreshold
         if (tstats.meshMessageDeliveriesActive && tstats.meshMessageDeliveries < threshold) {
@@ -329,11 +329,11 @@ export class PeerScore {
     }
   }
 
-  validateMessage(msgIdStr: MsgIdStr): void {
+  validateMessage (msgIdStr: MsgIdStr): void {
     this.deliveryRecords.ensureRecord(msgIdStr)
   }
 
-  deliverMessage(from: PeerIdStr, msgIdStr: MsgIdStr, topic: TopicStr): void {
+  deliverMessage (from: PeerIdStr, msgIdStr: MsgIdStr, topic: TopicStr): void {
     this.markFirstMessageDelivery(from, topic)
 
     const drec = this.deliveryRecords.ensureRecord(msgIdStr)
@@ -341,7 +341,7 @@ export class PeerScore {
 
     // defensive check that this is the first delivery trace -- delivery status should be unknown
     if (drec.status !== DeliveryRecordStatus.unknown) {
-      log(
+      this.log(
         'unexpected delivery: message from %s was first seen %s ago and has delivery status %s',
         from,
         now - drec.firstSeenTsMs,
@@ -365,11 +365,12 @@ export class PeerScore {
   /**
    * Similar to `rejectMessage` except does not require the message id or reason for an invalid message.
    */
-  rejectInvalidMessage(from: PeerIdStr, topic: TopicStr): void {
+  rejectInvalidMessage (from: PeerIdStr, topic: TopicStr): void {
     this.markInvalidMessageDelivery(from, topic)
   }
 
-  rejectMessage(from: PeerIdStr, msgIdStr: MsgIdStr, topic: TopicStr, reason: RejectReason): void {
+  rejectMessage (from: PeerIdStr, msgIdStr: MsgIdStr, topic: TopicStr, reason: RejectReason): void {
+    // eslint-disable-next-line default-case
     switch (reason) {
       // these messages are not tracked, but the peer is penalized as they are invalid
       case RejectReason.Error:
@@ -387,7 +388,7 @@ export class PeerScore {
 
     // defensive check that this is the first rejection -- delivery status should be unknown
     if (drec.status !== DeliveryRecordStatus.unknown) {
-      log(
+      this.log(
         'unexpected rejection: message from %s was first seen %s ago and has delivery status %d',
         from,
         Date.now() - drec.firstSeenTsMs,
@@ -415,7 +416,7 @@ export class PeerScore {
     drec.peers.clear()
   }
 
-  duplicateMessage(from: PeerIdStr, msgIdStr: MsgIdStr, topic: TopicStr): void {
+  duplicateMessage (from: PeerIdStr, msgIdStr: MsgIdStr, topic: TopicStr): void {
     const drec = this.deliveryRecords.ensureRecord(msgIdStr)
 
     if (drec.peers.has(from)) {
@@ -423,6 +424,7 @@ export class PeerScore {
       return
     }
 
+    // eslint-disable-next-line default-case
     switch (drec.status) {
       case DeliveryRecordStatus.unknown:
         // the message is being validated; track the peer delivery and wait for
@@ -450,11 +452,11 @@ export class PeerScore {
   /**
    * Increments the "invalid message deliveries" counter for all scored topics the message is published in.
    */
-  public markInvalidMessageDelivery(from: PeerIdStr, topic: TopicStr): void {
+  public markInvalidMessageDelivery (from: PeerIdStr, topic: TopicStr): void {
     const pstats = this.peerStats.get(from)
-    if (pstats) {
+    if (pstats != null) {
       const tstats = this.getPtopicStats(pstats, topic)
-      if (tstats) {
+      if (tstats != null) {
         tstats.invalidMessageDeliveries += 1
       }
     }
@@ -465,11 +467,11 @@ export class PeerScore {
    * as well as the "mesh message deliveries" counter, if the peer is in the mesh for the topic.
    * Messages already known (with the seenCache) are counted with markDuplicateMessageDelivery()
    */
-  public markFirstMessageDelivery(from: PeerIdStr, topic: TopicStr): void {
+  public markFirstMessageDelivery (from: PeerIdStr, topic: TopicStr): void {
     const pstats = this.peerStats.get(from)
-    if (pstats) {
+    if (pstats != null) {
       const tstats = this.getPtopicStats(pstats, topic)
-      if (tstats) {
+      if (tstats != null) {
         let cap = this.params.topics[topic].firstMessageDeliveriesCap
         tstats.firstMessageDeliveries = Math.min(cap, tstats.firstMessageDeliveries + 1)
 
@@ -485,13 +487,14 @@ export class PeerScore {
    * Increments the "mesh message deliveries" counter for messages we've seen before,
    * as long the message was received within the P3 window.
    */
-  public markDuplicateMessageDelivery(from: PeerIdStr, topic: TopicStr, validatedTime?: number): void {
+  public markDuplicateMessageDelivery (from: PeerIdStr, topic: TopicStr, validatedTime?: number): void {
     const pstats = this.peerStats.get(from)
-    if (pstats) {
+    if (pstats != null) {
       const now = validatedTime !== undefined ? Date.now() : 0
 
       const tstats = this.getPtopicStats(pstats, topic)
-      if (tstats && tstats.inMesh) {
+      // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+      if (tstats != null && tstats.inMesh) {
         const tparams = this.params.topics[topic]
 
         // check against the mesh delivery window -- if the validated time is passed as 0, then
@@ -516,10 +519,10 @@ export class PeerScore {
   /**
    * Removes an IP list from the tracking list for a peer.
    */
-  private removeIPsForPeer(id: PeerIdStr, ipsToRemove: Set<IPStr>): void {
+  private removeIPsForPeer (id: PeerIdStr, ipsToRemove: Set<IPStr>): void {
     for (const ipToRemove of ipsToRemove) {
       const peerSet = this.peerIPs.get(ipToRemove)
-      if (peerSet) {
+      if (peerSet != null) {
         peerSet.delete(id)
         if (peerSet.size === 0) {
           this.peerIPs.delete(ipToRemove)
@@ -532,7 +535,7 @@ export class PeerScore {
    * Returns topic stats if they exist, otherwise if the supplied parameters score the
    * topic, inserts the default stats and returns a reference to those. If neither apply, returns None.
    */
-  private getPtopicStats(pstats: PeerStats, topic: TopicStr): TopicStats | null {
+  private getPtopicStats (pstats: PeerStats, topic: TopicStr): TopicStats | null {
     let topicStats: TopicStats | undefined = pstats.topics[topic]
 
     if (topicStats !== undefined) {

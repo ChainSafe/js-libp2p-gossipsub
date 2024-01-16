@@ -1,15 +1,14 @@
-import { createRSAPeerId } from '@libp2p/peer-id-factory'
-import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
-import { MemoryDatastore } from 'datastore-core'
-import { GossipSub, type GossipSubComponents, type GossipsubOpts } from '../../src/index.js'
-import type { PubSub } from '@libp2p/interface/pubsub'
 import { setMaxListeners } from 'events'
+import { TypedEventEmitter, start } from '@libp2p/interface'
+import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
+import { defaultLogger } from '@libp2p/logger'
+import { createRSAPeerId } from '@libp2p/peer-id-factory'
 import { PersistentPeerStore } from '@libp2p/peer-store'
-import { start } from '@libp2p/interface/startable'
+import { MemoryDatastore } from 'datastore-core'
 import { stubInterface } from 'ts-sinon'
+import { GossipSub, type GossipSubComponents, type GossipsubOpts } from '../../src/index.js'
+import type { TypedEventTarget, Libp2pEvents, PubSub } from '@libp2p/interface'
 import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
-import { EventEmitter } from '@libp2p/interface/events'
-import type { Libp2pEvents } from '@libp2p/interface'
 
 export interface CreateComponentsOpts {
   init?: Partial<GossipsubOpts>
@@ -17,7 +16,7 @@ export interface CreateComponentsOpts {
 }
 
 export interface GossipSubTestComponents extends GossipSubComponents {
-  events: EventEmitter<Libp2pEvents>
+  events: TypedEventTarget<Libp2pEvents>
 }
 
 export interface GossipSubAndComponents {
@@ -29,7 +28,8 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Goss
   const Ctor = opts.pubsub ?? GossipSub
   const peerId = await createRSAPeerId({ bits: 512 })
 
-  const events = new EventEmitter<Libp2pEvents>()
+  const events = new TypedEventEmitter<Libp2pEvents>()
+  const logger = defaultLogger()
 
   const components: GossipSubTestComponents = {
     peerId,
@@ -38,9 +38,11 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Goss
     peerStore: new PersistentPeerStore({
       peerId,
       datastore: new MemoryDatastore(),
-      events
+      events,
+      logger
     }),
-    events
+    events,
+    logger
   }
   components.connectionManager = mockConnectionManager(components)
 
@@ -59,7 +61,7 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Goss
 }
 
 export const createComponentsArray = async (
-  opts: CreateComponentsOpts & { number: number; connected?: boolean } = { number: 1, connected: true }
+  opts: CreateComponentsOpts & { number: number, connected?: boolean } = { number: 1, connected: true }
 ): Promise<GossipSubAndComponents[]> => {
   const output = await Promise.all(
     Array.from({ length: opts.number }).map(async (_, i) =>
@@ -67,7 +69,7 @@ export const createComponentsArray = async (
     )
   )
 
-  if (opts.connected) {
+  if (opts.connected ?? false) {
     await connectAllPubSubNodes(output)
   }
 
@@ -96,10 +98,11 @@ export const connectAllPubSubNodes = async (components: GossipSubAndComponents[]
 
 /**
  * Connect some gossipsub nodes to others, ensure each has num peers
+ *
  * @param {GossipSubAndComponents[]} gss
- * @param {number} num number of peers to connect
+ * @param {number} num - number of peers to connect
  */
-export async function connectSome(gss: GossipSubAndComponents[], num: number): Promise<void> {
+export async function connectSome (gss: GossipSubAndComponents[], num: number): Promise<void> {
   for (let i = 0; i < gss.length; i++) {
     let count = 0
     // merely do a Math.random() and check for duplicate may take a lot of time to run a test
@@ -121,10 +124,10 @@ export async function connectSome(gss: GossipSubAndComponents[], num: number): P
   }
 }
 
-export async function sparseConnect(gss: GossipSubAndComponents[]): Promise<void> {
+export async function sparseConnect (gss: GossipSubAndComponents[]): Promise<void> {
   await connectSome(gss, 3)
 }
 
-export async function denseConnect(gss: GossipSubAndComponents[]): Promise<void> {
+export async function denseConnect (gss: GossipSubAndComponents[]): Promise<void> {
   await connectSome(gss, Math.min(gss.length - 1, 10))
 }
