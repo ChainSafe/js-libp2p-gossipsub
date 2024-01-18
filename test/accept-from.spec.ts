@@ -6,8 +6,7 @@ import { stubInterface } from 'ts-sinon'
 import { GossipSub } from '../src/index.js'
 import { createPeerId } from './utils/index.js'
 import { fastMsgIdFn } from './utils/msgId.js'
-import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
-import type { Registrar } from '@libp2p/interface-internal/registrar'
+import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
 
 const peerA = '16Uiu2HAmMkH6ZLen2tbhiuNCTZLLvrZaDgufNdT5MPjtC9Hr9YNA'
 

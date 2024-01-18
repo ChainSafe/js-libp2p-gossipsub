@@ -73,8 +73,7 @@ import type {
   Logger,
   ComponentLogger
 } from '@libp2p/interface'
-import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
-import type { IncomingStreamData, Registrar } from '@libp2p/interface-internal/registrar'
+import type { ConnectionManager, IncomingStreamData, Registrar } from '@libp2p/interface-internal'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import type { Uint8ArrayList } from 'uint8arraylist'
 
