@@ -183,7 +183,7 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   /**
    * If true, will utilize the libp2p connection manager tagging system to prune/graft connections to peers, defaults to false
    */
-  taggingEnabled?: boolean
+  tagMeshPeers?: boolean
 }
 
 export interface GossipsubMessage {
@@ -1479,9 +1479,9 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     const now = Date.now()
     let doPX = this.opts.doPX
 
-    if (this.opts?.taggingEnabled ?? false) {
+    if (this.opts?.tagMeshPeers ?? false) {
       for (const { topicID } of graft) {
-        if (!topicID) {
+        if (topicID == null) {
           continue
         }
         try {
@@ -1594,18 +1594,6 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         continue
       }
 
-      if (this.opts?.taggingEnabled ?? false) {
-        try {
-          await this.components.peerStore.merge(peerIdFromString(id), {
-            tags: {
-              [topicID]: undefined
-            }
-          })
-        } catch (err) {
-          this.log.error('Error untagging peer %s with topic %s', id, topicID, err)
-        }
-      }
-
       const peersInMesh = this.mesh.get(topicID)
       if (peersInMesh == null) {
         return
@@ -1638,6 +1626,18 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
           continue
         }
         await this.pxConnect(peers)
+
+        if (this.opts?.tagMeshPeers ?? false) {
+          try {
+            await this.components.peerStore.merge(peerIdFromString(id), {
+              tags: {
+                [topicID]: undefined
+              }
+            })
+          } catch (err) {
+            this.log.error('Error untagging peer %s with topic %s', id, topicID, err)
+          }
+        }
       }
     }
   }
@@ -1887,7 +1887,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       // - peer_added_to_mesh()
     })
 
-    if (this.opts?.taggingEnabled ?? false) {
+    if (this.opts?.tagMeshPeers ?? false) {
       Array.from(toAdd).map(async (id) => {
         try {
           await this.components.peerStore.merge(peerIdFromString(id), {
@@ -1898,7 +1898,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
             }
           })
         } catch (e) {
-          this.log('Failed to add topic tag to peer %s', id)
+          this.log('Failed to tag peer %s with topic %s', id, topic, e)
         }
       })
     }
@@ -2303,7 +2303,9 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     const onUnsubscribe = true
     const prune = [await this.makePrune(id, topic, this.opts.doPX, onUnsubscribe)]
 
-    if (this.opts.taggingEnabled ?? false) {
+    this.sendRpc(id, { control: { prune } })
+
+    if (this.opts.tagMeshPeers ?? false) {
       try {
         await this.components.peerStore.merge(peerIdFromString(id), {
           tags: {
@@ -2314,8 +2316,6 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         this.log.error('Error untagging peer %s with topic %s', id, topic, err)
       }
     }
-
-    this.sendRpc(id, { control: { prune } })
   }
 
   /**

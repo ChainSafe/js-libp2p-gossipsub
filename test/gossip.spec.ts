@@ -29,7 +29,7 @@ describe('gossip', () => {
         },
         maxInboundDataLength: 4000000,
         allowPublishToZeroPeers: false,
-        taggingEnabled: true
+        tagMeshPeers: true
       }
     })
   })
@@ -110,9 +110,9 @@ describe('gossip', () => {
 
     const twoNodes = [nodeA, nodeB]
 
-    const subscriptionPromises = twoNodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change'))
+    const subscriptionPromises = twoNodes.map(async (n) => pEvent(n.pubsub, 'subscription-change'))
     // add subscriptions to each node
-    twoNodes.forEach((n) => n.pubsub.subscribe(topic))
+    twoNodes.forEach((n) => { n.pubsub.subscribe(topic) })
 
     // every node connected to every other
     await connectAllPubSubNodes(twoNodes)
@@ -121,7 +121,7 @@ describe('gossip', () => {
     await Promise.all(subscriptionPromises)
 
     // await mesh rebalancing
-    await Promise.all(twoNodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+    await Promise.all(twoNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
     let peerInfo
     try {
@@ -132,8 +132,10 @@ describe('gossip', () => {
         peerInfo = await nodeB.components.peerStore.get(nodeA.components.peerId)
       }
     }
-
-    expect(peerInfo!.tags.get(topic)?.value).to.equal(100)
+    if (peerInfo == null) {
+      throw new Error('Peer info not found')
+    }
+    expect(peerInfo.tags.get(topic)?.value).to.equal(100)
   })
 
   it('should remove the tags upon pruning', async function () {
@@ -144,9 +146,9 @@ describe('gossip', () => {
 
     const twoNodes = [nodeA, nodeB]
 
-    const subscriptionPromises = nodes.map(async (n) => await pEvent(n.pubsub, 'subscription-change'))
+    const subscriptionPromises = nodes.map(async (n) => pEvent(n.pubsub, 'subscription-change'))
     // add subscriptions to each node
-    twoNodes.forEach((n) => n.pubsub.subscribe(topic))
+    twoNodes.forEach((n) => { n.pubsub.subscribe(topic) })
 
     // every node connected to every other
     await connectAllPubSubNodes(nodes)
@@ -155,7 +157,7 @@ describe('gossip', () => {
     await Promise.all(subscriptionPromises)
 
     // await mesh rebalancing
-    await Promise.all(twoNodes.map(async (n) => await pEvent(n.pubsub, 'gossipsub:heartbeat')))
+    await Promise.all(twoNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
     nodeA.pubsub.unsubscribe(topic)
 
