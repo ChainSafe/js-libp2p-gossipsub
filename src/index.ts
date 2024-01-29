@@ -183,7 +183,7 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   /**
    * If true, will utilize the libp2p connection manager tagging system to prune/graft connections to peers, defaults to false
    */
-  tagMeshPeers?: boolean
+  tagMeshPeers: boolean
 }
 
 export interface GossipsubMessage {
@@ -402,6 +402,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       fallbackToFloodsub: true,
       floodPublish: true,
       batchPublish: false,
+      tagMeshPeers: false,
       doPX: false,
       directPeers: [],
       D: constants.GossipsubD,
@@ -1479,7 +1480,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     const now = Date.now()
     let doPX = this.opts.doPX
 
-    if (this.opts?.tagMeshPeers ?? false) {
+    if (this.opts.tagMeshPeers) {
       for (const { topicID } of graft) {
         if (topicID == null) {
           continue
@@ -1627,7 +1628,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         }
         await this.pxConnect(peers)
 
-        if (this.opts?.tagMeshPeers ?? false) {
+        if (this.opts.tagMeshPeers ?? false) {
           try {
             await this.components.peerStore.merge(peerIdFromString(id), {
               tags: {
@@ -1887,7 +1888,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       // - peer_added_to_mesh()
     })
 
-    if (this.opts?.tagMeshPeers ?? false) {
+    if (this.opts.tagMeshPeers ?? false) {
       Array.from(toAdd).map(async (id) => {
         try {
           await this.components.peerStore.merge(peerIdFromString(id), {
