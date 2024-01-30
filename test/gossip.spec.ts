@@ -11,8 +11,7 @@ import { GossipsubDhi } from '../src/constants.js'
 import { GossipSub } from '../src/index.js'
 import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
 import type { PeerStore } from '@libp2p/interface'
-import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
-import type { Registrar } from '@libp2p/interface-internal/registrar'
+import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
 
 describe('gossip', () => {
   let nodes: GossipSubAndComponents[]
