@@ -1,5 +1,6 @@
 import { abortableSource } from 'abortable-iterator'
 import { encode, decode } from 'it-length-prefixed'
+import map from 'it-map'
 import merge from 'it-merge'
 import { pipe } from 'it-pipe'
 import { pushable, type Pushable } from 'it-pushable'
@@ -30,12 +31,9 @@ export class OutboundStream {
 
     pipe(
       abortableSource(
-        merge<Uint8Array | Uint8ArrayList>(
+        merge(
           this.lpPushable,
-          pipe(
-            this.pushable,
-            (source) => encode(source)
-          )
+          map(this.pushable, buf => encode.single(buf))
         ), this.closeController.signal, { returnOnAbort: true }
       ),
       this.rawStream
