@@ -81,8 +81,6 @@
     "abortable-iterator": "^5.0.1",
     "denque": "^2.1.0",
     "it-length-prefixed": "^9.0.4",
-    "it-map": "^3.0.5",
-    "it-merge": "^3.0.3",
     "it-pipe": "^3.0.1",
     "it-pushable": "^3.2.3",
     "multiformats": "^13.0.1",
