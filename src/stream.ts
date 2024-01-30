@@ -1,5 +1,6 @@
 import { abortableSource } from 'abortable-iterator'
 import { encode, decode } from 'it-length-prefixed'
+import merge from 'it-merge'
 import { pipe } from 'it-pipe'
 import { pushable, type Pushable } from 'it-pushable'
 import type { Stream } from '@libp2p/interface'
@@ -28,14 +29,17 @@ export class OutboundStream {
     this.maxBufferSize = opts.maxBufferSize ?? Infinity
 
     pipe(
-      abortableSource(this.pushable, this.closeController.signal, { returnOnAbort: true }),
-      (source) => encode(source),
+      abortableSource(
+        merge<Uint8Array | Uint8ArrayList>(
+          this.lpPushable,
+          pipe(
+            this.pushable,
+            (source) => encode(source)
+          )
+        ), this.closeController.signal, { returnOnAbort: true }
+      ),
       this.rawStream
     ).catch(errCallback)
-
-    pipe(abortableSource(this.lpPushable, this.closeController.signal, { returnOnAbort: true }), this.rawStream).catch(
-      errCallback
-    )
   }
 
   get protocol (): string {
