@@ -1,5 +1,5 @@
-import { RPC } from './rpc.js'
 import { reader as r, type Reader } from 'protons-runtime'
+import { RPC } from './rpc.js'
 
 export interface DecodeRPCLimits {
   maxSubscriptions: number
@@ -64,7 +64,7 @@ export function decodeRpc (bytes: Uint8Array, opts: DecodeRPCLimits): RPC {
   return obj
 }
 
-function decodeControlMessage(reader: Reader, length: number, opts: DecodeRPCLimits): RPC.ControlMessage {
+function decodeControlMessage (reader: Reader, length: number, opts: DecodeRPCLimits): RPC.ControlMessage {
   const obj: any = {
     ihave: [],
     iwant: [],
@@ -115,7 +115,7 @@ function decodeControlMessage(reader: Reader, length: number, opts: DecodeRPCLim
   return obj
 }
 
-function decodeControlIHave(reader: Reader, length: number, opts: DecodeRPCLimits): RPC.ControlIHave {
+function decodeControlIHave (reader: Reader, length: number, opts: DecodeRPCLimits): RPC.ControlIHave {
   const obj: any = {
     messageIDs: []
   }
@@ -142,7 +142,7 @@ function decodeControlIHave(reader: Reader, length: number, opts: DecodeRPCLimit
   return obj
 }
 
-function decodeControlIWant(reader: Reader, length: number, opts: DecodeRPCLimits): RPC.ControlIWant {
+function decodeControlIWant (reader: Reader, length: number, opts: DecodeRPCLimits): RPC.ControlIWant {
   const obj: any = {
     messageIDs: []
   }
@@ -169,7 +169,7 @@ function decodeControlIWant(reader: Reader, length: number, opts: DecodeRPCLimit
   return obj
 }
 
-function decodeControlGraft(reader: Reader, length: number) {
+function decodeControlGraft (reader: Reader, length: number) {
   const obj: any = {}
 
   const end = length == null ? reader.len : reader.pos + length
@@ -190,7 +190,7 @@ function decodeControlGraft(reader: Reader, length: number) {
   return obj
 }
 
-function decodeControlPrune(reader: Reader, length: number, opts: DecodeRPCLimits): RPC.ControlPrune {
+function decodeControlPrune (reader: Reader, length: number, opts: DecodeRPCLimits): RPC.ControlPrune {
   const obj: any = {
     peers: []
   }

@@ -9,7 +9,7 @@ describe('protobuf', function () {
     minMs: 60 * 1000
   })
 
-  const testCases: { name: string; length: number }[] = [
+  const testCases: Array<{ name: string, length: number }> = [
     // As of Oct 2023, Attestation length = 281
     { name: 'Attestation', length: 300 },
     // A SignedBeaconBlock could be from 70_000 to 300_000

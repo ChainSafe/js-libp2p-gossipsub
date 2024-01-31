@@ -54,6 +54,7 @@ import {
   type PublishOpts
 } from './types.js'
 import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage.js'
+import { createGossipRpc, ensureControl } from './utils/create-gossip-rpc.js'
 import { shuffle, messageIdToString } from './utils/index.js'
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js'
 import { multiaddrToIPStr } from './utils/multiaddr.js'
@@ -1053,13 +1054,12 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     // Handle messages
     // TODO: (up to limit)
-    if (rpc.messages != null) {
-      for (const message of rpc.messages) {
-        if ((this.allowedTopics != null) && !this.allowedTopics.has(message.topic)) {
-          // Not allowed: message cache data-structures are not bounded by topic count
-          // TODO: Should apply behaviour penalties?
-          continue
-        }
+    for (const message of rpc.messages) {
+      if ((this.allowedTopics != null) && !this.allowedTopics.has(message.topic)) {
+        // Not allowed: message cache data-structures are not bounded by topic count
+        // TODO: Should apply behaviour penalties?
+        continue
+      }
 
       const handleReceivedMessagePromise = this.handleReceivedMessage(from, message)
         // Should never throw, but handle just in case
@@ -2111,7 +2111,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     this.publishedMessageIds.put(msgIdStr)
 
     const batchPublish = opts?.batchPublish ?? this.opts.batchPublish
-    const rpc = { messages: [rawMsg] }
+    const rpc = createGossipRpc([rawMsg])
     if (batchPublish) {
       this.sendRpcInBatch(tosend, rpc)
     } else {
@@ -2163,8 +2163,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    * This is not only faster but also avoid allocating memory for each peer
    * see https://github.com/ChainSafe/js-libp2p-gossipsub/issues/344
    */
-  private sendRpcInBatch (tosend: Set<PeerIdStr>, rpc: IRPC): void {
-    const rpcBytes = RPC.encode(rpc).finish()
+  private sendRpcInBatch (tosend: Set<PeerIdStr>, rpc: RPC): void {
+    const rpcBytes = RPC.encode(rpc)
     const prefixedData = encode.single(rpcBytes)
     for (const id of tosend) {
       const outboundStream = this.streamsOutbound.get(id)
@@ -2316,31 +2316,24 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
   /** Mutates `outRpc` adding graft and prune control messages */
   public piggybackControl (id: PeerIdStr, outRpc: RPC, ctrl: RPC.ControlMessage): void {
-    if (ctrl.graft != null) {
-      if (outRpc.control == null) outRpc.control = {}
-      if (outRpc.control.graft == null) outRpc.control.graft = []
-      for (const graft of ctrl.graft) {
-        if (graft.topicID != null && (this.mesh.get(graft.topicID)?.has(id) ?? false)) {
-          outRpc.control.graft.push(graft)
-        }
+    const rpc = ensureControl(outRpc)
+    for (const graft of ctrl.graft) {
+      if (graft.topicID != null && (this.mesh.get(graft.topicID)?.has(id) ?? false)) {
+        rpc.control.graft.push(graft)
       }
     }
 
-    if (ctrl.prune != null) {
-      if (outRpc.control == null) outRpc.control = {}
-      if (outRpc.control.prune == null) outRpc.control.prune = []
-      for (const prune of ctrl.prune) {
-        if (prune.topicID != null && !(this.mesh.get(prune.topicID)?.has(id) ?? false)) {
-          outRpc.control.prune.push(prune)
-        }
+    for (const prune of ctrl.prune) {
+      if (prune.topicID != null && !(this.mesh.get(prune.topicID)?.has(id) ?? false)) {
+        rpc.control.prune.push(prune)
       }
     }
   }
 
   /** Mutates `outRpc` adding ihave control messages */
   private piggybackGossip (id: PeerIdStr, outRpc: RPC, ihave: RPC.ControlIHave[]): void {
-    if (outRpc.control == null) outRpc.control = {}
-    outRpc.control.ihave = ihave
+    const rpc = ensureControl(outRpc)
+    rpc.control.ihave = ihave
   }
 
   /**
