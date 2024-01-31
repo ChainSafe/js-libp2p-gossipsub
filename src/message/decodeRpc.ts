@@ -169,7 +169,7 @@ function decodeControlIWant (reader: Reader, length: number, opts: DecodeRPCLimi
   return obj
 }
 
-function decodeControlGraft (reader: Reader, length: number) {
+function decodeControlGraft (reader: Reader, length: number): RPC.ControlGraft {
   const obj: any = {}
 
   const end = length == null ? reader.len : reader.pos + length
