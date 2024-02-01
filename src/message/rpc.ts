@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-boolean-literal-compare */
 /* eslint-disable @typescript-eslint/no-empty-interface */
 
-import { type Codec, decodeMessage, encodeMessage, message } from 'protons-runtime'
+import { type Codec, CodeError, decodeMessage, type DecodeOptions, encodeMessage, message } from 'protons-runtime'
 import type { Uint8ArrayList } from 'uint8arraylist'
 
 export interface RPC {
@@ -42,7 +42,7 @@ export namespace RPC {
           if (opts.lengthDelimited !== false) {
             w.ldelim()
           }
-        }, (reader, length) => {
+        }, (reader, length, opts = {}) => {
           const obj: any = {}
 
           const end = length == null ? reader.len : reader.pos + length
@@ -77,8 +77,8 @@ export namespace RPC {
       return encodeMessage(obj, SubOpts.codec())
     }
 
-    export const decode = (buf: Uint8Array | Uint8ArrayList): SubOpts => {
-      return decodeMessage(buf, SubOpts.codec())
+    export const decode = (buf: Uint8Array | Uint8ArrayList, opts?: DecodeOptions<SubOpts>): SubOpts => {
+      return decodeMessage(buf, SubOpts.codec(), opts)
     }
   }
 
@@ -134,7 +134,7 @@ export namespace RPC {
           if (opts.lengthDelimited !== false) {
             w.ldelim()
           }
-        }, (reader, length) => {
+        }, (reader, length, opts = {}) => {
           const obj: any = {
             topic: ''
           }
@@ -187,8 +187,8 @@ export namespace RPC {
       return encodeMessage(obj, Message.codec())
     }
 
-    export const decode = (buf: Uint8Array | Uint8ArrayList): Message => {
-      return decodeMessage(buf, Message.codec())
+    export const decode = (buf: Uint8Array | Uint8ArrayList, opts?: DecodeOptions<Message>): Message => {
+      return decodeMessage(buf, Message.codec(), opts)
     }
   }
 
@@ -240,7 +240,7 @@ export namespace RPC {
           if (opts.lengthDelimited !== false) {
             w.ldelim()
           }
-        }, (reader, length) => {
+        }, (reader, length, opts = {}) => {
           const obj: any = {
             ihave: [],
             iwant: [],
@@ -255,18 +255,34 @@ export namespace RPC {
 
             switch (tag >>> 3) {
               case 1: {
+                if (opts.limits?.ihave != null && obj.ihave.length === opts.limits.ihave) {
+                  throw new CodeError('decode error - map field "ihave" had too many elements', 'ERR_MAX_LENGTH')
+                }
+
                 obj.ihave.push(RPC.ControlIHave.codec().decode(reader, reader.uint32()))
                 break
               }
               case 2: {
+                if (opts.limits?.iwant != null && obj.iwant.length === opts.limits.iwant) {
+                  throw new CodeError('decode error - map field "iwant" had too many elements', 'ERR_MAX_LENGTH')
+                }
+
                 obj.iwant.push(RPC.ControlIWant.codec().decode(reader, reader.uint32()))
                 break
               }
               case 3: {
+                if (opts.limits?.graft != null && obj.graft.length === opts.limits.graft) {
+                  throw new CodeError('decode error - map field "graft" had too many elements', 'ERR_MAX_LENGTH')
+                }
+
                 obj.graft.push(RPC.ControlGraft.codec().decode(reader, reader.uint32()))
                 break
               }
               case 4: {
+                if (opts.limits?.prune != null && obj.prune.length === opts.limits.prune) {
+                  throw new CodeError('decode error - map field "prune" had too many elements', 'ERR_MAX_LENGTH')
+                }
+
                 obj.prune.push(RPC.ControlPrune.codec().decode(reader, reader.uint32()))
                 break
               }
@@ -288,8 +304,8 @@ export namespace RPC {
       return encodeMessage(obj, ControlMessage.codec())
     }
 
-    export const decode = (buf: Uint8Array | Uint8ArrayList): ControlMessage => {
-      return decodeMessage(buf, ControlMessage.codec())
+    export const decode = (buf: Uint8Array | Uint8ArrayList, opts?: DecodeOptions<ControlMessage>): ControlMessage => {
+      return decodeMessage(buf, ControlMessage.codec(), opts)
     }
   }
 
@@ -323,7 +339,7 @@ export namespace RPC {
           if (opts.lengthDelimited !== false) {
             w.ldelim()
           }
-        }, (reader, length) => {
+        }, (reader, length, opts = {}) => {
           const obj: any = {
             messageIDs: []
           }
@@ -339,6 +355,10 @@ export namespace RPC {
                 break
               }
               case 2: {
+                if (opts.limits?.messageIDs != null && obj.messageIDs.length === opts.limits.messageIDs) {
+                  throw new CodeError('decode error - map field "messageIDs" had too many elements', 'ERR_MAX_LENGTH')
+                }
+
                 obj.messageIDs.push(reader.bytes())
                 break
               }
@@ -360,8 +380,8 @@ export namespace RPC {
       return encodeMessage(obj, ControlIHave.codec())
     }
 
-    export const decode = (buf: Uint8Array | Uint8ArrayList): ControlIHave => {
-      return decodeMessage(buf, ControlIHave.codec())
+    export const decode = (buf: Uint8Array | Uint8ArrayList, opts?: DecodeOptions<ControlIHave>): ControlIHave => {
+      return decodeMessage(buf, ControlIHave.codec(), opts)
     }
   }
 
@@ -389,7 +409,7 @@ export namespace RPC {
           if (opts.lengthDelimited !== false) {
             w.ldelim()
           }
-        }, (reader, length) => {
+        }, (reader, length, opts = {}) => {
           const obj: any = {
             messageIDs: []
           }
@@ -401,6 +421,10 @@ export namespace RPC {
 
             switch (tag >>> 3) {
               case 1: {
+                if (opts.limits?.messageIDs != null && obj.messageIDs.length === opts.limits.messageIDs) {
+                  throw new CodeError('decode error - map field "messageIDs" had too many elements', 'ERR_MAX_LENGTH')
+                }
+
                 obj.messageIDs.push(reader.bytes())
                 break
               }
@@ -422,8 +446,8 @@ export namespace RPC {
       return encodeMessage(obj, ControlIWant.codec())
     }
 
-    export const decode = (buf: Uint8Array | Uint8ArrayList): ControlIWant => {
-      return decodeMessage(buf, ControlIWant.codec())
+    export const decode = (buf: Uint8Array | Uint8ArrayList, opts?: DecodeOptions<ControlIWant>): ControlIWant => {
+      return decodeMessage(buf, ControlIWant.codec(), opts)
     }
   }
 
@@ -449,7 +473,7 @@ export namespace RPC {
           if (opts.lengthDelimited !== false) {
             w.ldelim()
           }
-        }, (reader, length) => {
+        }, (reader, length, opts = {}) => {
           const obj: any = {}
 
           const end = length == null ? reader.len : reader.pos + length
@@ -480,8 +504,8 @@ export namespace RPC {
       return encodeMessage(obj, ControlGraft.codec())
     }
 
-    export const decode = (buf: Uint8Array | Uint8ArrayList): ControlGraft => {
-      return decodeMessage(buf, ControlGraft.codec())
+    export const decode = (buf: Uint8Array | Uint8ArrayList, opts?: DecodeOptions<ControlGraft>): ControlGraft => {
+      return decodeMessage(buf, ControlGraft.codec(), opts)
     }
   }
 
@@ -521,7 +545,7 @@ export namespace RPC {
           if (opts.lengthDelimited !== false) {
             w.ldelim()
           }
-        }, (reader, length) => {
+        }, (reader, length, opts = {}) => {
           const obj: any = {
             peers: []
           }
@@ -537,6 +561,10 @@ export namespace RPC {
                 break
               }
               case 2: {
+                if (opts.limits?.peers != null && obj.peers.length === opts.limits.peers) {
+                  throw new CodeError('decode error - map field "peers" had too many elements', 'ERR_MAX_LENGTH')
+                }
+
                 obj.peers.push(RPC.PeerInfo.codec().decode(reader, reader.uint32()))
                 break
               }
@@ -562,8 +590,8 @@ export namespace RPC {
       return encodeMessage(obj, ControlPrune.codec())
     }
 
-    export const decode = (buf: Uint8Array | Uint8ArrayList): ControlPrune => {
-      return decodeMessage(buf, ControlPrune.codec())
+    export const decode = (buf: Uint8Array | Uint8ArrayList, opts?: DecodeOptions<ControlPrune>): ControlPrune => {
+      return decodeMessage(buf, ControlPrune.codec(), opts)
     }
   }
 
@@ -595,7 +623,7 @@ export namespace RPC {
           if (opts.lengthDelimited !== false) {
             w.ldelim()
           }
-        }, (reader, length) => {
+        }, (reader, length, opts = {}) => {
           const obj: any = {}
 
           const end = length == null ? reader.len : reader.pos + length
@@ -630,8 +658,8 @@ export namespace RPC {
       return encodeMessage(obj, PeerInfo.codec())
     }
 
-    export const decode = (buf: Uint8Array | Uint8ArrayList): PeerInfo => {
-      return decodeMessage(buf, PeerInfo.codec())
+    export const decode = (buf: Uint8Array | Uint8ArrayList, opts?: DecodeOptions<PeerInfo>): PeerInfo => {
+      return decodeMessage(buf, PeerInfo.codec(), opts)
     }
   }
 
@@ -666,7 +694,7 @@ export namespace RPC {
         if (opts.lengthDelimited !== false) {
           w.ldelim()
         }
-      }, (reader, length) => {
+      }, (reader, length, opts = {}) => {
         const obj: any = {
           subscriptions: [],
           messages: []
@@ -679,10 +707,18 @@ export namespace RPC {
 
           switch (tag >>> 3) {
             case 1: {
+              if (opts.limits?.subscriptions != null && obj.subscriptions.length === opts.limits.subscriptions) {
+                throw new CodeError('decode error - map field "subscriptions" had too many elements', 'ERR_MAX_LENGTH')
+              }
+
               obj.subscriptions.push(RPC.SubOpts.codec().decode(reader, reader.uint32()))
               break
             }
             case 2: {
+              if (opts.limits?.messages != null && obj.messages.length === opts.limits.messages) {
+                throw new CodeError('decode error - map field "messages" had too many elements', 'ERR_MAX_LENGTH')
+              }
+
               obj.messages.push(RPC.Message.codec().decode(reader, reader.uint32()))
               break
             }
@@ -708,7 +744,7 @@ export namespace RPC {
     return encodeMessage(obj, RPC.codec())
   }
 
-  export const decode = (buf: Uint8Array | Uint8ArrayList): RPC => {
-    return decodeMessage(buf, RPC.codec())
+  export const decode = (buf: Uint8Array | Uint8ArrayList, opts?: DecodeOptions<RPC>): RPC => {
+    return decodeMessage(buf, RPC.codec(), opts)
   }
 }
