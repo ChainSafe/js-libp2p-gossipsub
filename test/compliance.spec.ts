@@ -29,7 +29,7 @@ describe.skip('interface compliance', function () {
           ...args.init,
           // libp2p-interfaces-compliance-tests in test 'can subscribe and unsubscribe correctly' publishes to no peers
           // Disable check to allow passing tests
-          allowPublishToZeroPeers: true
+          allowPublishToZeroTopicPeers: true
         }
       )
 

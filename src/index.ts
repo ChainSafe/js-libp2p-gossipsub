@@ -104,8 +104,15 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
    * reportMessageValidationResult() after the message is dropped from mcache won't forward the message.
    */
   asyncValidation: boolean
-  /** Do not throw `InsufficientPeers` error if publishing to zero peers */
-  allowPublishToZeroPeers: boolean
+  /**
+   * Do not throw `PublishError.NoPeersSubscribedToTopic` error if there are no
+   * peers listening on the topic.
+   *
+   * N.B. if you sent this option to true, and you publish a message on a topic
+   * with no peers listening on that topic, no other network node will ever
+   * receive the message.
+   */
+  allowPublishToZeroTopicPeers: boolean
   /** Do not throw `PublishError.Duplicate` if publishing duplicate messages */
   ignoreDuplicatePublishError: boolean
   /** For a single stream, await processing each RPC before processing the next */
@@ -2095,10 +2102,10 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     const willSendToSelf = this.opts.emitSelf && this.subscriptions.has(topic)
 
     // Current publish opt takes precedence global opts, while preserving false value
-    const allowPublishToZeroPeers = opts?.allowPublishToZeroPeers ?? this.opts.allowPublishToZeroPeers
+    const allowPublishToZeroTopicPeers = opts?.allowPublishToZeroTopicPeers ?? this.opts.allowPublishToZeroTopicPeers
 
-    if (tosend.size === 0 && !allowPublishToZeroPeers && !willSendToSelf) {
-      throw Error('PublishError.InsufficientPeers')
+    if (tosend.size === 0 && !allowPublishToZeroTopicPeers && !willSendToSelf) {
+      throw Error('PublishError.NoPeersSubscribedToTopic')
     }
 
     // If the message isn't a duplicate and we have sent it to some peers add it to the

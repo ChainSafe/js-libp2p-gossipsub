@@ -27,7 +27,7 @@ describe('gossip', () => {
           IPColocationFactorThreshold: GossipsubDhi + 3
         },
         maxInboundDataLength: 4000000,
-        allowPublishToZeroPeers: false
+        allowPublishToZeroTopicPeers: false
       }
     })
   })
@@ -89,7 +89,7 @@ describe('gossip', () => {
     const topic = 'Z'
 
     const publishResult = await nodeA.pubsub.publish(topic, uint8ArrayFromString('hey'), {
-      allowPublishToZeroPeers: true
+      allowPublishToZeroTopicPeers: true
     })
 
     // gossip happens during the heartbeat

@@ -243,7 +243,7 @@ describe('2 nodes', () => {
     // Create pubsub nodes
     beforeEach(async () => {
       mockNetwork.reset()
-      nodes = await createComponentsArray({ number: 2, init: { allowPublishToZeroPeers: true } })
+      nodes = await createComponentsArray({ number: 2, init: { allowPublishToZeroTopicPeers: true } })
       await connectAllPubSubNodes(nodes)
 
       // Create subscriptions
