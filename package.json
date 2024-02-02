@@ -78,7 +78,6 @@
     "@libp2p/peer-id": "^4.0.5",
     "@libp2p/pubsub": "^9.0.8",
     "@multiformats/multiaddr": "^12.1.14",
-    "abortable-iterator": "^5.0.1",
     "denque": "^2.1.0",
     "it-length-prefixed": "^9.0.4",
     "it-pipe": "^3.0.1",

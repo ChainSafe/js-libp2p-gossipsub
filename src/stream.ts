@@ -1,4 +1,3 @@
-import { abortableSource } from 'abortable-iterator'
 import { encode, decode } from 'it-length-prefixed'
 import { pipe } from 'it-pipe'
 import { pushable, type Pushable } from 'it-pushable'
@@ -25,8 +24,15 @@ export class OutboundStream {
     this.closeController = new AbortController()
     this.maxBufferSize = opts.maxBufferSize ?? Infinity
 
+    this.closeController.signal.addEventListener('abort', () => {
+      rawStream.close()
+        .catch(err => {
+          rawStream.abort(err)
+        })
+    })
+
     pipe(
-      abortableSource(this.pushable, this.closeController.signal, { returnOnAbort: true }),
+      this.pushable,
       this.rawStream
     ).catch(errCallback)
   }
@@ -59,7 +65,6 @@ export class OutboundStream {
     this.closeController.abort()
     // similar to pushable.end() but clear the internal buffer
     await this.pushable.return()
-    await this.rawStream.close()
   }
 }
 
@@ -73,17 +78,20 @@ export class InboundStream {
     this.rawStream = rawStream
     this.closeController = new AbortController()
 
-    this.source = abortableSource(
-      pipe(this.rawStream, (source) => decode(source, opts)),
-      this.closeController.signal,
-      {
-        returnOnAbort: true
-      }
+    this.closeController.signal.addEventListener('abort', () => {
+      rawStream.close()
+        .catch(err => {
+          rawStream.abort(err)
+        })
+    })
+
+    this.source = pipe(
+      this.rawStream,
+      (source) => decode(source, opts)
     )
   }
 
   async close (): Promise<void> {
     this.closeController.abort()
-    await this.rawStream.close()
   }
 }
