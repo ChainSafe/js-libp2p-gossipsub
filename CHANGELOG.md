@@ -15,6 +15,13 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [11.2.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.2.0...v11.2.1) (2024-02-05)
+
+
+### Bug Fixes
+
+* remove abortable iterator ([#488](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/488)) ([e39b2e2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/e39b2e2910571eba03c1ba2f84a087e4903858c9))
+
 ## [11.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.1.0...v11.2.0) (2024-01-30)
 
 
