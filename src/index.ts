@@ -62,7 +62,7 @@ import { removeFirstNItemsFromSet, removeItemsFromSet } from './utils/set.js'
 import { SimpleTimeCache } from './utils/time-cache.js'
 import type { GossipsubOptsSpec } from './config.js'
 import type {
-  Connection, Stream, PeerId, Peer, PeerStore,
+  Connection, Direction, Stream, PeerId, Peer, PeerStore,
   Message,
   PublishResult,
   PubSub,
@@ -192,9 +192,17 @@ export interface GossipsubMessage {
   msg: Message
 }
 
+export interface MeshPeer {
+  peerId: string
+  topic: string
+  direction: Direction
+}
+
 export interface GossipsubEvents extends PubSubEvents {
   'gossipsub:heartbeat': CustomEvent
   'gossipsub:message': CustomEvent<GossipsubMessage>
+  'gossipsub:graft': CustomEvent<MeshPeer>
+  'gossipsub:prune': CustomEvent<MeshPeer>
 }
 
 enum GossipStatusCode {
@@ -627,6 +635,11 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         })
     }, constants.GossipsubDirectConnectInitialDelay)
 
+    if (this.opts.tagMeshPeers) {
+      this.addEventListener('gossipsub:graft', this.tagMeshPeer)
+      this.addEventListener('gossipsub:prune', this.untagMeshPeer)
+    }
+
     this.log('started')
   }
 
@@ -643,6 +656,11 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     const { registrarTopologyIds } = this.status
     this.status = { code: GossipStatusCode.stopped }
+
+    if (this.opts.tagMeshPeers) {
+      this.removeEventListener('gossipsub:graft', this.tagMeshPeer)
+      this.removeEventListener('gossipsub:prune', this.untagMeshPeer)
+    }
 
     // unregister protocol and handlers
     const registrar = this.components.registrar
@@ -1480,25 +1498,6 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     const now = Date.now()
     let doPX = this.opts.doPX
 
-    if (this.opts.tagMeshPeers) {
-      for (const { topicID } of graft) {
-        if (topicID == null) {
-          continue
-        }
-        try {
-          await this.components.peerStore.merge(peerIdFromString(id), {
-            tags: {
-              [topicID]: {
-                value: 100
-              }
-            }
-          })
-        } catch (err) {
-          this.log.error('Error tagging peer %s with topic %s', id, topicID, err)
-        }
-      }
-    }
-
     graft.forEach(({ topicID }) => {
       if (topicID == null) {
         return
@@ -1517,6 +1516,11 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         return
       }
 
+      const backoffExpiry = this.backoff.get(topicID)?.get(id)
+
+      // This if/else chain contains the various cases of valid (and semi-valid) GRAFTs
+      // Most of these cases result in a PRUNE immediately being sent in response
+
       // we don't GRAFT to/from direct peers; complain loudly if this happens
       if (this.direct.has(id)) {
         this.log('GRAFT: ignoring request from direct peer %s', id)
@@ -1524,19 +1528,16 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         prune.push(topicID)
         // but don't px
         doPX = false
-        return
-      }
 
-      // make sure we are not backing off that peer
-      const expire = this.backoff.get(topicID)?.get(id)
-      if (typeof expire === 'number' && now < expire) {
+        // make sure we are not backing off that peer
+      } else if (typeof backoffExpiry === 'number' && now < backoffExpiry) {
         this.log('GRAFT: ignoring backed off peer %s', id)
         // add behavioral penalty
         this.score.addPenalty(id, 1, ScorePenalty.GraftBackoff)
         // no PX
         doPX = false
         // check the flood cutoff -- is the GRAFT coming too fast?
-        const floodCutoff = expire + this.opts.graftFloodThreshold - this.opts.pruneBackoff
+        const floodCutoff = backoffExpiry + this.opts.graftFloodThreshold - this.opts.pruneBackoff
         if (now < floodCutoff) {
           // extra penalty
           this.score.addPenalty(id, 1, ScorePenalty.GraftBackoff)
@@ -1544,11 +1545,9 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         // refresh the backoff
         this.addBackoff(id, topicID)
         prune.push(topicID)
-        return
-      }
 
-      // check the score
-      if (score < 0) {
+        // check the score
+      } else if (score < 0) {
         // we don't GRAFT peers with negative score
         this.log('GRAFT: ignoring peer %s with negative score: score=%d, topic=%s', id, score, topicID)
         // we do send them PRUNE however, because it's a matter of protocol correctness
@@ -1557,23 +1556,24 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         doPX = false
         // add/refresh backoff so that we don't reGRAFT too early even if the score decays
         this.addBackoff(id, topicID)
-        return
-      }
 
-      // check the number of mesh peers; if it is at (or over) Dhi, we only accept grafts
-      // from peers with outbound connections; this is a defensive check to restrict potential
-      // mesh takeover attacks combined with love bombing
-      if (peersInMesh.size >= this.opts.Dhi && !(this.outbound.get(id) ?? false)) {
+        // check the number of mesh peers; if it is at (or over) Dhi, we only accept grafts
+        // from peers with outbound connections; this is a defensive check to restrict potential
+        // mesh takeover attacks combined with love bombing
+      } else if (peersInMesh.size >= this.opts.Dhi && !(this.outbound.get(id) ?? false)) {
         prune.push(topicID)
         this.addBackoff(id, topicID)
-        return
+
+        // valid graft
+      } else {
+        this.log('GRAFT: Add mesh link from %s in %s', id, topicID)
+        this.score.graft(id, topicID)
+        peersInMesh.add(id)
+
+        this.metrics?.onAddToMesh(topicID, InclusionReason.Subscribed, 1)
       }
 
-      this.log('GRAFT: Add mesh link from %s in %s', id, topicID)
-      this.score.graft(id, topicID)
-      peersInMesh.add(id)
-
-      this.metrics?.onAddToMesh(topicID, InclusionReason.Subscribed, 1)
+      this.safeDispatchEvent<MeshPeer>('gossipsub:graft', { detail: { peerId: id, topic: topicID, direction: 'inbound' } })
     })
 
     if (prune.length === 0) {
@@ -1627,19 +1627,9 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
           continue
         }
         await this.pxConnect(peers)
-
-        if (this.opts.tagMeshPeers ?? false) {
-          try {
-            await this.components.peerStore.merge(peerIdFromString(id), {
-              tags: {
-                [topicID]: undefined
-              }
-            })
-          } catch (err) {
-            this.log.error('Error untagging peer %s with topic %s', id, topicID, err)
-          }
-        }
       }
+
+      this.safeDispatchEvent<MeshPeer>('gossipsub:prune', { detail: { peerId: id, topic: topicID, direction: 'inbound' } })
     }
   }
 
@@ -1887,22 +1877,6 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       // - Self::control_pool_add()
       // - peer_added_to_mesh()
     })
-
-    if (this.opts.tagMeshPeers ?? false) {
-      Array.from(toAdd).map(async (id) => {
-        try {
-          await this.components.peerStore.merge(peerIdFromString(id), {
-            tags: {
-              [topic]: {
-                value: 100 // value should be 0-100
-              }
-            }
-          })
-        } catch (e) {
-          this.log('Failed to tag peer %s with topic %s', id, topic, e)
-        }
-      })
-    }
   }
 
   /**
@@ -2294,6 +2268,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     ]
 
     this.sendRpc(id, { control: { graft } })
+
+    this.safeDispatchEvent<MeshPeer>('gossipsub:graft', { detail: { peerId: id, topic, direction: 'outbound' } })
   }
 
   /**
@@ -2306,17 +2282,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     this.sendRpc(id, { control: { prune } })
 
-    if (this.opts.tagMeshPeers ?? false) {
-      try {
-        await this.components.peerStore.merge(peerIdFromString(id), {
-          tags: {
-            [topic]: undefined
-          }
-        })
-      } catch (err) {
-        this.log.error('Error untagging peer %s with topic %s', id, topic, err)
-      }
-    }
+    this.safeDispatchEvent<MeshPeer>('gossipsub:prune', { detail: { peerId: id, topic, direction: 'outbound' } })
   }
 
   /**
@@ -3065,6 +3031,26 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     )
 
     metrics.registerScoreWeights(sw)
+  }
+
+  private readonly tagMeshPeer = (evt: CustomEvent<MeshPeer>): void => {
+    const { peerId, topic } = evt.detail
+    this.components.peerStore.merge(peerIdFromString(peerId), {
+      tags: {
+        [topic]: {
+          value: 100
+        }
+      }
+    }).catch((err) => { this.log.error('Error tagging peer %s with topic %s', peerId, topic, err) })
+  }
+
+  private readonly untagMeshPeer = (evt: CustomEvent<MeshPeer>): void => {
+    const { peerId, topic } = evt.detail
+    this.components.peerStore.merge(peerIdFromString(peerId), {
+      tags: {
+        [topic]: undefined
+      }
+    }).catch((err) => { this.log.error('Error untagging peer %s with topic %s', peerId, topic, err) })
   }
 }
 
