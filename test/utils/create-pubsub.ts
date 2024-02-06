@@ -8,7 +8,7 @@ import { MemoryDatastore } from 'datastore-core'
 import { stubInterface } from 'ts-sinon'
 import { GossipSub, type GossipSubComponents, type GossipsubOpts } from '../../src/index.js'
 import type { TypedEventTarget, Libp2pEvents, PubSub } from '@libp2p/interface'
-import type { ConnectionManager } from '@libp2p/interface-internal/connection-manager'
+import type { ConnectionManager } from '@libp2p/interface-internal'
 
 export interface CreateComponentsOpts {
   init?: Partial<GossipsubOpts>

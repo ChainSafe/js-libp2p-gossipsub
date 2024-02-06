@@ -15,6 +15,25 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [11.2.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.2.0...v11.2.1) (2024-02-05)
+
+
+### Bug Fixes
+
+* remove abortable iterator ([#488](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/488)) ([e39b2e2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/e39b2e2910571eba03c1ba2f84a087e4903858c9))
+
+## [11.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.1.0...v11.2.0) (2024-01-30)
+
+
+### Features
+
+* add runOnTransientConnection option to pass to registrar ([#485](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/485)) ([986ff6c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/986ff6c420026654179bc398ba139c87a2277ea7))
+
+
+### Bug Fixes
+
+* write peer stream messages atomically ([#484](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/484)) ([cc4ff3b](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/cc4ff3bfa4f09b9a1b4bfedd20468dc2c06be895))
+
 ## [11.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.0.1...v11.1.0) (2024-01-08)
 
 

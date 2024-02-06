@@ -1,4 +1,4 @@
-import SHA256 from '@chainsafe/as-sha256'
+import { digest } from '@chainsafe/as-sha256'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { messageIdToString } from '../../src/utils/messageIdToString.js'
 import type { RPC } from '../../src/message/rpc.js'
@@ -16,5 +16,4 @@ export const getMsgIdStr = (msg: RPC.IMessage): string => messageIdToString(getM
 
 export const fastMsgIdFn = (msg: RPC.IMessage): string =>
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-expect-error @chainsafe/as-sha256 types are wrong
-  msg.data != null ? messageIdToString(SHA256.default.digest(msg.data)) : '0'
+  msg.data != null ? messageIdToString(digest(msg.data)) : '0'
