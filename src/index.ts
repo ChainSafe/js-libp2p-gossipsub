@@ -190,7 +190,7 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   decodeRpcLimits?: DecodeRPCLimits
 
   /**
-   * If true, will utilize the libp2p connection manager tagging system to prune/graft connections to peers, defaults to false
+   * If true, will utilize the libp2p connection manager tagging system to prune/graft connections to peers, defaults to true
    */
   tagMeshPeers: boolean
 }
@@ -420,7 +420,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       fallbackToFloodsub: true,
       floodPublish: true,
       batchPublish: false,
-      tagMeshPeers: false,
+      tagMeshPeers: true,
       doPX: false,
       directPeers: [],
       D: constants.GossipsubD,
@@ -1639,9 +1639,9 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
             score,
             topicID
           )
-          continue
+        } else {
+          await this.pxConnect(peers)
         }
-        await this.pxConnect(peers)
       }
 
       this.safeDispatchEvent<MeshPeer>('gossipsub:prune', { detail: { peerId: id, topic: topicID, direction: 'inbound' } })
@@ -2283,8 +2283,6 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     ]
 
     this.sendRpc(id, { control: { graft } })
-
-    this.safeDispatchEvent<MeshPeer>('gossipsub:graft', { detail: { peerId: id, topic, direction: 'outbound' } })
   }
 
   /**
@@ -2296,8 +2294,6 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     const prune = [await this.makePrune(id, topic, this.opts.doPX, onUnsubscribe)]
 
     this.sendRpc(id, { control: { prune } })
-
-    this.safeDispatchEvent<MeshPeer>('gossipsub:prune', { detail: { peerId: id, topic, direction: 'outbound' } })
   }
 
   /**
@@ -2342,6 +2338,21 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     }
 
     this.metrics?.onRpcSent(rpc, rpcBytes.length)
+
+    if (rpc.control?.graft != null) {
+      for (const topic of rpc.control?.graft) {
+        if (topic.topicID != null) {
+          this.safeDispatchEvent<MeshPeer>('gossipsub:graft', { detail: { peerId: id, topic: topic.topicID, direction: 'outbound' } })
+        }
+      }
+    }
+    if (rpc.control?.prune != null) {
+      for (const topic of rpc.control?.prune) {
+        if (topic.topicID != null) {
+          this.safeDispatchEvent<MeshPeer>('gossipsub:prune', { detail: { peerId: id, topic: topic.topicID, direction: 'outbound' } })
+        }
+      }
+    }
 
     return true
   }

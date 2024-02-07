@@ -27,8 +27,7 @@ describe('gossip', () => {
           IPColocationFactorThreshold: GossipsubDhi + 3
         },
         maxInboundDataLength: 4000000,
-        allowPublishToZeroPeers: false,
-        tagMeshPeers: true
+        allowPublishToZeroPeers: false
       }
     })
   })
@@ -100,7 +99,6 @@ describe('gossip', () => {
     expect(publishResult.recipients).to.deep.equal([])
   })
 
-  // flakey test
   it('should tag peers', async function () {
     this.timeout(10e4)
     const nodeA = nodes[0]
@@ -109,32 +107,24 @@ describe('gossip', () => {
 
     const twoNodes = [nodeA, nodeB]
 
-    const subscriptionPromises = twoNodes.map(async (n) => pEvent(n.pubsub, 'subscription-change'))
+    const graftPromises = twoNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:graft'))
+
     // add subscriptions to each node
     twoNodes.forEach((n) => { n.pubsub.subscribe(topic) })
 
     // every node connected to every other
     await connectAllPubSubNodes(twoNodes)
 
-    // await for subscriptions to be transmitted
-    await Promise.all(subscriptionPromises)
+    // await grafts
+    await Promise.all(graftPromises)
 
     // await mesh rebalancing
     await Promise.all(twoNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
-    let peerInfo
-    try {
-      peerInfo = await nodeA.components.peerStore.get(nodeB.components.peerId)
-    } catch (err: any) {
-      // if it's not in node A's peerstore, then try node B's
-      if (err.code === 'ERR_NOT_FOUND') {
-        peerInfo = await nodeB.components.peerStore.get(nodeA.components.peerId)
-      }
-    }
-    if (peerInfo == null) {
-      throw new Error('Peer info not found')
-    }
-    expect(peerInfo.tags.get(topic)?.value).to.equal(100)
+    const peerInfoA = await nodeA.components.peerStore.get(nodeB.components.peerId).catch((e) => undefined)
+    const peerInfoB = await nodeB.components.peerStore.get(nodeA.components.peerId).catch((e) => undefined)
+    expect(peerInfoA?.tags.get(topic)?.value).to.equal(100)
+    expect(peerInfoB?.tags.get(topic)?.value).to.equal(100)
   })
 
   it('should remove the tags upon pruning', async function () {
@@ -158,11 +148,16 @@ describe('gossip', () => {
     // await mesh rebalancing
     await Promise.all(twoNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
-    nodeA.pubsub.unsubscribe(topic)
+    twoNodes.forEach((n) => { n.pubsub.unsubscribe(topic) })
 
-    // await for subscriptions to be transmitted
-    await Promise.all(subscriptionPromises)
-    expect((await nodeA.components.peerStore.get(nodeB.components.peerId)).tags.get(topic)).to.be.undefined()
+    // await for unsubscriptions to be transmitted
+    // await mesh rebalancing
+    await Promise.all(twoNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
+
+    const peerInfoA = await nodeA.components.peerStore.get(nodeB.components.peerId).catch((e) => undefined)
+    const peerInfoB = await nodeB.components.peerStore.get(nodeA.components.peerId).catch((e) => undefined)
+    expect(peerInfoA?.tags.get(topic)).to.be.undefined()
+    expect(peerInfoB?.tags.get(topic)).to.be.undefined()
   })
 
   it('should reject incoming messages bigger than maxInboundDataLength limit', async function () {
