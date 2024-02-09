@@ -955,7 +955,6 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
             const rpcBytes = data.subarray()
             // Note: This function may throw, it must be wrapped in a try {} catch {} to prevent closing the stream.
             // TODO: What should we do if the entire RPC is invalid?
-            // const rpc = decodeRpc(rpcBytes, this.decodeRpcLimits)
             const rpc = RPC.decode(rpcBytes, {
               limits: {
                 subscriptions: this.decodeRpcLimits.maxSubscriptions,
