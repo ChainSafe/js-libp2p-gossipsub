@@ -10,7 +10,7 @@ import {
   ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE,
   BACKOFF_SLACK
 } from './constants.js'
-import { decodeRpc, type DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
+import { type DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
 import { RPC } from './message/rpc.js'
 import { MessageCache, type MessageCacheRecord } from './message-cache.js'
 import {
@@ -955,7 +955,22 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
             const rpcBytes = data.subarray()
             // Note: This function may throw, it must be wrapped in a try {} catch {} to prevent closing the stream.
             // TODO: What should we do if the entire RPC is invalid?
-            const rpc = decodeRpc(rpcBytes, this.decodeRpcLimits)
+            // const rpc = decodeRpc(rpcBytes, this.decodeRpcLimits)
+            const rpc = RPC.decode(rpcBytes, {
+              limits: {
+                subscriptions: this.decodeRpcLimits.maxSubscriptions,
+                messages: this.decodeRpcLimits.maxMessages,
+                control$: {
+                  ihave: this.decodeRpcLimits.maxIhaveMessageIDs,
+                  iwant: this.decodeRpcLimits.maxIwantMessageIDs,
+                  graft: this.decodeRpcLimits.maxControlMessages,
+                  prune: this.decodeRpcLimits.maxControlMessages,
+                  prune$: {
+                    peers: this.decodeRpcLimits.maxPeerInfos
+                  }
+                }
+              }
+            })
 
             this.metrics?.onRpcRecv(rpc, rpcBytes.length)
 
