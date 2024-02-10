@@ -15,6 +15,17 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [12.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.2.1...v12.0.0) (2024-02-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* switch back to protons ([#468](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/468))
+
+### Features
+
+* switch back to protons ([#468](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/468)) ([18955dc](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/18955dcc7effe5a2792a08476fa420fa6474509a))
+
 ## [11.2.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.2.0...v11.2.1) (2024-02-05)
 
 
