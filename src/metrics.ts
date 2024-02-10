@@ -7,7 +7,7 @@ import {
   type TopicStr,
   type ValidateError
 } from './types.js'
-import type { IRPC } from './message/rpc.js'
+import type { RPC } from './message/rpc.js'
 import type { PeerScoreThresholds } from './score/peer-score-thresholds.js'
 
 /** Topic label as provided in `topicStrToLabel` */
@@ -893,7 +893,7 @@ export function getMetrics (
       this.rpcDataError.inc(1)
     },
 
-    onRpcRecv (rpc: IRPC, rpcBytes: number): void {
+    onRpcRecv (rpc: RPC, rpcBytes: number): void {
       this.rpcRecvBytes.inc(rpcBytes)
       this.rpcRecvCount.inc(1)
       if (rpc.subscriptions != null) this.rpcRecvSubscription.inc(rpc.subscriptions.length)
@@ -907,7 +907,7 @@ export function getMetrics (
       }
     },
 
-    onRpcSent (rpc: IRPC, rpcBytes: number): void {
+    onRpcSent (rpc: RPC, rpcBytes: number): void {
       this.rpcSentBytes.inc(rpcBytes)
       this.rpcSentCount.inc(1)
       if (rpc.subscriptions != null) this.rpcSentSubscription.inc(rpc.subscriptions.length)

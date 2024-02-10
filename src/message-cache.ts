@@ -8,7 +8,7 @@ export type CacheEntry = MessageId & {
 export type MessageCacheRecord = Pick<MessageCacheEntry, 'message' | 'originatingPeers'>
 
 interface MessageCacheEntry {
-  message: RPC.IMessage
+  message: RPC.Message
   /**
    * Tracks if the message has been validated by the app layer and thus forwarded
    */
@@ -60,7 +60,7 @@ export class MessageCache {
    * Adds a message to the current window and the cache
    * Returns true if the message is not known and is inserted in the cache
    */
-  put (messageId: MessageId, msg: RPC.IMessage, validated = false): boolean {
+  put (messageId: MessageId, msg: RPC.Message, validated = false): boolean {
     const { msgIdStr } = messageId
     // Don't add duplicate entries to the cache.
     if (this.msgs.has(msgIdStr)) {
@@ -99,7 +99,7 @@ export class MessageCache {
   /**
    * Retrieves a message from the cache by its ID, if it is still present
    */
-  get (msgId: Uint8Array): RPC.IMessage | undefined {
+  get (msgId: Uint8Array): RPC.Message | undefined {
     return this.msgs.get(this.msgIdToStrFn(msgId))?.message
   }
 
@@ -107,7 +107,7 @@ export class MessageCache {
    * Increases the iwant count for the given message by one and returns the message together
    * with the iwant if the message exists.
    */
-  getWithIWantCount (msgIdStr: string, p: string): { msg: RPC.IMessage, count: number } | null {
+  getWithIWantCount (msgIdStr: string, p: string): { msg: RPC.Message, count: number } | null {
     const msg = this.msgs.get(msgIdStr)
     if (msg == null) {
       return null
