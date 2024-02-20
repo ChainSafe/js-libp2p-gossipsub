@@ -12,7 +12,7 @@ import { type PublishConfig, PublishConfigType, type TopicStr, ValidateError } f
 export const SignPrefix = uint8ArrayFromString('libp2p-pubsub:')
 
 export interface RawMessageAndMessage {
-  raw: RPC.IMessage
+  raw: RPC.Message
   msg: Message
 }
 
@@ -24,7 +24,7 @@ export async function buildRawMessage (
 ): Promise<RawMessageAndMessage> {
   switch (publishConfig.type) {
     case PublishConfigType.Signing: {
-      const rpcMsg: RPC.IMessage = {
+      const rpcMsg: RPC.Message = {
         from: publishConfig.author.toBytes(),
         data: transformedData,
         seqno: randomBytes(8),
@@ -35,7 +35,7 @@ export async function buildRawMessage (
 
       // Get the message in bytes, and prepend with the pubsub prefix
       // the signature is over the bytes "libp2p-pubsub:<protobuf-message>"
-      const bytes = uint8ArrayConcat([SignPrefix, RPC.Message.encode(rpcMsg).finish()])
+      const bytes = uint8ArrayConcat([SignPrefix, RPC.Message.encode(rpcMsg)])
 
       rpcMsg.signature = await publishConfig.privateKey.sign(bytes)
       rpcMsg.key = publishConfig.key
@@ -82,7 +82,7 @@ export type ValidationResult = { valid: true, message: Message } | { valid: fals
 
 export async function validateToRawMessage (
   signaturePolicy: typeof StrictNoSign | typeof StrictSign,
-  msg: RPC.IMessage
+  msg: RPC.Message
 ): Promise<ValidationResult> {
   // If strict-sign, verify all
   // If anonymous (no-sign), ensure no preven
@@ -134,7 +134,7 @@ export async function validateToRawMessage (
         publicKey = unmarshalPublicKey(fromPeerId.publicKey)
       }
 
-      const rpcMsgPreSign: RPC.IMessage = {
+      const rpcMsgPreSign: RPC.Message = {
         from: msg.from,
         data: msg.data,
         seqno: msg.seqno,
@@ -145,7 +145,7 @@ export async function validateToRawMessage (
 
       // Get the message in bytes, and prepend with the pubsub prefix
       // the signature is over the bytes "libp2p-pubsub:<protobuf-message>"
-      const bytes = uint8ArrayConcat([SignPrefix, RPC.Message.encode(rpcMsgPreSign).finish()])
+      const bytes = uint8ArrayConcat([SignPrefix, RPC.Message.encode(rpcMsgPreSign)])
 
       if (!(await publicKey.verify(bytes, msg.signature))) {
         return { valid: false, error: ValidateError.InvalidSignature }

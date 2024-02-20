@@ -20,7 +20,7 @@ import {
 } from '../utils/create-pubsub.js'
 import { awaitEvents, checkReceivedSubscription, checkReceivedSubscriptions } from '../utils/events.js'
 import { fastMsgIdFn } from '../utils/index.js'
-import type { IRPC, RPC } from '../../src/message/rpc.js'
+import type { RPC } from '../../src/message/rpc.js'
 import type { TopicScoreParams } from '../../src/score/peer-score-params.js'
 
 /**
@@ -1189,13 +1189,13 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     psub.mesh.set(topic1, new Set([otherId]))
     psub.mesh.set(topic2, new Set())
 
-    const rpc: IRPC = {
+    const rpc: RPC = {
       subscriptions: [],
       messages: []
     }
 
-    const toGraft = (topicID: string): RPC.IControlGraft => ({ topicID })
-    const toPrune = (topicID: string): RPC.IControlPrune => ({ topicID, peers: [] })
+    const toGraft = (topicID: string): RPC.ControlGraft => ({ topicID })
+    const toPrune = (topicID: string): RPC.ControlPrune => ({ topicID, peers: [] })
 
     psub.piggybackControl(otherId, rpc, {
       graft: [toGraft(topic1), toGraft(topic2), toGraft(topic3)],
@@ -1204,12 +1204,14 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       iwant: []
     })
 
-    const expectedRpc: IRPC = {
+    const expectedRpc: RPC = {
       subscriptions: [],
       messages: [],
       control: {
         graft: [toGraft(topic1)],
-        prune: [toPrune(topic2), toPrune(topic3)]
+        prune: [toPrune(topic2), toPrune(topic3)],
+        ihave: [],
+        iwant: []
       }
     }
 

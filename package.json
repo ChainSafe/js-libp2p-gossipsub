@@ -1,6 +1,6 @@
 {
   "name": "@chainsafe/libp2p-gossipsub",
-  "version": "11.2.1",
+  "version": "12.0.0",
   "description": "A typescript implementation of gossipsub",
   "files": [
     "src",
@@ -44,8 +44,8 @@
   "scripts": {
     "lint": "aegir lint",
     "release": "aegir release --no-types",
-    "copy": "mkdirp dist/src/message && cp src/message/*.* dist/src/message",
-    "build": "npm run copy && aegir build",
+    "build": "aegir build",
+    "generate": "protons ./src/message/rpc.proto",
     "prepare": "npm run build",
     "pretest": "npm run build",
     "pretest:e2e": "npm run build",
@@ -83,7 +83,7 @@
     "it-pipe": "^3.0.1",
     "it-pushable": "^3.2.3",
     "multiformats": "^13.0.1",
-    "protobufjs": "^7.2.6",
+    "protons-runtime": "5.4.0",
     "uint8arraylist": "^2.4.8",
     "uint8arrays": "^5.0.1"
   },
@@ -105,6 +105,7 @@
     "p-retry": "^6.2.0",
     "p-wait-for": "^5.0.2",
     "sinon": "^17.0.1",
+    "protons": "^7.5.0",
     "time-cache": "^0.3.0",
     "ts-sinon": "^2.0.2"
   },

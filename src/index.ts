@@ -10,8 +10,8 @@ import {
   ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE,
   BACKOFF_SLACK
 } from './constants.js'
-import { decodeRpc, type DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
-import { RPC, type IRPC } from './message/rpc.js'
+import { type DecodeRPCLimits, defaultDecodeRpcLimits } from './message/decodeRpc.js'
+import { RPC } from './message/rpc.js'
 import { MessageCache, type MessageCacheRecord } from './message-cache.js'
 import {
   ChurnReason,
@@ -54,6 +54,7 @@ import {
   type PublishOpts
 } from './types.js'
 import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage.js'
+import { createGossipRpc, ensureControl } from './utils/create-gossip-rpc.js'
 import { shuffle, messageIdToString } from './utils/index.js'
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js'
 import { multiaddrToIPStr } from './utils/multiaddr.js'
@@ -316,13 +317,13 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    * Map of pending messages to gossip
    * peer id => control messages
    */
-  public readonly gossip = new Map<PeerIdStr, RPC.IControlIHave[]>()
+  public readonly gossip = new Map<PeerIdStr, RPC.ControlIHave[]>()
 
   /**
    * Map of control messages
    * peer id => control message
    */
-  public readonly control = new Map<PeerIdStr, RPC.IControlMessage>()
+  public readonly control = new Map<PeerIdStr, RPC.ControlMessage>()
 
   /**
    * Number of IHAVEs received from peer in the last heartbeat
@@ -978,7 +979,21 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
             const rpcBytes = data.subarray()
             // Note: This function may throw, it must be wrapped in a try {} catch {} to prevent closing the stream.
             // TODO: What should we do if the entire RPC is invalid?
-            const rpc = decodeRpc(rpcBytes, this.decodeRpcLimits)
+            const rpc = RPC.decode(rpcBytes, {
+              limits: {
+                subscriptions: this.decodeRpcLimits.maxSubscriptions,
+                messages: this.decodeRpcLimits.maxMessages,
+                control$: {
+                  ihave: this.decodeRpcLimits.maxIhaveMessageIDs,
+                  iwant: this.decodeRpcLimits.maxIwantMessageIDs,
+                  graft: this.decodeRpcLimits.maxControlMessages,
+                  prune: this.decodeRpcLimits.maxControlMessages,
+                  prune$: {
+                    peers: this.decodeRpcLimits.maxPeerInfos
+                  }
+                }
+              }
+            })
 
             this.metrics?.onRpcRecv(rpc, rpcBytes.length)
 
@@ -1023,7 +1038,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
   /**
    * Handles an rpc request from a peer
    */
-  public async handleReceivedRpc (from: PeerId, rpc: IRPC): Promise<void> {
+  public async handleReceivedRpc (from: PeerId, rpc: RPC): Promise<void> {
     // Check if peer is graylisted in which case we ignore the event
     if (!this.acceptFrom(from.toString())) {
       this.log('received message from unacceptable peer %p', from)
@@ -1077,24 +1092,22 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     // Handle messages
     // TODO: (up to limit)
-    if (rpc.messages != null) {
-      for (const message of rpc.messages) {
-        if ((this.allowedTopics != null) && !this.allowedTopics.has(message.topic)) {
-          // Not allowed: message cache data-structures are not bounded by topic count
-          // TODO: Should apply behaviour penalties?
-          continue
-        }
+    for (const message of rpc.messages) {
+      if ((this.allowedTopics != null) && !this.allowedTopics.has(message.topic)) {
+        // Not allowed: message cache data-structures are not bounded by topic count
+        // TODO: Should apply behaviour penalties?
+        continue
+      }
 
-        const handleReceivedMessagePromise = this.handleReceivedMessage(from, message)
-          // Should never throw, but handle just in case
-          .catch((err) => {
-            this.metrics?.onMsgRecvError(message.topic)
-            this.log(err)
-          })
+      const handleReceivedMessagePromise = this.handleReceivedMessage(from, message)
+        // Should never throw, but handle just in case
+        .catch((err) => {
+          this.metrics?.onMsgRecvError(message.topic)
+          this.log(err)
+        })
 
-        if (this.opts.awaitRpcMessageHandler) {
-          await handleReceivedMessagePromise
-        }
+      if (this.opts.awaitRpcMessageHandler) {
+        await handleReceivedMessagePromise
       }
     }
 
@@ -1131,7 +1144,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    * Handles a newly received message from an RPC.
    * May forward to all peers in the mesh.
    */
-  private async handleReceivedMessage (from: PeerId, rpcMsg: RPC.IMessage): Promise<void> {
+  private async handleReceivedMessage (from: PeerId, rpcMsg: RPC.Message): Promise<void> {
     this.metrics?.onMsgRecvPreValidation(rpcMsg.topic)
 
     const validationResult = await this.validateReceivedMessage(from, rpcMsg)
@@ -1214,7 +1227,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    */
   private async validateReceivedMessage (
     propagationSource: PeerId,
-    rpcMsg: RPC.IMessage
+    rpcMsg: RPC.Message
   ): Promise<ReceivedMessageResult> {
     // Fast message ID stuff
     const fastMsgIdStr = this.fastMsgIdFn?.(rpcMsg)
@@ -1304,14 +1317,15 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    */
   private sendSubscriptions (toPeer: PeerIdStr, topics: string[], subscribe: boolean): void {
     this.sendRpc(toPeer, {
-      subscriptions: topics.map((topic) => ({ topic, subscribe }))
+      subscriptions: topics.map((topic) => ({ topic, subscribe })),
+      messages: []
     })
   }
 
   /**
    * Handles an rpc control message from a peer
    */
-  private async handleControlMessage (id: PeerIdStr, controlMsg: RPC.IControlMessage): Promise<void> {
+  private async handleControlMessage (id: PeerIdStr, controlMsg: RPC.ControlMessage): Promise<void> {
     if (controlMsg === undefined) {
       return
     }
@@ -1325,7 +1339,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       return
     }
 
-    const sent = this.sendRpc(id, { messages: ihave, control: { iwant, prune } })
+    const sent = this.sendRpc(id, createGossipRpc(ihave, { iwant, prune }))
     const iwantMessageIds = iwant[0]?.messageIDs
     if (iwantMessageIds != null) {
       if (sent) {
@@ -1370,7 +1384,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
   /**
    * Handles IHAVE messages
    */
-  private handleIHave (id: PeerIdStr, ihave: RPC.IControlIHave[]): RPC.IControlIWant[] {
+  private handleIHave (id: PeerIdStr, ihave: RPC.ControlIHave[]): RPC.ControlIWant[] {
     if (ihave.length === 0) {
       return []
     }
@@ -1456,7 +1470,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    * Handles IWANT messages
    * Returns messages to send back to peer
    */
-  private handleIWant (id: PeerIdStr, iwant: RPC.IControlIWant[]): RPC.IMessage[] {
+  private handleIWant (id: PeerIdStr, iwant: RPC.ControlIWant[]): RPC.Message[] {
     if (iwant.length === 0) {
       return []
     }
@@ -1468,7 +1482,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       return []
     }
 
-    const ihave = new Map<MsgIdStr, RPC.IMessage>()
+    const ihave = new Map<MsgIdStr, RPC.Message>()
     const iwantByTopic = new Map<TopicStr, number>()
     let iwantDonthave = 0
 
@@ -1507,7 +1521,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
   /**
    * Handles Graft messages
    */
-  private async handleGraft (id: PeerIdStr, graft: RPC.IControlGraft[]): Promise<RPC.IControlPrune[]> {
+  private async handleGraft (id: PeerIdStr, graft: RPC.ControlGraft[]): Promise<RPC.ControlPrune[]> {
     const prune: TopicStr[] = []
     const score = this.score.score(id)
     const now = Date.now()
@@ -1602,7 +1616,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
   /**
    * Handles Prune messages
    */
-  private async handlePrune (id: PeerIdStr, prune: RPC.IControlPrune[]): Promise<void> {
+  private async handlePrune (id: PeerIdStr, prune: RPC.ControlPrune[]): Promise<void> {
     const score = this.score.score(id)
 
     for (const { topicID, backoff, peers } of prune) {
@@ -1725,7 +1739,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
   /**
    * Maybe attempt connection given signed peer records
    */
-  private async pxConnect (peers: RPC.IPeerInfo[]): Promise<void> {
+  private async pxConnect (peers: RPC.PeerInfo[]): Promise<void> {
     if (peers.length > this.opts.prunePeers) {
       shuffle(peers)
       peers = peers.slice(0, this.opts.prunePeers)
@@ -2063,7 +2077,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    */
   private forwardMessage (
     msgIdStr: string,
-    rawMsg: RPC.IMessage,
+    rawMsg: RPC.Message,
     propagationSource?: PeerIdStr,
     excludePeers?: Set<PeerIdStr>
   ): void {
@@ -2079,7 +2093,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     // forward the message to peers
     tosend.forEach((id) => {
       // sendRpc may mutate RPC message on piggyback, create a new message for each peer
-      this.sendRpc(id, { messages: [rawMsg] })
+      this.sendRpc(id, createGossipRpc([rawMsg]))
     })
 
     this.metrics?.onForwardMsg(rawMsg.topic, tosend.size)
@@ -2139,7 +2153,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     this.publishedMessageIds.put(msgIdStr)
 
     const batchPublish = opts?.batchPublish ?? this.opts.batchPublish
-    const rpc = { messages: [rawMsg] }
+    const rpc = createGossipRpc([rawMsg])
     if (batchPublish) {
       this.sendRpcInBatch(tosend, rpc)
     } else {
@@ -2191,8 +2205,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    * This is not only faster but also avoid allocating memory for each peer
    * see https://github.com/ChainSafe/js-libp2p-gossipsub/issues/344
    */
-  private sendRpcInBatch (tosend: Set<PeerIdStr>, rpc: IRPC): void {
-    const rpcBytes = RPC.encode(rpc).finish()
+  private sendRpcInBatch (tosend: Set<PeerIdStr>, rpc: RPC): void {
+    const rpcBytes = RPC.encode(rpc)
     const prefixedData = encode.single(rpcBytes)
     for (const id of tosend) {
       const outboundStream = this.streamsOutbound.get(id)
@@ -2281,8 +2295,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         topicID: topic
       }
     ]
-
-    this.sendRpc(id, { control: { graft } })
+    const out = createGossipRpc([], { graft })
+    this.sendRpc(id, out)
   }
 
   /**
@@ -2292,14 +2306,14 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     // this is only called from leave() function
     const onUnsubscribe = true
     const prune = [await this.makePrune(id, topic, this.opts.doPX, onUnsubscribe)]
-
-    this.sendRpc(id, { control: { prune } })
+    const out = createGossipRpc([], { prune })
+    this.sendRpc(id, out)
   }
 
   /**
    * Send an rpc object to a peer
    */
-  private sendRpc (id: PeerIdStr, rpc: IRPC): boolean {
+  private sendRpc (id: PeerIdStr, rpc: RPC): boolean {
     const outboundStream = this.streamsOutbound.get(id)
     if (outboundStream == null) {
       this.log(`Cannot send RPC to ${id} as there is no open stream to it available`)
@@ -2320,7 +2334,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       this.gossip.delete(id)
     }
 
-    const rpcBytes = RPC.encode(rpc).finish()
+    const rpcBytes = RPC.encode(rpc)
     try {
       outboundStream.push(rpcBytes)
     } catch (e) {
@@ -2358,32 +2372,25 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
   }
 
   /** Mutates `outRpc` adding graft and prune control messages */
-  public piggybackControl (id: PeerIdStr, outRpc: IRPC, ctrl: RPC.IControlMessage): void {
-    if (ctrl.graft != null) {
-      if (outRpc.control == null) outRpc.control = {}
-      if (outRpc.control.graft == null) outRpc.control.graft = []
-      for (const graft of ctrl.graft) {
-        if (graft.topicID != null && (this.mesh.get(graft.topicID)?.has(id) ?? false)) {
-          outRpc.control.graft.push(graft)
-        }
+  public piggybackControl (id: PeerIdStr, outRpc: RPC, ctrl: RPC.ControlMessage): void {
+    const rpc = ensureControl(outRpc)
+    for (const graft of ctrl.graft) {
+      if (graft.topicID != null && (this.mesh.get(graft.topicID)?.has(id) ?? false)) {
+        rpc.control.graft.push(graft)
       }
     }
 
-    if (ctrl.prune != null) {
-      if (outRpc.control == null) outRpc.control = {}
-      if (outRpc.control.prune == null) outRpc.control.prune = []
-      for (const prune of ctrl.prune) {
-        if (prune.topicID != null && !(this.mesh.get(prune.topicID)?.has(id) ?? false)) {
-          outRpc.control.prune.push(prune)
-        }
+    for (const prune of ctrl.prune) {
+      if (prune.topicID != null && !(this.mesh.get(prune.topicID)?.has(id) ?? false)) {
+        rpc.control.prune.push(prune)
       }
     }
   }
 
   /** Mutates `outRpc` adding ihave control messages */
-  private piggybackGossip (id: PeerIdStr, outRpc: IRPC, ihave: RPC.IControlIHave[]): void {
-    if (outRpc.control == null) outRpc.control = {}
-    outRpc.control.ihave = ihave
+  private piggybackGossip (id: PeerIdStr, outRpc: RPC, ihave: RPC.ControlIHave[]): void {
+    const rpc = ensureControl(outRpc)
+    rpc.control.ihave = ihave
   }
 
   /**
@@ -2401,7 +2408,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     const onUnsubscribe = false
     for (const [id, topics] of tograft) {
       const graft = topics.map((topicID) => ({ topicID }))
-      let prune: RPC.IControlPrune[] = []
+      let prune: RPC.ControlPrune[] = []
       // If a peer also has prunes, process them now
       const pruning = toprune.get(id)
       if (pruning != null) {
@@ -2413,7 +2420,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         toprune.delete(id)
       }
 
-      this.sendRpc(id, { control: { graft, prune } })
+      this.sendRpc(id, createGossipRpc([], { graft, prune }))
     }
     for (const [id, topics] of toprune) {
       const prune = await Promise.all(
@@ -2421,7 +2428,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
           async (topicID) => this.makePrune(id, topicID, doPX && !(noPX.get(id) ?? false), onUnsubscribe)
         )
       )
-      this.sendRpc(id, { control: { prune } })
+      this.sendRpc(id, createGossipRpc([], { prune }))
     }
   }
 
@@ -2495,19 +2502,20 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     // send gossip first, which will also piggyback control
     for (const [peer, ihave] of this.gossip.entries()) {
       this.gossip.delete(peer)
-      this.sendRpc(peer, { control: { ihave } })
+      this.sendRpc(peer, createGossipRpc([], { ihave }))
     }
     // send the remaining control messages
     for (const [peer, control] of this.control.entries()) {
       this.control.delete(peer)
-      this.sendRpc(peer, { control: { graft: control.graft, prune: control.prune } })
+      const out = createGossipRpc([], { graft: control.graft, prune: control.prune })
+      this.sendRpc(peer, out)
     }
   }
 
   /**
    * Adds new IHAVE messages to pending gossip
    */
-  private pushGossip (id: PeerIdStr, controlIHaveMsgs: RPC.IControlIHave): void {
+  private pushGossip (id: PeerIdStr, controlIHaveMsgs: RPC.ControlIHave): void {
     this.log('Add gossip to %s', id)
     const gossip = this.gossip.get(id) ?? []
     this.gossip.set(id, gossip.concat(controlIHaveMsgs))
@@ -2521,7 +2529,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     topic: string,
     doPX: boolean,
     onUnsubscribe: boolean
-  ): Promise<RPC.IControlPrune> {
+  ): Promise<RPC.ControlPrune> {
     this.score.prune(id, topic)
     if (this.streamsOutbound.get(id)?.protocol === constants.GossipsubIDv10) {
       // Gossipsub v1.0 -- no backoff, the peer won't be able to parse it anyway
