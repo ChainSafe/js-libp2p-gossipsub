@@ -15,6 +15,22 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [13.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v12.0.0...v13.0.0) (2024-02-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* The `allowPublishToZeroPeers` option has been renamed to `allowPublishToZeroTopicPeers`
+
+### Features
+
+* graft/prune events and mesh peer tagging ([#383](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/383)) ([42b5b92](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/42b5b927eab3f61b54d1796399219f292a66eeea))
+
+
+### Bug Fixes
+
+* make PublishError.InsufficientPeers more self-explanatory ([#487](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/487)) ([1958aab](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/1958aabc1d0c77170a20d00c10fe416a8fed200f)), closes [#472](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/472)
+
 ## [12.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.2.1...v12.0.0) (2024-02-10)
 
 
