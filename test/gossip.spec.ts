@@ -99,6 +99,67 @@ describe('gossip', () => {
     expect(publishResult.recipients).to.deep.equal([])
   })
 
+  it('should tag peers', async function () {
+    this.timeout(10e4)
+    const nodeA = nodes[0]
+    const nodeB = nodes[1]
+    const topic = 'Z'
+
+    const twoNodes = [nodeA, nodeB]
+
+    const graftPromises = twoNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:graft'))
+
+    // add subscriptions to each node
+    twoNodes.forEach((n) => { n.pubsub.subscribe(topic) })
+
+    // every node connected to every other
+    await connectAllPubSubNodes(twoNodes)
+
+    // await grafts
+    await Promise.all(graftPromises)
+
+    // await mesh rebalancing
+    await Promise.all(twoNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
+
+    const peerInfoA = await nodeA.components.peerStore.get(nodeB.components.peerId).catch((e) => undefined)
+    const peerInfoB = await nodeB.components.peerStore.get(nodeA.components.peerId).catch((e) => undefined)
+    expect(peerInfoA?.tags.get(topic)?.value).to.equal(100)
+    expect(peerInfoB?.tags.get(topic)?.value).to.equal(100)
+  })
+
+  it('should remove the tags upon pruning', async function () {
+    this.timeout(10e4)
+    const nodeA = nodes[0]
+    const nodeB = nodes[1]
+    const topic = 'Z'
+
+    const twoNodes = [nodeA, nodeB]
+
+    const subscriptionPromises = nodes.map(async (n) => pEvent(n.pubsub, 'subscription-change'))
+    // add subscriptions to each node
+    twoNodes.forEach((n) => { n.pubsub.subscribe(topic) })
+
+    // every node connected to every other
+    await connectAllPubSubNodes(nodes)
+
+    // await for subscriptions to be transmitted
+    await Promise.all(subscriptionPromises)
+
+    // await mesh rebalancing
+    await Promise.all(twoNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
+
+    twoNodes.forEach((n) => { n.pubsub.unsubscribe(topic) })
+
+    // await for unsubscriptions to be transmitted
+    // await mesh rebalancing
+    await Promise.all(twoNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
+
+    const peerInfoA = await nodeA.components.peerStore.get(nodeB.components.peerId).catch((e) => undefined)
+    const peerInfoB = await nodeB.components.peerStore.get(nodeA.components.peerId).catch((e) => undefined)
+    expect(peerInfoA?.tags.get(topic)).to.be.undefined()
+    expect(peerInfoB?.tags.get(topic)).to.be.undefined()
+  })
+
   it('should reject incoming messages bigger than maxInboundDataLength limit', async function () {
     this.timeout(10e4)
     const nodeA = nodes[0]
