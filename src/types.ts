@@ -71,7 +71,15 @@ export enum SignaturePolicy {
 }
 
 export interface PublishOpts {
-  allowPublishToZeroPeers?: boolean
+  /**
+   * Do not throw `PublishError.NoPeersSubscribedToTopic` error if there are no
+   * peers listening on the topic.
+   *
+   * N.B. if you sent this option to true, and you publish a message on a topic
+   * with no peers listening on that topic, no other network node will ever
+   * receive the message.
+   */
+  allowPublishToZeroTopicPeers?: boolean
   ignoreDuplicatePublishError?: boolean
   /** serialize message once and send to all peers without control messages */
   batchPublish?: boolean
