@@ -2037,6 +2037,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
             tosendCount.mesh++
           })
 
+          // We want to publish to at least `D` peers.
+          // If there are insufficient peers in the mesh, publish to other topic peers
           if (meshPeers.size < this.opts.D) {
             // pick additional topic peers above the publishThreshold
             const topicPeers = this.getRandomGossipPeers(topic, this.opts.D - meshPeers.size, (id) => {
