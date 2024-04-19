@@ -2036,6 +2036,20 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
             tosend.add(peer)
             tosendCount.mesh++
           })
+
+          // We want to publish to at least `D` peers.
+          // If there are insufficient peers in the mesh, publish to other topic peers
+          if (meshPeers.size < this.opts.D) {
+            // pick additional topic peers above the publishThreshold
+            const topicPeers = this.getRandomGossipPeers(topic, this.opts.D - meshPeers.size, (id) => {
+              return !meshPeers.has(id) && !this.direct.has(id) && !this.floodsubPeers.has(id) && this.score.score(id) >= this.opts.scoreThresholds.publishThreshold
+            })
+
+            topicPeers.forEach((peer) => {
+              tosend.add(peer)
+              tosendCount.mesh++
+            })
+          }
         // eslint-disable-next-line @typescript-eslint/brace-style
         }
 
