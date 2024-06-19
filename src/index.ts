@@ -1,4 +1,4 @@
-import { CustomEvent, TypedEventEmitter, StrictSign, StrictNoSign, TopicValidatorResult } from '@libp2p/interface'
+import { CustomEvent, TypedEventEmitter, StrictSign, StrictNoSign, TopicValidatorResult, serviceCapabilities, serviceDependencies } from '@libp2p/interface'
 import { peerIdFromBytes, peerIdFromString } from '@libp2p/peer-id'
 import { encode } from 'it-length-prefixed'
 import { pipe } from 'it-pipe'
@@ -549,6 +549,16 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     this.allowedTopics = (opts.allowedTopics != null) ? new Set(opts.allowedTopics) : null
   }
+
+  readonly [Symbol.toStringTag] = '@chainsafe/libp2p-gossipsub'
+
+  readonly [serviceCapabilities]: string[] = [
+    '@libp2p/pubsub'
+  ]
+
+  readonly [serviceDependencies]: string[] = [
+    '@libp2p/identify'
+  ]
 
   getPeers (): PeerId[] {
     return [...this.peers.keys()].map((str) => peerIdFromString(str))
