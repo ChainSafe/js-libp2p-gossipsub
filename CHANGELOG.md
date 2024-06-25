@@ -15,6 +15,14 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [13.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v13.0.0...v13.1.0) (2024-06-20)
+
+
+### Features
+
+* add service capabilities and dependencies definition ([#497](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/497)) ([9ffc2a2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/9ffc2a2c2fa49ef2ff8f99865048e9c16a79a19a))
+* publish at least mesh_n peers ([#493](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/493)) ([bc3906f](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/bc3906f4e1cc2c31dd9b98a0b6a1e51d33ac003a))
+
 ## [13.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v12.0.0...v13.0.0) (2024-02-27)
 
 
