@@ -1201,7 +1201,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       graft: [toGraft(topic1), toGraft(topic2), toGraft(topic3)],
       prune: [toPrune(topic1), toPrune(topic2), toPrune(topic3)],
       ihave: [],
-      iwant: []
+      iwant: [],
+      idontwant: []
     })
 
     const expectedRpc: RPC = {
@@ -1211,7 +1212,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
         graft: [toGraft(topic1)],
         prune: [toPrune(topic2), toPrune(topic3)],
         ihave: [],
-        iwant: []
+        iwant: [],
+        idontwant: []
       }
     }
 

@@ -12,7 +12,8 @@ export function createGossipRpc (messages: RPC.Message[] = [], control?: Partial
           graft: control.graft ?? [],
           prune: control.prune ?? [],
           ihave: control.ihave ?? [],
-          iwant: control.iwant ?? []
+          iwant: control.iwant ?? [],
+          idontwant: control.idontwant ?? []
         }
       : undefined
   }
@@ -24,7 +25,8 @@ export function ensureControl (rpc: RPC): Required<RPC> {
       graft: [],
       prune: [],
       ihave: [],
-      iwant: []
+      iwant: [],
+      idontwant: []
     }
   }
 

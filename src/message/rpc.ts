@@ -197,6 +197,7 @@ export namespace RPC {
     iwant: RPC.ControlIWant[]
     graft: RPC.ControlGraft[]
     prune: RPC.ControlPrune[]
+    idontwant: RPC.ControlIDontWant[]
   }
 
   export namespace ControlMessage {
@@ -237,6 +238,13 @@ export namespace RPC {
             }
           }
 
+          if (obj.idontwant != null) {
+            for (const value of obj.idontwant) {
+              w.uint32(42)
+              RPC.ControlIDontWant.codec().encode(value, w)
+            }
+          }
+
           if (opts.lengthDelimited !== false) {
             w.ldelim()
           }
@@ -245,7 +253,8 @@ export namespace RPC {
             ihave: [],
             iwant: [],
             graft: [],
-            prune: []
+            prune: [],
+            idontwant: []
           }
 
           const end = length == null ? reader.len : reader.pos + length
@@ -259,7 +268,9 @@ export namespace RPC {
                   throw new CodeError('decode error - map field "ihave" had too many elements', 'ERR_MAX_LENGTH')
                 }
 
-                obj.ihave.push(RPC.ControlIHave.codec().decode(reader, reader.uint32()))
+                obj.ihave.push(RPC.ControlIHave.codec().decode(reader, reader.uint32(), {
+                  limits: opts.limits?.ihave$
+                }))
                 break
               }
               case 2: {
@@ -267,7 +278,9 @@ export namespace RPC {
                   throw new CodeError('decode error - map field "iwant" had too many elements', 'ERR_MAX_LENGTH')
                 }
 
-                obj.iwant.push(RPC.ControlIWant.codec().decode(reader, reader.uint32()))
+                obj.iwant.push(RPC.ControlIWant.codec().decode(reader, reader.uint32(), {
+                  limits: opts.limits?.iwant$
+                }))
                 break
               }
               case 3: {
@@ -275,7 +288,9 @@ export namespace RPC {
                   throw new CodeError('decode error - map field "graft" had too many elements', 'ERR_MAX_LENGTH')
                 }
 
-                obj.graft.push(RPC.ControlGraft.codec().decode(reader, reader.uint32()))
+                obj.graft.push(RPC.ControlGraft.codec().decode(reader, reader.uint32(), {
+                  limits: opts.limits?.graft$
+                }))
                 break
               }
               case 4: {
@@ -283,7 +298,19 @@ export namespace RPC {
                   throw new CodeError('decode error - map field "prune" had too many elements', 'ERR_MAX_LENGTH')
                 }
 
-                obj.prune.push(RPC.ControlPrune.codec().decode(reader, reader.uint32()))
+                obj.prune.push(RPC.ControlPrune.codec().decode(reader, reader.uint32(), {
+                  limits: opts.limits?.prune$
+                }))
+                break
+              }
+              case 5: {
+                if (opts.limits?.idontwant != null && obj.idontwant.length === opts.limits.idontwant) {
+                  throw new CodeError('decode error - map field "idontwant" had too many elements', 'ERR_MAX_LENGTH')
+                }
+
+                obj.idontwant.push(RPC.ControlIDontWant.codec().decode(reader, reader.uint32(), {
+                  limits: opts.limits?.idontwant$
+                }))
                 break
               }
               default: {
@@ -565,7 +592,9 @@ export namespace RPC {
                   throw new CodeError('decode error - map field "peers" had too many elements', 'ERR_MAX_LENGTH')
                 }
 
-                obj.peers.push(RPC.PeerInfo.codec().decode(reader, reader.uint32()))
+                obj.peers.push(RPC.PeerInfo.codec().decode(reader, reader.uint32(), {
+                  limits: opts.limits?.peers$
+                }))
                 break
               }
               case 3: {
@@ -663,6 +692,72 @@ export namespace RPC {
     }
   }
 
+  export interface ControlIDontWant {
+    messageIDs: Uint8Array[]
+  }
+
+  export namespace ControlIDontWant {
+    let _codec: Codec<ControlIDontWant>
+
+    export const codec = (): Codec<ControlIDontWant> => {
+      if (_codec == null) {
+        _codec = message<ControlIDontWant>((obj, w, opts = {}) => {
+          if (opts.lengthDelimited !== false) {
+            w.fork()
+          }
+
+          if (obj.messageIDs != null) {
+            for (const value of obj.messageIDs) {
+              w.uint32(10)
+              w.bytes(value)
+            }
+          }
+
+          if (opts.lengthDelimited !== false) {
+            w.ldelim()
+          }
+        }, (reader, length, opts = {}) => {
+          const obj: any = {
+            messageIDs: []
+          }
+
+          const end = length == null ? reader.len : reader.pos + length
+
+          while (reader.pos < end) {
+            const tag = reader.uint32()
+
+            switch (tag >>> 3) {
+              case 1: {
+                if (opts.limits?.messageIDs != null && obj.messageIDs.length === opts.limits.messageIDs) {
+                  throw new CodeError('decode error - map field "messageIDs" had too many elements', 'ERR_MAX_LENGTH')
+                }
+
+                obj.messageIDs.push(reader.bytes())
+                break
+              }
+              default: {
+                reader.skipType(tag & 7)
+                break
+              }
+            }
+          }
+
+          return obj
+        })
+      }
+
+      return _codec
+    }
+
+    export const encode = (obj: Partial<ControlIDontWant>): Uint8Array => {
+      return encodeMessage(obj, ControlIDontWant.codec())
+    }
+
+    export const decode = (buf: Uint8Array | Uint8ArrayList, opts?: DecodeOptions<ControlIDontWant>): ControlIDontWant => {
+      return decodeMessage(buf, ControlIDontWant.codec(), opts)
+    }
+  }
+
   let _codec: Codec<RPC>
 
   export const codec = (): Codec<RPC> => {
@@ -711,7 +806,9 @@ export namespace RPC {
                 throw new CodeError('decode error - map field "subscriptions" had too many elements', 'ERR_MAX_LENGTH')
               }
 
-              obj.subscriptions.push(RPC.SubOpts.codec().decode(reader, reader.uint32()))
+              obj.subscriptions.push(RPC.SubOpts.codec().decode(reader, reader.uint32(), {
+                limits: opts.limits?.subscriptions$
+              }))
               break
             }
             case 2: {
@@ -719,11 +816,15 @@ export namespace RPC {
                 throw new CodeError('decode error - map field "messages" had too many elements', 'ERR_MAX_LENGTH')
               }
 
-              obj.messages.push(RPC.Message.codec().decode(reader, reader.uint32()))
+              obj.messages.push(RPC.Message.codec().decode(reader, reader.uint32(), {
+                limits: opts.limits?.messages$
+              }))
               break
             }
             case 3: {
-              obj.control = RPC.ControlMessage.codec().decode(reader, reader.uint32())
+              obj.control = RPC.ControlMessage.codec().decode(reader, reader.uint32(), {
+                limits: opts.limits?.control
+              })
               break
             }
             default: {

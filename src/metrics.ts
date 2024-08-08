@@ -361,6 +361,7 @@ export function getMetrics (
     rpcSentIWant: register.gauge({ name: 'gossipsub_rpc_sent_iwant_total', help: 'RPC sent' }),
     rpcSentGraft: register.gauge({ name: 'gossipsub_rpc_sent_graft_total', help: 'RPC sent' }),
     rpcSentPrune: register.gauge({ name: 'gossipsub_rpc_sent_prune_total', help: 'RPC sent' }),
+    rpcSentIDontWant: register.gauge({ name: 'gossipsub_rpc_sent_idontwant_total', help: 'RPC sent' }),
 
     // publish message. Track peers sent to and bytes
     /** Total count of msg published by topic */
@@ -592,6 +593,16 @@ export function getMetrics (
       name: 'gossipsub_iwant_rcv_dont_have_msgids_total',
       help: 'Total requested messageIDs that we do not have'
     }),
+    /** Total received IDONTWANT messages */
+    idontwantRcvMsgids: register.gauge({
+      name: 'gossipsub_idontwant_rcv_msgids_total',
+      help: 'Total received IDONTWANT messages'
+    }),
+    /** Total requested messageIDs that we don't have */
+    idontwantRcvDonthaveMsgids: register.gauge({
+      name: 'gossipsub_idontwant_rcv_dont_have_msgids_total',
+      help: 'Total requested IDONTWANT messageIDs that we do not have in mcache'
+    }),
     iwantPromiseStarted: register.gauge({
       name: 'gossipsub_iwant_promise_sent_total',
       help: 'Total count of started IWANT promises'
@@ -808,6 +819,11 @@ export function getMetrics (
       this.iwantRcvDonthaveMsgids.inc(iwantDonthave)
     },
 
+    onIdontwantRcv (idontwant: number, idontwantDonthave: number): void {
+      this.idontwantRcvMsgids.inc(idontwant)
+      this.idontwantRcvDonthaveMsgids.inc(idontwantDonthave)
+    },
+
     onForwardMsg (topicStr: TopicStr, tosendCount: number): void {
       const topic = this.toTopic(topicStr)
       this.msgForwardCount.inc({ topic }, 1)
@@ -917,11 +933,13 @@ export function getMetrics (
         const iwant = rpc.control.iwant?.length ?? 0
         const graft = rpc.control.graft?.length ?? 0
         const prune = rpc.control.prune?.length ?? 0
+        const idontwant = rpc.control.idontwant?.length ?? 0
         if (ihave > 0) this.rpcSentIHave.inc(ihave)
         if (iwant > 0) this.rpcSentIWant.inc(iwant)
         if (graft > 0) this.rpcSentGraft.inc(graft)
         if (prune > 0) this.rpcSentPrune.inc(prune)
-        if (ihave > 0 || iwant > 0 || graft > 0 || prune > 0) this.rpcSentControl.inc(1)
+        if (idontwant > 0) this.rpcSentIDontWant.inc(idontwant)
+        if (ihave > 0 || iwant > 0 || graft > 0 || prune > 0 || idontwant > 0) this.rpcSentControl.inc(1)
       }
     },
 

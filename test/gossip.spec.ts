@@ -244,7 +244,7 @@ describe('gossip', () => {
     // set spy. NOTE: Forcing private property to be public
     const nodeASpy = sinon.spy(nodeA.pubsub, 'piggybackControl')
     // manually add control message to be sent to peerB
-    const graft = { ihave: [], iwant: [], graft: [{ topicID: topic }], prune: [] }
+    const graft = { ihave: [], iwant: [], graft: [{ topicID: topic }], prune: [], idontwant: [] }
     ;(nodeA.pubsub).control.set(peerB, graft)
     ;(nodeA.pubsub).gossip.set(peerB, [])
 

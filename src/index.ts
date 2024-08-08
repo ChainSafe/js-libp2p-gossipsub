@@ -86,7 +86,7 @@ type ReceivedMessageResult =
   | ({ code: MessageStatus.invalid, msgIdStr?: MsgIdStr } & RejectReasonObj)
   | { code: MessageStatus.valid, messageId: MessageId, msg: Message }
 
-export const multicodec: string = constants.GossipsubIDv11
+export const multicodec: string = constants.GossipsubIDv12
 
 export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   /** if dial should fallback to floodsub */
@@ -201,6 +201,20 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
    * If true, will utilize the libp2p connection manager tagging system to prune/graft connections to peers, defaults to true
    */
   tagMeshPeers: boolean
+
+  /**
+   * The minimum message size in bytes to be considered for sending IDONTWANT messages
+   *
+   * @default 512
+   */
+  idontwantMinDataSize?: number
+
+  /**
+   * The maximum number of IDONTWANT messages per heartbeat per peer
+   *
+   * @default 512
+   */
+  idontwantMaxMessages?: number
 }
 
 export interface GossipsubMessage {
@@ -263,7 +277,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    * The signature policy to follow by default
    */
   public readonly globalSignaturePolicy: typeof StrictSign | typeof StrictNoSign
-  public multicodecs: string[] = [constants.GossipsubIDv11, constants.GossipsubIDv10]
+  public multicodecs: string[] = [constants.GossipsubIDv12, constants.GossipsubIDv11, constants.GossipsubIDv10]
 
   private publishConfig: PublishConfig | undefined
 
@@ -398,11 +412,21 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    */
   readonly gossipTracer: IWantTracer
 
+  /**
+   * Tracks IDONTWANT messages received by peers in the current heartbeat
+   */
+  private readonly idontwantCounts = new Map<PeerIdStr, number>()
+
+  /**
+   * Tracks IDONTWANT messages received by peers and the heartbeat they were received in
+   */
+  private readonly idontwants = new Map<PeerIdStr, Map<MsgIdStr, number>>()
+
   private readonly components: GossipSubComponents
 
   private directPeerInitial: ReturnType<typeof setTimeout> | null = null
 
-  public static multicodec: string = constants.GossipsubIDv11
+  public static multicodec: string = constants.GossipsubIDv12
 
   // Options
   readonly opts: Required<GossipOptions>
@@ -450,6 +474,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       opportunisticGraftPeers: constants.GossipsubOpportunisticGraftPeers,
       opportunisticGraftTicks: constants.GossipsubOpportunisticGraftTicks,
       directConnectTicks: constants.GossipsubDirectConnectTicks,
+      idontwantMinDataSize: constants.GossipsubIdontwantMinDataSize,
+      idontwantMaxMessages: constants.GossipsubIdontwantMaxMessages,
       ...options,
       scoreParams: createPeerScoreParams(options.scoreParams),
       scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
@@ -738,6 +764,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     this.seenCache.clear()
     if (this.fastMsgIdCache != null) this.fastMsgIdCache.clear()
     if (this.directPeerInitial != null) clearTimeout(this.directPeerInitial)
+    this.idontwantCounts.clear()
+    this.idontwants.clear()
 
     this.log('stopped')
   }
@@ -944,6 +972,9 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     this.control.delete(id)
     // Remove from backoff mapping
     this.outbound.delete(id)
+    // Remove from idontwant tracking
+    this.idontwantCounts.delete(id)
+    this.idontwants.delete(id)
 
     // Remove from peer scoring
     this.score.removePeer(id)
@@ -1007,6 +1038,10 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
                   prune: this.decodeRpcLimits.maxControlMessages,
                   prune$: {
                     peers: this.decodeRpcLimits.maxPeerInfos
+                  },
+                  idontwant: this.decodeRpcLimits.maxControlMessages,
+                  idontwant$: {
+                    messageIDs: this.decodeRpcLimits.maxIdontwantMessageIDs
                   }
                 }
               }
@@ -1298,6 +1333,11 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       this.seenCache.put(msgIdStr)
     }
 
+    // possibly send IDONTWANTs to mesh peers
+    if ((rpcMsg.data?.length ?? 0) >= this.opts.idontwantMinDataSize) {
+      this.sendIDontWants(msgId, rpcMsg.topic, propagationSource.toString())
+    }
+
     // (Optional) Provide custom validation here with dynamic validators per topic
     // NOTE: This custom topicValidator() must resolve fast (< 100ms) to allow scores
     // to not penalize peers for long validation times.
@@ -1351,6 +1391,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     const ihave = (controlMsg.iwant != null) ? this.handleIWant(id, controlMsg.iwant) : []
     const prune = (controlMsg.graft != null) ? await this.handleGraft(id, controlMsg.graft) : []
     ;(controlMsg.prune != null) && (await this.handlePrune(id, controlMsg.prune))
+    ;(controlMsg.idontwant != null) && this.handleIdontwant(id, controlMsg.idontwant)
 
     if ((iwant.length === 0) && (ihave.length === 0) && (prune.length === 0)) {
       return
@@ -1677,6 +1718,41 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
       this.safeDispatchEvent<MeshPeer>('gossipsub:prune', { detail: { peerId: id, topic: topicID, direction: 'inbound' } })
     }
+  }
+
+  private handleIdontwant (id: PeerIdStr, idontwant: RPC.ControlIDontWant[]): void {
+    let idontwantCount = this.idontwantCounts.get(id) ?? 0
+    // return early if we have already received too many IDONTWANT messages from the peer
+    if (idontwantCount >= this.opts.idontwantMaxMessages) {
+      return
+    }
+    const startIdontwantCount = idontwantCount
+
+    let idontwants = this.idontwants.get(id)
+    if (idontwants == null) {
+      idontwants = new Map()
+      this.idontwants.set(id, idontwants)
+    }
+    let idonthave = 0
+    // eslint-disable-next-line no-labels
+    out: for (const { messageIDs } of idontwant) {
+      for (const msgId of messageIDs) {
+        if (idontwantCount >= this.opts.idontwantMaxMessages) {
+          // eslint-disable-next-line no-labels
+          break out
+        }
+        idontwantCount++
+
+        const msgIdStr = this.msgIdToStrFn(msgId)
+        idontwants.set(msgIdStr, this.heartbeatTicks)
+        if (!this.mcache.msgs.has(msgIdStr)) idonthave++
+      }
+    }
+    // delay setting the count in case there are multiple IDONTWANT messages
+    // only set once
+    this.idontwantCounts.set(id, idontwantCount)
+    const total = idontwantCount - startIdontwantCount
+    this.metrics?.onIdontwantRcv(total, idonthave)
   }
 
   /**
@@ -2341,6 +2417,27 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     this.sendRpc(id, out)
   }
 
+  private sendIDontWants (msgId: Uint8Array, topic: string, source: PeerIdStr): void {
+    const ids = this.mesh.get(topic)
+    if (ids == null) {
+      return
+    }
+
+    // don't send IDONTWANT to:
+    // - the source
+    // - peers that don't support v1.2
+    const tosend = new Set(ids)
+    tosend.delete(source)
+    for (const id of tosend) {
+      if (this.streamsOutbound.get(id)?.protocol !== constants.GossipsubIDv12) {
+        tosend.delete(id)
+      }
+    }
+
+    const idontwantRpc = createGossipRpc([], { idontwant: [{ messageIDs: [msgId] }] })
+    this.sendRpcInBatch(tosend, idontwantRpc)
+  }
+
   /**
    * Send an rpc object to a peer
    */
@@ -2687,6 +2784,18 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     // apply IWANT request penalties
     this.applyIwantPenalties()
+
+    // clean up IDONTWANT counters
+    this.idontwantCounts.clear()
+
+    // clean up old tracked IDONTWANTs
+    for (const idontwants of this.idontwants.values()) {
+      for (const [msgId, heartbeatTick] of idontwants) {
+        if (this.heartbeatTicks - heartbeatTick >= this.opts.mcacheLength) {
+          idontwants.delete(msgId)
+        }
+      }
+    }
 
     // ensure direct peers are connected
     if (this.heartbeatTicks % this.opts.directConnectTicks === 0) {
