@@ -1,13 +1,12 @@
+import { stop } from '@libp2p/interface'
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
-import { GossipsubHeartbeatInterval } from '../src/constants.js'
 import { pEvent } from 'p-event'
-import { Components } from '@libp2p/components'
-import { createComponents } from './utils/create-pubsub.js'
-import { stop } from '@libp2p/interfaces/startable'
-import { mockNetwork } from '@libp2p/interface-mocks'
+import { GossipsubHeartbeatInterval } from '../src/constants.js'
+import { createComponents, type GossipSubAndComponents } from './utils/create-pubsub.js'
 
 describe('heartbeat', () => {
-  let node: Components
+  let node: GossipSubAndComponents
 
   before(async () => {
     mockNetwork.reset()
@@ -18,18 +17,18 @@ describe('heartbeat', () => {
     })
   })
 
-  after(() => {
-    stop(node)
+  after(async () => {
+    await stop(node.pubsub, ...Object.entries(node.components))
     mockNetwork.reset()
   })
 
   it('should occur with regularity defined by a constant', async function () {
     this.timeout(GossipsubHeartbeatInterval * 5)
 
-    await pEvent(node.getPubSub(), 'gossipsub:heartbeat')
+    await pEvent(node.pubsub, 'gossipsub:heartbeat')
     const t1 = Date.now()
 
-    await pEvent(node.getPubSub(), 'gossipsub:heartbeat')
+    await pEvent(node.pubsub, 'gossipsub:heartbeat')
     const t2 = Date.now()
 
     const safeFactor = 1.5

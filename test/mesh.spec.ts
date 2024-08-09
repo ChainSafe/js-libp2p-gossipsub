@@ -1,15 +1,13 @@
+import { stop } from '@libp2p/interface'
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
 import delay from 'delay'
-import { GossipsubDhi } from '../src/constants.js'
-import type { GossipSub } from '../src/index.js'
-import { Components } from '@libp2p/components'
-import { connectAllPubSubNodes, createComponentsArray } from './utils/create-pubsub.js'
-import { stop } from '@libp2p/interfaces/startable'
-import { mockNetwork } from '@libp2p/interface-mocks'
 import { pEvent } from 'p-event'
+import { GossipsubDhi } from '../src/constants.js'
+import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
 
 describe('mesh overlay', () => {
-  let nodes: Components[]
+  let nodes: GossipSubAndComponents[]
 
   // Create pubsub nodes
   beforeEach(async () => {
@@ -26,7 +24,7 @@ describe('mesh overlay', () => {
   })
 
   afterEach(async () => {
-    await stop(...nodes)
+    await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
     mockNetwork.reset()
   })
 
@@ -38,7 +36,7 @@ describe('mesh overlay', () => {
     const topic = 'Z'
 
     // add subscriptions to each node
-    nodes.forEach((node) => node.getPubSub().subscribe(topic))
+    nodes.forEach((node) => { node.pubsub.subscribe(topic) })
 
     // connect N (< GossipsubD) nodes to node0
     const N = 4
@@ -46,13 +44,14 @@ describe('mesh overlay', () => {
 
     await delay(50)
     // await mesh rebalancing
-    await new Promise((resolve) =>
-      (node0.getPubSub() as GossipSub).addEventListener('gossipsub:heartbeat', resolve, {
+    await new Promise((resolve) => {
+      (node0.pubsub).addEventListener('gossipsub:heartbeat', resolve, {
         once: true
       })
+    }
     )
 
-    const mesh = (node0.getPubSub() as GossipSub).mesh.get(topic)
+    const mesh = (node0.pubsub).mesh.get(topic)
     expect(mesh).to.have.property('size', N)
   })
 
@@ -63,14 +62,14 @@ describe('mesh overlay', () => {
     const topic = 'Z'
 
     // add subscriptions to each node
-    nodes.forEach((node) => node.getPubSub().subscribe(topic))
+    nodes.forEach((node) => { node.pubsub.subscribe(topic) })
 
     await connectAllPubSubNodes(nodes)
 
     // await mesh rebalancing
-    await pEvent(node0.getPubSub(), 'gossipsub:heartbeat')
+    await pEvent(node0.pubsub, 'gossipsub:heartbeat')
 
-    const mesh = (node0.getPubSub() as GossipSub).mesh.get(topic)
+    const mesh = (node0.pubsub).mesh.get(topic)
     expect(mesh).to.have.property('size').that.is.lte(GossipsubDhi)
   })
 })

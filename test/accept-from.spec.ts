@@ -1,9 +1,12 @@
-import { Components } from '@libp2p/components'
+import { type PeerStore } from '@libp2p/interface'
+import { defaultLogger } from '@libp2p/logger'
 import { expect } from 'aegir/chai'
 import sinon from 'sinon'
+import { stubInterface } from 'ts-sinon'
 import { GossipSub } from '../src/index.js'
 import { createPeerId } from './utils/index.js'
 import { fastMsgIdFn } from './utils/msgId.js'
+import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
 
 const peerA = '16Uiu2HAmMkH6ZLen2tbhiuNCTZLLvrZaDgufNdT5MPjtC9Hr9YNA'
 
@@ -18,8 +21,16 @@ describe('Gossipsub acceptFrom', () => {
     // sandbox.useFakeTimers(Date.now())
 
     const peerId = await createPeerId()
-    gossipsub = new GossipSub({ emitSelf: false, fastMsgIdFn })
-    await gossipsub.init(new Components({ peerId }))
+    gossipsub = new GossipSub(
+      {
+        peerId,
+        registrar: stubInterface<Registrar>(),
+        peerStore: stubInterface<PeerStore>(),
+        connectionManager: stubInterface<ConnectionManager>(),
+        logger: defaultLogger()
+      },
+      { emitSelf: false, fastMsgIdFn }
+    )
 
     // stubbing PeerScore causes some pending issue in firefox browser environment
     // we can only spy it

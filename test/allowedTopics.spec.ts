@@ -1,14 +1,12 @@
+import { stop } from '@libp2p/interface'
+import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
-import { GossipSub } from '../src/index.js'
 import { pEvent } from 'p-event'
-import { connectAllPubSubNodes, createComponentsArray } from './utils/create-pubsub.js'
-import { Components } from '@libp2p/components'
-import { stop } from '@libp2p/interfaces/startable'
-import { mockNetwork } from '@libp2p/interface-mocks'
+import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
 
 /* eslint-disable dot-notation */
 describe('gossip / allowedTopics', () => {
-  let nodes: Components[]
+  let nodes: GossipSubAndComponents[]
 
   const allowedTopic = 'topic_allowed'
   const notAllowedTopic = 'topic_not_allowed'
@@ -28,7 +26,7 @@ describe('gossip / allowedTopics', () => {
   })
 
   afterEach(async () => {
-    await stop(...nodes)
+    await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
     mockNetwork.reset()
   })
 
@@ -38,20 +36,22 @@ describe('gossip / allowedTopics', () => {
 
     // add subscriptions to each node
     for (const topic of allTopics) {
-      nodeA.getPubSub().subscribe(topic)
+      nodeA.pubsub.subscribe(topic)
     }
 
     // every node connected to every other
     await Promise.all([
       connectAllPubSubNodes(nodes),
       // nodeA should send nodeB all its subscriptions on connection
-      pEvent(nodeB.getPubSub(), 'subscription-change')
+      pEvent(nodeB.pubsub, 'subscription-change')
     ])
 
-    const nodeASubscriptions = Array.from((nodeA.getPubSub() as GossipSub)['subscriptions'].keys())
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    const nodeASubscriptions = Array.from((nodeA.pubsub)['subscriptions'].keys())
     expect(nodeASubscriptions).deep.equals(allTopics, 'nodeA.subscriptions should be subcribed to all')
 
-    const nodeBTopics = Array.from((nodeB.getPubSub() as GossipSub)['topics'].keys())
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    const nodeBTopics = Array.from((nodeB.pubsub)['topics'].keys())
     expect(nodeBTopics).deep.equals(allowedTopics, 'nodeB.topics should only contain allowedTopics')
   })
 })

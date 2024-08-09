@@ -1,72 +1,94 @@
-import { Components } from '@libp2p/components'
-import { createRSAPeerId } from '@libp2p/peer-id-factory'
-import { mockRegistrar, mockConnectionManager, mockConnectionGater, mockNetwork } from '@libp2p/interface-mocks'
-import { MemoryDatastore } from 'datastore-core'
-import { GossipSub, GossipsubOpts } from '../../src/index.js'
-import { PubSub } from '@libp2p/interface-pubsub'
 import { setMaxListeners } from 'events'
+import { TypedEventEmitter, start } from '@libp2p/interface'
+import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
+import { defaultLogger } from '@libp2p/logger'
+import { createRSAPeerId } from '@libp2p/peer-id-factory'
 import { PersistentPeerStore } from '@libp2p/peer-store'
-import { start } from '@libp2p/interfaces/startable'
+import { MemoryDatastore } from 'datastore-core'
+import { stubInterface } from 'ts-sinon'
+import { GossipSub, type GossipSubComponents, type GossipsubOpts } from '../../src/index.js'
+import type { TypedEventTarget, Libp2pEvents, PubSub } from '@libp2p/interface'
+import type { ConnectionManager } from '@libp2p/interface-internal'
 
 export interface CreateComponentsOpts {
   init?: Partial<GossipsubOpts>
   pubsub?: { new (opts?: any): PubSub }
 }
 
-export const createComponents = async (opts: CreateComponentsOpts): Promise<Components> => {
+export interface GossipSubTestComponents extends GossipSubComponents {
+  events: TypedEventTarget<Libp2pEvents>
+}
+
+export interface GossipSubAndComponents {
+  pubsub: GossipSub
+  components: GossipSubTestComponents
+}
+
+export const createComponents = async (opts: CreateComponentsOpts): Promise<GossipSubAndComponents> => {
   const Ctor = opts.pubsub ?? GossipSub
+  const peerId = await createRSAPeerId({ bits: 512 })
 
-  const components = new Components({
-    peerId: await createRSAPeerId({ bits: 512 }),
+  const events = new TypedEventEmitter<Libp2pEvents>()
+  const logger = defaultLogger()
+
+  const components: GossipSubTestComponents = {
+    peerId,
     registrar: mockRegistrar(),
-    datastore: new MemoryDatastore(),
-    connectionManager: mockConnectionManager(),
-    connectionGater: mockConnectionGater(),
-    pubsub: new Ctor(opts.init),
-    peerStore: new PersistentPeerStore()
-  })
+    connectionManager: stubInterface<ConnectionManager>(),
+    peerStore: new PersistentPeerStore({
+      peerId,
+      datastore: new MemoryDatastore(),
+      events,
+      logger
+    }),
+    events,
+    logger
+  }
+  components.connectionManager = mockConnectionManager(components)
 
-  await start(components)
+  const pubsub = new Ctor(components, opts.init) as GossipSub
+
+  await start(...Object.entries(components), pubsub)
 
   mockNetwork.addNode(components)
 
   try {
     // not available everywhere
-    setMaxListeners(Infinity, components.getPubSub())
+    setMaxListeners(Infinity, pubsub)
   } catch {}
 
-  return components
+  return { pubsub, components }
 }
 
 export const createComponentsArray = async (
-  opts: CreateComponentsOpts & { number: number; connected?: boolean } = { number: 1, connected: true }
-): Promise<Components[]> => {
+  opts: CreateComponentsOpts & { number: number, connected?: boolean } = { number: 1, connected: true }
+): Promise<GossipSubAndComponents[]> => {
   const output = await Promise.all(
     Array.from({ length: opts.number }).map(async (_, i) =>
       createComponents({ ...opts, init: { ...opts.init, debugName: `libp2p:gossipsub:${i}` } })
     )
   )
 
-  if (opts.connected) {
+  if (opts.connected ?? false) {
     await connectAllPubSubNodes(output)
   }
 
   return output
 }
 
-export const connectPubsubNodes = async (componentsA: Components, componentsB: Components): Promise<void> => {
-  const multicodecs = new Set<string>([...componentsA.getPubSub().multicodecs, ...componentsB.getPubSub().multicodecs])
+export const connectPubsubNodes = async (a: GossipSubAndComponents, b: GossipSubAndComponents): Promise<void> => {
+  const multicodecs = new Set<string>([...a.pubsub.multicodecs, ...b.pubsub.multicodecs])
 
-  const connection = await componentsA.getConnectionManager().openConnection(componentsB.getPeerId())
+  const connection = await a.components.connectionManager.openConnection(b.components.peerId)
 
   for (const multicodec of multicodecs) {
-    for (const topology of componentsA.getRegistrar().getTopologies(multicodec)) {
-      topology.onConnect(componentsB.getPeerId(), connection)
+    for (const topology of a.components.registrar.getTopologies(multicodec)) {
+      topology.onConnect?.(b.components.peerId, connection)
     }
   }
 }
 
-export const connectAllPubSubNodes = async (components: Components[]): Promise<void> => {
+export const connectAllPubSubNodes = async (components: GossipSubAndComponents[]): Promise<void> => {
   for (let i = 0; i < components.length; i++) {
     for (let j = i + 1; j < components.length; j++) {
       await connectPubsubNodes(components[i], components[j])
@@ -76,10 +98,11 @@ export const connectAllPubSubNodes = async (components: Components[]): Promise<v
 
 /**
  * Connect some gossipsub nodes to others, ensure each has num peers
- * @param {Gossipsub[]} gss
- * @param {number} num number of peers to connect
+ *
+ * @param {GossipSubAndComponents[]} gss
+ * @param {number} num - number of peers to connect
  */
-export async function connectSome(gss: Components[], num: number): Promise<void> {
+export async function connectSome (gss: GossipSubAndComponents[], num: number): Promise<void> {
   for (let i = 0; i < gss.length; i++) {
     let count = 0
     // merely do a Math.random() and check for duplicate may take a lot of time to run a test
@@ -101,10 +124,10 @@ export async function connectSome(gss: Components[], num: number): Promise<void>
   }
 }
 
-export async function sparseConnect(gss: Components[]): Promise<void> {
+export async function sparseConnect (gss: GossipSubAndComponents[]): Promise<void> {
   await connectSome(gss, 3)
 }
 
-export async function denseConnect(gss: Components[]): Promise<void> {
+export async function denseConnect (gss: GossipSubAndComponents[]): Promise<void> {
   await connectSome(gss, Math.min(gss.length - 1, 10))
 }

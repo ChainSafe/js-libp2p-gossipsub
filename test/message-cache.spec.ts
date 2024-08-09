@@ -1,11 +1,11 @@
+import * as utils from '@libp2p/pubsub/utils'
 import { expect } from 'aegir/chai'
-import { messageIdToString } from '../src/utils/messageIdToString.js'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { MessageCache } from '../src/message-cache.js'
-import * as utils from '@libp2p/pubsub/utils'
+import { messageIdToString } from '../src/utils/messageIdToString.js'
 import { getMsgId } from './utils/index.js'
 import type { RPC } from '../src/message/rpc.js'
-import { MessageId } from '../src/types.js'
+import type { MessageId } from '../src/types.js'
 
 const toMessageId = (msgId: Uint8Array): MessageId => {
   return {
@@ -16,7 +16,7 @@ const toMessageId = (msgId: Uint8Array): MessageId => {
 
 describe('Testing Message Cache Operations', () => {
   const messageCache = new MessageCache(3, 5, messageIdToString)
-  const testMessages: RPC.IMessage[] = []
+  const testMessages: RPC.Message[] = []
   const topic = 'test'
   const getGossipIDs = (mcache: MessageCache, topic: string): Uint8Array[] => {
     const gossipIDsByTopic = mcache.getGossipIDs(new Set([topic]))
@@ -24,7 +24,7 @@ describe('Testing Message Cache Operations', () => {
   }
 
   before(async () => {
-    const makeTestMessage = (n: number): RPC.IMessage => {
+    const makeTestMessage = (n: number): RPC.Message => {
       return {
         from: new Uint8Array(0),
         data: uint8ArrayFromString(n.toString()),
@@ -56,7 +56,7 @@ describe('Testing Message Cache Operations', () => {
 
     for (let i = 0; i < 10; i++) {
       const messageID = getMsgId(testMessages[i])
-      expect(messageID).to.deep.equal(gossipIDs![i])
+      expect(messageID).to.deep.equal(gossipIDs[i])
     }
   })
 
@@ -156,7 +156,7 @@ describe('Testing Message Cache Operations', () => {
     expect(gossipIDs.length).to.be.equal(5)
     // only validate the new gossip ids
     for (let i = 0; i < 5; i++) {
-      expect(gossipIDs[i]).to.deep.equal(getMsgId(testMessages[i + 10]), 'incorrect gossip message id ' + i)
+      expect(gossipIDs[i]).to.deep.equal(getMsgId(testMessages[i + 10]), 'incorrect gossip message id ' + String(i))
     }
   })
 })

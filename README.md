@@ -5,10 +5,6 @@
 ![ES Version](https://img.shields.io/badge/ES-2017-yellow)
 ![Node Version](https://img.shields.io/badge/node-10.x-green)
 
-## Lead Maintainer
-
-[Cayman Nava](https://github.com/wemeetagain)
-
 ## Table of Contents
 
 - [js-libp2p-gossipsub](#js-libp2p-gossipsub)
@@ -35,18 +31,23 @@ Gossipsub is an implementation of pubsub based on meshsub and floodsub. You can 
 ## Usage
 
 ```javascript
-const Gossipsub = require('@chainsafe/libp2p-gossipsub')
+import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 
-const gsub = new Gossipsub(libp2p, options)
 
-await gsub.start()
+const libp2p = await createLibp2p({
+  // ...
+  services: {
+    pubsub: gossipsub(options)
+  }
+});
 
-gsub.on('fruit', (data) => {
-  console.log(data)
+libp2p.services.pubsub.addEventListener('message', (message) => {
+  console.log(`${message.detail.topic}:`, new TextDecoder().decode(message.detail.data))
 })
-gsub.subscribe('fruit')
 
-gsub.publish('fruit', new TextEncoder().encode('banana'))
+libp2p.services.pubsub.subscribe('fruit')
+
+libp2p.services.pubsub.publish('fruit', new TextEncoder().encode('banana'))
 ```
 
 ## API
@@ -55,7 +56,7 @@ gsub.publish('fruit', new TextEncoder().encode('banana'))
 
 ```js
 const options = {…}
-const gossipsub = new Gossipsub(libp2p, options)
+const gossipsub = gossipsub(options)(libp2p)
 ```
 
 Options is an optional object with the following key-value pairs:

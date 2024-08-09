@@ -1,8 +1,8 @@
-type SimpleTimeCacheOpts = {
+interface SimpleTimeCacheOpts {
   validityMs: number
 }
 
-type CacheValue<T> = {
+interface CacheValue<T> {
   value: T
   validUntilMs: number
 }
@@ -16,44 +16,56 @@ export class SimpleTimeCache<T> {
   private readonly entries = new Map<string | number, CacheValue<T>>()
   private readonly validityMs: number
 
-  constructor(opts: SimpleTimeCacheOpts) {
+  constructor (opts: SimpleTimeCacheOpts) {
     this.validityMs = opts.validityMs
 
     // allow negative validityMs so that this does not cache anything, spec test compliance.spec.js
     // sends duplicate messages and expect peer to receive all. Application likely uses positive validityMs
   }
 
-  get size(): number {
+  get size (): number {
     return this.entries.size
   }
 
-  put(key: string | number, value: T): void {
+  /** Returns true if there was a key collision and the entry is dropped */
+  put (key: string | number, value: T): boolean {
+    if (this.entries.has(key)) {
+      // Key collisions break insertion order in the entries cache, which break prune logic.
+      // prune relies on each iterated entry to have strictly ascending validUntilMs, else it
+      // won't prune expired entries and SimpleTimeCache will grow unexpectedly.
+      // As of Oct 2022 NodeJS v16, inserting the same key twice with different value does not
+      // change the key position in the iterator stream. A unit test asserts this behaviour.
+      return true
+    }
+
     this.entries.set(key, { value, validUntilMs: Date.now() + this.validityMs })
+    return false
   }
 
-  prune(): void {
+  prune (): void {
     const now = Date.now()
 
     for (const [k, v] of this.entries.entries()) {
       if (v.validUntilMs < now) {
         this.entries.delete(k)
       } else {
-        // sort by insertion order
+        // Entries are inserted with strictly ascending validUntilMs.
+        // Stop early to save iterations
         break
       }
     }
   }
 
-  has(key: string): boolean {
+  has (key: string): boolean {
     return this.entries.has(key)
   }
 
-  get(key: string | number): T | undefined {
+  get (key: string | number): T | undefined {
     const value = this.entries.get(key)
-    return value && value.validUntilMs >= Date.now() ? value.value : undefined
+    return (value != null) && value.validUntilMs >= Date.now() ? value.value : undefined
   }
 
-  clear(): void {
+  clear (): void {
     this.entries.clear()
   }
 }

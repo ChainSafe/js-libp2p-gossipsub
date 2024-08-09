@@ -1,5 +1,5 @@
-import { TimeCacheDuration } from '../constants.js'
 import Denque from 'denque'
+import { TimeCacheDuration } from '../constants.js'
 
 export enum DeliveryRecordStatus {
   /**
@@ -22,7 +22,7 @@ export enum DeliveryRecordStatus {
 
 export interface DeliveryRecord {
   status: DeliveryRecordStatus
-  firstSeen: number
+  firstSeenTsMs: number
   validated: number
   peers: Set<string>
 }
@@ -38,17 +38,21 @@ interface DeliveryQueueEntry {
  * Maintains an internal queue for efficient gc of old messages
  */
 export class MessageDeliveries {
-  private records: Map<string, DeliveryRecord>
+  private readonly records: Map<string, DeliveryRecord>
   public queue: Denque<DeliveryQueueEntry>
 
-  constructor() {
+  constructor () {
     this.records = new Map()
     this.queue = new Denque()
   }
 
-  ensureRecord(msgIdStr: string): DeliveryRecord {
+  getRecord (msgIdStr: string): DeliveryRecord | undefined {
+    return this.records.get(msgIdStr)
+  }
+
+  ensureRecord (msgIdStr: string): DeliveryRecord {
     let drec = this.records.get(msgIdStr)
-    if (drec) {
+    if (drec != null) {
       return drec
     }
 
@@ -56,7 +60,7 @@ export class MessageDeliveries {
     // create record
     drec = {
       status: DeliveryRecordStatus.unknown,
-      firstSeen: Date.now(),
+      firstSeenTsMs: Date.now(),
       validated: 0,
       peers: new Set()
     }
@@ -72,19 +76,19 @@ export class MessageDeliveries {
     return drec
   }
 
-  gc(): void {
+  gc (): void {
     const now = Date.now()
     // queue is sorted by expiry time
     // remove expired messages, remove from queue until first un-expired message found
     let head = this.queue.peekFront()
-    while (head && head.expire < now) {
+    while ((head != null) && head.expire < now) {
       this.records.delete(head.msgId)
       this.queue.shift()
       head = this.queue.peekFront()
     }
   }
 
-  clear(): void {
+  clear (): void {
     this.records.clear()
     this.queue.clear()
   }

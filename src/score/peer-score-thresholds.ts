@@ -1,5 +1,5 @@
+import { CodeError } from '@libp2p/interface'
 import { ERR_INVALID_PEER_SCORE_THRESHOLDS } from './constants.js'
-import errcode from 'err-code'
 
 // This file defines PeerScoreThresholds interface
 // as well as a constructor, default constructor, and validation function
@@ -45,36 +45,33 @@ export const defaultPeerScoreThresholds: PeerScoreThresholds = {
   opportunisticGraftThreshold: 20
 }
 
-export function createPeerScoreThresholds(p: Partial<PeerScoreThresholds> = {}): PeerScoreThresholds {
+export function createPeerScoreThresholds (p: Partial<PeerScoreThresholds> = {}): PeerScoreThresholds {
   return {
     ...defaultPeerScoreThresholds,
     ...p
   }
 }
 
-export function validatePeerScoreThresholds(p: PeerScoreThresholds): void {
+export function validatePeerScoreThresholds (p: PeerScoreThresholds): void {
   if (p.gossipThreshold > 0) {
-    throw errcode(new Error('invalid gossip threshold; it must be <= 0'), ERR_INVALID_PEER_SCORE_THRESHOLDS)
+    throw new CodeError('invalid gossip threshold; it must be <= 0', ERR_INVALID_PEER_SCORE_THRESHOLDS)
   }
   if (p.publishThreshold > 0 || p.publishThreshold > p.gossipThreshold) {
-    throw errcode(
-      new Error('invalid publish threshold; it must be <= 0 and <= gossip threshold'),
+    throw new CodeError(
+      'invalid publish threshold; it must be <= 0 and <= gossip threshold',
       ERR_INVALID_PEER_SCORE_THRESHOLDS
     )
   }
   if (p.graylistThreshold > 0 || p.graylistThreshold > p.publishThreshold) {
-    throw errcode(
-      new Error('invalid graylist threshold; it must be <= 0 and <= publish threshold'),
+    throw new CodeError(
+      'invalid graylist threshold; it must be <= 0 and <= publish threshold',
       ERR_INVALID_PEER_SCORE_THRESHOLDS
     )
   }
   if (p.acceptPXThreshold < 0) {
-    throw errcode(new Error('invalid accept PX threshold; it must be >= 0'), ERR_INVALID_PEER_SCORE_THRESHOLDS)
+    throw new CodeError('invalid accept PX threshold; it must be >= 0', ERR_INVALID_PEER_SCORE_THRESHOLDS)
   }
   if (p.opportunisticGraftThreshold < 0) {
-    throw errcode(
-      new Error('invalid opportunistic grafting threshold; it must be >= 0'),
-      ERR_INVALID_PEER_SCORE_THRESHOLDS
-    )
+    throw new CodeError('invalid opportunistic grafting threshold; it must be >= 0', ERR_INVALID_PEER_SCORE_THRESHOLDS)
   }
 }

@@ -15,6 +15,369 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [13.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v13.0.0...v13.1.0) (2024-06-20)
+
+
+### Features
+
+* add service capabilities and dependencies definition ([#497](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/497)) ([9ffc2a2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/9ffc2a2c2fa49ef2ff8f99865048e9c16a79a19a))
+* publish at least mesh_n peers ([#493](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/493)) ([bc3906f](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/bc3906f4e1cc2c31dd9b98a0b6a1e51d33ac003a))
+
+## [13.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v12.0.0...v13.0.0) (2024-02-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* The `allowPublishToZeroPeers` option has been renamed to `allowPublishToZeroTopicPeers`
+
+### Features
+
+* graft/prune events and mesh peer tagging ([#383](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/383)) ([42b5b92](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/42b5b927eab3f61b54d1796399219f292a66eeea))
+
+
+### Bug Fixes
+
+* make PublishError.InsufficientPeers more self-explanatory ([#487](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/487)) ([1958aab](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/1958aabc1d0c77170a20d00c10fe416a8fed200f)), closes [#472](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/472)
+
+## [12.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.2.1...v12.0.0) (2024-02-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* switch back to protons ([#468](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/468))
+
+### Features
+
+* switch back to protons ([#468](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/468)) ([18955dc](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/18955dcc7effe5a2792a08476fa420fa6474509a))
+
+## [11.2.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.2.0...v11.2.1) (2024-02-05)
+
+
+### Bug Fixes
+
+* remove abortable iterator ([#488](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/488)) ([e39b2e2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/e39b2e2910571eba03c1ba2f84a087e4903858c9))
+
+## [11.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.1.0...v11.2.0) (2024-01-30)
+
+
+### Features
+
+* add runOnTransientConnection option to pass to registrar ([#485](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/485)) ([986ff6c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/986ff6c420026654179bc398ba139c87a2277ea7))
+
+
+### Bug Fixes
+
+* write peer stream messages atomically ([#484](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/484)) ([cc4ff3b](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/cc4ff3bfa4f09b9a1b4bfedd20468dc2c06be895))
+
+## [11.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.0.1...v11.1.0) (2024-01-08)
+
+
+### Features
+
+* batch publish ([#480](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/480)) ([c11b924](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/c11b924f9df02e150b884f01200206f48dc7a666))
+* type safe metric labels ([#479](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/479)) ([67c2a55](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/67c2a55fb523988c9e130a29b86051347a14ebda))
+
+## [11.0.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v11.0.0...v11.0.1) (2023-12-05)
+
+
+### Bug Fixes
+
+* make peer score use component logger ([#476](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/476)) ([dba38d1](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/dba38d1d5093bac32d4c5c37a35699b09131e762))
+
+## [11.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v10.1.1...v11.0.0) (2023-12-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* requires libp2p v1
+
+### Bug Fixes
+
+* update to libp2p v1 deps ([#473](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/473)) ([01f46d8](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/01f46d88b0f073721ab2bf481e9878fbcce02084))
+
+## [10.1.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v10.1.0...v10.1.1) (2023-11-21)
+
+
+### Bug Fixes
+
+* runsFactor in benchmark ([#467](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/467)) ([aa208c2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/aa208c2f6bad1c4c0b03cf48e6c76078c272bff9))
+* use typed event emitter class ([#470](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/470)) ([3af4e7a](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/3af4e7aec8e295ae3132e2ff3f79cca458fecd5d))
+
+
+### Miscellaneous
+
+* update linter rules ([#471](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/471)) ([a39115c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/a39115c1b38da45e20ff4d8643675e26dd82e63f))
+
+## [10.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v10.0.0...v10.1.0) (2023-08-22)
+
+
+### Features
+
+* unbundle fixed-label metrics ([bb5596d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/bb5596dca786e59d930ed58b6dc05c80925786b2))
+* unbundle fixed-label metrics ([#460](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/460)) ([bb5596d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/bb5596dca786e59d930ed58b6dc05c80925786b2))
+
+
+### Bug Fixes
+
+* export supporting metrics types ([#462](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/462)) ([09296bd](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/09296bd915839b6bbbffcf7ea31be64ba3f4bc20))
+* revise onPrevalidationResult metrics ([#464](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/464)) ([e51f248](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/e51f248b621b600b34741b452601a5a80a3b5ebd))
+
+## [10.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v9.1.0...v10.0.0) (2023-08-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* stream close methods are now asyc, requires libp2p@0.46.x or later
+
+### Features
+
+* close streams gracefully ([#458](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/458)) ([3153ebf](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/3153ebff847cdfa560a094e1cd6b559090a24614))
+* track time to publish a message ([#451](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/451)) ([83b8e61](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/83b8e61e700f45743940e33b8ca2c28c1e18a1d5))
+
+
+### Bug Fixes
+
+* track publish time in second ([#457](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/457)) ([7c3fc8d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/7c3fc8d2aa47070434a87d576c10d5aaeb047277))
+
+## [9.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v9.0.0...v9.1.0) (2023-06-29)
+
+
+### Features
+
+* add UnsubscribeBackoff param ([#447](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/447)) ([ec570ca](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/ec570cadb2ea4e327f204038c85b86ccc7555802))
+
+
+### Bug Fixes
+
+* check backoff when join ([#444](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/444)) ([fd8c61b](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/fd8c61b18d6deccb19a375c913dfe3dec9a0dfeb))
+* correct metric in handlePrune() ([#440](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/440)) ([cbdae04](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/cbdae0463868673de9ae59b7a357aedfeb085e0a))
+
+
+### Miscellaneous
+
+* track backoff time for connected peers ([#445](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/445)) ([8646b4d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/8646b4d3c1255474cb86478eca4279dd18f11580))
+
+## [9.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v8.0.1...v9.0.0) (2023-06-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* reportMessageValidationResult to accept peer id string ([#432](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/432))
+
+### Features
+
+* track async validation delay from first seen ([#435](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/435)) ([e2505d6](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/e2505d668ac9b34e8889562d975ed71ec1866b33))
+
+
+### Bug Fixes
+
+* reportMessageValidationResult to accept peer id string ([a963680](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/a963680fd9fb1da55e28e15c8e5469b9fe7dfbfa))
+* reportMessageValidationResult to accept peer id string ([#432](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/432)) ([a963680](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/a963680fd9fb1da55e28e15c8e5469b9fe7dfbfa))
+
+## [8.0.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v8.0.0...v8.0.1) (2023-06-15)
+
+
+### Bug Fixes
+
+* unbundle 2-label metrics ([#433](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/433)) ([1e33bb2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/1e33bb279d28126d369eb0aea7978dca79a48f4b))
+* unhandle protocol on stop ([#438](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/438)) ([549641b](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/549641bf4a728709119509252a6a19ff0cd42b8c))
+
+## [8.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v7.0.0...v8.0.0) (2023-05-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* update peerstore and releated deps for libp2p@0.45 compat ([#425](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/425))
+
+### Bug Fixes
+
+* update peerstore and releated deps for libp2p@0.45 compat ([#425](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/425)) ([b6225d6](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/b6225d62fa3f372acee31f3ad71579693e0fcdbe))
+
+
+### Miscellaneous
+
+* Update README.md usage example ([#429](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/429)) ([9bd5a3c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/9bd5a3c2f7324a3332c537bfb6bbd26d518d7503))
+
+## [7.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v6.3.0...v7.0.0) (2023-04-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* the type of the source/sink properties have changed
+
+### Bug Fixes
+
+* update stream types ([#423](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/423)) ([6761c6e](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/6761c6e66b294ed3cb5eb9e8e364f335c7f5f1ef))
+
+## [6.3.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v6.2.0...v6.3.0) (2023-04-13)
+
+
+### Features
+
+* make log as protected ([#407](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/407)) ([5b3aee9](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/5b3aee94c90dcd0e42266b5413c0349674cf309c))
+
+
+### Bug Fixes
+
+* add rpc error metrics ([#412](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/412)) ([5cd8b07](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/5cd8b0737a2ef40d9a093977e19240ae6d93b951))
+* add types to exports in packages.json ([#419](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/419)) ([100592a](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/100592a019c38ff5e0ab5db596feb7fa6ae4923c))
+* track promise only after a successful sendRpc() ([#415](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/415)) ([a959b09](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/a959b096c0e78d8754b5a9726e11e055d8685ef0))
+
+
+### Miscellaneous
+
+* **deps:** bump @libp2p/interface-connection to 4.0.0 ([#421](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/421)) ([50a99c7](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/50a99c74bdb0e02a4bece21a9878590cb5da9042))
+* **deps:** bump xml2js, @azure/ms-rest-js, @azure/storage-blob and aws-sdk ([#420](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/420)) ([2a2e9fa](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/2a2e9faec7565e0e1fdc6ef4bbcd9f89024c72f8))
+* remove lead maintainer ([#422](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/422)) ([38d5d65](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/38d5d657a3d975c6ad72c6822ce4281ea0f1b0d0))
+
+## [6.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v6.1.0...v6.2.0) (2023-02-21)
+
+
+### Features
+
+* allow ignoring PublishError.Duplicate ([#404](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/404)) ([dcde3c9](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/dcde3c97ee9eee8c8f1c9c496a5232ea43b21d37))
+
+
+### Miscellaneous
+
+* **deps:** bump http-cache-semantics from 4.1.0 to 4.1.1 ([#400](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/400)) ([bae1492](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/bae14929fe93db8b5e6f24271f5b6c1c900532cb))
+
+## [6.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v6.0.0...v6.1.0) (2023-01-19)
+
+
+### Features
+
+* added allowPublishToZeroPeers as optional param to publish function ([#395](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/395)) ([e7c88ac](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/e7c88acb83d6b7f25f38074f37668e17860dd518))
+
+
+### Bug Fixes
+
+* ignore new closed connection ([#399](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/399)) ([20d54f4](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/20d54f4d3cad5732859e4594f3bc54cc0b7278dd))
+
+
+### Miscellaneous
+
+* replace err-code with CodeError ([#397](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/397)) ([4842680](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/484268005aec682bb8104d6f617a4bab5d8be82a))
+
+## [6.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.4.1...v6.0.0) (2023-01-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* update multiformats and related dependencies ([#393](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/393))
+
+### Bug Fixes
+
+* fix browser tests ([dcece33](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/dcece3315c5dab018f069963f93902dcc25a8c15))
+* update multiformats and related dependencies ([#393](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/393)) ([2090501](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/209050194e765a600e8e479bf0ee573ee6e9028d))
+
+
+### Miscellaneous
+
+* update readme code example to new API. ([#382](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/382)) ([b24d1ff](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/b24d1ff75845dc5308df2f00ee5110d0aeefbe6c))
+
+## [5.4.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.4.0...v5.4.1) (2022-12-23)
+
+
+### Bug Fixes
+
+* remove change:multiaddrs listener ([#387](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/387)) ([ad1e6ce](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/ad1e6cee2df68141a263ff16c64240a89961b9ab))
+
+## [5.4.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.3.0...v5.4.0) (2022-12-22)
+
+
+### Features
+
+* track pruned messages in tracer ([#384](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/384)) ([dbeb879](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/dbeb8792a380c172f6aade3ab01e6c90140375e5))
+
+
+### Bug Fixes
+
+* tracer to track delivered message if duplicate ([#385](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/385)) ([0c8ddee](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/0c8ddee13a94b44f182ea685cdddc6b7cee43ec4))
+
+## [5.3.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.2.1...v5.3.0) (2022-12-01)
+
+
+### Features
+
+* add `src` folder to package to enable access to source map ([#337](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/337)) ([7a20b0c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/7a20b0ca7b0c01c791c71ee89fffdd436bc1dfc2))
+
+
+### Bug Fixes
+
+* sync leave() function ([#378](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/378)) ([ac7fd52](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/ac7fd52c04b9a7f07106221341a765523007c91c))
+
+## [5.2.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.2.0...v5.2.1) (2022-11-15)
+
+
+### Bug Fixes
+
+* unbound event listener ([#374](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/374)) ([087a66a](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/087a66aa13a430c973dfeb74735f38b1d3133363))
+
+## [5.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.1.1...v5.2.0) (2022-11-13)
+
+
+### Features
+
+* remove unnecessary conversion from Multiaddr to IP ([#369](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/369)) ([e37c7c2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/e37c7c2e7872284093eabc765a4ddafb9e56f690))
+
+## [5.1.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.1.0...v5.1.1) (2022-11-03)
+
+
+### Bug Fixes
+
+* add .js extension to imported file ([#370](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/370)) ([129b9cd](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/129b9cdc26bb5fca02c717d9c1c599536a3f64a4))
+
+## [5.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v5.0.0...v5.1.0) (2022-10-28)
+
+
+### Features
+
+* Add stream option to limit inbound message size ([#349](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/349)) ([3475242](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/3475242ed254f7647798ab7f36b21909f6cb61da))
+
+
+### Bug Fixes
+
+* mark import as type ([#365](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/365)) ([19507d9](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/19507d9da5e11702182cfc97300642c5fb78f964))
+
+## [5.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v4.2.0...v5.0.0) (2022-10-22)
+
+
+### Bug Fixes
+
+* TimeCache handle key collision to prevent leak ([#358](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/358)) ([8f0ba37](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/8f0ba37a73560f3ffd12567603720564d7c2862a))
+
+
+### Miscellaneous
+
+* bump version ([#364](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/364)) ([7a8ff3e](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/7a8ff3ecb796eab0304aaff031f1defacc1ee0fe))
+* release 5.0.0 ([d13c44d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/d13c44d827fb206a6bac5e003da27c61ac849362))
+
+## [4.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v4.1.1...v4.2.0) (2022-10-18)
+
+
+### Features
+
+* allow only defined list of topics ([#348](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/348)) ([6b5ff4d](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/6b5ff4d3e40139b2a6cf8cbf670564c9d1b91090))
+* limit RPC lists on decode ([#352](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/352)) ([8fbcb4c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/8fbcb4cab0157631641d5281daf9cefe69eb18ec))
+* support FastMsgIdFn returning a number ([#355](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/355)) ([4df9677](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/4df9677fbc4c54bf189a874ec7a93dd483c4c9fe))
+* track mcache not validated count ([#351](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/351)) ([27bdee7](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/27bdee7b99f3a605d8d7a8983887d692a5185ea1))
+
+
+### Bug Fixes
+
+* copy js files to dist manually ([#340](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/340)) ([4c73e81](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/4c73e81c4b441149f4858aad7beccdd76ad27959))
+* flip conditional in piggyback control - typo from [#347](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/347) ([#353](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/353)) ([cad96c2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/cad96c21322a788b19fb3aa37f7ffe34cbc7d09c))
+* sendRpc in a for loop ([#347](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/347)) ([74cb495](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/74cb495a9f2171b5a08161880a6709013fbeb2c0))
+* update @multiformats/multiaddr to 11.0.0 ([#339](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/339)) ([940dafc](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/940dafca97d142aeb026ba469fcd58887d256124))
+* update event type to extend `{ [s: string]: any }` ([#336](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/336)) ([5c0db52](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/5c0db528a677c6c196b74222256ba032f1fe7d80))
+
+
+### Miscellaneous
+
+* commit package-lock.json ([#359](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/359)) ([eb1a145](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/eb1a145ee8d5fee8a18d87434fc8bcfb3b60f950))
+* retry tests ([#354](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/354)) ([494ffbb](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/494ffbb534f9aa62e6b74d618e2378eae0e51c09))
+
 ## [4.1.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v4.1.0...v4.1.1) (2022-08-24)
 
 

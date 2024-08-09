@@ -1,8 +1,6 @@
-import type { PeerId } from '@libp2p/interface-peer-id'
-import type { PrivateKey } from '@libp2p/interface-keys'
-import type { Multiaddr } from '@multiformats/multiaddr'
+import { type Message, TopicValidatorResult, type PrivateKey, type PeerId } from '@libp2p/interface'
 import type { RPC } from './message/rpc.js'
-import type { Message } from '@libp2p/interface-pubsub'
+import type { Multiaddr } from '@multiformats/multiaddr'
 
 export type MsgIdStr = string
 export type PeerIdStr = string
@@ -18,13 +16,13 @@ export interface AddrInfo {
  * Compute a local non-spec'ed msg-id for faster de-duplication of seen messages.
  * Used exclusively for a local seen_cache
  */
-export type FastMsgIdFn = (msg: RPC.IMessage) => string | number
+export interface FastMsgIdFn { (msg: RPC.Message): string | number }
 
 /**
  * By default, gossipsub only provide a browser friendly function to convert Uint8Array message id to string.
  * Application could use this option to provide a more efficient function.
  */
-export type MsgIdToStrFn = (msgId: Uint8Array) => string
+export interface MsgIdToStrFn { (msgId: Uint8Array): string }
 
 /**
  * Compute spec'ed msg-id. Used for IHAVE / IWANT messages
@@ -49,18 +47,6 @@ export interface DataTransform {
   outboundTransform(topic: TopicStr, data: Uint8Array): Uint8Array
 }
 
-/**
- * Custom validator function per topic.
- * Must return or resolve quickly (< 100ms) to prevent causing penalties for late messages.
- * If you need to apply validation that may require longer times use `asyncValidation` option and callback the
- * validation result through `Gossipsub.reportValidationResult`
- */
-export type TopicValidatorFn = (
-  topic: TopicStr,
-  msg: Message,
-  propagationSource: PeerId
-) => MessageAcceptance | Promise<MessageAcceptance>
-
 export enum SignaturePolicy {
   /**
    * On the producing side:
@@ -84,6 +70,21 @@ export enum SignaturePolicy {
   StrictNoSign = 'StrictNoSign'
 }
 
+export interface PublishOpts {
+  /**
+   * Do not throw `PublishError.NoPeersSubscribedToTopic` error if there are no
+   * peers listening on the topic.
+   *
+   * N.B. if you sent this option to true, and you publish a message on a topic
+   * with no peers listening on that topic, no other network node will ever
+   * receive the message.
+   */
+  allowPublishToZeroTopicPeers?: boolean
+  ignoreDuplicatePublishError?: boolean
+  /** serialize message once and send to all peers without control messages */
+  batchPublish?: boolean
+}
+
 export enum PublishConfigType {
   Signing,
   Anonymous
@@ -91,25 +92,15 @@ export enum PublishConfigType {
 
 export type PublishConfig =
   | {
-      type: PublishConfigType.Signing
-      author: PeerId
-      key: Uint8Array
-      privateKey: PrivateKey
-    }
+    type: PublishConfigType.Signing
+    author: PeerId
+    key: Uint8Array
+    privateKey: PrivateKey
+  }
   | { type: PublishConfigType.Anonymous }
 
-export enum MessageAcceptance {
-  /// The message is considered valid, and it should be delivered and forwarded to the network.
-  Accept = 'accept',
-  /// The message is neither delivered nor forwarded to the network, but the router does not
-  /// trigger the P₄ penalty.
-  Ignore = 'ignore',
-  /// The message is considered invalid, and it should be rejected and trigger the P₄ penalty.
-  Reject = 'reject'
-}
-
 export type RejectReasonObj =
-  | { reason: RejectReason.Error; error: ValidateError }
+  | { reason: RejectReason.Error, error: ValidateError }
   | { reason: Exclude<RejectReason, RejectReason.Error> }
 
 export enum RejectReason {
@@ -163,7 +154,7 @@ export enum MessageStatus {
  * Store both Uint8Array and string message id so that we don't have to convert data between the two.
  * See https://github.com/ChainSafe/js-libp2p-gossipsub/pull/274
  */
-export type MessageId = {
+export interface MessageId {
   msgId: Uint8Array
   msgIdStr: MsgIdStr
 }
@@ -171,13 +162,15 @@ export type MessageId = {
 /**
  * Typesafe conversion of MessageAcceptance -> RejectReason. TS ensures all values covered
  */
-export function rejectReasonFromAcceptance(
-  acceptance: Exclude<MessageAcceptance, MessageAcceptance.Accept>
+export function rejectReasonFromAcceptance (
+  acceptance: Exclude<TopicValidatorResult, TopicValidatorResult.Accept>
 ): RejectReason.Ignore | RejectReason.Reject {
   switch (acceptance) {
-    case MessageAcceptance.Ignore:
+    case TopicValidatorResult.Ignore:
       return RejectReason.Ignore
-    case MessageAcceptance.Reject:
+    case TopicValidatorResult.Reject:
       return RejectReason.Reject
+    default:
+      throw new Error('Unreachable')
   }
 }

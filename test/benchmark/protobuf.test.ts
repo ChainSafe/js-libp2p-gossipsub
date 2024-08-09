@@ -1,40 +1,53 @@
-import { itBench } from '@dapplion/benchmark'
-import { IRPC, RPC } from '../../src/message/rpc.js'
+import crypto from 'node:crypto'
+import { itBench, setBenchOpts } from '@dapplion/benchmark'
+import { RPC } from '../../src/message/rpc.js'
 
 describe('protobuf', function () {
-  const rpc: IRPC = {
-    subscriptions: [],
-    messages: [
-      {
-        topic: 'topic1',
-        // typical Attestation
-        data: Buffer.from(
-          'e40000000a000000000000000a00000000000000a45c8daa336e17a150300afd4c717313c84f291754c51a378f20958083c5fa070a00000000000000a45c8daa336e17a150300afd4c717313c84f291754c51a378f20958083c5fa070a00000000000000a45c8daa336e17a150300afd4c717313c84f291754c51a378f20958083c5fa0795d2ef8ae4e2b4d1e5b3d5ce47b518e3db2c8c4d082e4498805ac2a686c69f248761b78437db2927470c1e77ede9c18606110faacbcbe4f13052bde7f7eff6aab09edf7bc4929fda2230f943aba2c47b6f940d350cb20c76fad4a8d40e2f3f1f01',
-          'hex'
-        ),
-        signature: Uint8Array.from(Array.from({ length: 96 }, () => 100))
-      }
-    ],
-    control: undefined
+  const testCases: Array<{ name: string, length: number }> = [
+    // As of Oct 2023, Attestation length = 281
+    { name: 'Attestation', length: 300 },
+    // A SignedBeaconBlock could be from 70_000 to 300_000
+    { name: 'SignedBeaconBlock', length: 70_000 },
+    { name: 'SignedBeaconBlock', length: 140_000 },
+    { name: 'SignedBeaconBlock', length: 210_000 },
+    { name: 'SignedBeaconBlock', length: 280_000 }
+  ]
+
+  for (const { name, length } of testCases) {
+    const rpc: RPC = {
+      subscriptions: [],
+      messages: [
+        {
+          topic: 'topic1',
+          data: crypto.randomBytes(length),
+          signature: Uint8Array.from(Array.from({ length: 96 }, () => 100))
+        }
+      ],
+      control: undefined
+    }
+
+    const bytes = RPC.encode(rpc)
+
+    const runsFactor = 1000
+
+    itBench({
+      id: `decode ${name} message ${length} bytes`,
+      fn: () => {
+        for (let i = 0; i < runsFactor; i++) {
+          RPC.decode(bytes)
+        }
+      },
+      runsFactor
+    })
+
+    itBench({
+      id: `encode ${name} message ${length} bytes`,
+      fn: () => {
+        for (let i = 0; i < runsFactor; i++) {
+          RPC.encode(rpc)
+        }
+      },
+      runsFactor
+    })
   }
-
-  const bytes = RPC.encode(rpc).finish()
-
-  // console.log('@@@ encoded to', Buffer.from(bytes.slice()).toString('hex'), 'length', bytes.length)
-
-  itBench({
-    id: 'decode Attestation message using protobufjs',
-    fn: () => {
-      RPC.decode(bytes)
-    },
-    runsFactor: 100
-  })
-
-  itBench({
-    id: 'encode Attestation message using protobufjs',
-    fn: () => {
-      RPC.encode(rpc).finish()
-    },
-    runsFactor: 100
-  })
 })

@@ -14,7 +14,7 @@ message RPC {
     optional bytes from = 1;
     optional bytes data = 2;
     optional bytes seqno = 3;
-    required string topic = 4;
+    string topic = 4;
     optional bytes signature = 5;
     optional bytes key = 6;
   }
@@ -42,7 +42,7 @@ message RPC {
   message ControlPrune {
     optional string topicID = 1;
     repeated PeerInfo peers = 2;
-    optional uint64 backoff = 3;
+    optional uint64 backoff = 3 [jstype = JS_NUMBER];
   }
 
   message PeerInfo {

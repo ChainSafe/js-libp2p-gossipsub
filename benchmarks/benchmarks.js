@@ -1,7 +1,6 @@
 'use strict'
 
 const Benchmark = require('benchmark')
-
 const utils = require('../test/utils')
 const suite = new Benchmark.Suite('gossipsub')
 
