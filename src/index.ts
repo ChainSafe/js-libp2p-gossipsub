@@ -201,6 +201,14 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
    * If true, will utilize the libp2p connection manager tagging system to prune/graft connections to peers, defaults to true
    */
   tagMeshPeers: boolean
+
+  /**
+   * Specify what percent of peers to send gossip to. If the percent results in
+   * a number smaller than `Dlazy`, `Dlazy` will be used instead.
+   *
+   * It should be a number between 0 and 1, with a reasonable default of 0.25
+   */
+  gossipFactor: number;
 }
 
 export interface GossipsubMessage {
@@ -450,6 +458,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       opportunisticGraftPeers: constants.GossipsubOpportunisticGraftPeers,
       opportunisticGraftTicks: constants.GossipsubOpportunisticGraftTicks,
       directConnectTicks: constants.GossipsubDirectConnectTicks,
+      gossipFactor: constants.GossipsubGossipFactor,
       ...options,
       scoreParams: createPeerScoreParams(options.scoreParams),
       scoreThresholds: createPeerScoreThresholds(options.scoreThresholds)
@@ -2498,7 +2507,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     if (candidateToGossip.size === 0) return
     let target = this.opts.Dlazy
-    const factor = constants.GossipsubGossipFactor * candidateToGossip.size
+    const gossipFactor = this.opts.gossipFactor;
+    const factor = gossipFactor * candidateToGossip.size
     let peersToGossip: Set<PeerIdStr> | PeerIdStr[] = candidateToGossip
     if (factor > target) {
       target = factor
