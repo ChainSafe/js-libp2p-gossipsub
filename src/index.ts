@@ -208,7 +208,7 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
    *
    * It should be a number between 0 and 1, with a reasonable default of 0.25
    */
-  gossipFactor: number;
+  gossipFactor: number
 }
 
 export interface GossipsubMessage {
@@ -2507,7 +2507,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     if (candidateToGossip.size === 0) return
     let target = this.opts.Dlazy
-    const gossipFactor = this.opts.gossipFactor;
+    const gossipFactor = this.opts.gossipFactor
     const factor = gossipFactor * candidateToGossip.size
     let peersToGossip: Set<PeerIdStr> | PeerIdStr[] = candidateToGossip
     if (factor > target) {
