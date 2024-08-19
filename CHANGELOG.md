@@ -15,6 +15,18 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [13.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v13.1.1...v13.2.0) (2024-08-19)
+
+
+### Features
+
+* add `gossipFactor` parameter to `GossipsubOpts` ([#502](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/502)) ([07b995c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/07b995c83f7304b26546c9fd464d8c204a848547))
+
+
+### Miscellaneous
+
+* Add AsyncIterable benchmarks ([#361](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/361)) ([0ede9cd](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/0ede9cd93b50f300ec69aeeeff30bc4aab620c9a))
+
 ## [13.1.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v13.1.0...v13.1.1) (2024-08-09)
 
 
