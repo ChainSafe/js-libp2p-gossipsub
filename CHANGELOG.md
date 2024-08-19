@@ -15,6 +15,18 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [13.1.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v13.1.0...v13.1.1) (2024-08-09)
+
+
+### Bug Fixes
+
+* remove CustomEvent import ([#499](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/499)) ([ee9c1ad](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/ee9c1ad9a41bd64465ce93f208583325c6ae79fa))
+
+
+### Miscellaneous
+
+* **deps-dev:** bump undici from 5.28.2 to 5.28.4 ([#495](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/495)) ([7aa91c2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/7aa91c207d7faf32d1d268991220c54666acb54a))
+
 ## [13.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v13.0.0...v13.1.0) (2024-06-20)
 
 

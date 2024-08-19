@@ -9,7 +9,10 @@ export interface GossipsubOptsSpec {
   Dscore: number
   /** Dout sets the quota for the number of outbound connections to maintain in a topic mesh. */
   Dout: number
-  /** Dlazy affects how many peers we will emit gossip to at each heartbeat. */
+  /**
+   * Dlazy affects the minimum number of peers we will emit gossip to at each
+   * heartbeat.
+   */
   Dlazy: number
   /** heartbeatInterval is the time between heartbeats in milliseconds */
   heartbeatInterval: number
