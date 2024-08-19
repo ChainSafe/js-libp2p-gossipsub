@@ -1,7 +1,7 @@
 import { itBench } from '@dapplion/benchmark'
 import { abortableSource } from 'abortable-iterator'
-import { pipe, Transform } from 'it-pipe'
 import all from 'it-all'
+import { pipe } from 'it-pipe'
 
 /* eslint-disable generator-star-spacing */
 
@@ -10,7 +10,7 @@ describe('abortableSource cost', function () {
   const bytes = new Uint8Array(200)
   const controller = new AbortController()
 
-  async function* bytesSource() {
+  async function* bytesSource (): AsyncGenerator<Uint8Array, void, unknown> {
     let i = 0
     while (i++ < n) {
       yield bytes
@@ -29,7 +29,7 @@ describe('abortableSource cost', function () {
       },
       fn: async (source) => {
         for await (const chunk of source) {
-          // eslint-disable-next-line no-unused-expressions
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
           chunk
         }
       }
@@ -40,14 +40,14 @@ describe('abortableSource cost', function () {
 describe('pipe extra iterables cost', function () {
   const n = 10000
 
-  async function* numberSource() {
+  async function* numberSource (): AsyncGenerator<number, void, unknown> {
     let i = 0
     while (i < n) {
       yield i++
     }
   }
 
-  async function* numberTransform(source: AsyncIterable<number>): AsyncIterable<number> {
+  async function* numberTransform (source: AsyncIterable<number>): AsyncIterable<number> {
     for await (const num of source) {
       yield num + 1
     }
@@ -63,7 +63,7 @@ describe('pipe extra iterables cost', function () {
   itBench({
     id: `async iterate pipe x1 transforms ${n}`,
     fn: async () => {
-      await pipe(numberSource, numberTransform as Transform<number, number>, all)
+      await pipe(numberSource, numberTransform, all)
     }
   })
 
@@ -72,8 +72,8 @@ describe('pipe extra iterables cost', function () {
     fn: async () => {
       await pipe(
         numberSource,
-        numberTransform as Transform<number, number>,
-        numberTransform as Transform<number, number>,
+        numberTransform,
+        numberTransform,
         all
       )
     }
@@ -84,10 +84,10 @@ describe('pipe extra iterables cost', function () {
     fn: async () => {
       await pipe(
         numberSource,
-        numberTransform as Transform<number, number>,
-        numberTransform as Transform<number, number>,
-        numberTransform as Transform<number, number>,
-        numberTransform as Transform<number, number>,
+        numberTransform,
+        numberTransform,
+        numberTransform,
+        numberTransform,
         all
       )
     }
@@ -98,14 +98,14 @@ describe('pipe extra iterables cost', function () {
     fn: async () => {
       await pipe(
         numberSource,
-        numberTransform as Transform<number, number>,
-        numberTransform as Transform<number, number>,
-        numberTransform as Transform<number, number>,
-        numberTransform as Transform<number, number>,
-        numberTransform as Transform<number, number>,
-        numberTransform as Transform<number, number>,
-        numberTransform as Transform<number, number>,
-        numberTransform as Transform<number, number>,
+        numberTransform,
+        numberTransform,
+        numberTransform,
+        numberTransform,
+        numberTransform,
+        numberTransform,
+        numberTransform,
+        numberTransform,
         all
       )
     }

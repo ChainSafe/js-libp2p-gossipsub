@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import { itBench, setBenchOpts } from '@dapplion/benchmark'
+import { itBench } from '@dapplion/benchmark'
 import { RPC } from '../../src/message/rpc.js'
 
 describe('protobuf', function () {

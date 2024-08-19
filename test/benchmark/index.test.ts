@@ -1,5 +1,4 @@
 import { itBench } from '@dapplion/benchmark'
-import { GossipSub } from '../../src/index.js'
 import { expect } from 'aegir/chai'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import {
