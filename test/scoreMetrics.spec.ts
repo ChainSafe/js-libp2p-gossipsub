@@ -1,5 +1,6 @@
+import { generateKeyPair } from '@libp2p/crypto/keys'
 import { defaultLogger } from '@libp2p/logger'
-import { createEd25519PeerId } from '@libp2p/peer-id-factory'
+import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { expect } from 'aegir/chai'
 import { ScorePenalty } from '../src/metrics.js'
 import { createPeerScoreParams, createTopicScoreParams, PeerScore } from '../src/score/index.js'
@@ -26,7 +27,7 @@ describe('score / scoreMetrics', () => {
     const topicStrToLabel = new Map<string, string>()
     topicStrToLabel.set(topic, topic)
 
-    const peerA = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     // Peer score should start at 0
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)

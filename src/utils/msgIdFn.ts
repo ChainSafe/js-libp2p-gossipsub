@@ -13,7 +13,7 @@ export function msgIdFnStrictSign (msg: Message): Uint8Array {
   if (msg.sequenceNumber == null) throw Error('missing seqno field')
 
   // TODO: Should use .from here or key?
-  return msgId(msg.from.toBytes(), msg.sequenceNumber)
+  return msgId(msg.from.publicKey ?? msg.key, msg.sequenceNumber)
 }
 
 /**

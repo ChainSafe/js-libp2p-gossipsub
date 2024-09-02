@@ -1,10 +1,11 @@
+import { generateKeyPair } from '@libp2p/crypto/keys'
 import { type PeerStore } from '@libp2p/interface'
 import { defaultLogger } from '@libp2p/logger'
+import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { expect } from 'aegir/chai'
 import sinon from 'sinon'
 import { stubInterface } from 'ts-sinon'
 import { GossipSub } from '../src/index.js'
-import { createPeerId } from './utils/index.js'
 import { fastMsgIdFn } from './utils/msgId.js'
 import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
 
@@ -20,9 +21,11 @@ describe('Gossipsub acceptFrom', () => {
     // not able to use fake timers or tests in browser are suspended
     // sandbox.useFakeTimers(Date.now())
 
-    const peerId = await createPeerId()
+    const privateKey = await generateKeyPair('Ed25519')
+    const peerId = peerIdFromPrivateKey(privateKey)
     gossipsub = new GossipSub(
       {
+        privateKey,
         peerId,
         registrar: stubInterface<Registrar>(),
         peerStore: stubInterface<PeerStore>(),
