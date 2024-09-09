@@ -80,7 +80,7 @@ describe('gossipsub fallbacks to floodsub', () => {
         await connectPubsubNodes(nodeGs, nodeFs)
         expect.fail('Dial should not have succeed')
       } catch (err) {
-        expect((err as { code: string }).code).to.be.equal('ERR_UNSUPPORTED_PROTOCOL')
+        expect(err).to.have.property('name', 'UnsupportedProtocolError')
       }
     })
   })

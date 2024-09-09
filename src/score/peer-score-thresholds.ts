@@ -1,5 +1,4 @@
-import { CodeError } from '@libp2p/interface'
-import { ERR_INVALID_PEER_SCORE_THRESHOLDS } from './constants.js'
+import { InvalidPeerScoreThresholdsError } from '../errors.js'
 
 // This file defines PeerScoreThresholds interface
 // as well as a constructor, default constructor, and validation function
@@ -54,24 +53,18 @@ export function createPeerScoreThresholds (p: Partial<PeerScoreThresholds> = {})
 
 export function validatePeerScoreThresholds (p: PeerScoreThresholds): void {
   if (p.gossipThreshold > 0) {
-    throw new CodeError('invalid gossip threshold; it must be <= 0', ERR_INVALID_PEER_SCORE_THRESHOLDS)
+    throw new InvalidPeerScoreThresholdsError('invalid gossip threshold; it must be <= 0')
   }
   if (p.publishThreshold > 0 || p.publishThreshold > p.gossipThreshold) {
-    throw new CodeError(
-      'invalid publish threshold; it must be <= 0 and <= gossip threshold',
-      ERR_INVALID_PEER_SCORE_THRESHOLDS
-    )
+    throw new InvalidPeerScoreThresholdsError('invalid publish threshold; it must be <= 0 and <= gossip threshold')
   }
   if (p.graylistThreshold > 0 || p.graylistThreshold > p.publishThreshold) {
-    throw new CodeError(
-      'invalid graylist threshold; it must be <= 0 and <= publish threshold',
-      ERR_INVALID_PEER_SCORE_THRESHOLDS
-    )
+    throw new InvalidPeerScoreThresholdsError('invalid graylist threshold; it must be <= 0 and <= publish threshold')
   }
   if (p.acceptPXThreshold < 0) {
-    throw new CodeError('invalid accept PX threshold; it must be >= 0', ERR_INVALID_PEER_SCORE_THRESHOLDS)
+    throw new InvalidPeerScoreThresholdsError('invalid accept PX threshold; it must be >= 0')
   }
   if (p.opportunisticGraftThreshold < 0) {
-    throw new CodeError('invalid opportunistic grafting threshold; it must be >= 0', ERR_INVALID_PEER_SCORE_THRESHOLDS)
+    throw new InvalidPeerScoreThresholdsError('invalid opportunistic grafting threshold; it must be >= 0')
   }
 }

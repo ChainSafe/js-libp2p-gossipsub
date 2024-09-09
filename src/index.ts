@@ -2613,7 +2613,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         try {
           peerInfo = await this.components.peerStore.get(id)
         } catch (err: any) {
-          if (err.code !== 'ERR_NOT_FOUND') {
+          if (err.name !== 'NotFoundError') {
             throw err
           }
         }

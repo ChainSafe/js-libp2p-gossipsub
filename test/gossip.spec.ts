@@ -191,7 +191,7 @@ describe('gossip', () => {
     await nodeA.pubsub.publish(topic, new Uint8Array(5000000))
     await pEvent(nodeA.pubsub, 'gossipsub:heartbeat')
     const expectedError = nodeBSpy.handlePeerReadStreamError.getCalls()[0]?.args[0]
-    expect(expectedError !== undefined && (expectedError as unknown as { code: string }).code, 'ERR_MSG_DATA_TOO_LONG')
+    expect(expectedError).to.have.property('name', 'InvalidDataLengthError')
 
     // unset spy
     nodeBSpy.handlePeerReadStreamError.restore()
