@@ -1,9 +1,9 @@
 import { randomBytes } from '@libp2p/crypto'
-import { marshalPublicKey, unmarshalPublicKey } from '@libp2p/crypto/keys'
+import { publicKeyFromProtobuf } from '@libp2p/crypto/keys'
 import { StrictSign, StrictNoSign, type Message, type PublicKey, type PeerId } from '@libp2p/interface'
-import { peerIdFromBytes } from '@libp2p/peer-id'
+import { peerIdFromMultihash } from '@libp2p/peer-id'
+import * as Digest from 'multiformats/hashes/digest'
 import { concat as uint8ArrayConcat } from 'uint8arrays/concat'
-import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import { RPC } from '../message/rpc.js'
@@ -25,7 +25,7 @@ export async function buildRawMessage (
   switch (publishConfig.type) {
     case PublishConfigType.Signing: {
       const rpcMsg: RPC.Message = {
-        from: publishConfig.author.toBytes(),
+        from: publishConfig.author.toMultihash().bytes,
         data: transformedData,
         seqno: randomBytes(8),
         topic,
@@ -44,10 +44,10 @@ export async function buildRawMessage (
         type: 'signed',
         from: publishConfig.author,
         data: originalData,
-        sequenceNumber: BigInt(`0x${uint8ArrayToString(rpcMsg.seqno as Uint8Array, 'base16')}`),
+        sequenceNumber: BigInt(`0x${uint8ArrayToString(rpcMsg.seqno ?? new Uint8Array(0), 'base16')}`),
         topic,
         signature: rpcMsg.signature,
-        key: rpcMsg.key
+        key: publicKeyFromProtobuf(rpcMsg.key)
       }
       return {
         raw: rpcMsg,
@@ -108,7 +108,7 @@ export async function validateToRawMessage (
       let fromPeerId: PeerId
       try {
         // TODO: Fix PeerId types
-        fromPeerId = peerIdFromBytes(msg.from)
+        fromPeerId = peerIdFromMultihash(Digest.decode(msg.from))
       } catch (e) {
         return { valid: false, error: ValidateError.InvalidPeerId }
       }
@@ -122,16 +122,16 @@ export async function validateToRawMessage (
 
       let publicKey: PublicKey
       if (msg.key != null) {
-        publicKey = unmarshalPublicKey(msg.key)
+        publicKey = publicKeyFromProtobuf(msg.key)
         // TODO: Should `fromPeerId.pubKey` be optional?
-        if (fromPeerId.publicKey !== undefined && !uint8ArrayEquals(publicKey.bytes, fromPeerId.publicKey)) {
+        if (fromPeerId.publicKey !== undefined && !publicKey.equals(fromPeerId.publicKey)) {
           return { valid: false, error: ValidateError.InvalidPeerId }
         }
       } else {
         if (fromPeerId.publicKey == null) {
           return { valid: false, error: ValidateError.InvalidPeerId }
         }
-        publicKey = unmarshalPublicKey(fromPeerId.publicKey)
+        publicKey = fromPeerId.publicKey
       }
 
       const rpcMsgPreSign: RPC.Message = {
@@ -160,7 +160,7 @@ export async function validateToRawMessage (
           sequenceNumber: BigInt(`0x${uint8ArrayToString(msg.seqno, 'base16')}`),
           topic: msg.topic,
           signature: msg.signature,
-          key: msg.key ?? marshalPublicKey(publicKey)
+          key: msg.key != null ? publicKeyFromProtobuf(msg.key) : publicKey
         }
       }
     }

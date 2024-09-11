@@ -1,36 +1,22 @@
-import { unmarshalPrivateKey } from '@libp2p/crypto/keys'
+import { publicKeyToProtobuf } from '@libp2p/crypto/keys'
 import { StrictSign, StrictNoSign } from '@libp2p/interface'
 import { type PublishConfig, PublishConfigType } from '../types.js'
-import type { PeerId } from '@libp2p/interface'
+import type { PeerId, PrivateKey } from '@libp2p/interface'
 
 /**
  * Prepare a PublishConfig object from a PeerId.
  */
-export async function getPublishConfigFromPeerId (
+export function getPublishConfigFromPeerId (
   signaturePolicy: typeof StrictSign | typeof StrictNoSign,
-  peerId?: PeerId
-): Promise<PublishConfig> {
+  peerId: PeerId,
+  privateKey: PrivateKey
+): PublishConfig {
   switch (signaturePolicy) {
     case StrictSign: {
-      if (peerId == null) {
-        throw Error('Must provide PeerId')
-      }
-
-      if (peerId.privateKey == null) {
-        throw Error('Cannot sign message, no private key present')
-      }
-
-      if (peerId.publicKey == null) {
-        throw Error('Cannot sign message, no public key present')
-      }
-
-      // Transform privateKey once at initialization time instead of once per message
-      const privateKey = await unmarshalPrivateKey(peerId.privateKey)
-
       return {
         type: PublishConfigType.Signing,
         author: peerId,
-        key: peerId.publicKey,
+        key: publicKeyToProtobuf(privateKey.publicKey),
         privateKey
       }
     }

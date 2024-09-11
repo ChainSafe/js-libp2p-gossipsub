@@ -4,7 +4,7 @@ import { messageIdToString } from '../../src/utils/messageIdToString.js'
 import type { RPC } from '../../src/message/rpc.js'
 
 export const getMsgId = (msg: RPC.Message): Uint8Array => {
-  const from = msg.from != null ? msg.from : new Uint8Array(0)
+  const from = msg.from ?? new Uint8Array(0)
   const seqno = msg.seqno instanceof Uint8Array ? msg.seqno : uint8ArrayFromString(msg.seqno ?? '')
   const result = new Uint8Array(from.length + seqno.length)
   result.set(from, 0)

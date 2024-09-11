@@ -1,5 +1,4 @@
-import { CodeError } from '@libp2p/interface'
-import { ERR_INVALID_PEER_SCORE_PARAMS } from './constants.js'
+import { InvalidPeerScoreParamsError } from '../errors.js'
 
 // This file defines PeerScoreParams and TopicScoreParams interfaces
 // as well as constructors, default constructors, and validation functions
@@ -203,51 +202,42 @@ export function validatePeerScoreParams (p: PeerScoreParams): void {
     try {
       validateTopicScoreParams(params)
     } catch (e) {
-      throw new CodeError(
-        `invalid score parameters for topic ${topic}: ${(e as Error).message}`,
-        ERR_INVALID_PEER_SCORE_PARAMS
-      )
+      throw new InvalidPeerScoreParamsError(`invalid score parameters for topic ${topic}: ${(e as Error).message}`)
     }
   }
 
   // check that the topic score is 0 or something positive
   if (p.topicScoreCap < 0) {
-    throw new CodeError('invalid topic score cap; must be positive (or 0 for no cap)', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid topic score cap; must be positive (or 0 for no cap)')
   }
 
   // check that we have an app specific score; the weight can be anything (but expected positive)
   if (p.appSpecificScore === null || p.appSpecificScore === undefined) {
-    throw new CodeError('missing application specific score function', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('missing application specific score function')
   }
 
   // check the IP colocation factor
   if (p.IPColocationFactorWeight > 0) {
-    throw new CodeError(
-      'invalid IPColocationFactorWeight; must be negative (or 0 to disable)',
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw new InvalidPeerScoreParamsError('invalid IPColocationFactorWeight; must be negative (or 0 to disable)')
   }
   if (p.IPColocationFactorWeight !== 0 && p.IPColocationFactorThreshold < 1) {
-    throw new CodeError('invalid IPColocationFactorThreshold; must be at least 1', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid IPColocationFactorThreshold; must be at least 1')
   }
 
   // check the behaviour penalty
   if (p.behaviourPenaltyWeight > 0) {
-    throw new CodeError(
-      'invalid BehaviourPenaltyWeight; must be negative (or 0 to disable)',
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw new InvalidPeerScoreParamsError('invalid BehaviourPenaltyWeight; must be negative (or 0 to disable)')
   }
   if (p.behaviourPenaltyWeight !== 0 && (p.behaviourPenaltyDecay <= 0 || p.behaviourPenaltyDecay >= 1)) {
-    throw new CodeError('invalid BehaviourPenaltyDecay; must be between 0 and 1', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid BehaviourPenaltyDecay; must be between 0 and 1')
   }
 
   // check the decay parameters
   if (p.decayInterval < 1000) {
-    throw new CodeError('invalid DecayInterval; must be at least 1s', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid DecayInterval; must be at least 1s')
   }
   if (p.decayToZero <= 0 || p.decayToZero >= 1) {
-    throw new CodeError('invalid DecayToZero; must be between 0 and 1', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid DecayToZero; must be between 0 and 1')
   }
 
   // no need to check the score retention; a value of 0 means that we don't retain scores
@@ -257,82 +247,70 @@ export function validatePeerScoreParams (p: PeerScoreParams): void {
 export function validateTopicScoreParams (p: TopicScoreParams): void {
   // make sure we have a sane topic weight
   if (p.topicWeight < 0) {
-    throw new CodeError('invalid topic weight; must be >= 0', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid topic weight; must be >= 0')
   }
 
   // check P1
   if (p.timeInMeshQuantum === 0) {
-    throw new CodeError('invalid TimeInMeshQuantum; must be non zero', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid TimeInMeshQuantum; must be non zero')
   }
   if (p.timeInMeshWeight < 0) {
-    throw new CodeError('invalid TimeInMeshWeight; must be positive (or 0 to disable)', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid TimeInMeshWeight; must be positive (or 0 to disable)')
   }
   if (p.timeInMeshWeight !== 0 && p.timeInMeshQuantum <= 0) {
-    throw new CodeError('invalid TimeInMeshQuantum; must be positive', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid TimeInMeshQuantum; must be positive')
   }
   if (p.timeInMeshWeight !== 0 && p.timeInMeshCap <= 0) {
-    throw new CodeError('invalid TimeInMeshCap; must be positive', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid TimeInMeshCap; must be positive')
   }
 
   // check P2
   if (p.firstMessageDeliveriesWeight < 0) {
-    throw new CodeError(
-      'invallid FirstMessageDeliveriesWeight; must be positive (or 0 to disable)',
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw new InvalidPeerScoreParamsError('invallid FirstMessageDeliveriesWeight; must be positive (or 0 to disable)')
   }
   if (
     p.firstMessageDeliveriesWeight !== 0 &&
     (p.firstMessageDeliveriesDecay <= 0 || p.firstMessageDeliveriesDecay >= 1)
   ) {
-    throw new CodeError('invalid FirstMessageDeliveriesDecay; must be between 0 and 1', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid FirstMessageDeliveriesDecay; must be between 0 and 1')
   }
   if (p.firstMessageDeliveriesWeight !== 0 && p.firstMessageDeliveriesCap <= 0) {
-    throw new CodeError('invalid FirstMessageDeliveriesCap; must be positive', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid FirstMessageDeliveriesCap; must be positive')
   }
 
   // check P3
   if (p.meshMessageDeliveriesWeight > 0) {
-    throw new CodeError(
-      'invalid MeshMessageDeliveriesWeight; must be negative (or 0 to disable)',
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw new InvalidPeerScoreParamsError('invalid MeshMessageDeliveriesWeight; must be negative (or 0 to disable)')
   }
   if (p.meshMessageDeliveriesWeight !== 0 && (p.meshMessageDeliveriesDecay <= 0 || p.meshMessageDeliveriesDecay >= 1)) {
-    throw new CodeError('invalid MeshMessageDeliveriesDecay; must be between 0 and 1', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid MeshMessageDeliveriesDecay; must be between 0 and 1')
   }
   if (p.meshMessageDeliveriesWeight !== 0 && p.meshMessageDeliveriesCap <= 0) {
-    throw new CodeError('invalid MeshMessageDeliveriesCap; must be positive', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid MeshMessageDeliveriesCap; must be positive')
   }
   if (p.meshMessageDeliveriesWeight !== 0 && p.meshMessageDeliveriesThreshold <= 0) {
-    throw new CodeError('invalid MeshMessageDeliveriesThreshold; must be positive', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid MeshMessageDeliveriesThreshold; must be positive')
   }
   if (p.meshMessageDeliveriesWindow < 0) {
-    throw new CodeError('invalid MeshMessageDeliveriesWindow; must be non-negative', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid MeshMessageDeliveriesWindow; must be non-negative')
   }
   if (p.meshMessageDeliveriesWeight !== 0 && p.meshMessageDeliveriesActivation < 1000) {
-    throw new CodeError('invalid MeshMessageDeliveriesActivation; must be at least 1s', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid MeshMessageDeliveriesActivation; must be at least 1s')
   }
 
   // check P3b
   if (p.meshFailurePenaltyWeight > 0) {
-    throw new CodeError(
-      'invalid MeshFailurePenaltyWeight; must be negative (or 0 to disable)',
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw new InvalidPeerScoreParamsError('invalid MeshFailurePenaltyWeight; must be negative (or 0 to disable)')
   }
   if (p.meshFailurePenaltyWeight !== 0 && (p.meshFailurePenaltyDecay <= 0 || p.meshFailurePenaltyDecay >= 1)) {
-    throw new CodeError('invalid MeshFailurePenaltyDecay; must be between 0 and 1', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid MeshFailurePenaltyDecay; must be between 0 and 1')
   }
 
   // check P4
   if (p.invalidMessageDeliveriesWeight > 0) {
-    throw new CodeError(
-      'invalid InvalidMessageDeliveriesWeight; must be negative (or 0 to disable)',
-      ERR_INVALID_PEER_SCORE_PARAMS
-    )
+    throw new InvalidPeerScoreParamsError('invalid InvalidMessageDeliveriesWeight; must be negative (or 0 to disable)')
   }
   if (p.invalidMessageDeliveriesDecay <= 0 || p.invalidMessageDeliveriesDecay >= 1) {
-    throw new CodeError('invalid InvalidMessageDeliveriesDecay; must be between 0 and 1', ERR_INVALID_PEER_SCORE_PARAMS)
+    throw new InvalidPeerScoreParamsError('invalid InvalidMessageDeliveriesDecay; must be between 0 and 1')
   }
 }

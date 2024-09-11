@@ -1,4 +1,5 @@
-import { createEd25519PeerId } from '@libp2p/peer-id-factory'
+import { generateKeyPair } from '@libp2p/crypto/keys'
+import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { expect } from 'aegir/chai'
 import delay from 'delay'
 import * as constants from '../src/constants.js'
@@ -11,8 +12,8 @@ describe('IWantTracer', () => {
     // tests that unfulfilled promises are tracked correctly
     this.timeout(6000)
     const t = new IWantTracer(constants.GossipsubIWantFollowupTime, messageIdToString, null)
-    const peerA = (await createEd25519PeerId()).toString()
-    const peerB = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
+    const peerB = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
 
     const msgIds: Uint8Array[] = []
     for (let i = 0; i < 100; i++) {
@@ -39,8 +40,8 @@ describe('IWantTracer', () => {
     // like above, but this time we deliver messages to fullfil the promises
     this.timeout(6000)
     const t = new IWantTracer(constants.GossipsubIWantFollowupTime, messageIdToString, null)
-    const peerA = (await createEd25519PeerId()).toString()
-    const peerB = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
+    const peerB = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
 
     const msgs = []
     const msgIds = []
