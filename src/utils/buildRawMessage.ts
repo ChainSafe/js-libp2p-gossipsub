@@ -44,7 +44,7 @@ export async function buildRawMessage (
         type: 'signed',
         from: publishConfig.author,
         data: originalData,
-        sequenceNumber: BigInt(`0x${uint8ArrayToString(rpcMsg.seqno as Uint8Array, 'base16')}`),
+        sequenceNumber: BigInt(`0x${uint8ArrayToString(rpcMsg.seqno ?? new Uint8Array(0), 'base16')}`),
         topic,
         signature: rpcMsg.signature,
         key: publicKeyFromProtobuf(rpcMsg.key)

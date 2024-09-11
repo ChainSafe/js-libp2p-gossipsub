@@ -1898,7 +1898,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
       // remove explicit peers, peers with negative scores, and backoffed peers
       fanoutPeers.forEach((id) => {
-        if (!this.direct.has(id) && this.score.score(id) >= 0 && ((backoff == null) || !backoff.has(id))) {
+        if (!this.direct.has(id) && this.score.score(id) >= 0 && backoff?.has(id) !== true) {
           toAdd.add(id)
         }
       })
@@ -1914,7 +1914,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         this.opts.D,
         (id: PeerIdStr): boolean =>
           // filter direct peers and peers with negative score
-          !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0 && ((backoff == null) || !backoff.has(id))
+          !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0 && backoff?.has(id) !== true
       )
 
       newPeers.forEach((peer) => {
@@ -2744,7 +2744,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
             !this.direct.has(id)
           ) {
             const score = getScore(id)
-            if (((backoff == null) || !backoff.has(id)) && score >= 0) candidateMeshPeers.add(id)
+            if (backoff?.has(id) !== true && score >= 0) candidateMeshPeers.add(id)
             // instead of having to find gossip peers after heartbeat which require another loop
             // we prepare peers to gossip in a topic within heartbeat to improve performance
             if (score >= this.opts.scoreThresholds.gossipThreshold) peersToGossip.add(id)
