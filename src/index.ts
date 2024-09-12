@@ -430,6 +430,9 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
   /**
    * Tracks IDONTWANT messages received by peers and the heartbeat they were received in
+   *
+   * idontwants are stored for `mcacheLength` heartbeats before being pruned,
+   * so this map is bounded by peerCount * idontwantMaxMessages * mcacheLength
    */
   private readonly idontwants = new Map<PeerIdStr, Map<MsgIdStr, number>>()
 
@@ -3175,6 +3178,12 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       }
     }
     metrics.cacheSize.set({ cache: 'backoff' }, backoffSize)
+
+    let idontwantsCount = 0
+    for (const idontwant of this.idontwants.values()) {
+      idontwantsCount += idontwant.size
+    }
+    metrics.cacheSize.set({ cache: 'idontwants' }, idontwantsCount)
 
     // Peer counts
 

@@ -598,10 +598,10 @@ export function getMetrics (
       name: 'gossipsub_idontwant_rcv_msgids_total',
       help: 'Total received IDONTWANT messages'
     }),
-    /** Total requested messageIDs that we don't have */
+    /** Total received IDONTWANT messageIDs that we don't have */
     idontwantRcvDonthaveMsgids: register.gauge({
       name: 'gossipsub_idontwant_rcv_dont_have_msgids_total',
-      help: 'Total requested IDONTWANT messageIDs that we do not have in mcache'
+      help: 'Total received IDONTWANT messageIDs that we do not have in mcache'
     }),
     iwantPromiseStarted: register.gauge({
       name: 'gossipsub_iwant_promise_sent_total',
