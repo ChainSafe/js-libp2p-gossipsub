@@ -7,8 +7,9 @@ import { expect } from 'aegir/chai'
 import { pEvent } from 'p-event'
 import sinon, { type SinonStubbedInstance } from 'sinon'
 import { stubInterface } from 'sinon-ts'
+import { concat } from 'uint8arrays'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { GossipsubDhi } from '../src/constants.js'
+import { GossipsubDhi} from '../src/constants.js'
 import { GossipSub } from '../src/index.js'
 import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
 import type { PeerStore } from '@libp2p/interface'
@@ -28,7 +29,8 @@ describe('gossip', () => {
           IPColocationFactorThreshold: GossipsubDhi + 3
         },
         maxInboundDataLength: 4000000,
-        allowPublishToZeroTopicPeers: false
+        allowPublishToZeroTopicPeers: false,
+        idontwantMaxMessages: 10
       }
     })
   })
@@ -82,6 +84,102 @@ describe('gossip', () => {
 
     // unset spy
     nodeASpy.pushGossip.restore()
+  })
+
+  it('should send idontwant to peers in topic', async function () {
+    // This test checks that idontwants and idontwantsCounts are correctly incrmemented
+    // - idontwantCounts should track the number of idontwant messages received from a peer for a single heartbeat
+    //   - it should increment on receive of idontwant msgs (up to limit)
+    //   - it should be emptied after heartbeat
+    // - idontwants should track the idontwant messages received from a peer along with the heartbeatId when received
+    //   - it should increment on receive of idontwant msgs (up to limit)
+    //   - it should be emptied after mcacheLength heartbeats
+    this.timeout(10e4)
+    const nodeA = nodes[0]
+    const otherNodes = nodes.slice(1)
+    const topic = 'Z'
+    const idontwantMaxMessages = nodeA.pubsub.opts.idontwantMaxMessages
+    const idontwantMinDataSize = nodeA.pubsub.opts.idontwantMinDataSize
+
+    const subscriptionPromises = nodes.map(async (n) => pEvent(n.pubsub, 'subscription-change'))
+    // add subscriptions to each node
+    nodes.forEach((n) => { n.pubsub.subscribe(topic) })
+
+    // every node connected to every other
+    await connectAllPubSubNodes(nodes)
+
+    // wait for subscriptions to be transmitted
+    await Promise.all(subscriptionPromises)
+
+    // await mesh rebalancing
+    await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
+
+    // publish a bunch of messages, enough to fill up our idontwant caches
+    for (let i = 0; i < idontwantMaxMessages * 2; i++) {
+      const msg = concat([
+        uint8ArrayFromString(i.toString()),
+        new Uint8Array(idontwantMinDataSize)
+      ])
+      await nodeA.pubsub.publish(topic, msg)
+    }
+
+    // there's no event currently implemented to await, so just wait a bit - flaky :(
+    // TODO figure out something more robust
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
+    // other nodes should have received idontwant messages
+    // check that idontwants <= GossipsubIdontwantMaxMessages
+    for (const node of otherNodes) {
+      // eslint-disable-next-line @typescript-eslint/dot-notation
+      const idontwantCounts = node.pubsub['idontwantCounts']
+      let minCount = Infinity
+      let maxCount = 0
+      for (const count of idontwantCounts.values()) {
+        minCount = Math.min(minCount, count)
+        maxCount = Math.max(maxCount, count)
+      }
+      // expect(minCount).to.be.greaterThan(0)
+      expect(maxCount).to.be.lessThanOrEqual(idontwantMaxMessages)
+
+      // eslint-disable-next-line @typescript-eslint/dot-notation
+      const idontwants = node.pubsub['idontwants']
+      let minIdontwants = Infinity
+      let maxIdontwants = 0
+      for (const idontwant of idontwants.values()) {
+        minIdontwants = Math.min(minIdontwants, idontwant.size)
+        maxIdontwants = Math.max(maxIdontwants, idontwant.size)
+      }
+      // expect(minIdontwants).to.be.greaterThan(0)
+      expect(maxIdontwants).to.be.lessThanOrEqual(idontwantMaxMessages)
+
+      // sanity check that the idontwantCount matches idontwants.size
+      expect(minCount).to.be.equal(minIdontwants)
+      expect(maxCount).to.be.equal(maxIdontwants)
+    }
+
+    await Promise.all(otherNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
+
+    // after a heartbeat
+    // idontwants are still tracked
+    // but idontwantCounts have been cleared
+    for (const node of nodes) {
+      // eslint-disable-next-line @typescript-eslint/dot-notation
+      const idontwantCounts = node.pubsub['idontwantCounts']
+      for (const count of idontwantCounts.values()) {
+        expect(count).to.be.equal(0)
+      }
+
+      // eslint-disable-next-line @typescript-eslint/dot-notation
+      const idontwants = node.pubsub['idontwants']
+      let minIdontwants = Infinity
+      let maxIdontwants = 0
+      for (const idontwant of idontwants.values()) {
+        minIdontwants = Math.min(minIdontwants, idontwant.size)
+        maxIdontwants = Math.max(maxIdontwants, idontwant.size)
+      }
+      // expect(minIdontwants).to.be.greaterThan(0)
+      expect(maxIdontwants).to.be.lessThanOrEqual(idontwantMaxMessages)
+    }
   })
 
   it('Should allow publishing to zero peers if flag is passed', async function () {

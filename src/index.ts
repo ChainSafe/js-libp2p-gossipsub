@@ -1399,11 +1399,11 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       return
     }
 
-    const iwant = (controlMsg.ihave != null) ? this.handleIHave(id, controlMsg.ihave) : []
-    const ihave = (controlMsg.iwant != null) ? this.handleIWant(id, controlMsg.iwant) : []
-    const prune = (controlMsg.graft != null) ? await this.handleGraft(id, controlMsg.graft) : []
-    ;(controlMsg.prune != null) && (await this.handlePrune(id, controlMsg.prune))
-    ;(controlMsg.idontwant != null) && this.handleIdontwant(id, controlMsg.idontwant)
+    const iwant = (controlMsg.ihave?.length > 0) ? this.handleIHave(id, controlMsg.ihave) : []
+    const ihave = (controlMsg.iwant?.length > 0) ? this.handleIWant(id, controlMsg.iwant) : []
+    const prune = (controlMsg.graft?.length > 0) ? await this.handleGraft(id, controlMsg.graft) : []
+    ;(controlMsg.prune?.length > 0) && (await this.handlePrune(id, controlMsg.prune))
+    ;(controlMsg.idontwant?.length > 0) && this.handleIdontwant(id, controlMsg.idontwant)
 
     if ((iwant.length === 0) && (ihave.length === 0) && (prune.length === 0)) {
       return
@@ -1760,8 +1760,6 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         if (!this.mcache.msgs.has(msgIdStr)) idonthave++
       }
     }
-    // delay setting the count in case there are multiple IDONTWANT messages
-    // only set once
     this.idontwantCounts.set(id, idontwantCount)
     const total = idontwantCount - startIdontwantCount
     this.metrics?.onIdontwantRcv(total, idonthave)
