@@ -1,8 +1,9 @@
-import { CustomEvent, TypedEventEmitter, StrictSign, StrictNoSign, TopicValidatorResult, serviceCapabilities, serviceDependencies } from '@libp2p/interface'
-import { peerIdFromBytes, peerIdFromString } from '@libp2p/peer-id'
+import { TypedEventEmitter, StrictSign, StrictNoSign, TopicValidatorResult, serviceCapabilities, serviceDependencies } from '@libp2p/interface'
+import { peerIdFromMultihash, peerIdFromString } from '@libp2p/peer-id'
 import { encode } from 'it-length-prefixed'
 import { pipe } from 'it-pipe'
 import { pushable } from 'it-pushable'
+import * as Digest from 'multiformats/hashes/digest'
 import * as constants from './constants.js'
 import {
   ACCEPT_FROM_WHITELIST_DURATION_MS,
@@ -73,7 +74,8 @@ import type {
   TopicValidatorFn,
   Logger,
   ComponentLogger,
-  Topology
+  Topology,
+  PrivateKey
 } from '@libp2p/interface'
 import type { ConnectionManager, IncomingStreamData, Registrar } from '@libp2p/interface-internal'
 import type { Multiaddr } from '@multiformats/multiaddr'
@@ -166,13 +168,13 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
   maxOutboundStreams?: number
 
   /**
-   * Pass true to run on transient connections - data or time-limited
+   * Pass true to run on limited connections - data or time-limited
    * connections that may be closed at any time such as circuit relay
    * connections.
    *
    * @default false
    */
-  runOnTransientConnection?: boolean
+  runOnLimitedConnection?: boolean
 
   /**
    * Specify max buffer size in bytes for OutboundStream.
@@ -201,6 +203,14 @@ export interface GossipsubOpts extends GossipsubOptsSpec, PubSubInit {
    * If true, will utilize the libp2p connection manager tagging system to prune/graft connections to peers, defaults to true
    */
   tagMeshPeers: boolean
+
+  /**
+   * Specify what percent of peers to send gossip to. If the percent results in
+   * a number smaller than `Dlazy`, `Dlazy` will be used instead.
+   *
+   * It should be a number between 0 and 1, with a reasonable default of 0.25
+   */
+  gossipFactor: number
 
   /**
    * The minimum message size in bytes to be considered for sending IDONTWANT messages
@@ -265,6 +275,7 @@ interface AcceptFromWhitelistEntry {
 }
 
 export interface GossipSubComponents {
+  privateKey: PrivateKey
   peerId: PeerId
   peerStore: PeerStore
   registrar: Registrar
@@ -436,7 +447,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
   private status: GossipStatus = { code: GossipStatusCode.stopped }
   private readonly maxInboundStreams?: number
   private readonly maxOutboundStreams?: number
-  private readonly runOnTransientConnection?: boolean
+  private readonly runOnLimitedConnection?: boolean
   private readonly allowedTopics: Set<TopicStr> | null
 
   private heartbeatTimer: {
@@ -474,6 +485,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       opportunisticGraftPeers: constants.GossipsubOpportunisticGraftPeers,
       opportunisticGraftTicks: constants.GossipsubOpportunisticGraftTicks,
       directConnectTicks: constants.GossipsubDirectConnectTicks,
+      gossipFactor: constants.GossipsubGossipFactor,
       idontwantMinDataSize: constants.GossipsubIdontwantMinDataSize,
       idontwantMaxMessages: constants.GossipsubIdontwantMaxMessages,
       ...options,
@@ -571,7 +583,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     this.maxInboundStreams = options.maxInboundStreams
     this.maxOutboundStreams = options.maxOutboundStreams
-    this.runOnTransientConnection = options.runOnTransientConnection
+    this.runOnLimitedConnection = options.runOnLimitedConnection
 
     this.allowedTopics = (opts.allowedTopics != null) ? new Set(opts.allowedTopics) : null
   }
@@ -608,7 +620,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     this.log('starting')
 
-    this.publishConfig = await getPublishConfigFromPeerId(this.globalSignaturePolicy, this.components.peerId)
+    this.publishConfig = getPublishConfigFromPeerId(this.globalSignaturePolicy, this.components.peerId, this.components.privateKey)
 
     // Create the outbound inflight queue
     // This ensures that outbound stream creation happens sequentially
@@ -636,7 +648,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         registrar.handle(multicodec, this.onIncomingStream.bind(this), {
           maxInboundStreams: this.maxInboundStreams,
           maxOutboundStreams: this.maxOutboundStreams,
-          runOnTransientConnection: this.runOnTransientConnection
+          runOnLimitedConnection: this.runOnLimitedConnection
         })
       )
     )
@@ -663,7 +675,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     const topology: Topology = {
       onConnect: this.onPeerConnected.bind(this),
       onDisconnect: this.onPeerDisconnected.bind(this),
-      notifyOnTransient: this.runOnTransientConnection
+      notifyOnLimitedConnection: this.runOnLimitedConnection
     }
     const registrarTopologyIds = await Promise.all(
       this.multicodecs.map(async (multicodec) => registrar.register(multicodec, topology))
@@ -836,7 +848,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     try {
       const stream = new OutboundStream(
         await connection.newStream(this.multicodecs, {
-          runOnTransientConnection: this.runOnTransientConnection
+          runOnLimitedConnection: this.runOnLimitedConnection
         }),
         (e) => { this.log.error('outbound pipe error', e) },
         { maxBufferSize: this.opts.maxOutboundBufferSize }
@@ -1845,7 +1857,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
           return
         }
 
-        const peer = peerIdFromBytes(pi.peerID)
+        const peer = peerIdFromMultihash(Digest.decode(pi.peerID))
         const p = peer.toString()
 
         if (this.peers.has(p)) {
@@ -1962,7 +1974,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
       // remove explicit peers, peers with negative scores, and backoffed peers
       fanoutPeers.forEach((id) => {
-        if (!this.direct.has(id) && this.score.score(id) >= 0 && ((backoff == null) || !backoff.has(id))) {
+        if (!this.direct.has(id) && this.score.score(id) >= 0 && backoff?.has(id) !== true) {
           toAdd.add(id)
         }
       })
@@ -1978,7 +1990,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         this.opts.D,
         (id: PeerIdStr): boolean =>
           // filter direct peers and peers with negative score
-          !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0 && ((backoff == null) || !backoff.has(id))
+          !toAdd.has(id) && !this.direct.has(id) && this.score.score(id) >= 0 && backoff?.has(id) !== true
       )
 
       newPeers.forEach((peer) => {
@@ -2595,7 +2607,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     if (candidateToGossip.size === 0) return
     let target = this.opts.Dlazy
-    const factor = constants.GossipsubGossipFactor * candidateToGossip.size
+    const gossipFactor = this.opts.gossipFactor
+    const factor = gossipFactor * candidateToGossip.size
     let peersToGossip: Set<PeerIdStr> | PeerIdStr[] = candidateToGossip
     if (factor > target) {
       target = factor
@@ -2697,13 +2710,13 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         try {
           peerInfo = await this.components.peerStore.get(id)
         } catch (err: any) {
-          if (err.code !== 'ERR_NOT_FOUND') {
+          if (err.name !== 'NotFoundError') {
             throw err
           }
         }
 
         return {
-          peerID: id.toBytes(),
+          peerID: id.toMultihash().bytes,
           signedPeerRecord: peerInfo?.peerRecordEnvelope
         }
       })
@@ -2840,7 +2853,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
             !this.direct.has(id)
           ) {
             const score = getScore(id)
-            if (((backoff == null) || !backoff.has(id)) && score >= 0) candidateMeshPeers.add(id)
+            if (backoff?.has(id) !== true && score >= 0) candidateMeshPeers.add(id)
             // instead of having to find gossip peers after heartbeat which require another loop
             // we prepare peers to gossip in a topic within heartbeat to improve performance
             if (score >= this.opts.scoreThresholds.gossipThreshold) peersToGossip.add(id)

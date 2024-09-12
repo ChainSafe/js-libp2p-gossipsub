@@ -1,4 +1,4 @@
-import { itBench, setBenchOpts } from '@dapplion/benchmark'
+import { itBench } from '@dapplion/benchmark'
 import { expect } from 'aegir/chai'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import {
@@ -9,15 +9,7 @@ import {
 } from '../utils/create-pubsub.js'
 import { awaitEvents, checkReceivedSubscriptions, checkReceivedSubscription } from '../utils/events.js'
 
-// eslint-disable-next-line no-only-tests/no-only-tests
-describe.only('heartbeat', function () {
-  this.timeout(0)
-  setBenchOpts({
-    maxMs: 200 * 1000,
-    minMs: 120 * 1000,
-    minRuns: 200
-  })
-
+describe('heartbeat', function () {
   const topic = 'foobar'
   const numTopic = 70
   const numPeers = 50

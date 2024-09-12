@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-boolean-literal-compare */
 /* eslint-disable @typescript-eslint/no-empty-interface */
 
-import { type Codec, CodeError, decodeMessage, type DecodeOptions, encodeMessage, message } from 'protons-runtime'
+import { type Codec, decodeMessage, type DecodeOptions, encodeMessage, MaxLengthError, message } from 'protons-runtime'
 import type { Uint8ArrayList } from 'uint8arraylist'
 
 export interface RPC {
@@ -265,7 +265,7 @@ export namespace RPC {
             switch (tag >>> 3) {
               case 1: {
                 if (opts.limits?.ihave != null && obj.ihave.length === opts.limits.ihave) {
-                  throw new CodeError('decode error - map field "ihave" had too many elements', 'ERR_MAX_LENGTH')
+                  throw new MaxLengthError('Decode error - map field "ihave" had too many elements')
                 }
 
                 obj.ihave.push(RPC.ControlIHave.codec().decode(reader, reader.uint32(), {
@@ -275,7 +275,7 @@ export namespace RPC {
               }
               case 2: {
                 if (opts.limits?.iwant != null && obj.iwant.length === opts.limits.iwant) {
-                  throw new CodeError('decode error - map field "iwant" had too many elements', 'ERR_MAX_LENGTH')
+                  throw new MaxLengthError('Decode error - map field "iwant" had too many elements')
                 }
 
                 obj.iwant.push(RPC.ControlIWant.codec().decode(reader, reader.uint32(), {
@@ -285,7 +285,7 @@ export namespace RPC {
               }
               case 3: {
                 if (opts.limits?.graft != null && obj.graft.length === opts.limits.graft) {
-                  throw new CodeError('decode error - map field "graft" had too many elements', 'ERR_MAX_LENGTH')
+                  throw new MaxLengthError('Decode error - map field "graft" had too many elements')
                 }
 
                 obj.graft.push(RPC.ControlGraft.codec().decode(reader, reader.uint32(), {
@@ -295,7 +295,7 @@ export namespace RPC {
               }
               case 4: {
                 if (opts.limits?.prune != null && obj.prune.length === opts.limits.prune) {
-                  throw new CodeError('decode error - map field "prune" had too many elements', 'ERR_MAX_LENGTH')
+                  throw new MaxLengthError('Decode error - map field "prune" had too many elements')
                 }
 
                 obj.prune.push(RPC.ControlPrune.codec().decode(reader, reader.uint32(), {
@@ -305,7 +305,7 @@ export namespace RPC {
               }
               case 5: {
                 if (opts.limits?.idontwant != null && obj.idontwant.length === opts.limits.idontwant) {
-                  throw new CodeError('decode error - map field "idontwant" had too many elements', 'ERR_MAX_LENGTH')
+                  throw new MaxLengthError('Decode error - map field "idontwant" had too many elements')
                 }
 
                 obj.idontwant.push(RPC.ControlIDontWant.codec().decode(reader, reader.uint32(), {
@@ -383,7 +383,7 @@ export namespace RPC {
               }
               case 2: {
                 if (opts.limits?.messageIDs != null && obj.messageIDs.length === opts.limits.messageIDs) {
-                  throw new CodeError('decode error - map field "messageIDs" had too many elements', 'ERR_MAX_LENGTH')
+                  throw new MaxLengthError('Decode error - map field "messageIDs" had too many elements')
                 }
 
                 obj.messageIDs.push(reader.bytes())
@@ -449,7 +449,7 @@ export namespace RPC {
             switch (tag >>> 3) {
               case 1: {
                 if (opts.limits?.messageIDs != null && obj.messageIDs.length === opts.limits.messageIDs) {
-                  throw new CodeError('decode error - map field "messageIDs" had too many elements', 'ERR_MAX_LENGTH')
+                  throw new MaxLengthError('Decode error - map field "messageIDs" had too many elements')
                 }
 
                 obj.messageIDs.push(reader.bytes())
@@ -589,7 +589,7 @@ export namespace RPC {
               }
               case 2: {
                 if (opts.limits?.peers != null && obj.peers.length === opts.limits.peers) {
-                  throw new CodeError('decode error - map field "peers" had too many elements', 'ERR_MAX_LENGTH')
+                  throw new MaxLengthError('Decode error - map field "peers" had too many elements')
                 }
 
                 obj.peers.push(RPC.PeerInfo.codec().decode(reader, reader.uint32(), {
@@ -729,7 +729,7 @@ export namespace RPC {
             switch (tag >>> 3) {
               case 1: {
                 if (opts.limits?.messageIDs != null && obj.messageIDs.length === opts.limits.messageIDs) {
-                  throw new CodeError('decode error - map field "messageIDs" had too many elements', 'ERR_MAX_LENGTH')
+                  throw new MaxLengthError('Decode error - map field "messageIDs" had too many elements')
                 }
 
                 obj.messageIDs.push(reader.bytes())
@@ -803,7 +803,7 @@ export namespace RPC {
           switch (tag >>> 3) {
             case 1: {
               if (opts.limits?.subscriptions != null && obj.subscriptions.length === opts.limits.subscriptions) {
-                throw new CodeError('decode error - map field "subscriptions" had too many elements', 'ERR_MAX_LENGTH')
+                throw new MaxLengthError('Decode error - map field "subscriptions" had too many elements')
               }
 
               obj.subscriptions.push(RPC.SubOpts.codec().decode(reader, reader.uint32(), {
@@ -813,7 +813,7 @@ export namespace RPC {
             }
             case 2: {
               if (opts.limits?.messages != null && obj.messages.length === opts.limits.messages) {
-                throw new CodeError('decode error - map field "messages" had too many elements', 'ERR_MAX_LENGTH')
+                throw new MaxLengthError('Decode error - map field "messages" had too many elements')
               }
 
               obj.messages.push(RPC.Message.codec().decode(reader, reader.uint32(), {

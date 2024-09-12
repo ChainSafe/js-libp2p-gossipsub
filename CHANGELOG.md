@@ -15,6 +15,41 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [14.0.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v13.2.0...v14.0.0) (2024-09-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* Can only be used with libp2p@2.x.x or later
+
+### Features
+
+* update to libp2p@2.x.x ([#504](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/504)) ([1f8f634](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/1f8f634781df389dbb38c84f722e4b8f22ed4400))
+
+## [13.2.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v13.1.1...v13.2.0) (2024-08-19)
+
+
+### Features
+
+* add `gossipFactor` parameter to `GossipsubOpts` ([#502](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/502)) ([07b995c](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/07b995c83f7304b26546c9fd464d8c204a848547))
+
+
+### Miscellaneous
+
+* Add AsyncIterable benchmarks ([#361](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/361)) ([0ede9cd](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/0ede9cd93b50f300ec69aeeeff30bc4aab620c9a))
+
+## [13.1.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v13.1.0...v13.1.1) (2024-08-09)
+
+
+### Bug Fixes
+
+* remove CustomEvent import ([#499](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/499)) ([ee9c1ad](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/ee9c1ad9a41bd64465ce93f208583325c6ae79fa))
+
+
+### Miscellaneous
+
+* **deps-dev:** bump undici from 5.28.2 to 5.28.4 ([#495](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/495)) ([7aa91c2](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/7aa91c207d7faf32d1d268991220c54666acb54a))
+
 ## [13.1.0](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v13.0.0...v13.1.0) (2024-06-20)
 
 

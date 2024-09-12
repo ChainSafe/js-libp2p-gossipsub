@@ -1,5 +1,6 @@
+import { generateKeyPair } from '@libp2p/crypto/keys'
 import { defaultLogger } from '@libp2p/logger'
-import { createEd25519PeerId } from '@libp2p/peer-id-factory'
+import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { expect } from 'aegir/chai'
 import delay from 'delay'
 import sinon from 'sinon'
@@ -28,7 +29,7 @@ describe('PeerScore', () => {
       timeInMeshQuantum: 1,
       timeInMeshCap: 3600
     }))
-    const peerA = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     // Peer score should start at 0
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
@@ -57,7 +58,7 @@ describe('PeerScore', () => {
       timeInMeshCap: 10,
       invalidMessageDeliveriesDecay: 0.1
     }))
-    const peerA = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     // Peer score should start at 0
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
@@ -89,7 +90,7 @@ describe('PeerScore', () => {
       firstMessageDeliveriesCap: 50000,
       timeInMeshWeight: 0
     }))
-    const peerA = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     // Peer score should start at 0
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
@@ -124,7 +125,7 @@ describe('PeerScore', () => {
       firstMessageDeliveriesCap: 50,
       timeInMeshWeight: 0
     }))
-    const peerA = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     // Peer score should start at 0
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
@@ -167,7 +168,7 @@ describe('PeerScore', () => {
       firstMessageDeliveriesCap: 50,
       timeInMeshWeight: 0
     }))
-    const peerA = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     // Peer score should start at 0
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
@@ -227,9 +228,9 @@ describe('PeerScore', () => {
     // peer C delivers outside the delivery window
     // we expect peers A and B to have a score of zero, since all other param weights are zero
     // peer C should have a negative score
-    const peerA = (await createEd25519PeerId()).toString()
-    const peerB = (await createEd25519PeerId()).toString()
-    const peerC = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
+    const peerB = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
+    const peerC = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     const peers = [peerA, peerB, peerC]
     // Peer score should start at 0
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
@@ -291,7 +292,7 @@ describe('PeerScore', () => {
       firstMessageDeliveriesWeight: 0,
       timeInMeshWeight: 0
     }))
-    const peerA = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     // Peer score should start at 0
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
@@ -350,8 +351,8 @@ describe('PeerScore', () => {
       firstMessageDeliveriesWeight: 0,
       timeInMeshWeight: 0
     }))
-    const peerA = (await createEd25519PeerId()).toString()
-    const peerB = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
+    const peerB = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     const peers = [peerA, peerB]
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     peers.forEach((p) => {
@@ -400,7 +401,7 @@ describe('PeerScore', () => {
       invalidMessageDeliveriesDecay: 0.9,
       timeInMeshWeight: 0
     }))
-    const peerA = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
@@ -431,7 +432,7 @@ describe('PeerScore', () => {
       invalidMessageDeliveriesDecay: 0.9,
       timeInMeshWeight: 0
     }))
-    const peerA = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
@@ -470,8 +471,8 @@ describe('PeerScore', () => {
       invalidMessageDeliveriesDecay: 0.9,
       timeInMeshQuantum: 1000
     })
-    const peerA = (await createEd25519PeerId()).toString()
-    const peerB = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
+    const peerB = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.addPeer(peerB)
@@ -549,7 +550,7 @@ describe('PeerScore', () => {
       appSpecificScore: () => appScoreValue,
       appSpecificWeight: 0.5
     })
-    const peerA = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)
     ps.graft(peerA, mytopic)
@@ -569,10 +570,10 @@ describe('PeerScore', () => {
       IPColocationFactorThreshold: 1,
       IPColocationFactorWeight: -1
     })
-    const peerA = (await createEd25519PeerId()).toString()
-    const peerB = (await createEd25519PeerId()).toString()
-    const peerC = (await createEd25519PeerId()).toString()
-    const peerD = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
+    const peerB = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
+    const peerC = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
+    const peerD = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
     const peers = [peerA, peerB, peerC, peerD]
 
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
@@ -614,7 +615,7 @@ describe('PeerScore', () => {
       behaviourPenaltyWeight: -1,
       behaviourPenaltyDecay: 0.99
     })
-    const peerA = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
 
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
 
@@ -650,7 +651,7 @@ describe('PeerScore', () => {
       appSpecificWeight: 1,
       retainScore: 800
     })
-    const peerA = (await createEd25519PeerId()).toString()
+    const peerA = peerIdFromPrivateKey(await generateKeyPair('Ed25519')).toString()
 
     const ps = new PeerScore(params, null, logger, { scoreCacheValidityMs: 0 })
     ps.addPeer(peerA)

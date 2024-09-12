@@ -1,11 +1,12 @@
+import { generateKeyPair } from '@libp2p/crypto/keys'
 import { stop } from '@libp2p/interface'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { defaultLogger } from '@libp2p/logger'
-import { createEd25519PeerId } from '@libp2p/peer-id-factory'
+import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { expect } from 'aegir/chai'
 import { pEvent } from 'p-event'
 import sinon, { type SinonStubbedInstance } from 'sinon'
-import { stubInterface } from 'ts-sinon'
+import { stubInterface } from 'sinon-ts'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { GossipsubDhi } from '../src/constants.js'
 import { GossipSub } from '../src/index.js'
@@ -190,7 +191,7 @@ describe('gossip', () => {
     await nodeA.pubsub.publish(topic, new Uint8Array(5000000))
     await pEvent(nodeA.pubsub, 'gossipsub:heartbeat')
     const expectedError = nodeBSpy.handlePeerReadStreamError.getCalls()[0]?.args[0]
-    expect(expectedError !== undefined && (expectedError as unknown as { code: string }).code, 'ERR_MSG_DATA_TOO_LONG')
+    expect(expectedError).to.have.property('name', 'InvalidDataLengthError')
 
     // unset spy
     nodeBSpy.handlePeerReadStreamError.restore()
@@ -273,10 +274,12 @@ describe('gossip', () => {
     const maxOutboundStreams = 5
 
     const registrar = stubInterface<Registrar>()
-
+    const privateKey = await generateKeyPair('Ed25519')
+    const peerId = peerIdFromPrivateKey(privateKey)
     const pubsub = new GossipSub(
       {
-        peerId: await createEd25519PeerId(),
+        privateKey,
+        peerId,
         registrar,
         peerStore: stubInterface<PeerStore>(),
         connectionManager: stubInterface<ConnectionManager>(),

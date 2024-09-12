@@ -1,14 +1,8 @@
 import crypto from 'node:crypto'
-import { itBench, setBenchOpts } from '@dapplion/benchmark'
+import { itBench } from '@dapplion/benchmark'
 import { RPC } from '../../src/message/rpc.js'
 
 describe('protobuf', function () {
-  this.timeout(0)
-  setBenchOpts({
-    maxMs: 200 * 1000,
-    minMs: 60 * 1000
-  })
-
   const testCases: Array<{ name: string, length: number }> = [
     // As of Oct 2023, Attestation length = 281
     { name: 'Attestation', length: 300 },
