@@ -259,7 +259,7 @@ export function getMetrics (
 
     /* General Metrics */
     /**
-     * Gossipsub supports floodsub, gossipsub v1.0 and gossipsub v1.1. Peers are classified based
+     * Gossipsub supports floodsub, gossipsub v1.0, v1.1, and v1.2. Peers are classified based
      * on which protocol they support. This metric keeps track of the number of peers that are
      * connected of each type. */
     peersPerProtocol: register.gauge<{ protocol: string }>({
