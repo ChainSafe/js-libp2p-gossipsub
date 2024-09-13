@@ -197,6 +197,7 @@ export namespace RPC {
     iwant: RPC.ControlIWant[]
     graft: RPC.ControlGraft[]
     prune: RPC.ControlPrune[]
+    idontwant: RPC.ControlIDontWant[]
   }
 
   export namespace ControlMessage {
@@ -237,6 +238,13 @@ export namespace RPC {
             }
           }
 
+          if (obj.idontwant != null) {
+            for (const value of obj.idontwant) {
+              w.uint32(42)
+              RPC.ControlIDontWant.codec().encode(value, w)
+            }
+          }
+
           if (opts.lengthDelimited !== false) {
             w.ldelim()
           }
@@ -245,7 +253,8 @@ export namespace RPC {
             ihave: [],
             iwant: [],
             graft: [],
-            prune: []
+            prune: [],
+            idontwant: []
           }
 
           const end = length == null ? reader.len : reader.pos + length
@@ -291,6 +300,16 @@ export namespace RPC {
 
                 obj.prune.push(RPC.ControlPrune.codec().decode(reader, reader.uint32(), {
                   limits: opts.limits?.prune$
+                }))
+                break
+              }
+              case 5: {
+                if (opts.limits?.idontwant != null && obj.idontwant.length === opts.limits.idontwant) {
+                  throw new MaxLengthError('Decode error - map field "idontwant" had too many elements')
+                }
+
+                obj.idontwant.push(RPC.ControlIDontWant.codec().decode(reader, reader.uint32(), {
+                  limits: opts.limits?.idontwant$
                 }))
                 break
               }
@@ -670,6 +689,72 @@ export namespace RPC {
 
     export const decode = (buf: Uint8Array | Uint8ArrayList, opts?: DecodeOptions<PeerInfo>): PeerInfo => {
       return decodeMessage(buf, PeerInfo.codec(), opts)
+    }
+  }
+
+  export interface ControlIDontWant {
+    messageIDs: Uint8Array[]
+  }
+
+  export namespace ControlIDontWant {
+    let _codec: Codec<ControlIDontWant>
+
+    export const codec = (): Codec<ControlIDontWant> => {
+      if (_codec == null) {
+        _codec = message<ControlIDontWant>((obj, w, opts = {}) => {
+          if (opts.lengthDelimited !== false) {
+            w.fork()
+          }
+
+          if (obj.messageIDs != null) {
+            for (const value of obj.messageIDs) {
+              w.uint32(10)
+              w.bytes(value)
+            }
+          }
+
+          if (opts.lengthDelimited !== false) {
+            w.ldelim()
+          }
+        }, (reader, length, opts = {}) => {
+          const obj: any = {
+            messageIDs: []
+          }
+
+          const end = length == null ? reader.len : reader.pos + length
+
+          while (reader.pos < end) {
+            const tag = reader.uint32()
+
+            switch (tag >>> 3) {
+              case 1: {
+                if (opts.limits?.messageIDs != null && obj.messageIDs.length === opts.limits.messageIDs) {
+                  throw new MaxLengthError('Decode error - map field "messageIDs" had too many elements')
+                }
+
+                obj.messageIDs.push(reader.bytes())
+                break
+              }
+              default: {
+                reader.skipType(tag & 7)
+                break
+              }
+            }
+          }
+
+          return obj
+        })
+      }
+
+      return _codec
+    }
+
+    export const encode = (obj: Partial<ControlIDontWant>): Uint8Array => {
+      return encodeMessage(obj, ControlIDontWant.codec())
+    }
+
+    export const decode = (buf: Uint8Array | Uint8ArrayList, opts?: DecodeOptions<ControlIDontWant>): ControlIDontWant => {
+      return decodeMessage(buf, ControlIDontWant.codec(), opts)
     }
   }
 

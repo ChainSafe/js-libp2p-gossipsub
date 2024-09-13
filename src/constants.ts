@@ -18,6 +18,13 @@ export const GossipsubIDv10 = '/meshsub/1.0.0'
  */
 export const GossipsubIDv11 = '/meshsub/1.1.0'
 
+/**
+ * The protocol ID for version 1.2.0 of the Gossipsub protocol
+ * See the spec for details about how v1.2.0 compares to v1.1.0:
+ * https://github.com/libp2p/specs/blob/master/pubsub/gossipsub/gossipsub-v1.2.md
+ */
+export const GossipsubIDv12 = '/meshsub/1.2.0'
+
 // Overlay parameters
 
 /**
@@ -249,3 +256,6 @@ export const DEFAULT_METRIC_MESH_MESSAGE_DELIVERIES_WINDOWS = 1000
 
 /** Wait for 1 more heartbeats before clearing a backoff */
 export const BACKOFF_SLACK = 1
+
+export const GossipsubIdontwantMinDataSize = 512
+export const GossipsubIdontwantMaxMessages = 512
