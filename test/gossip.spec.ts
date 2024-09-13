@@ -122,14 +122,21 @@ describe('gossip', () => {
       ])
       await nodeA.pubsub.publish(topic, msg)
     }
+    // track the heartbeat when each node received the last message
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    const ticks = otherNodes.map((n) => n.pubsub['heartbeatTicks'])
 
     // there's no event currently implemented to await, so just wait a bit - flaky :(
     // TODO figure out something more robust
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 200))
 
     // other nodes should have received idontwant messages
     // check that idontwants <= GossipsubIdontwantMaxMessages
-    for (const node of otherNodes) {
+    for (let i = 0; i < otherNodes.length; i++) {
+      const node = otherNodes[i]
+      // eslint-disable-next-line @typescript-eslint/dot-notation
+      const currentTick = node.pubsub['heartbeatTicks']
+
       // eslint-disable-next-line @typescript-eslint/dot-notation
       const idontwantCounts = node.pubsub['idontwantCounts']
       let minCount = Infinity
@@ -153,8 +160,11 @@ describe('gossip', () => {
       expect(maxIdontwants).to.be.lessThanOrEqual(idontwantMaxMessages)
 
       // sanity check that the idontwantCount matches idontwants.size
-      expect(minCount).to.be.equal(minIdontwants)
-      expect(maxCount).to.be.equal(maxIdontwants)
+      // only the case if there hasn't been a heartbeat
+      if (currentTick === ticks[i]) {
+        expect(minCount).to.be.equal(minIdontwants)
+        expect(maxCount).to.be.equal(maxIdontwants)
+      }
     }
 
     await Promise.all(otherNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
