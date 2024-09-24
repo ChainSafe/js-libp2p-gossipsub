@@ -1212,11 +1212,12 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    * May forward to all peers in the mesh.
    */
   private async handleReceivedMessage (from: PeerId, rpcMsg: RPC.Message): Promise<void> {
-    this.metrics?.onMsgRecvPreValidation(rpcMsg.topic)
+    const topic = this.metrics?.toTopic(rpcMsg.topic) ?? ''
+    const messageBytes = RPC.Message.getSize(rpcMsg)
 
+    this.metrics?.onMsgRecvPreValidation(topic, messageBytes)
     const validationResult = await this.validateReceivedMessage(from, rpcMsg)
-
-    this.metrics?.onPrevalidationResult(rpcMsg.topic, validationResult.code)
+    this.metrics?.onPrevalidationResult(topic, messageBytes, validationResult.code)
 
     const validationCode = validationResult.code
     switch (validationCode) {
@@ -2294,7 +2295,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       topic,
       tosendCount,
       tosend.size,
-      rawMsg.data != null ? rawMsg.data.length : 0,
+      RPC.Message.getSize(rawMsg),
       durationMs
     )
 
