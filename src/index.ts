@@ -1524,10 +1524,9 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
     let iwantList = Array.from(iwant.values())
     // ask in random order
-    shuffle(iwantList)
-
     // truncate to the messages we are actually asking for and update the iasked counter
-    iwantList = iwantList.slice(0, iask)
+    iwantList = shuffle(iwantList, iask)
+
     this.iasked.set(id, iasked + iask)
 
     // do not add gossipTracer promise here until a successful sendRpc()
@@ -1847,8 +1846,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    */
   private async pxConnect (peers: RPC.PeerInfo[]): Promise<void> {
     if (peers.length > this.opts.prunePeers) {
-      shuffle(peers)
-      peers = peers.slice(0, this.opts.prunePeers)
+      peers = shuffle(peers, this.opts.prunePeers)
     }
     const toconnect: string[] = []
 
@@ -2597,13 +2595,13 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       return
     }
 
-    // shuffle to emit in random order
-    shuffle(messageIDs)
-
     // if we are emitting more than GossipsubMaxIHaveLength ids, truncate the list
     if (messageIDs.length > constants.GossipsubMaxIHaveLength) {
       // we do the truncation (with shuffling) per peer below
       this.log('too many messages for gossip; will truncate IHAVE list (%d messages)', messageIDs.length)
+    } else {
+      // shuffle to emit in random order
+      shuffle(messageIDs)
     }
 
     if (candidateToGossip.size === 0) return
@@ -2618,7 +2616,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       target = peersToGossip.size
     } else {
       // only shuffle if needed
-      peersToGossip = shuffle(Array.from(peersToGossip)).slice(0, target)
+      peersToGossip = shuffle(Array.from(peersToGossip), target)
     }
 
     // Emit the IHAVE gossip to the selected peers up to the target
@@ -2628,7 +2626,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         // shuffle and slice message IDs per peer so that we emit a different set for each peer
         // we have enough reduncancy in the system that this will significantly increase the message
         // coverage when we do truncate
-        peerMessageIDs = shuffle(peerMessageIDs.slice()).slice(0, constants.GossipsubMaxIHaveLength)
+        peerMessageIDs = shuffle(messageIDs.slice(), constants.GossipsubMaxIHaveLength)
       }
       this.pushGossip(id, {
         topicID: topic,
@@ -3129,10 +3127,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     })
 
     // Pseudo-randomly shuffles peers
-    peers = shuffle(peers)
-    if (count > 0 && peers.length > count) {
-      peers = peers.slice(0, count)
-    }
+    peers = shuffle(peers, count)
 
     return new Set(peers)
   }
