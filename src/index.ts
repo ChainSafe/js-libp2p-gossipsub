@@ -1016,7 +1016,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    */
   getSubscribers (topic: TopicStr): PeerId[] {
     const peersInTopic = this.topics.get(topic)
-    return ((peersInTopic != null) ? Array.from(peersInTopic) : []).map((str) => this.peers.get(str)).filter((p) => p != null)
+    return ((peersInTopic != null) ? Array.from(peersInTopic) : []).map((str) => this.peers.get(str) ?? peerIdFromString(str))
   }
 
   /**
@@ -2316,7 +2316,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     }
 
     return {
-      recipients: Array.from(tosend.values()).map((str) => this.peers.get(str)).filter((p) => p != null)
+      recipients: Array.from(tosend.values()).map((str) => this.peers.get(str) ?? peerIdFromString(str))
     }
   }
 
