@@ -366,8 +366,18 @@ export function getMetrics (
     // publish message. Track peers sent to and bytes
     /** Total count of msg published by topic */
     msgPublishCount: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossipsub_msg_publish_count_total',
+      // ethereum/beacon-metrics defined
+      // https://github.com/ethereum/beacon-metrics/pull/13
+      name: 'gossipsub_topic_msg_sent_counts_total',
       help: 'Total count of msg published by topic',
+      labelNames: ['topic']
+    }),
+    /** Total count of msg publish data.length bytes */
+    msgPublishBytes: register.gauge<{ topic: TopicLabel }>({
+      // ethereum/beacon-metrics defined
+      // https://github.com/ethereum/beacon-metrics/pull/13
+      name: 'gossipsub_topic_msg_sent_bytes_total',
+      help: 'Total count of msg publish data.length bytes',
       labelNames: ['topic']
     }),
     /** Total count of peers that we publish a msg to */
@@ -397,12 +407,6 @@ export function getMetrics (
       help: 'Total fanout peers that we publish a msg to',
       labelNames: ['topic']
     }),
-    /** Total count of msg publish data.length bytes */
-    msgPublishBytes: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossipsub_msg_publish_bytes_total',
-      help: 'Total count of msg publish data.length bytes',
-      labelNames: ['topic']
-    }),
     /** Total time in seconds to publish a message */
     msgPublishTime: register.histogram<{ topic: TopicLabel }>({
       name: 'gossipsub_msg_publish_seconds',
@@ -424,9 +428,33 @@ export function getMetrics (
       labelNames: ['topic']
     }),
 
-    /** Total count of recv msgs before any validation */
-    msgReceivedPreValidation: register.gauge<{ topic: TopicLabel }>({
-      name: 'gossipsub_msg_received_prevalidation_total',
+    /** Total count of recv msgs before any validation (unfiltered) */
+    msgReceivedTotalUnfilteredCount: register.gauge<{ topic: TopicLabel }>({
+      // ethereum/beacon-metrics defined
+      // https://github.com/ethereum/beacon-metrics/pull/13
+      name: 'gossipsub_topic_msg_recv_counts_unfiltered_total',
+      help: 'Total count of recv msgs before any validation',
+      labelNames: ['topic']
+    }),
+    msgReceivedTotalBytesUnfilteredCount: register.gauge<{ topic: TopicLabel }>({
+      // ethereum/beacon-metrics defined
+      // https://github.com/ethereum/beacon-metrics/pull/13
+      name: 'gossipsub_topic_msg_recv_bytes_unfiltered_total',
+      help: 'Total count of recv msgs before any validation',
+      labelNames: ['topic']
+    }),
+    /** Total count/bytes of received messages after deduplication */
+    msgReceivedTotalCount: register.gauge<{ topic: TopicLabel }>({
+      // ethereum/beacon-metrics defined
+      // https://github.com/ethereum/beacon-metrics/pull/13
+      name: 'gossipsub_topic_msg_recv_counts_total',
+      help: 'Total count of recv msgs before any validation',
+      labelNames: ['topic']
+    }),
+    msgReceivedTotalBytesCount: register.gauge<{ topic: TopicLabel }>({
+      // ethereum/beacon-metrics defined
+      // https://github.com/ethereum/beacon-metrics/pull/13
+      name: 'gossipsub_topic_msg_recv_bytes_total',
       help: 'Total count of recv msgs before any validation',
       labelNames: ['topic']
     }),
@@ -848,18 +876,17 @@ export function getMetrics (
       this.msgPublishTime.observe({ topic }, ms / 1000)
     },
 
-    onMsgRecvPreValidation (topicStr: TopicStr): void {
-      const topic = this.toTopic(topicStr)
-      this.msgReceivedPreValidation.inc({ topic }, 1)
-    },
-
     onMsgRecvError (topicStr: TopicStr): void {
       const topic = this.toTopic(topicStr)
       this.msgReceivedError.inc({ topic }, 1)
     },
 
-    onPrevalidationResult (topicStr: TopicStr, status: MessageStatus): void {
-      const topic = this.toTopic(topicStr)
+    onMsgRecvPreValidation (topic: string, msgSize: number): void {
+      this.msgReceivedTotalUnfilteredCount.inc({ topic }, 1)
+      this.msgReceivedTotalBytesUnfilteredCount.inc({ topic }, msgSize)
+    },
+
+    onPrevalidationResult (topic: string, msgSize: number, status: MessageStatus): void {
       switch (status) {
         case MessageStatus.duplicate:
           this.prevalidationDuplicateTotal.inc({ topic })
@@ -868,7 +895,8 @@ export function getMetrics (
           this.prevalidationInvalidTotal.inc({ topic })
           break
         case MessageStatus.valid:
-          this.prevalidationValidTotal.inc({ topic })
+          this.msgReceivedTotalCount.inc({ topic }, 1)
+          this.msgReceivedTotalBytesCount.inc({ topic }, msgSize)
           break
         default:
           this.prevalidationUnknownTotal.inc({ topic })
