@@ -288,7 +288,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    * The signature policy to follow by default
    */
   public readonly globalSignaturePolicy: typeof StrictSign | typeof StrictNoSign
-  public multicodecs: string[] = [constants.GossipsubIDv12, constants.GossipsubIDv11, constants.GossipsubIDv10]
+
+  public multicodecs: string[]
 
   private publishConfig: PublishConfig | undefined
 
@@ -500,6 +501,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     this.decodeRpcLimits = opts.decodeRpcLimits ?? defaultDecodeRpcLimits
 
     this.globalSignaturePolicy = opts.globalSignaturePolicy ?? StrictSign
+
+    this.multicodecs = options.multicodecs ?? [constants.GossipsubIDv12, constants.GossipsubIDv11, constants.GossipsubIDv10]
 
     // Also wants to get notified of peers connected using floodsub
     if (opts.fallbackToFloodsub) {
@@ -2849,7 +2852,6 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
           const peerStreams = this.streamsOutbound.get(id)
           if (
             (peerStreams != null) &&
-            this.multicodecs.includes(peerStreams.protocol) &&
             !peers.has(id) &&
             !this.direct.has(id)
           ) {
@@ -3059,7 +3061,6 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
           const peerStreams = this.streamsOutbound.get(id)
           if (
             (peerStreams != null) &&
-            this.multicodecs.includes(peerStreams.protocol) &&
             !fanoutPeers.has(id) &&
             !this.direct.has(id)
           ) {
@@ -3123,7 +3124,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       if (peerStreams == null) {
         return
       }
-      if (this.multicodecs.includes(peerStreams.protocol) && filter(id)) {
+      if (filter(id)) {
         peers.push(id)
       }
     })
