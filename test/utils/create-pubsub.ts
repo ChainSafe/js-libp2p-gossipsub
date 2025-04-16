@@ -8,12 +8,13 @@ import { PersistentPeerStore } from '@libp2p/peer-store'
 import { MemoryDatastore } from 'datastore-core'
 import { stubInterface } from 'sinon-ts'
 import { GossipSub, type GossipSubComponents, type GossipsubOpts } from '../../src/index.js'
-import type { TypedEventTarget, Libp2pEvents, PubSub } from '@libp2p/interface'
+import type { TypedEventTarget, Libp2pEvents } from '@libp2p/interface'
 import type { ConnectionManager } from '@libp2p/interface-internal'
+import type { floodsub } from '@libp2p/floodsub'
 
 export interface CreateComponentsOpts {
   init?: Partial<GossipsubOpts>
-  pubsub?: { new (opts?: any): PubSub }
+  pubsub?: typeof floodsub
 }
 
 export interface GossipSubTestComponents extends GossipSubComponents {
