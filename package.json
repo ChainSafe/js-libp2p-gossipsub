@@ -95,6 +95,7 @@
     "@libp2p/interface-compliance-tests": "^6.0.0",
     "@libp2p/logger": "^5.0.0",
     "@libp2p/peer-store": "^11.0.0",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.11.6",
     "@types/sinon": "^17.0.3",
     "abortable-iterator": "^5.1.0",
@@ -103,6 +104,7 @@
     "delay": "^6.0.0",
     "it-all": "^3.0.6",
     "mkdirp": "^3.0.1",
+    "mocha": "^11.1.0",
     "p-defer": "^4.0.0",
     "p-event": "^6.0.0",
     "p-retry": "^6.2.0",
@@ -110,7 +112,9 @@
     "protons": "^7.5.0",
     "sinon": "^18.0.1",
     "sinon-ts": "^2.0.0",
-    "time-cache": "^0.3.0"
+    "time-cache": "^0.3.0",
+    "typedoc": "^0.28.2",
+    "typescript": "~5.4.4"
   },
   "engines": {
     "npm": ">=8.7.0"
