@@ -7,7 +7,7 @@ import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { PersistentPeerStore } from '@libp2p/peer-store'
 import { MemoryDatastore } from 'datastore-core'
 import { stubInterface } from 'sinon-ts'
-import { GossipSub, type GossipSubComponents, type GossipsubOpts } from '../../src/index.js'
+import { gossipsub, GossipSub, type GossipSubComponents, type GossipsubOpts } from '../../src/index.js'
 import type { TypedEventTarget, Libp2pEvents } from '@libp2p/interface'
 import type { ConnectionManager } from '@libp2p/interface-internal'
 import type { floodsub } from '@libp2p/floodsub'
@@ -27,7 +27,7 @@ export interface GossipSubAndComponents {
 }
 
 export const createComponents = async (opts: CreateComponentsOpts): Promise<GossipSubAndComponents> => {
-  const Ctor = opts.pubsub ?? GossipSub
+  const Ctor = opts.pubsub ?? gossipsub
   const privateKey = await generateKeyPair('Ed25519')
   const peerId = peerIdFromPrivateKey(privateKey)
 
@@ -50,7 +50,7 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Goss
   }
   components.connectionManager = mockConnectionManager(components)
 
-  const pubsub = new Ctor(components, opts.init) as GossipSub
+  const pubsub = Ctor(opts.init)(components) as GossipSub
 
   await start(...Object.entries(components), pubsub)
 
