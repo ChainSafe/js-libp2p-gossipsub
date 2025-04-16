@@ -4,7 +4,7 @@ import { TypedEventEmitter, start } from '@libp2p/interface'
 import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { defaultLogger } from '@libp2p/logger'
 import { peerIdFromPrivateKey } from '@libp2p/peer-id'
-import { PersistentPeerStore } from '@libp2p/peer-store'
+import { persistentPeerStore } from '@libp2p/peer-store'
 import { MemoryDatastore } from 'datastore-core'
 import { stubInterface } from 'sinon-ts'
 import { gossipsub, GossipSub, type GossipSubComponents, type GossipsubOpts } from '../../src/index.js'
@@ -39,7 +39,7 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Goss
     peerId,
     registrar: mockRegistrar(),
     connectionManager: stubInterface<ConnectionManager>(),
-    peerStore: new PersistentPeerStore({
+    peerStore: persistentPeerStore({
       peerId,
       datastore: new MemoryDatastore(),
       events,
