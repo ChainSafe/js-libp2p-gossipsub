@@ -1,4 +1,3 @@
-import { setMaxListeners } from 'events'
 import { generateKeyPair } from '@libp2p/crypto/keys'
 import { TypedEventEmitter, start } from '@libp2p/interface'
 import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
@@ -55,10 +54,14 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Goss
 
   mockNetwork.addNode(components)
 
+  let setMaxListeners: undefined | any;
   try {
     // not available everywhere
-    setMaxListeners(Infinity, pubsub)
+    setMaxListeners = (await import("node:events")).default.setMaxListeners;
   } catch {}
+  if(typeof setMaxListeners != 'undefined') {
+    setMaxListeners(Infinity, pubsub)
+  }
 
   return { pubsub, components }
 }
