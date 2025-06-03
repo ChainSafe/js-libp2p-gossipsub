@@ -297,7 +297,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
   // State
 
-  public readonly peers = new Set<PeerIdStr>()
+  public readonly peers = new Map<PeerIdStr, PeerId>()
   public readonly streamsInbound = new Map<PeerIdStr, InboundStream>()
   public readonly streamsOutbound = new Map<PeerIdStr, OutboundStream>()
 
@@ -603,7 +603,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
   ]
 
   getPeers (): PeerId[] {
-    return [...this.peers.keys()].map((str) => peerIdFromString(str))
+    return [...this.peers.values()]
   }
 
   isStarted (): boolean {
@@ -916,7 +916,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     if (!this.peers.has(id)) {
       this.log('new peer %p', peerId)
 
-      this.peers.add(id)
+      this.peers.set(id, peerId)
 
       // Add to peer scoring
       this.score.addPeer(id)
@@ -1017,7 +1017,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    */
   getSubscribers (topic: TopicStr): PeerId[] {
     const peersInTopic = this.topics.get(topic)
-    return ((peersInTopic != null) ? Array.from(peersInTopic) : []).map((str) => peerIdFromString(str))
+    return ((peersInTopic != null) ? Array.from(peersInTopic) : []).map((str) => this.peers.get(str) ?? peerIdFromString(str))
   }
 
   /**
@@ -2269,6 +2269,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     this.seenCache.put(msgIdStr)
     // all published messages are valid
     this.mcache.put({ msgId, msgIdStr }, rawMsg, true)
+    // Consider the message as delivered for gossip promises.
+    this.gossipTracer.deliverMessage(msgIdStr)
 
     // If the message is anonymous or has a random author add it to the published message ids cache.
     this.publishedMessageIds.put(msgIdStr)
@@ -2317,7 +2319,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     }
 
     return {
-      recipients: Array.from(tosend.values()).map((str) => peerIdFromString(str))
+      recipients: Array.from(tosend.values()).map((str) => this.peers.get(str) ?? peerIdFromString(str))
     }
   }
 
@@ -2706,7 +2708,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         // the peer ID and let the pruned peer find them in the DHT -- we can't trust
         // unsigned address records through PX anyways
         // Finding signed records in the DHT is not supported at the time of writing in js-libp2p
-        const id = peerIdFromString(peerId)
+        const id = this.peers.get(peerId) ?? peerIdFromString(peerId)
         let peerInfo: Peer | undefined
 
         try {
@@ -3230,7 +3232,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
   private readonly tagMeshPeer = (evt: CustomEvent<MeshPeer>): void => {
     const { peerId, topic } = evt.detail
-    this.components.peerStore.merge(peerIdFromString(peerId), {
+    this.components.peerStore.merge(this.peers.get(peerId) ?? peerIdFromString(peerId), {
       tags: {
         [topic]: {
           value: 100
@@ -3241,7 +3243,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
 
   private readonly untagMeshPeer = (evt: CustomEvent<MeshPeer>): void => {
     const { peerId, topic } = evt.detail
-    this.components.peerStore.merge(peerIdFromString(peerId), {
+    this.components.peerStore.merge(this.peers.get(peerId) ?? peerIdFromString(peerId), {
       tags: {
         [topic]: undefined
       }
