@@ -74,7 +74,7 @@
   "homepage": "https://github.com/ChainSafe/js-libp2p-gossipsub#readme",
   "dependencies": {
     "@libp2p/crypto": "^5.0.0",
-    "@libp2p/interface": "^2.0.0",
+    "@libp2p/interface": "^2.1.2",
     "@libp2p/interface-internal": "^2.0.0",
     "@libp2p/peer-id": "^5.0.0",
     "@libp2p/pubsub": "^10.0.0",
