@@ -2268,6 +2268,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     this.seenCache.put(msgIdStr)
     // all published messages are valid
     this.mcache.put({ msgId, msgIdStr }, rawMsg, true)
+    // Consider the message as delivered for gossip promises.
+    this.gossipTracer.deliverMessage(msgIdStr)
 
     // If the message is anonymous or has a random author add it to the published message ids cache.
     this.publishedMessageIds.put(msgIdStr)
