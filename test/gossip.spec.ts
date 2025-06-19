@@ -86,6 +86,29 @@ describe('gossip', () => {
     nodeASpy.pushGossip.restore()
   })
 
+  it('should dispatch ihave event when gossiping', async function () {
+    this.timeout(10e4)
+    const nodeA = nodes[0]
+    const topic = 'Z'
+
+    const subscriptionPromises = nodes.map(async (n) => pEvent(n.pubsub, 'subscription-change'))
+    nodes.forEach((n) => { n.pubsub.subscribe(topic) })
+
+    await connectAllPubSubNodes(nodes)
+    await Promise.all(subscriptionPromises)
+    await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
+
+    // Check that nodeA has received IHAVE event
+    const ihavePromise = pEvent(nodeA.pubsub, 'gossipsub:ihave')
+
+    await nodeA.pubsub.publish(topic, uint8ArrayFromString('test_ihave'))
+
+    await pEvent(nodeA.pubsub, 'gossipsub:heartbeat')
+
+    const ihaveEvent = await ihavePromise
+    expect(ihaveEvent.detail.message[0].topicID).to.equal(topic)
+  })
+
   it('should send idontwant to peers in topic', async function () {
     // This test checks that idontwants and idontwantsCounts are correctly incrmemented
     // - idontwantCounts should track the number of idontwant messages received from a peer for a single heartbeat

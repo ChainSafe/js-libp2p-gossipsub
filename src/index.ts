@@ -239,9 +239,15 @@ export interface MeshPeer {
   direction: Direction
 }
 
+export interface GossipIHave {
+  peerId: string
+  message: RPC.ControlIHave[]
+}
+
 export interface GossipsubEvents extends PubSubEvents {
   'gossipsub:heartbeat': CustomEvent
   'gossipsub:message': CustomEvent<GossipsubMessage>
+  'gossipsub:ihave': CustomEvent<GossipIHave>
   'gossipsub:graft': CustomEvent<MeshPeer>
   'gossipsub:prune': CustomEvent<MeshPeer>
 }
@@ -1482,6 +1488,10 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       this.metrics?.ihaveRcvIgnored.inc({ reason: IHaveIgnoreReason.MaxIhave })
       return []
     }
+
+    this.safeDispatchEvent<GossipIHave>('gossipsub:ihave', {
+      detail: { peerId: id, message: ihave }
+    })
 
     const iasked = this.iasked.get(id) ?? 0
     if (iasked >= constants.GossipsubMaxIHaveLength) {
