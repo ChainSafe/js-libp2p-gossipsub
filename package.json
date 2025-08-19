@@ -112,9 +112,6 @@
     "sinon-ts": "^2.0.0",
     "time-cache": "^0.3.0"
   },
-  "engines": {
-    "node": ">=20.9.0"
-  },
   "eslintConfig": {
     "extends": "ipfs",
     "ignorePatterns": [
