@@ -91,7 +91,7 @@ export async function validateToRawMessage (
     case StrictNoSign:
       if (msg.signature != null) return { valid: false, error: ValidateError.SignaturePresent }
       if (msg.seqno != null) return { valid: false, error: ValidateError.SeqnoPresent }
-      if (msg.key != null) return { valid: false, error: ValidateError.FromPresent }
+      if (msg.from != null) return { valid: false, error: ValidateError.FromPresent }
 
       return { valid: true, message: { type: 'unsigned', topic: msg.topic, data: msg.data ?? new Uint8Array(0) } }
 
