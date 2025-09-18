@@ -15,6 +15,16 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [14.1.2](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v14.1.1...v14.1.2) (2025-09-18)
+
+
+### Bug Fixes
+
+* deliver message when publish ([#526](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/526)) ([2234bfa](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/2234bfa4bfcf296db19c3064f8b3945d2dc53e80))
+* fix the nosign policy validation wrong check ([5dac5fc](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/5dac5fc98826d49a3bc7b0f90cbf8b1e2d513dc3))
+* fix the nosign policy validation wrong check ([#530](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/530)) ([5dac5fc](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/5dac5fc98826d49a3bc7b0f90cbf8b1e2d513dc3))
+* remove duplicate pubkey conversion ([#531](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/531)) ([79f7cf0](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/79f7cf038f5ffc7d05389cf8cd859d3deda6d21e))
+
 ## [14.1.1](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v14.1.0...v14.1.1) (2025-03-28)
 
 
