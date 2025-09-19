@@ -1,4 +1,4 @@
-import { FloodSub } from '@libp2p/floodsub'
+import { floodsub } from '@libp2p/floodsub'
 import { type Message, TopicValidatorResult, type Libp2pEvents } from '@libp2p/interface'
 import { stop } from '@libp2p/interface'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
@@ -693,7 +693,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     })
     const fsubs = await createComponentsArray({
       number: 10,
-      pubsub: FloodSub
+      pubsub: floodsub
     })
     psubs = gsubs.concat(fsubs)
 

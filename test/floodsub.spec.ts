@@ -1,4 +1,4 @@
-import { FloodSub } from '@libp2p/floodsub'
+import { floodsub } from '@libp2p/floodsub'
 import { stop } from '@libp2p/interface'
 import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
@@ -23,7 +23,7 @@ describe('gossipsub fallbacks to floodsub', () => {
         }
       })
       nodeFs = await createComponents({
-        pubsub: FloodSub
+        pubsub: floodsub
       })
     })
 
@@ -61,7 +61,7 @@ describe('gossipsub fallbacks to floodsub', () => {
         }
       })
       nodeFs = await createComponents({
-        pubsub: FloodSub
+        pubsub: floodsub
       })
     })
 
@@ -97,7 +97,7 @@ describe('gossipsub fallbacks to floodsub', () => {
         }
       })
       nodeFs = await createComponents({
-        pubsub: FloodSub
+        pubsub: floodsub
       })
 
       await connectPubsubNodes(nodeGs, nodeFs)
@@ -158,7 +158,7 @@ describe('gossipsub fallbacks to floodsub', () => {
         }
       })
       nodeFs = await createComponents({
-        pubsub: FloodSub
+        pubsub: floodsub
       })
 
       await connectPubsubNodes(nodeGs, nodeFs)
@@ -227,7 +227,7 @@ describe('gossipsub fallbacks to floodsub', () => {
         }
       })
       nodeFs = await createComponents({
-        pubsub: FloodSub
+        pubsub: floodsub
       })
 
       await connectPubsubNodes(nodeGs, nodeFs)

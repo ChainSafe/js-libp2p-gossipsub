@@ -4,16 +4,17 @@ import { TypedEventEmitter, start } from '@libp2p/interface'
 import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { defaultLogger } from '@libp2p/logger'
 import { peerIdFromPrivateKey } from '@libp2p/peer-id'
-import { PersistentPeerStore } from '@libp2p/peer-store'
+import { persistentPeerStore } from '@libp2p/peer-store'
 import { MemoryDatastore } from 'datastore-core'
 import { stubInterface } from 'sinon-ts'
-import { GossipSub, type GossipSubComponents, type GossipsubOpts } from '../../src/index.js'
-import type { TypedEventTarget, Libp2pEvents, PubSub } from '@libp2p/interface'
+import { gossipsub, type GossipSub, type GossipSubComponents, type GossipsubOpts } from '../../src/index.js'
+import type { floodsub } from '@libp2p/floodsub'
+import type { TypedEventTarget, Libp2pEvents } from '@libp2p/interface'
 import type { ConnectionManager } from '@libp2p/interface-internal'
 
 export interface CreateComponentsOpts {
   init?: Partial<GossipsubOpts>
-  pubsub?: { new (opts?: any): PubSub }
+  pubsub?: typeof floodsub
 }
 
 export interface GossipSubTestComponents extends GossipSubComponents {
@@ -26,7 +27,7 @@ export interface GossipSubAndComponents {
 }
 
 export const createComponents = async (opts: CreateComponentsOpts): Promise<GossipSubAndComponents> => {
-  const Ctor = opts.pubsub ?? GossipSub
+  const Ctor = opts.pubsub ?? gossipsub
   const privateKey = await generateKeyPair('Ed25519')
   const peerId = peerIdFromPrivateKey(privateKey)
 
@@ -38,7 +39,7 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Goss
     peerId,
     registrar: mockRegistrar(),
     connectionManager: stubInterface<ConnectionManager>(),
-    peerStore: new PersistentPeerStore({
+    peerStore: persistentPeerStore({
       peerId,
       datastore: new MemoryDatastore(),
       events,
@@ -49,7 +50,7 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Goss
   }
   components.connectionManager = mockConnectionManager(components)
 
-  const pubsub = new Ctor(components, opts.init) as GossipSub
+  const pubsub = Ctor(opts.init)(components) as GossipSub
 
   await start(...Object.entries(components), pubsub)
 
