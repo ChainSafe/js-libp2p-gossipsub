@@ -1,18 +1,18 @@
 import { generateKeyPair } from '@libp2p/crypto/keys'
-import { type PeerStore } from '@libp2p/interface'
 import { defaultLogger } from '@libp2p/logger'
 import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { expect } from 'aegir/chai'
 import sinon from 'sinon'
 import { stubInterface } from 'sinon-ts'
-import { GossipSub } from '../src/index.js'
+import { GossipSub as GossipSubClass } from '../src/gossipsub.js'
 import { fastMsgIdFn } from './utils/msgId.js'
+import type { PeerStore } from '@libp2p/interface'
 import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
 
 const peerA = '16Uiu2HAmMkH6ZLen2tbhiuNCTZLLvrZaDgufNdT5MPjtC9Hr9YNA'
 
 describe('Gossipsub acceptFrom', () => {
-  let gossipsub: GossipSub
+  let gossipsub: GossipSubClass
   let sandbox: sinon.SinonSandbox
   let scoreSpy: sinon.SinonSpy<[id: string], number>
 
@@ -23,7 +23,7 @@ describe('Gossipsub acceptFrom', () => {
 
     const privateKey = await generateKeyPair('Ed25519')
     const peerId = peerIdFromPrivateKey(privateKey)
-    gossipsub = new GossipSub(
+    gossipsub = new GossipSubClass(
       {
         privateKey,
         peerId,

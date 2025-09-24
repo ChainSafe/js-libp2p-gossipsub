@@ -7,10 +7,10 @@ export function removeItemsFromSet<T> (
   cond: (peer: T) => boolean = () => true
 ): Set<T> {
   const subset = new Set<T>()
-  if (ineed <= 0) return subset
+  if (ineed <= 0) { return subset }
 
   for (const id of superSet) {
-    if (subset.size >= ineed) break
+    if (subset.size >= ineed) { break }
     if (cond(id)) {
       subset.add(id)
       superSet.delete(id)

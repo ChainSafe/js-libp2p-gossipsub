@@ -1,7 +1,6 @@
+import { pipe } from '@libp2p/utils'
 import { encode, decode } from 'it-length-prefixed'
-import { pipe } from 'it-pipe'
-import { pushable, type Pushable } from 'it-pushable'
-import type { Stream } from '@libp2p/interface'
+import type { AbortOptions, Stream } from '@libp2p/interface'
 import type { Uint8ArrayList } from 'uint8arraylist'
 
 interface OutboundStreamOpts {
@@ -15,56 +14,39 @@ interface InboundStreamOpts {
 }
 
 export class OutboundStream {
-  private readonly pushable: Pushable<Uint8Array | Uint8ArrayList>
-  private readonly closeController: AbortController
-  private readonly maxBufferSize: number
-
   constructor (private readonly rawStream: Stream, errCallback: (e: Error) => void, opts: OutboundStreamOpts) {
-    this.pushable = pushable()
-    this.closeController = new AbortController()
-    this.maxBufferSize = opts.maxBufferSize ?? Infinity
+    if (opts.maxBufferSize != null) {
+      rawStream.maxWriteBufferLength = opts.maxBufferSize
+    }
 
-    this.closeController.signal.addEventListener('abort', () => {
-      rawStream.close()
-        .catch(err => {
-          rawStream.abort(err)
-        })
+    rawStream.addEventListener('close', (evt) => {
+      if (evt.error != null) {
+        errCallback(evt.error)
+      }
     })
-
-    pipe(
-      this.pushable,
-      this.rawStream
-    ).catch(errCallback)
   }
 
   get protocol (): string {
-    // TODO remove this non-nullish assertion after https://github.com/libp2p/js-libp2p-interfaces/pull/265 is incorporated
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return this.rawStream.protocol!
+    return this.rawStream.protocol
   }
 
-  push (data: Uint8Array): void {
-    if (this.pushable.readableLength > this.maxBufferSize) {
-      throw Error(`OutboundStream buffer full, size > ${this.maxBufferSize}`)
-    }
-
-    this.pushable.push(encode.single(data))
+  async push (data: Uint8Array): Promise<void> {
+    return this.pushPrefixed(encode.single(data))
   }
 
   /**
    * Same to push() but this is prefixed data so no need to encode length prefixed again
    */
   pushPrefixed (data: Uint8ArrayList): void {
-    if (this.pushable.readableLength > this.maxBufferSize) {
-      throw Error(`OutboundStream buffer full, size > ${this.maxBufferSize}`)
-    }
-    this.pushable.push(data)
+    // TODO: backpressure
+    this.rawStream.send(data)
   }
 
-  async close (): Promise<void> {
-    this.closeController.abort()
-    // similar to pushable.end() but clear the internal buffer
-    await this.pushable.return()
+  async close (options?: AbortOptions): Promise<void> {
+    await this.rawStream.close(options)
+      .catch(err => {
+        this.rawStream.abort(err)
+      })
   }
 }
 

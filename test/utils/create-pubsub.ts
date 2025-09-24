@@ -1,44 +1,55 @@
 import { setMaxListeners } from 'events'
 import { generateKeyPair } from '@libp2p/crypto/keys'
-import { TypedEventEmitter, start } from '@libp2p/interface'
-import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
-import { defaultLogger } from '@libp2p/logger'
+import { start, TypedEventEmitter } from '@libp2p/interface'
+import { defaultLogger, prefixLogger } from '@libp2p/logger'
 import { peerIdFromPrivateKey } from '@libp2p/peer-id'
-import { PersistentPeerStore } from '@libp2p/peer-store'
+import { persistentPeerStore } from '@libp2p/peer-store'
+import { mockMuxer, multiaddrConnectionPair } from '@libp2p/utils'
+import { multiaddr } from '@multiformats/multiaddr'
 import { MemoryDatastore } from 'datastore-core'
 import { stubInterface } from 'sinon-ts'
-import { GossipSub, type GossipSubComponents, type GossipsubOpts } from '../../src/index.js'
-import type { TypedEventTarget, Libp2pEvents, PubSub } from '@libp2p/interface'
-import type { ConnectionManager } from '@libp2p/interface-internal'
+import { GossipSub as GossipSubClass } from '../../src/gossipsub.ts'
+import { gossipsub } from '../../src/index.js'
+import type { GossipsubOpts } from '../../src/index.js'
+import type { TypedEventTarget, Libp2pEvents, PeerStore, PrivateKey, PeerId, ComponentLogger, Connection } from '@libp2p/interface'
+import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
+import type { StubbedInstance } from 'sinon-ts'
 
 export interface CreateComponentsOpts {
   init?: Partial<GossipsubOpts>
-  pubsub?: { new (opts?: any): PubSub }
+  pubsub?(init?: any): (components: any) => GossipSubClass
+  logPrefix?: string
 }
 
-export interface GossipSubTestComponents extends GossipSubComponents {
+export interface GossipSubTestComponents {
+  privateKey: PrivateKey
+  peerId: PeerId
+  peerStore: PeerStore
+  registrar: StubbedInstance<Registrar>
+  connectionManager: ConnectionManager
+  logger: ComponentLogger
   events: TypedEventTarget<Libp2pEvents>
 }
 
 export interface GossipSubAndComponents {
-  pubsub: GossipSub
+  pubsub: GossipSubClass
   components: GossipSubTestComponents
 }
 
 export const createComponents = async (opts: CreateComponentsOpts): Promise<GossipSubAndComponents> => {
-  const Ctor = opts.pubsub ?? GossipSub
+  const fn = opts.pubsub ?? gossipsub
   const privateKey = await generateKeyPair('Ed25519')
   const peerId = peerIdFromPrivateKey(privateKey)
 
   const events = new TypedEventEmitter<Libp2pEvents>()
-  const logger = defaultLogger()
+  const logger = opts.logPrefix == null ? defaultLogger() : prefixLogger(opts.logPrefix)
 
   const components: GossipSubTestComponents = {
     privateKey,
     peerId,
-    registrar: mockRegistrar(),
+    registrar: stubInterface<Registrar>(),
     connectionManager: stubInterface<ConnectionManager>(),
-    peerStore: new PersistentPeerStore({
+    peerStore: persistentPeerStore({
       peerId,
       datastore: new MemoryDatastore(),
       events,
@@ -47,13 +58,10 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Goss
     events,
     logger
   }
-  components.connectionManager = mockConnectionManager(components)
 
-  const pubsub = new Ctor(components, opts.init) as GossipSub
+  const pubsub = fn(opts.init)(components) as GossipSubClass
 
   await start(...Object.entries(components), pubsub)
-
-  mockNetwork.addNode(components)
 
   try {
     // not available everywhere
@@ -80,13 +88,66 @@ export const createComponentsArray = async (
 }
 
 export const connectPubsubNodes = async (a: GossipSubAndComponents, b: GossipSubAndComponents): Promise<void> => {
-  const multicodecs = new Set<string>([...a.pubsub.multicodecs, ...b.pubsub.multicodecs])
+  const [outboundMultiaddrConnection, inboundMultiaddrConnection] = multiaddrConnectionPair()
+  const localMuxer = mockMuxer().createStreamMuxer(outboundMultiaddrConnection)
+  const remoteMuxer = mockMuxer().createStreamMuxer(inboundMultiaddrConnection)
 
-  const connection = await a.components.connectionManager.openConnection(b.components.peerId)
+  // TODO: need to do multistream select here because gossipsub supports
+  // multiple protocols and one of a or b could be running floodsub
 
-  for (const multicodec of multicodecs) {
-    for (const topology of a.components.registrar.getTopologies(multicodec)) {
-      topology.onConnect?.(b.components.peerId, connection)
+  localMuxer.addEventListener('stream', (evt) => {
+    for (const call of a.components.registrar.handle.getCalls()) {
+      if (call.args[0] === evt.detail.protocol) {
+        call.args[1](evt.detail, outboundConnection)
+      }
+    }
+  })
+
+  remoteMuxer.addEventListener('stream', (evt) => {
+    for (const call of b.components.registrar.handle.getCalls()) {
+      if (call.args[0] === evt.detail.protocol) {
+        call.args[1](evt.detail, inboundConnection)
+      }
+    }
+  })
+
+  const outboundConnection = stubInterface<Connection>({
+    newStream: async (protocols, options) => {
+      return localMuxer.createStream({
+        protocol: protocols[0]
+      })
+    },
+    status: 'open',
+    direction: 'outbound',
+    remotePeer: b.components.peerId,
+    remoteAddr: multiaddr('/memory/1234')
+  })
+
+  const inboundConnection = stubInterface<Connection>({
+    newStream: async (protocols, options) => {
+      return remoteMuxer.createStream({
+        protocol: protocols[0]
+      })
+    },
+    status: 'open',
+    direction: 'inbound',
+    remotePeer: a.components.peerId,
+    remoteAddr: multiaddr('/memory/5678')
+  })
+
+  for (const multicodec of b.pubsub.protocols) {
+    for (const call of a.components.registrar.register.getCalls()) {
+      if (call.args[0] === multicodec) {
+        call.args[1].onConnect?.(b.components.peerId, outboundConnection)
+      }
+    }
+  }
+
+  for (const multicodec of a.pubsub.protocols) {
+    for (const call of b.components.registrar.register.getCalls()) {
+      if (call.args[0] === multicodec) {
+        call.args[1].onConnect?.(a.components.peerId, inboundConnection)
+      }
     }
   }
 }

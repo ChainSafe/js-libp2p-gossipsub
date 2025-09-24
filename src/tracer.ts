@@ -1,5 +1,6 @@
-import { type MsgIdStr, type MsgIdToStrFn, type PeerIdStr, RejectReason } from './types.js'
+import { RejectReason } from './types.js'
 import type { Metrics } from './metrics.js'
+import type { MsgIdStr, MsgIdToStrFn, PeerIdStr } from './types.js'
 
 /**
  * IWantTracer is an internal tracer that tracks IWANT requests in order to penalize
@@ -116,7 +117,7 @@ export class IWantTracer {
 
       if (this.metrics != null) {
         this.metrics.iwantPromiseResolved.inc(1)
-        if (isDuplicate) this.metrics.iwantPromiseResolvedFromDuplicate.inc(1)
+        if (isDuplicate) { this.metrics.iwantPromiseResolvedFromDuplicate.inc(1) }
         this.metrics.iwantPromiseResolvedPeers.inc(expireByPeer.size)
       }
     }

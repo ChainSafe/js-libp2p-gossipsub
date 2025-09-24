@@ -15,5 +15,5 @@ export const getMsgId = (msg: RPC.Message): Uint8Array => {
 export const getMsgIdStr = (msg: RPC.Message): string => messageIdToString(getMsgId(msg))
 
 export const fastMsgIdFn = (msg: RPC.Message): string =>
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
   msg.data != null ? messageIdToString(digest(msg.data)) : '0'

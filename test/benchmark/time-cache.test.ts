@@ -1,5 +1,4 @@
 import { itBench } from '@dapplion/benchmark'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error no types
 import TimeCache from 'time-cache'
 import { SimpleTimeCache } from '../../src/utils/time-cache.js'
@@ -12,11 +11,11 @@ describe('npm TimeCache vs SimpleTimeCache', () => {
 
   for (const iteration of iterations) {
     itBench(`npm TimeCache.put x${iteration}`, () => {
-      for (let j = 0; j < iteration; j++) timeCache.put(String(j))
+      for (let j = 0; j < iteration; j++) { timeCache.put(String(j)) }
     })
 
     itBench(`SimpleTimeCache.put x${iteration}`, () => {
-      for (let j = 0; j < iteration; j++) simpleTimeCache.put(String(j), true)
+      for (let j = 0; j < iteration; j++) { simpleTimeCache.put(String(j), true) }
     })
   }
 })

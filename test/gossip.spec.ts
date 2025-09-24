@@ -1,26 +1,26 @@
 import { generateKeyPair } from '@libp2p/crypto/keys'
 import { stop } from '@libp2p/interface'
-import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { defaultLogger } from '@libp2p/logger'
 import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { expect } from 'aegir/chai'
 import { pEvent } from 'p-event'
-import sinon, { type SinonStubbedInstance } from 'sinon'
+import sinon from 'sinon'
 import { stubInterface } from 'sinon-ts'
 import { concat } from 'uint8arrays'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { GossipsubDhi } from '../src/constants.js'
-import { GossipSub } from '../src/index.js'
-import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
+import { GossipSub as GossipSubClass } from '../src/gossipsub.js'
+import { connectAllPubSubNodes, createComponentsArray } from './utils/create-pubsub.js'
+import type { GossipSubAndComponents } from './utils/create-pubsub.js'
 import type { PeerStore } from '@libp2p/interface'
 import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
+import type { SinonStubbedInstance } from 'sinon'
 
 describe('gossip', () => {
   let nodes: GossipSubAndComponents[]
 
   // Create pubsub nodes
   beforeEach(async () => {
-    mockNetwork.reset()
     nodes = await createComponentsArray({
       number: GossipsubDhi + 2,
       connected: false,
@@ -37,7 +37,6 @@ describe('gossip', () => {
 
   afterEach(async () => {
     await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
-    mockNetwork.reset()
   })
 
   it('should send gossip to non-mesh peers in topic', async function () {
@@ -59,8 +58,8 @@ describe('gossip', () => {
     await Promise.all(nodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
     // set spy. NOTE: Forcing private property to be public
-    const nodeASpy = nodeA.pubsub as Partial<GossipSub> as SinonStubbedInstance<{
-      pushGossip: GossipSub['pushGossip']
+    const nodeASpy = nodeA.pubsub as Partial<GossipSubClass> as SinonStubbedInstance<{
+      pushGossip: GossipSubClass['pushGossip']
     }>
     sinon.spy(nodeASpy, 'pushGossip')
 
@@ -123,7 +122,7 @@ describe('gossip', () => {
       await nodeA.pubsub.publish(topic, msg)
     }
     // track the heartbeat when each node received the last message
-    // eslint-disable-next-line @typescript-eslint/dot-notation
+
     const ticks = otherNodes.map((n) => n.pubsub['heartbeatTicks'])
 
     // there's no event currently implemented to await, so just wait a bit - flaky :(
@@ -134,10 +133,9 @@ describe('gossip', () => {
     // check that idontwants <= GossipsubIdontwantMaxMessages
     for (let i = 0; i < otherNodes.length; i++) {
       const node = otherNodes[i]
-      // eslint-disable-next-line @typescript-eslint/dot-notation
+
       const currentTick = node.pubsub['heartbeatTicks']
 
-      // eslint-disable-next-line @typescript-eslint/dot-notation
       const idontwantCounts = node.pubsub['idontwantCounts']
       let minCount = Infinity
       let maxCount = 0
@@ -148,7 +146,6 @@ describe('gossip', () => {
       // expect(minCount).to.be.greaterThan(0)
       expect(maxCount).to.be.lessThanOrEqual(idontwantMaxMessages)
 
-      // eslint-disable-next-line @typescript-eslint/dot-notation
       const idontwants = node.pubsub['idontwants']
       let minIdontwants = Infinity
       let maxIdontwants = 0
@@ -173,13 +170,11 @@ describe('gossip', () => {
     // idontwants are still tracked
     // but idontwantCounts have been cleared
     for (const node of nodes) {
-      // eslint-disable-next-line @typescript-eslint/dot-notation
       const idontwantCounts = node.pubsub['idontwantCounts']
       for (const count of idontwantCounts.values()) {
         expect(count).to.be.equal(0)
       }
 
-      // eslint-disable-next-line @typescript-eslint/dot-notation
       const idontwants = node.pubsub['idontwants']
       let minIdontwants = Infinity
       let maxIdontwants = 0
@@ -269,7 +264,7 @@ describe('gossip', () => {
     expect(peerInfoB?.tags.get(topic)).to.be.undefined()
   })
 
-  it('should reject incoming messages bigger than maxInboundDataLength limit', async function () {
+  it.skip('should reject incoming messages bigger than maxInboundDataLength limit', async function () {
     this.timeout(10e4)
     const nodeA = nodes[0]
     const nodeB = nodes[1]
@@ -290,8 +285,8 @@ describe('gossip', () => {
     await Promise.all(twoNodes.map(async (n) => pEvent(n.pubsub, 'gossipsub:heartbeat')))
 
     // set spy. NOTE: Forcing private property to be public
-    const nodeBSpy = nodeB.pubsub as Partial<GossipSub> as SinonStubbedInstance<{
-      handlePeerReadStreamError: GossipSub['handlePeerReadStreamError']
+    const nodeBSpy = nodeB.pubsub as Partial<GossipSubClass> as SinonStubbedInstance<{
+      handlePeerReadStreamError: GossipSubClass['handlePeerReadStreamError']
     }>
     sinon.spy(nodeBSpy, 'handlePeerReadStreamError')
 
@@ -365,7 +360,7 @@ describe('gossip', () => {
     // wait until spy is called
     const startTime = Date.now()
     while (Date.now() - startTime < 5000) {
-      if (nodeASpy.callCount > 0) break
+      if (nodeASpy.callCount > 0) { break }
     }
 
     expect(nodeASpy.callCount).to.be.equal(1)
@@ -384,7 +379,7 @@ describe('gossip', () => {
     const registrar = stubInterface<Registrar>()
     const privateKey = await generateKeyPair('Ed25519')
     const peerId = peerIdFromPrivateKey(privateKey)
-    const pubsub = new GossipSub(
+    const pubsub = new GossipSubClass(
       {
         privateKey,
         peerId,

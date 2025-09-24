@@ -1,13 +1,16 @@
 import { randomBytes } from '@libp2p/crypto'
 import { publicKeyFromProtobuf } from '@libp2p/crypto/keys'
-import { StrictSign, StrictNoSign, type Message, type PublicKey, type PeerId } from '@libp2p/interface'
 import { peerIdFromMultihash } from '@libp2p/peer-id'
 import * as Digest from 'multiformats/hashes/digest'
 import { concat as uint8ArrayConcat } from 'uint8arrays/concat'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
+import { StrictSign, StrictNoSign } from '../index.ts'
 import { RPC } from '../message/rpc.js'
-import { type PublishConfig, PublishConfigType, type TopicStr, ValidateError } from '../types.js'
+import { PublishConfigType, ValidateError } from '../types.js'
+import type { Message } from '../index.ts'
+import type { PublishConfig, TopicStr } from '../types.js'
+import type { PublicKey, PeerId } from '@libp2p/interface'
 
 export const SignPrefix = uint8ArrayFromString('libp2p-pubsub:')
 
@@ -89,21 +92,21 @@ export async function validateToRawMessage (
 
   switch (signaturePolicy) {
     case StrictNoSign:
-      if (msg.signature != null) return { valid: false, error: ValidateError.SignaturePresent }
-      if (msg.seqno != null) return { valid: false, error: ValidateError.SeqnoPresent }
-      if (msg.from != null) return { valid: false, error: ValidateError.FromPresent }
+      if (msg.signature != null) { return { valid: false, error: ValidateError.SignaturePresent } }
+      if (msg.seqno != null) { return { valid: false, error: ValidateError.SeqnoPresent } }
+      if (msg.key != null) { return { valid: false, error: ValidateError.FromPresent } }
 
       return { valid: true, message: { type: 'unsigned', topic: msg.topic, data: msg.data ?? new Uint8Array(0) } }
 
     case StrictSign: {
       // Verify seqno
-      if (msg.seqno == null) return { valid: false, error: ValidateError.InvalidSeqno }
+      if (msg.seqno == null) { return { valid: false, error: ValidateError.InvalidSeqno } }
       if (msg.seqno.length !== 8) {
         return { valid: false, error: ValidateError.InvalidSeqno }
       }
 
-      if (msg.signature == null) return { valid: false, error: ValidateError.InvalidSignature }
-      if (msg.from == null) return { valid: false, error: ValidateError.InvalidPeerId }
+      if (msg.signature == null) { return { valid: false, error: ValidateError.InvalidSignature } }
+      if (msg.from == null) { return { valid: false, error: ValidateError.InvalidPeerId } }
 
       let fromPeerId: PeerId
       try {
@@ -160,7 +163,7 @@ export async function validateToRawMessage (
           sequenceNumber: BigInt(`0x${uint8ArrayToString(msg.seqno, 'base16')}`),
           topic: msg.topic,
           signature: msg.signature,
-          key: publicKey
+          key: msg.key != null ? publicKeyFromProtobuf(msg.key) : publicKey
         }
       }
     }
