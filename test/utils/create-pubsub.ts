@@ -2,6 +2,7 @@ import { setMaxListeners } from 'events'
 import { generateKeyPair } from '@libp2p/crypto/keys'
 import { start, TypedEventEmitter } from '@libp2p/interface'
 import { defaultLogger, prefixLogger } from '@libp2p/logger'
+import * as mss from '@libp2p/multistream-select'
 import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { persistentPeerStore } from '@libp2p/peer-store'
 import { mockMuxer, multiaddrConnectionPair } from '@libp2p/utils'
@@ -11,7 +12,7 @@ import { stubInterface } from 'sinon-ts'
 import { GossipSub as GossipSubClass } from '../../src/gossipsub.ts'
 import { gossipsub } from '../../src/index.js'
 import type { GossipsubOpts } from '../../src/index.js'
-import type { TypedEventTarget, Libp2pEvents, PeerStore, PrivateKey, PeerId, ComponentLogger, Connection } from '@libp2p/interface'
+import type { TypedEventTarget, Libp2pEvents, PeerStore, PrivateKey, PeerId, ComponentLogger, Connection, Stream, StreamMuxer, NewStreamOptions } from '@libp2p/interface'
 import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
 import type { StubbedInstance } from 'sinon-ts'
 
@@ -92,48 +93,62 @@ export const connectPubsubNodes = async (a: GossipSubAndComponents, b: GossipSub
   const localMuxer = mockMuxer().createStreamMuxer(outboundMultiaddrConnection)
   const remoteMuxer = mockMuxer().createStreamMuxer(inboundMultiaddrConnection)
 
-  // TODO: need to do multistream select here because gossipsub supports
-  // multiple protocols and one of a or b could be running floodsub
-
-  localMuxer.addEventListener('stream', (evt) => {
-    for (const call of a.components.registrar.handle.getCalls()) {
-      if (call.args[0] === evt.detail.protocol) {
-        call.args[1](evt.detail, outboundConnection)
-      }
-    }
-  })
-
-  remoteMuxer.addEventListener('stream', (evt) => {
-    for (const call of b.components.registrar.handle.getCalls()) {
-      if (call.args[0] === evt.detail.protocol) {
-        call.args[1](evt.detail, inboundConnection)
-      }
-    }
-  })
-
   const outboundConnection = stubInterface<Connection>({
-    newStream: async (protocols, options) => {
-      return localMuxer.createStream({
-        protocol: protocols[0]
-      })
-    },
+    newStream: newStream(localMuxer),
     status: 'open',
     direction: 'outbound',
     remotePeer: b.components.peerId,
     remoteAddr: multiaddr('/memory/1234')
   })
 
+  function newStream (muxer: StreamMuxer): (protocols: string[], options?: NewStreamOptions) => Promise<Stream> {
+    return async (protocols, options) => {
+      const stream = await muxer.createStream(options)
+
+      const protocol = await mss.select(stream, protocols, options)
+      stream.protocol = protocol
+
+      return stream
+    }
+  }
+
   const inboundConnection = stubInterface<Connection>({
-    newStream: async (protocols, options) => {
-      return remoteMuxer.createStream({
-        protocol: protocols[0]
-      })
-    },
+    newStream: newStream(remoteMuxer),
     status: 'open',
     direction: 'inbound',
     remotePeer: a.components.peerId,
     remoteAddr: multiaddr('/memory/5678')
   })
+
+  function onStream (gossipsub: GossipSubAndComponents, connection: Connection): (evt: CustomEvent<Stream>) => void {
+    return (evt) => {
+      const stream = evt.detail
+      const protocols = gossipsub.components.registrar.handle.getCalls().map(c => {
+        return {
+          protocol: c.args[0],
+          handler: c.args[1]
+        }
+      })
+
+      mss.handle(evt.detail, protocols.map(p => p.protocol))
+        .then(async protocol => {
+          const handler = protocols.find(p => p.protocol === protocol)
+
+          if (handler == null) {
+            throw new Error(`Unexpected protocol - ${protocol} was not in ${protocols.map(p => p.protocol)}`)
+          }
+
+          stream.protocol = protocol
+          await handler.handler(stream, connection)
+        })
+        .catch(err => {
+          evt.detail.abort(err)
+        })
+    }
+  }
+
+  localMuxer.addEventListener('stream', onStream(a, outboundConnection))
+  remoteMuxer.addEventListener('stream', onStream(b, inboundConnection))
 
   for (const multicodec of b.pubsub.protocols) {
     for (const call of a.components.registrar.register.getCalls()) {
