@@ -1,6 +1,6 @@
 import { setMaxListeners } from 'events'
 import { generateKeyPair } from '@libp2p/crypto/keys'
-import { start, TypedEventEmitter } from '@libp2p/interface'
+import { start, TypedEventEmitter, UnsupportedProtocolError } from '@libp2p/interface'
 import { defaultLogger, prefixLogger } from '@libp2p/logger'
 import * as mss from '@libp2p/multistream-select'
 import { peerIdFromPrivateKey } from '@libp2p/peer-id'
@@ -93,31 +93,42 @@ export const connectPubsubNodes = async (a: GossipSubAndComponents, b: GossipSub
   const localMuxer = mockMuxer().createStreamMuxer(outboundMultiaddrConnection)
   const remoteMuxer = mockMuxer().createStreamMuxer(inboundMultiaddrConnection)
 
+  const outboundStreams: Stream[] = []
   const outboundConnection = stubInterface<Connection>({
-    newStream: newStream(localMuxer),
+    newStream: newStream(localMuxer, outboundStreams),
     status: 'open',
     direction: 'outbound',
     remotePeer: b.components.peerId,
-    remoteAddr: multiaddr('/memory/1234')
+    remoteAddr: multiaddr('/memory/1234'),
+    streams: outboundStreams
   })
 
-  function newStream (muxer: StreamMuxer): (protocols: string[], options?: NewStreamOptions) => Promise<Stream> {
+  function newStream (muxer: StreamMuxer, streams: Stream[]): (protocols: string[], options?: NewStreamOptions) => Promise<Stream> {
     return async (protocols, options) => {
       const stream = await muxer.createStream(options)
 
       const protocol = await mss.select(stream, protocols, options)
       stream.protocol = protocol
 
+      const index = streams.push(stream)
+
+      stream.addEventListener('close', () => {
+        // remove stream from list after close
+        streams.splice(index - 1, 1)
+      })
+
       return stream
     }
   }
 
+  const inboundStreams: Stream[] = []
   const inboundConnection = stubInterface<Connection>({
-    newStream: newStream(remoteMuxer),
+    newStream: newStream(remoteMuxer, inboundStreams),
     status: 'open',
     direction: 'inbound',
     remotePeer: a.components.peerId,
-    remoteAddr: multiaddr('/memory/5678')
+    remoteAddr: multiaddr('/memory/5678'),
+    streams: inboundStreams
   })
 
   function onStream (gossipsub: GossipSubAndComponents, connection: Connection): (evt: CustomEvent<Stream>) => void {
@@ -135,10 +146,18 @@ export const connectPubsubNodes = async (a: GossipSubAndComponents, b: GossipSub
           const handler = protocols.find(p => p.protocol === protocol)
 
           if (handler == null) {
-            throw new Error(`Unexpected protocol - ${protocol} was not in ${protocols.map(p => p.protocol)}`)
+            throw new UnsupportedProtocolError(`Unexpected protocol - no handler for ${protocol} in ${protocols.map(p => p.protocol)}`)
           }
 
           stream.protocol = protocol
+
+          const index = connection.streams.push(stream)
+
+          stream.addEventListener('close', () => {
+            // remove stream from list after close
+            connection.streams.splice(index - 1, 1)
+          })
+
           await handler.handler(stream, connection)
         })
         .catch(err => {
@@ -150,20 +169,31 @@ export const connectPubsubNodes = async (a: GossipSubAndComponents, b: GossipSub
   localMuxer.addEventListener('stream', onStream(a, outboundConnection))
   remoteMuxer.addEventListener('stream', onStream(b, inboundConnection))
 
+  let localPeerNotified = false
+  let remotePeerNotified = false
+
+  // simulate identify
   for (const multicodec of b.pubsub.protocols) {
     for (const call of a.components.registrar.register.getCalls()) {
       if (call.args[0] === multicodec) {
         call.args[1].onConnect?.(b.components.peerId, outboundConnection)
+        localPeerNotified = true
       }
     }
   }
 
+  // simulate identify
   for (const multicodec of a.pubsub.protocols) {
     for (const call of b.components.registrar.register.getCalls()) {
       if (call.args[0] === multicodec) {
         call.args[1].onConnect?.(a.components.peerId, inboundConnection)
+        remotePeerNotified = true
       }
     }
+  }
+
+  if (!localPeerNotified && !remotePeerNotified) {
+    throw new UnsupportedProtocolError('Peers did not support a common protocol')
   }
 }
 

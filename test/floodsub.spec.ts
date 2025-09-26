@@ -9,7 +9,7 @@ import { connectPubsubNodes, createComponents } from './utils/create-pubsub.js'
 import type { GossipSubAndComponents } from './utils/create-pubsub.js'
 import type { SubscriptionChangeData, Message } from '../src/index.js'
 
-describe.skip('gossipsub fallbacks to floodsub', () => {
+describe('gossipsub fallbacks to floodsub', () => {
   describe('basics', () => {
     let nodeGs: GossipSubAndComponents
     let nodeFs: GossipSubAndComponents
@@ -34,7 +34,7 @@ describe.skip('gossipsub fallbacks to floodsub', () => {
       )
     })
 
-    it.skip('Dial event happened from nodeGs to nodeFs', async () => {
+    it('Dial event happened from nodeGs to nodeFs', async () => {
       await connectPubsubNodes(nodeGs, nodeFs)
 
       await pRetry(() => {
@@ -46,7 +46,7 @@ describe.skip('gossipsub fallbacks to floodsub', () => {
     })
   })
 
-  describe.skip('should not be added if fallback disabled', () => {
+  describe('should not be added if fallback disabled', () => {
     let nodeGs: GossipSubAndComponents
     let nodeFs: GossipSubAndComponents
 
