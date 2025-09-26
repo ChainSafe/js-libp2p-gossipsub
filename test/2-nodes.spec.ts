@@ -1,5 +1,4 @@
-import { stop } from '@libp2p/interface'
-import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
+import { start, stop } from '@libp2p/interface'
 import { expect } from 'aegir/chai'
 import defer from 'p-defer'
 import { pEvent } from 'p-event'
@@ -9,10 +8,11 @@ import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import {
   connectAllPubSubNodes,
   connectPubsubNodes,
-  createComponentsArray,
-  type GossipSubAndComponents
+  createComponentsArray
+
 } from './utils/create-pubsub.js'
-import type { Message, SubscriptionChangeData } from '@libp2p/interface'
+import type { GossipSubAndComponents } from './utils/create-pubsub.js'
+import type { Message, SubscriptionChangeData } from '../src/index.js'
 
 const shouldNotHappen = (): never => expect.fail()
 
@@ -41,13 +41,13 @@ describe('2 nodes', () => {
 
     // Create pubsub nodes
     beforeEach(async () => {
-      mockNetwork.reset()
       nodes = await createComponentsArray({ number: 2 })
+
+      await start(...nodes.map(n => n.pubsub))
     })
 
     afterEach(async () => {
       await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
-      mockNetwork.reset()
     })
 
     it('Dial from nodeA to nodeB happened with FloodsubID', async () => {
@@ -61,13 +61,11 @@ describe('2 nodes', () => {
 
     // Create pubsub nodes
     beforeEach(async () => {
-      mockNetwork.reset()
       nodes = await createComponentsArray({ number: 2 })
     })
 
     afterEach(async () => {
       await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
-      mockNetwork.reset()
     })
 
     it('Dial from nodeA to nodeB happened with GossipsubIDv11', async () => {
@@ -81,7 +79,6 @@ describe('2 nodes', () => {
 
     // Create pubsub nodes
     beforeEach(async () => {
-      mockNetwork.reset()
       nodes = await createComponentsArray({
         number: 2,
         connected: true
@@ -91,7 +88,6 @@ describe('2 nodes', () => {
 
     afterEach(async () => {
       await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
-      mockNetwork.reset()
     })
 
     it('Subscribe to a topic', async () => {
@@ -139,7 +135,6 @@ describe('2 nodes', () => {
 
     // Create pubsub nodes
     beforeEach(async () => {
-      mockNetwork.reset()
       nodes = await createComponentsArray({
         number: 2,
         connected: true
@@ -160,7 +155,6 @@ describe('2 nodes', () => {
 
     afterEach(async () => {
       await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
-      mockNetwork.reset()
     })
 
     it('Publish to a topic - nodeA', async () => {
@@ -242,7 +236,6 @@ describe('2 nodes', () => {
 
     // Create pubsub nodes
     beforeEach(async () => {
-      mockNetwork.reset()
       nodes = await createComponentsArray({ number: 2, init: { allowPublishToZeroTopicPeers: true } })
       await connectAllPubSubNodes(nodes)
 
@@ -263,7 +256,6 @@ describe('2 nodes', () => {
 
     afterEach(async () => {
       await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
-      mockNetwork.reset()
     })
 
     it('Unsubscribe from a topic', async () => {
@@ -319,7 +311,6 @@ describe('2 nodes', () => {
 
     // Create pubsub nodes
     beforeEach(async () => {
-      mockNetwork.reset()
       nodes = await createComponentsArray({
         number: 2
       })
@@ -336,7 +327,6 @@ describe('2 nodes', () => {
 
     afterEach(async () => {
       await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
-      mockNetwork.reset()
     })
 
     it('existing subscriptions are sent upon peer connection', async function () {
@@ -367,7 +357,6 @@ describe('2 nodes', () => {
 
     // Create pubsub nodes
     beforeEach(async () => {
-      mockNetwork.reset()
       nodes = await createComponentsArray({
         number: 2,
         connected: true
@@ -376,7 +365,6 @@ describe('2 nodes', () => {
 
     afterEach(async () => {
       await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
-      mockNetwork.reset()
     })
 
     it("nodes don't have peers after stopped", async () => {

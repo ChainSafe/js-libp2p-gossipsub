@@ -1,17 +1,16 @@
 import { stop } from '@libp2p/interface'
-import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
 import delay from 'delay'
 import { pEvent } from 'p-event'
 import { GossipsubDhi } from '../src/constants.js'
-import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
+import { connectAllPubSubNodes, createComponentsArray } from './utils/create-pubsub.js'
+import type { GossipSubAndComponents } from './utils/create-pubsub.js'
 
 describe('mesh overlay', () => {
   let nodes: GossipSubAndComponents[]
 
   // Create pubsub nodes
   beforeEach(async () => {
-    mockNetwork.reset()
     nodes = await createComponentsArray({
       number: GossipsubDhi + 2,
       connected: false,
@@ -25,7 +24,6 @@ describe('mesh overlay', () => {
 
   afterEach(async () => {
     await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
-    mockNetwork.reset()
   })
 
   it('should add mesh peers below threshold', async function () {

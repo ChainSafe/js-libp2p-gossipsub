@@ -1,15 +1,14 @@
 import { stop } from '@libp2p/interface'
-import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
 import { pEvent } from 'p-event'
 import { GossipsubHeartbeatInterval } from '../src/constants.js'
-import { createComponents, type GossipSubAndComponents } from './utils/create-pubsub.js'
+import { createComponents } from './utils/create-pubsub.js'
+import type { GossipSubAndComponents } from './utils/create-pubsub.js'
 
 describe('heartbeat', () => {
   let node: GossipSubAndComponents
 
   before(async () => {
-    mockNetwork.reset()
     node = await createComponents({
       init: {
         emitSelf: true
@@ -19,7 +18,6 @@ describe('heartbeat', () => {
 
   after(async () => {
     await stop(node.pubsub, ...Object.entries(node.components))
-    mockNetwork.reset()
   })
 
   it('should occur with regularity defined by a constant', async function () {

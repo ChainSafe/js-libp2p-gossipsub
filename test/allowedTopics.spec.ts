@@ -1,10 +1,9 @@
 import { stop } from '@libp2p/interface'
-import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
 import { pEvent } from 'p-event'
-import { connectAllPubSubNodes, createComponentsArray, type GossipSubAndComponents } from './utils/create-pubsub.js'
+import { connectAllPubSubNodes, createComponentsArray } from './utils/create-pubsub.js'
+import type { GossipSubAndComponents } from './utils/create-pubsub.js'
 
-/* eslint-disable dot-notation */
 describe('gossip / allowedTopics', () => {
   let nodes: GossipSubAndComponents[]
 
@@ -15,7 +14,6 @@ describe('gossip / allowedTopics', () => {
 
   // Create pubsub nodes
   beforeEach(async () => {
-    mockNetwork.reset()
     nodes = await createComponentsArray({
       number: 2,
       connected: false,
@@ -27,7 +25,6 @@ describe('gossip / allowedTopics', () => {
 
   afterEach(async () => {
     await stop(...nodes.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
-    mockNetwork.reset()
   })
 
   it('should send gossip to non-mesh peers in topic', async function () {
@@ -46,11 +43,9 @@ describe('gossip / allowedTopics', () => {
       pEvent(nodeB.pubsub, 'subscription-change')
     ])
 
-    // eslint-disable-next-line @typescript-eslint/dot-notation
     const nodeASubscriptions = Array.from((nodeA.pubsub)['subscriptions'].keys())
     expect(nodeASubscriptions).deep.equals(allTopics, 'nodeA.subscriptions should be subcribed to all')
 
-    // eslint-disable-next-line @typescript-eslint/dot-notation
     const nodeBTopics = Array.from((nodeB.pubsub)['topics'].keys())
     expect(nodeBTopics).deep.equals(allowedTopics, 'nodeB.topics should only contain allowedTopics')
   })

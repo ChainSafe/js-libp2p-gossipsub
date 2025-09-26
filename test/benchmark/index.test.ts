@@ -4,10 +4,11 @@ import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import {
   connectPubsubNodes,
   createComponentsArray,
-  denseConnect,
-  type GossipSubAndComponents
+  denseConnect
+
 } from '../utils/create-pubsub.js'
 import { awaitEvents, checkReceivedSubscriptions, checkReceivedSubscription } from '../utils/events.js'
+import type { GossipSubAndComponents } from '../utils/create-pubsub.js'
 
 describe('heartbeat', function () {
   const topic = 'foobar'
@@ -27,18 +28,18 @@ describe('heartbeat', function () {
     // topic 1 starts from index 2...
     for (let i = 0; i < numPeersPerTopic - 1; i++) {
       const peerIndex = (i + topic + 1) % numPeers
-      if (peerIndex !== 0) peers.push(peerIndex)
+      if (peerIndex !== 0) { peers.push(peerIndex) }
     }
     return peers
   }
 
   /**
    * Star topology
-   * *       peer 1
-   * *      /
+   * peer 1
+   * /
    * peer 0  - peer 2
-   * *      \
-   * *       peer 3
+   * \
+   * peer 3
    *
    * A topic contains peer 0 and some other peers, with numPeersPerTopic = 4
    *

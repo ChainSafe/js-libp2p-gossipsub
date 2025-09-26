@@ -1,7 +1,5 @@
-import { FloodSub } from '@libp2p/floodsub'
-import { type Message, TopicValidatorResult, type Libp2pEvents } from '@libp2p/interface'
+import { floodsub } from '@libp2p/floodsub'
 import { stop } from '@libp2p/interface'
-import { mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { expect } from 'aegir/chai'
 import delay from 'delay'
 import pRetry from 'p-retry'
@@ -9,19 +7,23 @@ import pWaitFor from 'p-wait-for'
 import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { GossipsubD } from '../../src/constants.js'
+import { TopicValidatorResult } from '../../src/index.js'
 import {
   sparseConnect,
   denseConnect,
   connectSome,
   createComponentsArray,
   createComponents,
-  connectPubsubNodes,
-  type GossipSubAndComponents
+  connectPubsubNodes
+
 } from '../utils/create-pubsub.js'
 import { awaitEvents, checkReceivedSubscription, checkReceivedSubscriptions } from '../utils/events.js'
 import { fastMsgIdFn } from '../utils/index.js'
+import type { Message } from '../../src/index.js'
 import type { RPC } from '../../src/message/rpc.js'
 import type { TopicScoreParams } from '../../src/score/peer-score-params.js'
+import type { GossipSubAndComponents } from '../utils/create-pubsub.js'
+import type { Libp2pEvents } from '@libp2p/interface'
 
 /**
  * These tests were translated from:
@@ -65,13 +67,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
 
   let psubs: GossipSubAndComponents[]
 
-  beforeEach(() => {
-    mockNetwork.reset()
-  })
-
   afterEach(async () => {
     await stop(...psubs.reduce<any[]>((acc, curr) => acc.concat(curr.pubsub, ...Object.entries(curr.components)), []))
-    mockNetwork.reset()
   })
 
   it('test sparse gossipsub', async function () {
@@ -693,7 +690,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     })
     const fsubs = await createComponentsArray({
       number: 10,
-      pubsub: FloodSub
+      pubsub: floodsub as any
     })
     psubs = gsubs.concat(fsubs)
 
@@ -817,7 +814,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
       const outbounds = treeTopology[idx]
       const inbounds = []
       for (let i = 0; i < treeTopology.length; i++) {
-        if (treeTopology[i].includes(idx)) inbounds.push(i)
+        if (treeTopology[i].includes(idx)) { inbounds.push(i) }
       }
       return Array.from(new Set([...inbounds, ...outbounds])).map((i) => psubs[i].components.peerId.toString())
     }
@@ -903,9 +900,10 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await subscriptionPromise
 
     // check that all peers have > 1 connection
-    psubs.forEach((ps) => {
-      expect(ps.components.connectionManager.getConnections().length).to.be.gt(1)
-    })
+    // this is a stub so testing this doesn't tell us anything about gossipsub
+    // psubs.forEach((ps) => {
+    //   expect(ps.components.connectionManager.getConnections().length).to.be.gt(1)
+    // })
 
     // send a message from each peer and assert it was propagated
     const sendRecv = []
@@ -1001,7 +999,9 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 5)))
     await Promise.all(connectPromises)
     await Promise.all(subscriptionPromises)
-    expect(psubs[1].components.connectionManager.getConnections(psubs[2].components.peerId)).to.not.be.empty()
+
+    // this is a stub so testing this doesn't tell us anything about gossipsub
+    // expect(psubs[1].components.connectionManager.getConnections(psubs[2].components.peerId)).to.not.be.empty()
 
     sendRecv = []
     for (let i = 0; i < 3; i++) {
@@ -1156,8 +1156,8 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await connectPubsubNodes(psubs[1], psubs[2])
     await connectPubsubNodes(psubs[0], psubs[2])
     ;(psubs[0].pubsub).topicValidators.set(topic, async (propagationSource, m) => {
-      if (propagationSource.equals(psubs[1].components.peerId)) return TopicValidatorResult.Ignore
-      if (propagationSource.equals(psubs[2].components.peerId)) return TopicValidatorResult.Reject
+      if (propagationSource.equals(psubs[1].components.peerId)) { return TopicValidatorResult.Ignore }
+      if (propagationSource.equals(psubs[2].components.peerId)) { return TopicValidatorResult.Reject }
       throw Error('Unknown PeerId')
     })
 
@@ -1239,7 +1239,7 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
           IPColocationFactorThreshold: 50,
           decayToZero: 0.01,
           topics: {
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+
             [topic]: {
               topicWeight: 1,
               timeInMeshWeight: 0.00002777,

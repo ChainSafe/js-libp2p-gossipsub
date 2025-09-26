@@ -1,14 +1,13 @@
-import { TopicValidatorResult } from '@libp2p/interface'
+import { TopicValidatorResult } from './index.ts'
 import {
   MessageStatus,
-  type PeerIdStr,
-  RejectReason,
-  type RejectReasonObj,
-  type TopicStr,
-  type ValidateError
+
+  RejectReason
+
 } from './types.js'
 import type { RPC } from './message/rpc.js'
 import type { PeerScoreThresholds } from './score/peer-score-thresholds.js'
+import type { PeerIdStr, RejectReasonObj, TopicStr, ValidateError } from './types.js'
 
 /** Topic label as provided in `topicStrToLabel` */
 export type TopicLabel = string
@@ -146,7 +145,7 @@ export type Metrics = ReturnType<typeof getMetrics>
  * NOTE: except for special reasons, do not add more than 1 label for frequent metrics,
  * there's a performance penalty as of June 2023.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function getMetrics (
   register: MetricsRegister,
   topicStrToLabel: TopicStrToLabel,
@@ -166,14 +165,17 @@ export function getMetrics (
     /**
      * Status of our subscription to this topic. This metric allows analyzing other topic metrics
      * filtered by our current subscription status.
-     * = rust-libp2p `topic_subscription_status` */
+     * = rust-libp2p `topic_subscription_status`
+     */
     topicSubscriptionStatus: register.gauge<{ topicStr: TopicStr }>({
       name: 'gossipsub_topic_subscription_status',
       help: 'Status of our subscription to this topic',
       labelNames: ['topicStr']
     }),
-    /** Number of peers subscribed to each topic. This allows us to analyze a topic's behaviour
-     * regardless of our subscription status. */
+    /**
+     * Number of peers subscribed to each topic. This allows us to analyze a topic's behaviour
+     * regardless of our subscription status.
+     */
     topicPeersCount: register.gauge<{ topicStr: TopicStr }>({
       name: 'gossipsub_topic_peer_count',
       help: 'Number of peers subscribed to each topic',
@@ -184,7 +186,8 @@ export function getMetrics (
     /**
      * Number of peers in our mesh. This metric should be updated with the count of peers for a
      * topic in the mesh regardless of inclusion and churn events.
-     * = rust-libp2p `mesh_peer_counts` */
+     * = rust-libp2p `mesh_peer_counts`
+     */
     meshPeerCounts: register.gauge<{ topicStr: TopicStr }>({
       name: 'gossipsub_mesh_peer_count',
       help: 'Number of peers in our mesh',
@@ -192,7 +195,8 @@ export function getMetrics (
     }),
     /**
      * Number of times we include peers in a topic mesh for different reasons.
-     * = rust-libp2p `mesh_peer_inclusion_events` */
+     * = rust-libp2p `mesh_peer_inclusion_events`
+     */
     meshPeerInclusionEventsFanout: register.gauge<{ topic: TopicLabel }>({
       name: 'gossipsub_mesh_peer_inclusion_events_fanout_total',
       help: 'Number of times we include peers in a topic mesh for fanout reasons',
@@ -230,7 +234,8 @@ export function getMetrics (
     }),
     /**
      * Number of times we remove peers in a topic mesh for different reasons.
-     * = rust-libp2p `mesh_peer_churn_events` */
+     * = rust-libp2p `mesh_peer_churn_events`
+     */
     meshPeerChurnEventsDisconnected: register.gauge<{ topic: TopicLabel }>({
       name: 'gossipsub_peer_churn_events_disconnected_total',
       help: 'Number of times we remove peers in a topic mesh for disconnected reasons',
@@ -261,7 +266,8 @@ export function getMetrics (
     /**
      * Gossipsub supports floodsub, gossipsub v1.0, v1.1, and v1.2. Peers are classified based
      * on which protocol they support. This metric keeps track of the number of peers that are
-     * connected of each type. */
+     * connected of each type.
+     */
     peersPerProtocol: register.gauge<{ protocol: string }>({
       name: 'gossipsub_peers_per_protocol_count',
       help: 'Peers connected for each topic',
@@ -283,7 +289,8 @@ export function getMetrics (
     /**
      * Message validation results for each topic.
      * Invalid == Reject?
-     * = rust-libp2p `invalid_messages`, `accepted_messages`, `ignored_messages`, `rejected_messages` */
+     * = rust-libp2p `invalid_messages`, `accepted_messages`, `ignored_messages`, `rejected_messages`
+     */
     acceptedMessagesTotal: register.gauge<{ topic: TopicLabel }>({
       name: 'gossipsub_accepted_messages_total',
       help: 'Total accepted messages for each topic',
@@ -308,7 +315,8 @@ export function getMetrics (
      * When the user validates a message, it tries to re propagate it to its mesh peers. If the
      * message expires from the memcache before it can be validated, we count this a cache miss
      * and it is an indicator that the memcache size should be increased.
-     * = rust-libp2p `mcache_misses` */
+     * = rust-libp2p `mcache_misses`
+     */
     asyncValidationMcacheHit: register.gauge<{ hit: 'hit' | 'miss' }>({
       name: 'gossipsub_async_validation_mcache_hit_total',
       help: 'Async validation result reported by the user layer',
@@ -523,7 +531,7 @@ export function getMetrics (
     /**
      * Separate score weights
      * Need to use 2-label metrics in this case to debug the score weights
-     **/
+     */
     scoreWeights: register.avgMinMax<{ topic?: TopicLabel, p: string }>({
       name: 'gossipsub_score_weights',
       help: 'Separate score weights',
@@ -575,7 +583,8 @@ export function getMetrics (
      * Total messages per topic we don't have. Not actual requests.
      * The number of times we have decided that an IWANT control message is required for this
      * topic. A very high metric might indicate an underperforming network.
-     * = rust-libp2p `topic_iwant_msgs` */
+     * = rust-libp2p `topic_iwant_msgs`
+     */
     ihaveRcvNotSeenMsgids: register.gauge<{ topic: TopicLabel }>({
       name: 'gossipsub_ihave_rcv_not_seen_msgids_total',
       help: 'Total messages per topic we do not have, not actual requests',
@@ -912,34 +921,34 @@ export function getMetrics (
     onRpcRecv (rpc: RPC, rpcBytes: number): void {
       this.rpcRecvBytes.inc(rpcBytes)
       this.rpcRecvCount.inc(1)
-      if (rpc.subscriptions != null) this.rpcRecvSubscription.inc(rpc.subscriptions.length)
-      if (rpc.messages != null) this.rpcRecvMessage.inc(rpc.messages.length)
+      if (rpc.subscriptions != null) { this.rpcRecvSubscription.inc(rpc.subscriptions.length) }
+      if (rpc.messages != null) { this.rpcRecvMessage.inc(rpc.messages.length) }
       if (rpc.control != null) {
         this.rpcRecvControl.inc(1)
-        if (rpc.control.ihave != null) this.rpcRecvIHave.inc(rpc.control.ihave.length)
-        if (rpc.control.iwant != null) this.rpcRecvIWant.inc(rpc.control.iwant.length)
-        if (rpc.control.graft != null) this.rpcRecvGraft.inc(rpc.control.graft.length)
-        if (rpc.control.prune != null) this.rpcRecvPrune.inc(rpc.control.prune.length)
+        if (rpc.control.ihave != null) { this.rpcRecvIHave.inc(rpc.control.ihave.length) }
+        if (rpc.control.iwant != null) { this.rpcRecvIWant.inc(rpc.control.iwant.length) }
+        if (rpc.control.graft != null) { this.rpcRecvGraft.inc(rpc.control.graft.length) }
+        if (rpc.control.prune != null) { this.rpcRecvPrune.inc(rpc.control.prune.length) }
       }
     },
 
     onRpcSent (rpc: RPC, rpcBytes: number): void {
       this.rpcSentBytes.inc(rpcBytes)
       this.rpcSentCount.inc(1)
-      if (rpc.subscriptions != null) this.rpcSentSubscription.inc(rpc.subscriptions.length)
-      if (rpc.messages != null) this.rpcSentMessage.inc(rpc.messages.length)
+      if (rpc.subscriptions != null) { this.rpcSentSubscription.inc(rpc.subscriptions.length) }
+      if (rpc.messages != null) { this.rpcSentMessage.inc(rpc.messages.length) }
       if (rpc.control != null) {
         const ihave = rpc.control.ihave?.length ?? 0
         const iwant = rpc.control.iwant?.length ?? 0
         const graft = rpc.control.graft?.length ?? 0
         const prune = rpc.control.prune?.length ?? 0
         const idontwant = rpc.control.idontwant?.length ?? 0
-        if (ihave > 0) this.rpcSentIHave.inc(ihave)
-        if (iwant > 0) this.rpcSentIWant.inc(iwant)
-        if (graft > 0) this.rpcSentGraft.inc(graft)
-        if (prune > 0) this.rpcSentPrune.inc(prune)
-        if (idontwant > 0) this.rpcSentIDontWant.inc(idontwant)
-        if (ihave > 0 || iwant > 0 || graft > 0 || prune > 0 || idontwant > 0) this.rpcSentControl.inc(1)
+        if (ihave > 0) { this.rpcSentIHave.inc(ihave) }
+        if (iwant > 0) { this.rpcSentIWant.inc(iwant) }
+        if (graft > 0) { this.rpcSentGraft.inc(graft) }
+        if (prune > 0) { this.rpcSentPrune.inc(prune) }
+        if (idontwant > 0) { this.rpcSentIDontWant.inc(idontwant) }
+        if (ihave > 0 || iwant > 0 || graft > 0 || prune > 0 || idontwant > 0) { this.rpcSentControl.inc(1) }
       }
     },
 
@@ -950,10 +959,10 @@ export function getMetrics (
       let mesh = 0
 
       for (const score of scores) {
-        if (score >= scoreThresholds.graylistThreshold) graylist++
-        if (score >= scoreThresholds.publishThreshold) publish++
-        if (score >= scoreThresholds.gossipThreshold) gossip++
-        if (score >= 0) mesh++
+        if (score >= scoreThresholds.graylistThreshold) { graylist++ }
+        if (score >= scoreThresholds.publishThreshold) { publish++ }
+        if (score >= scoreThresholds.gossipThreshold) { gossip++ }
+        if (score >= 0) { mesh++ }
       }
 
       this.peersByScoreThreshold.set({ threshold: ScoreThreshold.graylist }, graylist)

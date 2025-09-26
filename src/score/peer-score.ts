@@ -1,8 +1,10 @@
-import { type MsgIdStr, type PeerIdStr, RejectReason, type TopicStr, type IPStr } from '../types.js'
+import { RejectReason } from '../types.js'
 import { MapDef } from '../utils/set.js'
 import { computeScore } from './compute-score.js'
 import { MessageDeliveries, DeliveryRecordStatus } from './message-deliveries.js'
-import { type PeerScoreParams, validatePeerScoreParams } from './peer-score-params.js'
+import { validatePeerScoreParams } from './peer-score-params.js'
+import type { MsgIdStr, PeerIdStr, TopicStr, IPStr } from '../types.js'
+import type { PeerScoreParams } from './peer-score-params.js'
 import type { PeerStats, TopicStats } from './peer-stats.js'
 import type { Metrics, ScorePenalty } from '../metrics.js'
 import type { ComponentLogger, Logger } from '@libp2p/interface'
@@ -493,7 +495,7 @@ export class PeerScore {
       const now = validatedTime !== undefined ? Date.now() : 0
 
       const tstats = this.getPtopicStats(pstats, topic)
-      // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+
       if (tstats != null && tstats.inMesh) {
         const tparams = this.params.topics[topic]
 

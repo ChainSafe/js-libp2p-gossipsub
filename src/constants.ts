@@ -234,7 +234,7 @@ export const ERR_TOPIC_VALIDATOR_IGNORE = 'ERR_TOPIC_VALIDATOR_IGNORE'
 /**
  * If peer score is better than this, we accept messages from this peer
  * within ACCEPT_FROM_WHITELIST_DURATION_MS from the last time computing score.
- **/
+ */
 export const ACCEPT_FROM_WHITELIST_THRESHOLD_SCORE = 0
 
 /**

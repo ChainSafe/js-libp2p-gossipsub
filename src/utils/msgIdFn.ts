@@ -1,6 +1,6 @@
 import { msgId } from '@libp2p/pubsub/utils'
 import { sha256 } from 'multiformats/hashes/sha2'
-import type { Message } from '@libp2p/interface'
+import type { Message } from '../index.js'
 
 /**
  * Generate a message id, based on the `key` and `seqno`
@@ -10,7 +10,7 @@ export function msgIdFnStrictSign (msg: Message): Uint8Array {
     throw new Error('expected signed message type')
   }
   // Should never happen
-  if (msg.sequenceNumber == null) throw Error('missing seqno field')
+  if (msg.sequenceNumber == null) { throw Error('missing seqno field') }
 
   // TODO: Should use .from here or key?
   return msgId(msg.from.publicKey ?? msg.key, msg.sequenceNumber)

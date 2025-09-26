@@ -690,7 +690,7 @@ describe.skip('PeerScore score cache', function () {
     appSpecificWeight: 1,
     retainScore: 800,
     decayInterval: 1000,
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+
     topics: { a: { topicWeight: 10 } as TopicScoreParams }
   })
   let ps2: PeerScore
@@ -737,7 +737,6 @@ describe.skip('PeerScore score cache', function () {
   for (const { name, fun } of testCases) {
     // eslint-disable-next-line no-loop-func
     it(`should invalidate the cache after ${name}`, function () {
-      // eslint-disable-line no-loop-func
       computeStoreStub.returns(10)
       ps2.addPeer(peerA)
       ps2.score(peerA)
