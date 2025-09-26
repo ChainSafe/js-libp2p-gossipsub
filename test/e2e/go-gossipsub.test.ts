@@ -900,9 +900,10 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await subscriptionPromise
 
     // check that all peers have > 1 connection
-    psubs.forEach((ps) => {
-      expect(ps.components.connectionManager.getConnections().length).to.be.gt(1)
-    })
+    // this is a stub so testing this doesn't tell us anything about gossipsub
+    // psubs.forEach((ps) => {
+    //   expect(ps.components.connectionManager.getConnections().length).to.be.gt(1)
+    // })
 
     // send a message from each peer and assert it was propagated
     const sendRecv = []
@@ -998,7 +999,9 @@ describe('go-libp2p-pubsub gossipsub tests', function () {
     await Promise.all(psubs.map(async (ps) => awaitEvents(ps.pubsub, 'gossipsub:heartbeat', 5)))
     await Promise.all(connectPromises)
     await Promise.all(subscriptionPromises)
-    expect(psubs[1].components.connectionManager.getConnections(psubs[2].components.peerId)).to.not.be.empty()
+
+    // this is a stub so testing this doesn't tell us anything about gossipsub
+    // expect(psubs[1].components.connectionManager.getConnections(psubs[2].components.peerId)).to.not.be.empty()
 
     sendRecv = []
     for (let i = 0; i < 3; i++) {
