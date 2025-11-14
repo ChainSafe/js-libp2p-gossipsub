@@ -1834,7 +1834,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
   private async directConnect (): Promise<void> {
     const toconnect: string[] = []
     this.direct.forEach((id) => {
-      if (!this.streamsOutbound.has(id)) {
+      if (!this.streamsOutbound.get(id)?.rawStream?.status === "open") {
         toconnect.push(id)
       }
     })
