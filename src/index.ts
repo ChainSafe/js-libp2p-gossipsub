@@ -54,7 +54,7 @@ import {
   type MessageId,
   type PublishOpts
 } from './types.js'
-import { buildRawMessage, validateToRawMessage } from './utils/buildRawMessage.js'
+import { buildRawMessage, validateStrictNoSignMessage, validateStrictSignMessage, type ValidationResult } from './utils/buildRawMessage.js'
 import { createGossipRpc, ensureControl } from './utils/create-gossip-rpc.js'
 import { shuffle, messageIdToString } from './utils/index.js'
 import { msgIdFnStrictNoSign, msgIdFnStrictSign } from './utils/msgIdFn.js'
@@ -1214,28 +1214,40 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
   private async handleReceivedMessage (from: PeerId, rpcMsg: RPC.Message): Promise<void> {
     this.metrics?.onMsgRecvPreValidation(rpcMsg.topic)
 
-    let validationResult = await this.validateReceivedMessage(from, rpcMsg)
+    let validationResult: ReceivedMessageResult
+    // Fast message ID stuff
+    const fastMsgIdStr = this.fastMsgIdFn?.(rpcMsg)
+    const msgIdCached = fastMsgIdStr !== undefined ? this.fastMsgIdCache?.get(fastMsgIdStr) : undefined
 
-    if (validationResult.code === MessageStatus.valid) {
-      // (Optional) Provide custom validation here with dynamic validators per topic
-      // NOTE: This custom topicValidator() must resolve fast (< 100ms) to allow scores
-      // to not penalize peers for long validation times.
-      const msgIdStr = validationResult.messageId.msgIdStr
-      const topicValidator = this.topicValidators.get(rpcMsg.topic)
-      if (topicValidator != null) {
-        let acceptance: TopicValidatorResult
-        // Use try {} catch {} in case topicValidator() is synchronous
-        try {
-          acceptance = await topicValidator(from, validationResult.msg)
-        } catch (e) {
-          const errCode = (e as { code: string }).code
-          if (errCode === constants.ERR_TOPIC_VALIDATOR_IGNORE) acceptance = TopicValidatorResult.Ignore
-          if (errCode === constants.ERR_TOPIC_VALIDATOR_REJECT) acceptance = TopicValidatorResult.Reject
-          else acceptance = TopicValidatorResult.Ignore
-        }
+    if (msgIdCached != null) {
+      // This message has been seen previously. Ignore it
+      validationResult = { code: MessageStatus.duplicate, msgIdStr: msgIdCached }
+    } else {
+      const rawValidationResult = this.globalSignaturePolicy === StrictNoSign ? validateStrictNoSignMessage(rpcMsg) : await validateStrictSignMessage(rpcMsg)
+      // Perform basic validation on message and convert to RawGossipsubMessage for fastMsgIdFn()
+      validationResult = this.validateReceivedMessage(from, rpcMsg, fastMsgIdStr, rawValidationResult)
 
-        if (acceptance !== TopicValidatorResult.Accept) {
-          validationResult = { code: MessageStatus.invalid, reason: rejectReasonFromAcceptance(acceptance), msgIdStr }
+      if (validationResult.code === MessageStatus.valid) {
+        // (Optional) Provide custom validation here with dynamic validators per topic
+        // NOTE: This custom topicValidator() must resolve fast (< 100ms) to allow scores
+        // to not penalize peers for long validation times.
+        const msgIdStr = validationResult.messageId.msgIdStr
+        const topicValidator = this.topicValidators.get(rpcMsg.topic)
+        if (topicValidator != null) {
+          let acceptance: TopicValidatorResult
+          // Use try {} catch {} in case topicValidator() is synchronous
+          try {
+            acceptance = await topicValidator(from, validationResult.msg)
+          } catch (e) {
+            const errCode = (e as { code: string }).code
+            if (errCode === constants.ERR_TOPIC_VALIDATOR_IGNORE) acceptance = TopicValidatorResult.Ignore
+            if (errCode === constants.ERR_TOPIC_VALIDATOR_REJECT) acceptance = TopicValidatorResult.Reject
+            else acceptance = TopicValidatorResult.Ignore
+          }
+
+          if (acceptance !== TopicValidatorResult.Accept) {
+            validationResult = { code: MessageStatus.invalid, reason: rejectReasonFromAcceptance(acceptance), msgIdStr }
+          }
         }
       }
     }
@@ -1316,22 +1328,12 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    * Handles a newly received message from an RPC.
    * May forward to all peers in the mesh.
    */
-  private async validateReceivedMessage (
+  private validateReceivedMessage (
     propagationSource: PeerId,
-    rpcMsg: RPC.Message
-  ): Promise<ReceivedMessageResult> {
-    // Fast message ID stuff
-    const fastMsgIdStr = this.fastMsgIdFn?.(rpcMsg)
-    const msgIdCached = fastMsgIdStr !== undefined ? this.fastMsgIdCache?.get(fastMsgIdStr) : undefined
-
-    if (msgIdCached != null) {
-      // This message has been seen previously. Ignore it
-      return { code: MessageStatus.duplicate, msgIdStr: msgIdCached }
-    }
-
-    // Perform basic validation on message and convert to RawGossipsubMessage for fastMsgIdFn()
-    const validationResult = await validateToRawMessage(this.globalSignaturePolicy, rpcMsg)
-
+    rpcMsg: RPC.Message,
+    fastMsgIdStr: string | number | undefined,
+    validationResult: ValidationResult
+  ): ReceivedMessageResult {
     if (!validationResult.valid) {
       return { code: MessageStatus.invalid, reason: RejectReason.Error, error: validationResult.error }
     }
