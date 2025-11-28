@@ -1,5 +1,6 @@
 import { msgId } from '@libp2p/pubsub/utils'
-import { sha256 } from 'multiformats/hashes/sha2'
+import { digest } from '@chainsafe/as-sha256'
+
 import type { Message } from '@libp2p/interface'
 
 /**
@@ -19,6 +20,6 @@ export function msgIdFnStrictSign (msg: Message): Uint8Array {
 /**
  * Generate a message id, based on message `data`
  */
-export async function msgIdFnStrictNoSign (msg: Message): Promise<Uint8Array> {
-  return sha256.encode(msg.data)
+export function msgIdFnStrictNoSign (msg: Message): Uint8Array {
+  return digest(msg.data)
 }

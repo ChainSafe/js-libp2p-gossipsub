@@ -1330,7 +1330,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     // - reject messages claiming to be from ourselves but not locally published
 
     // Calculate the message id on the transformed data.
-    const msgId = await this.msgIdFn(msg)
+    const msgId = this.msgIdFn(msg)
     const msgIdStr = this.msgIdToStrFn(msgId)
     const messageId = { msgId, msgIdStr }
 
