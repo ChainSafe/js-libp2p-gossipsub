@@ -1240,9 +1240,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
             acceptance = await topicValidator(from, validationResult.msg)
           } catch (e) {
             const errCode = (e as { code: string }).code
-            if (errCode === constants.ERR_TOPIC_VALIDATOR_IGNORE) acceptance = TopicValidatorResult.Ignore
-            if (errCode === constants.ERR_TOPIC_VALIDATOR_REJECT) acceptance = TopicValidatorResult.Reject
-            else acceptance = TopicValidatorResult.Ignore
+            acceptance = (errCode === constants.ERR_TOPIC_VALIDATOR_IGNORE) ? TopicValidatorResult.Ignore : (errCode === constants.ERR_TOPIC_VALIDATOR_REJECT) ? TopicValidatorResult.Reject : TopicValidatorResult.Ignore
           }
 
           if (acceptance !== TopicValidatorResult.Accept) {
