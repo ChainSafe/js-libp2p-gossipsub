@@ -28,7 +28,7 @@ export interface MsgIdToStrFn { (msgId: Uint8Array): string }
  * Compute spec'ed msg-id. Used for IHAVE / IWANT messages
  */
 export interface MsgIdFn {
-  (msg: Message): Promise<Uint8Array> | Uint8Array
+  (msg: Message): Uint8Array
 }
 
 export interface DataTransform {

@@ -1,6 +1,6 @@
 import { randomBytes } from '@libp2p/crypto'
 import { publicKeyFromProtobuf } from '@libp2p/crypto/keys'
-import { StrictSign, StrictNoSign, type Message, type PublicKey, type PeerId } from '@libp2p/interface'
+import { type Message, type PublicKey, type PeerId } from '@libp2p/interface'
 import { peerIdFromMultihash } from '@libp2p/peer-id'
 import * as Digest from 'multiformats/hashes/digest'
 import { concat as uint8ArrayConcat } from 'uint8arrays/concat'
@@ -80,92 +80,84 @@ export async function buildRawMessage (
 
 export type ValidationResult = { valid: true, message: Message } | { valid: false, error: ValidateError }
 
-export async function validateToRawMessage (
-  signaturePolicy: typeof StrictNoSign | typeof StrictSign,
+export function validateStrictNoSignMessage (
+  msg: RPC.Message
+): ValidationResult {
+  if (msg.signature != null) return { valid: false, error: ValidateError.SignaturePresent }
+  if (msg.seqno != null) return { valid: false, error: ValidateError.SeqnoPresent }
+  if (msg.from != null) return { valid: false, error: ValidateError.FromPresent }
+
+  return { valid: true, message: { type: 'unsigned', topic: msg.topic, data: msg.data ?? new Uint8Array(0) } }
+}
+
+export async function validateStrictSignMessage (
   msg: RPC.Message
 ): Promise<ValidationResult> {
-  // If strict-sign, verify all
-  // If anonymous (no-sign), ensure no preven
+  // Verify seqno
+  if (msg.seqno == null) return { valid: false, error: ValidateError.InvalidSeqno }
+  if (msg.seqno.length !== 8) {
+    return { valid: false, error: ValidateError.InvalidSeqno }
+  }
 
-  switch (signaturePolicy) {
-    case StrictNoSign:
-      if (msg.signature != null) return { valid: false, error: ValidateError.SignaturePresent }
-      if (msg.seqno != null) return { valid: false, error: ValidateError.SeqnoPresent }
-      if (msg.from != null) return { valid: false, error: ValidateError.FromPresent }
+  if (msg.signature == null) return { valid: false, error: ValidateError.InvalidSignature }
+  if (msg.from == null) return { valid: false, error: ValidateError.InvalidPeerId }
 
-      return { valid: true, message: { type: 'unsigned', topic: msg.topic, data: msg.data ?? new Uint8Array(0) } }
+  let fromPeerId: PeerId
+  try {
+    // TODO: Fix PeerId types
+    fromPeerId = peerIdFromMultihash(Digest.decode(msg.from))
+  } catch (e) {
+    return { valid: false, error: ValidateError.InvalidPeerId }
+  }
 
-    case StrictSign: {
-      // Verify seqno
-      if (msg.seqno == null) return { valid: false, error: ValidateError.InvalidSeqno }
-      if (msg.seqno.length !== 8) {
-        return { valid: false, error: ValidateError.InvalidSeqno }
-      }
+  // - check from defined
+  // - transform source to PeerId
+  // - parse signature
+  // - get .key, else from source
+  // - check key == source if present
+  // - verify sig
 
-      if (msg.signature == null) return { valid: false, error: ValidateError.InvalidSignature }
-      if (msg.from == null) return { valid: false, error: ValidateError.InvalidPeerId }
-
-      let fromPeerId: PeerId
-      try {
-        // TODO: Fix PeerId types
-        fromPeerId = peerIdFromMultihash(Digest.decode(msg.from))
-      } catch (e) {
-        return { valid: false, error: ValidateError.InvalidPeerId }
-      }
-
-      // - check from defined
-      // - transform source to PeerId
-      // - parse signature
-      // - get .key, else from source
-      // - check key == source if present
-      // - verify sig
-
-      let publicKey: PublicKey
-      if (msg.key != null) {
-        publicKey = publicKeyFromProtobuf(msg.key)
-        // TODO: Should `fromPeerId.pubKey` be optional?
-        if (fromPeerId.publicKey !== undefined && !publicKey.equals(fromPeerId.publicKey)) {
-          return { valid: false, error: ValidateError.InvalidPeerId }
-        }
-      } else {
-        if (fromPeerId.publicKey == null) {
-          return { valid: false, error: ValidateError.InvalidPeerId }
-        }
-        publicKey = fromPeerId.publicKey
-      }
-
-      const rpcMsgPreSign: RPC.Message = {
-        from: msg.from,
-        data: msg.data,
-        seqno: msg.seqno,
-        topic: msg.topic,
-        signature: undefined, // Exclude signature field for signing
-        key: undefined // Exclude key field for signing
-      }
-
-      // Get the message in bytes, and prepend with the pubsub prefix
-      // the signature is over the bytes "libp2p-pubsub:<protobuf-message>"
-      const bytes = uint8ArrayConcat([SignPrefix, RPC.Message.encode(rpcMsgPreSign)])
-
-      if (!(await publicKey.verify(bytes, msg.signature))) {
-        return { valid: false, error: ValidateError.InvalidSignature }
-      }
-
-      return {
-        valid: true,
-        message: {
-          type: 'signed',
-          from: fromPeerId,
-          data: msg.data ?? new Uint8Array(0),
-          sequenceNumber: BigInt(`0x${uint8ArrayToString(msg.seqno, 'base16')}`),
-          topic: msg.topic,
-          signature: msg.signature,
-          key: publicKey
-        }
-      }
+  let publicKey: PublicKey
+  if (msg.key != null) {
+    publicKey = publicKeyFromProtobuf(msg.key)
+    // TODO: Should `fromPeerId.pubKey` be optional?
+    if (fromPeerId.publicKey !== undefined && !publicKey.equals(fromPeerId.publicKey)) {
+      return { valid: false, error: ValidateError.InvalidPeerId }
     }
+  } else {
+    if (fromPeerId.publicKey == null) {
+      return { valid: false, error: ValidateError.InvalidPeerId }
+    }
+    publicKey = fromPeerId.publicKey
+  }
 
-    default:
-      throw new Error('Unreachable')
+  const rpcMsgPreSign: RPC.Message = {
+    from: msg.from,
+    data: msg.data,
+    seqno: msg.seqno,
+    topic: msg.topic,
+    signature: undefined, // Exclude signature field for signing
+    key: undefined // Exclude key field for signing
+  }
+
+  // Get the message in bytes, and prepend with the pubsub prefix
+  // the signature is over the bytes "libp2p-pubsub:<protobuf-message>"
+  const bytes = uint8ArrayConcat([SignPrefix, RPC.Message.encode(rpcMsgPreSign)])
+
+  if (!(await publicKey.verify(bytes, msg.signature))) {
+    return { valid: false, error: ValidateError.InvalidSignature }
+  }
+
+  return {
+    valid: true,
+    message: {
+      type: 'signed',
+      from: fromPeerId,
+      data: msg.data ?? new Uint8Array(0),
+      sequenceNumber: BigInt(`0x${uint8ArrayToString(msg.seqno, 'base16')}`),
+      topic: msg.topic,
+      signature: msg.signature,
+      key: publicKey
+    }
   }
 }
