@@ -1,6 +1,5 @@
-import { msgId } from '@libp2p/pubsub/utils'
 import { digest } from '@chainsafe/as-sha256'
-
+import { msgId } from '@libp2p/pubsub/utils'
 import type { Message } from '@libp2p/interface'
 
 /**
