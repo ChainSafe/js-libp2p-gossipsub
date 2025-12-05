@@ -90,12 +90,18 @@ importers:
       delay:
         specifier: ^6.0.0
         version: 6.0.0
+      events:
+        specifier: ^3.3.0
+        version: 3.3.0
       it-all:
         specifier: ^3.0.6
         version: 3.0.6
       mkdirp:
         specifier: ^3.0.1
         version: 3.0.1
+      mocha:
+        specifier: ^10.7.3
+        version: 10.7.3
       p-defer:
         specifier: ^4.0.0
         version: 4.0.1
