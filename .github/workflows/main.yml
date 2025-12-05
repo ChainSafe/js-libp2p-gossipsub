@@ -12,13 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v2
         with:
           node-version: lts/*
-      - run: npm install
-      - run: npm run lint
-      - run: npm run build
-      - run: npx aegir dep-check
+      - run: pnpm install
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm aegir dep-check
   test-node:
     needs: check
     runs-on: ${{ matrix.os }}
@@ -29,11 +31,13 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4      
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node }}
-      - run: npm install
-      - run: npm run test:node -- --cov --bail -- --exit
+      - run: pnpm install
+      - run: pnpm test:node -- --cov --bail -- --exit
       - uses: codecov/codecov-action@v1
   test-node-e2e:
     needs: check
@@ -45,31 +49,37 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4      
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node }}
-      - run: npm install
-      - run: npm run test:e2e -- --target node --bail -- --exit
+      - run: pnpm install
+      - run: pnpm test:e2e -- --target node --bail -- --exit
   test-chrome:
     needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4      
       - uses: actions/setup-node@v2
         with:
           node-version: lts/*
-      - run: npm install
-      - run: npm run test:browser -- -t webworker --bail -- --exit
+      - run: pnpm install
+      - run: pnpm test:browser -- -t webworker --bail -- --exit
   test-firefox:
     needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4      
       - uses: actions/setup-node@v2
         with:
           node-version: lts/*
-      - run: npm install
-      - run: npm run test:browser -- -t webworker --bail -- --browser firefox -- --exit
+      - run: pnpm install
+      - run: pnpm test:browser -- -t webworker --bail -- --browser firefox -- --exit
   maybe-release:
     name: release
     runs-on: ubuntu-latest
@@ -92,13 +102,17 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
         if: ${{ steps.release.outputs.release_created }}
 
-      - run: npm install
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4        
         if: ${{ steps.release.outputs.release_created }}
 
-      - run: npm run build
+      - run: pnpm install
         if: ${{ steps.release.outputs.release_created }}
 
-      - run: npm publish --access public
+      - run: pnpm build
+        if: ${{ steps.release.outputs.release_created }}
+
+      - run: pnpm publish --access public
         if: ${{ steps.release.outputs.release_created }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
