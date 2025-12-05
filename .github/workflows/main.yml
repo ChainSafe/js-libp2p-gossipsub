@@ -20,7 +20,8 @@ jobs:
       - run: pnpm install
       - run: pnpm lint
       - run: pnpm build
-      - run: pnpm aegir dep-check
+      # The `events` is used in `test/utils/create-pubsub.ts` and aegir complaints about it unused dependency
+      - run: pnpm aegir dep-check --ignore events
   test-node:
     needs: check
     runs-on: ${{ matrix.os }}
