@@ -1,6 +1,6 @@
 {
   "name": "@chainsafe/libp2p-gossipsub",
-  "version": "14.1.2",
+  "version": "14.1.3",
   "description": "A typescript implementation of gossipsub",
   "files": [
     "src",
