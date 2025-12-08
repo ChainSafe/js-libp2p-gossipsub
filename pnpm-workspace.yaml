@@ -1,0 +1,4 @@
+onlyBuiltDependencies:
+  - aws-sdk
+  - esbuild
+  - protobufjs
