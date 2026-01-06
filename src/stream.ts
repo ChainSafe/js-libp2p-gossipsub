@@ -19,7 +19,7 @@ export class OutboundStream {
   private readonly closeController: AbortController
   private readonly maxBufferSize: number
 
-  constructor (private readonly rawStream: Stream, errCallback: (e: Error) => void, opts: OutboundStreamOpts) {
+  constructor (readonly rawStream: Stream, errCallback: (e: Error) => void, opts: OutboundStreamOpts) {
     this.pushable = pushable()
     this.closeController = new AbortController()
     this.maxBufferSize = opts.maxBufferSize ?? Infinity
