@@ -3248,6 +3248,69 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       }
     }).catch((err) => { this.log.error('Error untagging peer %s with topic %s', peerId, topic, err) })
   }
+
+  // ======== Dynamic Direct Peer Management ========
+
+  /**
+   * Add a peer to the direct peers set. Direct peers maintain permanent mesh connections
+   * without GRAFT/PRUNE negotiation.
+   *
+   * @param peerId - The peer ID to add as a direct peer
+   * @param addrs - Optional multiaddrs for the peer (will be added to peer store)
+   */
+  async addDirectPeer (peerId: PeerId, addrs?: Multiaddr[]): Promise<void> {
+    const peerIdStr = peerId.toString()
+
+    if (this.direct.has(peerIdStr)) {
+      this.log('addDirectPeer: peer %s is already a direct peer', peerIdStr)
+      return
+    }
+
+    // Add addresses to peer store if provided
+    if (addrs != null && addrs.length > 0) {
+      await this.components.peerStore.merge(peerId, {
+        multiaddrs: addrs
+      })
+    }
+
+    this.direct.add(peerIdStr)
+    this.log('addDirectPeer: added %s as direct peer', peerIdStr)
+
+    // If gossipsub is running, attempt to connect to the new direct peer
+    if (this.status.code === GossipStatusCode.started) {
+      this.connect(peerIdStr).catch((err) => {
+        this.log.error('addDirectPeer: failed to connect to %s', peerIdStr, err)
+      })
+    }
+  }
+
+  /**
+   * Remove a peer from the direct peers set.
+   *
+   * @param peerId - The peer ID to remove (as PeerId or string)
+   * @returns true if the peer was removed, false if it wasn't a direct peer
+   */
+  removeDirectPeer (peerId: PeerId | string): boolean {
+    const peerIdStr = typeof peerId === 'string' ? peerId : peerId.toString()
+    const removed = this.direct.delete(peerIdStr)
+
+    if (removed) {
+      this.log('removeDirectPeer: removed %s from direct peers', peerIdStr)
+    } else {
+      this.log('removeDirectPeer: peer %s was not a direct peer', peerIdStr)
+    }
+
+    return removed
+  }
+
+  /**
+   * Get the list of current direct peer IDs.
+   *
+   * @returns Array of direct peer ID strings
+   */
+  getDirectPeers (): PeerIdStr[] {
+    return Array.from(this.direct)
+  }
 }
 
 export function gossipsub (
