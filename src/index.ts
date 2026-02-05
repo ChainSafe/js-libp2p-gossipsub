@@ -3256,23 +3256,35 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
    * without GRAFT/PRUNE negotiation.
    *
    * @param peerId - The peer ID to add as a direct peer
-   * @param addrs - Optional multiaddrs for the peer (will be added to peer store)
+   * @param addrs - Multiaddrs for the peer (required for connection)
+   * @returns The peer ID string on success, null on failure
    */
-  async addDirectPeer (peerId: PeerId, addrs?: Multiaddr[]): Promise<void> {
+  async addDirectPeer (peerId: PeerId, addrs: Multiaddr[]): Promise<PeerIdStr | null> {
     const peerIdStr = peerId.toString()
 
-    if (this.direct.has(peerIdStr)) {
-      this.log('addDirectPeer: peer %s is already a direct peer', peerIdStr)
-      return
+    // Prevent adding self as a direct peer
+    if (peerId.equals(this.components.peerId)) {
+      this.log('addDirectPeer: cannot add self as a direct peer')
+      return null
     }
 
-    // Add addresses to peer store if provided
-    if (addrs != null && addrs.length > 0) {
+    // Direct peers need addresses to connect
+    if (addrs.length === 0) {
+      this.log('addDirectPeer: cannot add direct peer %s without addresses', peerIdStr)
+      return null
+    }
+
+    // Add addresses to peer store first so we can connect
+    try {
       await this.components.peerStore.merge(peerId, {
         multiaddrs: addrs
       })
+    } catch (err) {
+      this.log.error('addDirectPeer: failed to add addresses for %s to peer store', peerIdStr, err)
+      return null
     }
 
+    // Add to direct peers set only after addresses are stored
     this.direct.add(peerIdStr)
     this.log('addDirectPeer: added %s as direct peer', peerIdStr)
 
@@ -3282,6 +3294,8 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
         this.log.error('addDirectPeer: failed to connect to %s', peerIdStr, err)
       })
     }
+
+    return peerIdStr
   }
 
   /**
