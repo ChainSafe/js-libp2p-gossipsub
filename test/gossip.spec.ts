@@ -344,7 +344,9 @@ describe('gossip', () => {
     await pEvent(nodeB.pubsub, 'subscription-change')
 
     expect((nodeB.pubsub as any).topics.has(topic)).to.be.true()
-    expect(nodeB.pubsub.getSubscribers(topic).map((p) => p.toString())).to.deep.equal([nodeC.components.peerId.toString()])
+    const subscribers = nodeB.pubsub.getSubscribers(topic).map((p) => p.toString())
+    expect(subscribers).to.have.lengthOf(1)
+    expect(subscribers).to.include(nodeC.components.peerId.toString())
   })
 
   it('should reject incoming messages bigger than maxInboundDataLength limit', async function () {
