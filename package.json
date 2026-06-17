@@ -114,8 +114,7 @@
     "protons": "^7.5.0",
     "sinon": "^18.0.1",
     "sinon-ts": "^2.0.0",
-    "time-cache": "^0.3.0",
-    "typescript": "^5.9.3"
+    "time-cache": "^0.3.0"
   },
   "engines": {
     "npm": ">=8.7.0"
