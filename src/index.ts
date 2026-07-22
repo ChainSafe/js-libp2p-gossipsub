@@ -3248,6 +3248,83 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
       }
     }).catch((err) => { this.log.error('Error untagging peer %s with topic %s', peerId, topic, err) })
   }
+
+  // ======== Dynamic Direct Peer Management ========
+
+  /**
+   * Add a peer to the direct peers set. Direct peers maintain permanent mesh connections
+   * without GRAFT/PRUNE negotiation.
+   *
+   * @param peerId - The peer ID to add as a direct peer
+   * @param addrs - Multiaddrs for the peer (required for connection)
+   * @returns The peer ID string on success, null on failure
+   */
+  async addDirectPeer (peerId: PeerId, addrs: Multiaddr[]): Promise<PeerIdStr | null> {
+    const peerIdStr = peerId.toString()
+
+    // Prevent adding self as a direct peer
+    if (peerId.equals(this.components.peerId)) {
+      this.log('addDirectPeer: cannot add self as a direct peer')
+      return null
+    }
+
+    // Direct peers need addresses to connect
+    if (addrs.length === 0) {
+      this.log('addDirectPeer: cannot add direct peer %s without addresses', peerIdStr)
+      return null
+    }
+
+    // Add addresses to peer store first so we can connect
+    try {
+      await this.components.peerStore.merge(peerId, {
+        multiaddrs: addrs
+      })
+    } catch (err) {
+      this.log.error('addDirectPeer: failed to add addresses for %s to peer store', peerIdStr, err)
+      return null
+    }
+
+    // Add to direct peers set only after addresses are stored
+    this.direct.add(peerIdStr)
+    this.log('addDirectPeer: added %s as direct peer', peerIdStr)
+
+    // If gossipsub is running, attempt to connect to the new direct peer
+    if (this.status.code === GossipStatusCode.started) {
+      this.connect(peerIdStr).catch((err) => {
+        this.log.error('addDirectPeer: failed to connect to %s', peerIdStr, err)
+      })
+    }
+
+    return peerIdStr
+  }
+
+  /**
+   * Remove a peer from the direct peers set.
+   *
+   * @param peerId - The peer ID to remove (as PeerId or string)
+   * @returns true if the peer was removed, false if it wasn't a direct peer
+   */
+  removeDirectPeer (peerId: PeerId | string): boolean {
+    const peerIdStr = typeof peerId === 'string' ? peerId : peerId.toString()
+    const removed = this.direct.delete(peerIdStr)
+
+    if (removed) {
+      this.log('removeDirectPeer: removed %s from direct peers', peerIdStr)
+    } else {
+      this.log('removeDirectPeer: peer %s was not a direct peer', peerIdStr)
+    }
+
+    return removed
+  }
+
+  /**
+   * Get the list of current direct peer IDs.
+   *
+   * @returns Array of direct peer ID strings
+   */
+  getDirectPeers (): PeerIdStr[] {
+    return Array.from(this.direct)
+  }
 }
 
 export function gossipsub (
