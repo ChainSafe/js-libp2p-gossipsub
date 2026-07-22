@@ -1,3 +1,7 @@
+This package is now managed as part of the [js-libp2p](https://github.com/libp2p/js-libp2p) monorepo and is published on npm as `@libp2p/gossipsub`.
+
+---
+
 # js-libp2p-gossipsub
 
 [![](https://img.shields.io/badge/made%20by-ChainSafe-blue.svg?style=flat-square)](https://chainsafe.io/)
