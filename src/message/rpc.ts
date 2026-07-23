@@ -190,6 +190,15 @@ export namespace RPC {
     export const decode = (buf: Uint8Array | Uint8ArrayList, opts?: DecodeOptions<Message>): Message => {
       return decodeMessage(buf, Message.codec(), opts)
     }
+
+    export const getSize = (msg: Message): number => {
+      return (msg.from?.length ?? 0) +
+        (msg.data?.length ?? 0) +
+        (msg.seqno?.length ?? 0) +
+        (msg.topic?.length ?? 0) +
+        (msg.signature?.length ?? 0) +
+        (msg.key?.length ?? 0)
+    }
   }
 
   export interface ControlMessage {
