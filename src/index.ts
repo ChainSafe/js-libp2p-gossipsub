@@ -844,7 +844,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
     // TODO make this behavior more robust
     // This behavior is different than for inbound streams
     // If an outbound stream already exists, don't create a new stream
-    if (this.streamsOutbound.has(id)) {
+    if (this.streamsOutbound.get(id)?.rawStream?.status === "open") {
       return
     }
 
@@ -1834,7 +1834,7 @@ export class GossipSub extends TypedEventEmitter<GossipsubEvents> implements Pub
   private async directConnect (): Promise<void> {
     const toconnect: string[] = []
     this.direct.forEach((id) => {
-      if (!this.streamsOutbound.has(id)) {
+      if (this.streamsOutbound.get(id)?.rawStream?.status !== "open") {
         toconnect.push(id)
       }
     })
