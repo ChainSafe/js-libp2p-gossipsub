@@ -15,6 +15,13 @@
 * chore: update cd action by @mpetrunic in https://github.com/ChainSafe/js-libp2p-gossipsub/pull/245
 
 
+## [14.1.3](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v14.1.2...v14.1.3) (2025-12-08)
+
+
+### Miscellaneous
+
+* migrate `npm` to `pnpm` ([#538](https://github.com/ChainSafe/js-libp2p-gossipsub/issues/538)) ([255a175](https://github.com/ChainSafe/js-libp2p-gossipsub/commit/255a1752e32725a91744ab39ca63b6da7ceb61ed))
+
 ## [14.1.2](https://github.com/ChainSafe/js-libp2p-gossipsub/compare/v14.1.1...v14.1.2) (2025-09-18)
 
 
