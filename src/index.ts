@@ -75,9 +75,10 @@ import type {
   Logger,
   ComponentLogger,
   Topology,
-  PrivateKey
+  PrivateKey,
+  IncomingStreamData
 } from '@libp2p/interface'
-import type { ConnectionManager, IncomingStreamData, Registrar } from '@libp2p/interface-internal'
+import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import type { Uint8ArrayList } from 'uint8arraylist'
 
