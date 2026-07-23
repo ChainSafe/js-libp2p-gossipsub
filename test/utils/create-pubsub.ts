@@ -1,6 +1,5 @@
-import { setMaxListeners } from 'events'
 import { generateKeyPair } from '@libp2p/crypto/keys'
-import { TypedEventEmitter, start } from '@libp2p/interface'
+import { TypedEventEmitter, setMaxListeners, start } from '@libp2p/interface'
 import { mockRegistrar, mockConnectionManager, mockNetwork } from '@libp2p/interface-compliance-tests/mocks'
 import { defaultLogger } from '@libp2p/logger'
 import { peerIdFromPrivateKey } from '@libp2p/peer-id'
@@ -55,10 +54,7 @@ export const createComponents = async (opts: CreateComponentsOpts): Promise<Goss
 
   mockNetwork.addNode(components)
 
-  try {
-    // not available everywhere
-    setMaxListeners(Infinity, pubsub)
-  } catch {}
+  setMaxListeners(Infinity, pubsub)
 
   return { pubsub, components }
 }
