@@ -7,14 +7,19 @@ on:
     branches:
       - '**'
 
+permissions:
+  id-token: write       # Required for OIDC
+  contents: write       # Required to create a Github release
+  pull-requests: write  # Required to add tags to pull requests      
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v6
         with:
           node-version: lts/*
       - run: pnpm install
@@ -31,10 +36,10 @@ jobs:
         node: [lts/*]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4      
-      - uses: actions/setup-node@v2
+        uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
       - run: pnpm install
@@ -49,10 +54,10 @@ jobs:
         node: [lts/*]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4      
-      - uses: actions/setup-node@v2
+        uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
       - run: pnpm install
@@ -61,10 +66,10 @@ jobs:
     needs: check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4      
-      - uses: actions/setup-node@v2
+        uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: lts/*
       - run: pnpm install
@@ -73,10 +78,10 @@ jobs:
     needs: check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4      
-      - uses: actions/setup-node@v2
+        uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: lts/*
       - run: pnpm install
@@ -87,24 +92,23 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: [check, test-node, test-chrome]
     steps:
-      - uses: google-github-actions/release-please-action@v3
+      - uses: googleapis/release-please-action@v4
         id: release
         with:
           release-type: node
           package-name: release-please-action
           changelog-types: '[{"type":"feat","section":"Features","hidden":false},{"type":"fix","section":"Bug Fixes","hidden":false},{"type":"chore","section":"Miscellaneous","hidden":false}]'
 
-      - uses: actions/checkout@v3
-        if: ${{ steps.release.outputs.release_created }}
-
-      - uses: actions/setup-node@v3
-        with:
-          node-version: lts/*
-          registry-url: 'https://registry.npmjs.org'
+      - uses: actions/checkout@v6
         if: ${{ steps.release.outputs.release_created }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4        
+        if: ${{ steps.release.outputs.release_created }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
         if: ${{ steps.release.outputs.release_created }}
 
       - run: pnpm install
@@ -113,7 +117,5 @@ jobs:
       - run: pnpm build
         if: ${{ steps.release.outputs.release_created }}
 
-      - run: pnpm publish --access public
+      - run: pnpm publish --access public --provenance
         if: ${{ steps.release.outputs.release_created }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
